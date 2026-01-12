@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary brand color -->
+    <color name="primary_color">#6366F1</color>
+    <color name="primary_dark">#4F46E5</color>
+    <color name="primary_light">#818CF8</color>
+    
+    <!-- Background colors -->
+    <color name="background_light">#FAFAFA</color>
+    <color name="background_dark">#0A0A0A</color>
+    
+    <!-- Surface colors -->
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_dark">#1A1A1A</color>
+    
+    <!-- Launcher background -->
+    <color name="ic_launcher_background">#6366F1</color>
+</resources>

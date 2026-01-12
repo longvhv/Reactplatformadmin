@@ -1,0 +1,11 @@
+<!-- This is a placeholder. Replace with actual PNG image -->
+<!-- To add your splash screen image:
+     1. Create a PNG image (preferably 512x512 or larger)
+     2. Place it in this directory as 'launch_image.png'
+     3. Create different sizes for different screen densities:
+        - drawable-mdpi/launch_image.png (48x48)
+        - drawable-hdpi/launch_image.png (72x72)
+        - drawable-xhdpi/launch_image.png (96x96)
+        - drawable-xxhdpi/launch_image.png (144x144)
+        - drawable-xxxhdpi/launch_image.png (192x192)
+-->
