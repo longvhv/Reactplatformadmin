@@ -1,6 +1,6 @@
 import { useLocation, Link } from "react-router-dom";
 import { Home, ChevronRight } from "lucide-react";
-import { useTranslation } from "../../providers/LanguageProvider";
+import { useLanguage } from "../../providers/LanguageProvider";
 
 /**
  * Breadcrumb Navigation - Inspired by GitHub
@@ -26,7 +26,7 @@ export const Breadcrumb = () => {
       .join(" ");
   };
 
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   return (
     <nav className="flex items-center gap-2 text-sm animate-in slide-in-from-left-2 duration-300">

@@ -1,7 +1,7 @@
 import { ModuleDefinition } from "../../core/ModuleRegistry";
 import { lazy, Suspense } from "react";
 import { LoadingFallback } from "../../components/LoadingFallback";
-import { Code2, FileText, Database } from "lucide-react";
+import { Code2, FileText, Database, BookOpen } from "lucide-react";
 
 /**
  * Lazy load Dev Docs pages
@@ -30,7 +30,7 @@ export const DevDocsModule: ModuleDefinition = {
   showInSidebar: false, // Hidden from sidebar
   routes: [
     {
-      path: "/dev-docs",
+      path: "/core/dev-docs",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải tài liệu..." />}>
           <DevDocsPage />
@@ -39,7 +39,7 @@ export const DevDocsModule: ModuleDefinition = {
       title: "Developer Docs",
     },
     {
-      path: "/api-docs",
+      path: "/core/api-docs",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải API docs..." />}>
           <ApiDocsPage />
@@ -48,7 +48,7 @@ export const DevDocsModule: ModuleDefinition = {
       title: "API Documentation",
     },
     {
-      path: "/database-docs",
+      path: "/core/database-docs",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải database docs..." />}>
           <DatabaseDocsPage />
@@ -61,25 +61,26 @@ export const DevDocsModule: ModuleDefinition = {
     {
       id: "dev-docs",
       label: "navigation.devDocs",
-      icon: <Code2 className="w-5 h-5" />,
+      icon: <BookOpen className="w-5 h-5" />,
+      path: "/core/dev-docs",
       children: [
         {
           id: "dev-overview",
           label: "Overview",
           icon: <FileText className="w-4 h-4" />,
-          path: "/dev-docs",
+          path: "/core/dev-docs",
         },
         {
           id: "api-docs",
           label: "API Docs",
           icon: <Code2 className="w-4 h-4" />,
-          path: "/api-docs",
+          path: "/core/api-docs",
         },
         {
           id: "database-docs",
           label: "Database",
           icon: <Database className="w-4 h-4" />,
-          path: "/database-docs",
+          path: "/core/database-docs",
         },
       ],
     },

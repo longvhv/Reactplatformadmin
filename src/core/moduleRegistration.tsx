@@ -16,6 +16,15 @@ import { SystemCategoryModule } from '../modules/system-category/index';
 import { UsersModule } from '../modules/user/index';
 import { HelpModule } from '../modules/help/index';
 import { DevDocsModule } from '../modules/dev-docs/index';
+import { TenantMembersModule } from '../modules/tenant-members/index';
+import { ApplicationsModule } from '../modules/applications/index';
+import { ProductsModule } from '../modules/products/index';
+import { ServicePackagesModule } from '../modules/service-packages/index';
+import { SubscriptionOrdersModule } from '../modules/subscription-orders/index';
+import { SubscriptionInvoicesModule } from '../modules/subscription-invoices/index';
+import { TenantSubscriptionsModule } from '../modules/tenant-subscriptions/index';
+import { SystemAnnouncementsModule } from '../modules/system-announcements/index';
+import { NotificationTemplatesModule } from '../modules/notification-templates/index';
 
 /**
  * Register all modules
@@ -26,7 +35,16 @@ export function registerAllModules(): void {
   // Register modules in order
   registry.register(DashboardModule);
   registry.register(TenantsModule);
+  registry.register(TenantMembersModule);
   registry.register(SystemCategoryModule);
+  registry.register(ApplicationsModule);
+  registry.register(ProductsModule);
+  registry.register(ServicePackagesModule);
+  registry.register(SubscriptionOrdersModule);
+  registry.register(SubscriptionInvoicesModule);
+  registry.register(TenantSubscriptionsModule);
+  registry.register(SystemAnnouncementsModule);
+  registry.register(NotificationTemplatesModule);
   registry.register(UsersModule);
   registry.register(HelpModule);
   registry.register(DevDocsModule);

@@ -2,15 +2,14 @@
  * Tenant API Layer
  * 
  * LocalStorage-based API for tenant management
- * Production: Replace with real backend API calls
+ * Updated to use new Tenant schema
+ * Production: Use /services/tenants-service.ts instead
  */
 
-import { Tenant, UsageMetric, Invoice, TenantStatus, SubscriptionTier } from '../data/tenants';
+import type { Tenant, TenantStatus, TenantTier } from '../data/tenants';
 import { mockTenants } from '../data/tenants';
 
 const STORAGE_KEY = 'saas_tenants';
-const USAGE_STORAGE_KEY = 'saas_usage_metrics';
-const INVOICE_STORAGE_KEY = 'saas_invoices';
 
 // Initialize localStorage with mock data
 function initStorage() {
@@ -29,27 +28,38 @@ export async function getAllTenants(): Promise<Tenant[]> {
 
 export async function getTenantById(id: string): Promise<Tenant | null> {
   const tenants = await getAllTenants();
-  return tenants.find(t => t.id === id) || null;
+  return tenants.find(t => t._id === id) || null;
 }
 
 export async function createTenant(tenant: Partial<Tenant>): Promise<Tenant> {
   const tenants = await getAllTenants();
   const newTenant: Tenant = {
-    id: `tenant-${Date.now()}`,
+    _id: `tenant-${Date.now()}`,
+    code: tenant.code || '',
     name: tenant.name || '',
-    slug: tenant.slug || '',
-    domain: tenant.domain || '',
-    subscriptionTier: tenant.subscriptionTier || 'starter',
-    subscriptionEndDate: tenant.subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    status: tenant.status || 'trial',
-    maxUsers: tenant.maxUsers || 10,
-    currentUsers: tenant.currentUsers || 0,
-    maxStorage: tenant.maxStorage || 10,
-    currentStorage: tenant.currentStorage || 0,
-    billingEmail: tenant.billingEmail || '',
-    phone: tenant.phone || '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    tier: tenant.tier || 'FREE',
+    status: tenant.status || 'TRIAL',
+    data_region: tenant.data_region || 'ap-southeast-1',
+    compliance_level: tenant.compliance_level || 'STANDARD',
+    parent_tenant_id: tenant.parent_tenant_id || null,
+    path: tenant.path || `/${Date.now()}/`,
+    billing_type: tenant.billing_type || 'POSTPAID',
+    timezone: tenant.timezone || 'UTC',
+    profile: tenant.profile || {},
+    settings: tenant.settings || {
+      max_users: 10,
+      max_storage: 10,
+      current_users: 0,
+      current_storage: 0,
+      mfa_enforced: false,
+      sso_enabled: false,
+      custom_branding: false,
+      api_access: false,
+      features: [],
+    },
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    version: 1,
   };
   tenants.push(newTenant);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tenants));
@@ -58,13 +68,13 @@ export async function createTenant(tenant: Partial<Tenant>): Promise<Tenant> {
 
 export async function updateTenant(id: string, updates: Partial<Tenant>): Promise<Tenant | null> {
   const tenants = await getAllTenants();
-  const index = tenants.findIndex(t => t.id === id);
+  const index = tenants.findIndex(t => t._id === id);
   if (index === -1) return null;
 
   tenants[index] = {
     ...tenants[index],
     ...updates,
-    updatedAt: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tenants));
   return tenants[index];
@@ -72,7 +82,7 @@ export async function updateTenant(id: string, updates: Partial<Tenant>): Promis
 
 export async function deleteTenant(id: string): Promise<boolean> {
   const tenants = await getAllTenants();
-  const filtered = tenants.filter(t => t.id !== id);
+  const filtered = tenants.filter(t => t._id !== id);
   if (filtered.length === tenants.length) return false;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
   return true;
@@ -84,16 +94,43 @@ export async function updateTenantStatus(id: string, status: TenantStatus): Prom
 
 export async function upgradeTenantSubscription(
   id: string,
-  tier: SubscriptionTier,
+  tier: TenantTier,
   endDate: string
 ): Promise<Tenant | null> {
   return updateTenant(id, {
-    subscriptionTier: tier,
-    subscriptionEndDate: endDate,
+    tier,
+    subscription_end_date: endDate,
   });
 }
 
 // === USAGE METRICS ===
+
+// Legacy type for backward compatibility
+export type SubscriptionTier = 'free' | 'starter' | 'professional' | 'enterprise';
+export interface UsageMetric {
+  tenantId: string;
+  date: string;
+  activeUsers: number;
+  storageUsed: number;
+  apiCalls: number;
+  bandwidth: number;
+}
+export interface Invoice {
+  id: string;
+  tenantId: string;
+  invoiceNumber: string;
+  amount: number;
+  currency: string;
+  status: 'paid' | 'pending' | 'overdue' | 'cancelled';
+  billingPeriod: { start: string; end: string };
+  items: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
+  issueDate: string;
+  dueDate: string;
+  paidDate?: string;
+}
+
+const USAGE_STORAGE_KEY = 'saas_usage_metrics';
+const INVOICE_STORAGE_KEY = 'saas_invoices';
 
 export async function getUsageMetrics(tenantId: string, days: number = 30): Promise<UsageMetric[]> {
   const data = localStorage.getItem(USAGE_STORAGE_KEY);
@@ -165,8 +202,8 @@ export interface TenantAnalytics {
   trialTenants: number;
   suspendedTenants: number;
   totalRevenue: number;
-  mrr: number; // Monthly Recurring Revenue
-  arr: number; // Annual Recurring Revenue
+  mrr: number;
+  arr: number;
   averageUsersPerTenant: number;
   totalStorageUsed: number;
   subscriptionBreakdown: Record<SubscriptionTier, number>;
@@ -182,19 +219,19 @@ export async function getTenantAnalytics(): Promise<TenantAnalytics> {
   
   return {
     totalTenants: tenants.length,
-    activeTenants: tenants.filter(t => t.status === 'active').length,
-    trialTenants: tenants.filter(t => t.status === 'trial').length,
-    suspendedTenants: tenants.filter(t => t.status === 'suspended').length,
+    activeTenants: tenants.filter(t => t.status === 'ACTIVE').length,
+    trialTenants: tenants.filter(t => t.status === 'TRIAL').length,
+    suspendedTenants: tenants.filter(t => t.status === 'SUSPENDED').length,
     totalRevenue,
-    mrr: totalRevenue / 12, // Simplified calculation
+    mrr: totalRevenue / 12,
     arr: totalRevenue,
-    averageUsersPerTenant: tenants.reduce((sum, t) => sum + t.currentUsers, 0) / tenants.length || 0,
-    totalStorageUsed: tenants.reduce((sum, t) => sum + t.currentStorage, 0),
+    averageUsersPerTenant: tenants.reduce((sum, t) => sum + (t.settings?.current_users || 0), 0) / tenants.length || 0,
+    totalStorageUsed: tenants.reduce((sum, t) => sum + (t.settings?.current_storage || 0), 0),
     subscriptionBreakdown: {
-      free: tenants.filter(t => t.subscriptionTier === 'free').length,
-      starter: tenants.filter(t => t.subscriptionTier === 'starter').length,
-      professional: tenants.filter(t => t.subscriptionTier === 'professional').length,
-      enterprise: tenants.filter(t => t.subscriptionTier === 'enterprise').length,
+      free: tenants.filter(t => t.tier === 'FREE').length,
+      starter: tenants.filter(t => t.tier === 'PRO').length,
+      professional: tenants.filter(t => t.tier === 'ENTERPRISE').length,
+      enterprise: tenants.filter(t => t.tier.startsWith('PARTNER_')).length,
     },
   };
 }

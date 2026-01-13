@@ -13,7 +13,7 @@ export const UsersModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: "/users",
+      path: "/core/users",
       element: <div className="p-6"><h1>Users Management (Coming Soon)</h1></div>,
       title: "Users",
     },
@@ -23,7 +23,7 @@ export const UsersModule: ModuleDefinition = {
       id: "users",
       label: "navigation.users",
       icon: <Users className="w-5 h-5" />,
-      path: "/users",
+      path: "/core/users",
     },
   ],
 };

@@ -501,7 +501,7 @@
 | 498 | saas\_products | \_id | UUID | NO  |     | PRIMARY KEY | Định danh duy nhất chuẩn UUID v7, hỗ trợ sắp xếp theo thời gian và tối ưu sharding,. |
 | 499 | saas\_products | code | VARCHAR(50) | NO  |     | UNIQUE, CHECK (~ '^\[a-z0-9-\]+$') | Mã dòng sản phẩm (Slug). Ví dụ: hrm-suite, crm-platform. Chỉ chứa chữ thường, số và gạch ngang,. |
 | 500 | saas\_products | name | TEXT | NO  |     | CHECK (length(name) > 0) | Tên sản phẩm hiển thị. |
-| 501 | saas\_products | product\_type | VARCHAR(20) | NO  | APP' | CHECK (product\_type IN ('APP', 'DOMAIN', 'SSL', 'SERVICE')) | Phân loại sản phẩm để xử lý logic: Ứng dụng, Tên miền, SSL hoặc Dịch vụ tư vấn. |
+| 501 | saas\_products | product\_type | VARCHAR(20) | NO  | APP' | REFERENCES saas\_product\_types(code) | Phân loại sản phẩm để xử lý logic: Ứng dụng, Tên miền, SSL hoặc Dịch vụ tư vấn. |
 | 502 | saas\_products | description | TEXT | YES | NULL |     | Mô tả chi tiết sản phẩm. Dùng TEXT để không giới hạn độ dài,. |
 | 503 | saas\_products | base\_price | NUMERIC(19,4) | NO  | 0   | CHECK (base\_price >= 0) | Giá niêm yết cơ bản. Sử dụng NUMERIC để đảm bảo chính xác tuyệt đối trong tài chính,. |
 | 504 | saas\_products | currency | VARCHAR(3) | NO  | VND' | CHECK (length(currency) = 3) | Mã tiền tệ theo chuẩn ISO 4217 (VND, USD,...),. |

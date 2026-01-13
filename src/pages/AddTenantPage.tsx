@@ -1,12 +1,19 @@
-import { TenantForm } from "@/components/tenants/TenantForm";
-import { createTenant } from "@/api/tenantApi";
-import { Tenant } from "@/data/tenants";
+/**
+ * AddTenantPage
+ * Wrapper for creating new tenant
+ */
 
-export function AddTenantPage() {
-  const handleSubmit = async (data: Partial<Tenant>) => {
-    // API call to create tenant
-    await createTenant(data);
-  };
+import { TenantForm } from '@/components/tenants/TenantForm';
+import { useTenants } from '@/hooks/useTenants';
 
-  return <TenantForm onSubmit={handleSubmit} isEdit={false} />;
+export default function AddTenantPage() {
+  const { createTenant, tenants } = useTenants({ autoLoad: true });
+
+  return (
+    <TenantForm
+      tenants={tenants}
+      onSubmit={createTenant}
+      isEdit={false}
+    />
+  );
 }

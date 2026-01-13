@@ -34,6 +34,7 @@ function getNestedProperty(obj: any, path: string): any {
 
 /**
  * Replace placeholders in translation string
+ * Supports both {key} and {{key}} formats
  */
 function replacePlaceholders(
   text: string,
@@ -42,7 +43,12 @@ function replacePlaceholders(
   if (!params) return text;
 
   return Object.entries(params).reduce((result, [key, value]) => {
-    return result.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
+    // Support both {key} and {{key}} formats
+    const singleBraceRegex = new RegExp(`{${key}}`, 'g');
+    const doubleBraceRegex = new RegExp(`{{${key}}}`, 'g');
+    return result
+      .replace(singleBraceRegex, String(value))
+      .replace(doubleBraceRegex, String(value));
   }, text);
 }
 

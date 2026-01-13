@@ -34,7 +34,7 @@ export const TenantsModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: "/tenants",
+      path: "/core/tenants",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Tenants..." />}>
           <TenantsPage />
@@ -43,7 +43,7 @@ export const TenantsModule: ModuleDefinition = {
       title: "Tenants",
     },
     {
-      path: "/tenants/add",
+      path: "/core/tenants/add",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddTenantPage />
@@ -52,7 +52,7 @@ export const TenantsModule: ModuleDefinition = {
       title: "Add Tenant",
     },
     {
-      path: "/tenants/edit/:id",
+      path: "/core/tenants/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditTenantPage />
@@ -61,7 +61,7 @@ export const TenantsModule: ModuleDefinition = {
       title: "Edit Tenant",
     },
     {
-      path: "/tenants/:id",
+      path: "/core/tenants/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <TenantDetailPage />
@@ -75,7 +75,7 @@ export const TenantsModule: ModuleDefinition = {
       id: "tenants",
       label: "navigation.tenants",
       icon: <Building2 className="w-5 h-5" />,
-      path: "/tenants",
+      path: "/core/tenants",
     },
   ],
 };

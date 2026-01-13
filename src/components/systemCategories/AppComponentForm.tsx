@@ -111,7 +111,7 @@ export function AppComponentForm({
       metadata: {
         _id: formData._id.trim(),
         title: formData.title.trim(),
-        parentId: formData.parentId || null,
+        parentId: formData.parentId === '__none__' ? null : (formData.parentId || null),
         isActive: formData.isActive,
       },
     };
@@ -175,7 +175,7 @@ export function AppComponentForm({
             <SelectValue placeholder="Select parent component (optional)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None (Root Level)</SelectItem>
+            <SelectItem value="__none__">None (Root Level)</SelectItem>
             {parentComponents
               .filter((c) => c.id !== category?.id)
               .map((component) => (

@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import { projectId, publicAnonKey } from './info';
+/**
+ * Supabase Client
+ * Re-exports the singleton instance from /lib/supabase
+ */
 
-const supabaseUrl = `https://${projectId}.supabase.co`;
-
-export const supabase = createClient(supabaseUrl, publicAnonKey);
+export { supabase, getSupabaseClient } from '../../lib/supabase';

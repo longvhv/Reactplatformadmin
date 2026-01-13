@@ -22,7 +22,7 @@ export const HelpModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: "/help",
+      path: "/core/help",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải trợ giúp..." />}>
           <HelpPage />
@@ -36,7 +36,7 @@ export const HelpModule: ModuleDefinition = {
       id: "help",
       label: "navigation.help",
       icon: <HelpCircle className="w-5 h-5" />,
-      path: "/help",
+      path: "/core/help",
     },
   ],
 };

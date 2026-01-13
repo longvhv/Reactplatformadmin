@@ -54,7 +54,7 @@ export const SystemCategoryModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: "/system-categories",
+      path: "/core/system-categories",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải danh mục..." />}>
           <SystemCategoriesPage />
@@ -63,7 +63,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "System Categories",
     },
     {
-      path: "/system-categories/add",
+      path: "/core/system-categories/add",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddSystemCategoryPage />
@@ -72,7 +72,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Add System Category",
     },
     {
-      path: "/system-categories/edit/:id",
+      path: "/core/system-categories/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditSystemCategoryPage />
@@ -81,7 +81,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Edit System Category",
     },
     {
-      path: "/app-components",
+      path: "/core/app-components",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải components..." />}>
           <AppComponentsPage />
@@ -90,7 +90,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "App Components",
     },
     {
-      path: "/app-components/add",
+      path: "/core/app-components/add",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddAppComponentPage />
@@ -99,7 +99,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Add App Component",
     },
     {
-      path: "/app-components/edit/:id",
+      path: "/core/app-components/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditAppComponentPage />
@@ -108,7 +108,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Edit App Component",
     },
     {
-      path: "/regions",
+      path: "/core/regions",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải regions..." />}>
           <RegionsPage />
@@ -117,7 +117,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Regions",
     },
     {
-      path: "/regions/add",
+      path: "/core/regions/add",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddRegionPage />
@@ -126,7 +126,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Add Region",
     },
     {
-      path: "/regions/edit/:id",
+      path: "/core/regions/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditRegionPage />
@@ -140,7 +140,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       id: "system-categories",
       label: "navigation.systemCategories",
       icon: <FolderTree className="w-5 h-5" />,
-      path: "/system-categories",
+      path: "/core/system-categories",
     },
   ],
 };

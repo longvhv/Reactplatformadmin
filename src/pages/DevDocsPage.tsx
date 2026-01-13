@@ -20,6 +20,7 @@ import { ApiEndpoint } from '../components/api/ApiEndpoint';
 import { DatabaseTable } from '../components/database/DatabaseTable';
 import { ERDiagram } from '../components/database/ERDiagram';
 import { UsecaseCard } from '../components/usecases/UsecaseCard';
+import { SeedDataButton } from '../components/SeedDataButton';
 import { openApiSpec } from '../data/openapi';
 import { databaseSchema, erdDiagram } from '../data/database-schema';
 import { usecases, usecaseCategories, Usecase } from '../data/usecases';
@@ -222,7 +223,7 @@ export function DevDocsPage() {
           {/* Tables Tab */}
           <TabsContent value="tables" className="space-y-6">
             {/* Stats Card */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-card rounded-xl border border-border/40 p-6">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
@@ -240,9 +241,9 @@ export function DevDocsPage() {
                     <BookOpen className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">{t('database.totalColumns')}</p>
+                    <p className="text-sm text-muted-foreground">GLOBAL Tables</p>
                     <p className="text-2xl font-bold">
-                      {databaseSchema.reduce((sum, table) => sum + table.columns.length, 0)}
+                      {databaseSchema.filter(t => t.tableType === 'GLOBAL').length}
                     </p>
                   </div>
                 </div>
@@ -253,12 +254,22 @@ export function DevDocsPage() {
                     <GitBranch className="w-5 h-5 text-indigo-600" />
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">{t('database.relationships')}</p>
+                    <p className="text-sm text-muted-foreground">TENANT-SPECIFIC</p>
                     <p className="text-2xl font-bold">
-                      {databaseSchema.reduce(
-                        (sum, table) => sum + table.columns.filter((c) => c.foreignKey).length,
-                        0
-                      )}
+                      {databaseSchema.filter(t => t.tableType === 'TENANT-SPECIFIC').length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-card rounded-xl border border-border/40 p-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/10">
+                    <BookOpen className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t('database.totalColumns')}</p>
+                    <p className="text-2xl font-bold">
+                      {databaseSchema.reduce((sum, table) => sum + table.columns.length, 0)}
                     </p>
                   </div>
                 </div>

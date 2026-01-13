@@ -1,13 +1,12 @@
 /**
  * Language Test Component
- * Simple component to test if language switching works
+ * Component to test language switching functionality
  */
 
-import { useTranslation, useLanguage } from '../providers/LanguageProvider';
+import { useLanguage } from '../providers/LanguageProvider';
 
 export function LanguageTest() {
-  const { t } = useTranslation();
-  const { language } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <div className="fixed bottom-4 right-4 bg-card border border-border rounded-lg p-4 shadow-lg z-50">

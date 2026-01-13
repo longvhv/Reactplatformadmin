@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
-import { Search, X, Command, BarChart, User, Settings, FileText, HelpCircle, Zap, ArrowRight, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, X, Command } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { useTranslation } from "../../providers/LanguageProvider";
+import { useLanguage } from "../../providers/LanguageProvider";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ interface Command {
 export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   // Mock commands - In production, this would be dynamic
   const allCommands: Command[] = [
@@ -34,7 +34,7 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
       id: "dashboard",
       title: t.navigation.dashboard,
       subtitle: t.dashboard.overview,
-      icon: BarChart,
+      icon: Command,
       category: "Navigation",
       action: () => window.location.href = "/",
       keywords: ["home", "dashboard", "overview"],
@@ -43,7 +43,7 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
       id: "settings",
       title: t.navigation.settings,
       subtitle: t.settings.general,
-      icon: Settings,
+      icon: Command,
       category: "Navigation",
       action: () => window.location.href = "/settings",
       keywords: ["settings", "preferences", "config"],

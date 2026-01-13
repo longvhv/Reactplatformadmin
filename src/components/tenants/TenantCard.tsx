@@ -6,7 +6,8 @@
 
 import { Building2, Users, HardDrive, Calendar, Mail, Phone, Globe, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Tenant, tenantStatusColors, subscriptionTierColors } from '../../data/tenants';
+import type { Tenant } from '../../data/tenants';
+import { tenantStatusColors, tenantTierColors } from '../../utils/tenant-utils';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { useLanguage } from '../../providers/LanguageProvider';
@@ -29,13 +30,27 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const storagePercent = (tenant.currentStorage / tenant.maxStorage) * 100;
-  const usersPercent = (tenant.currentUsers / tenant.maxUsers) * 100;
+  // Defensive: Ensure settings exists
+  const settings = tenant.settings || {
+    current_storage: 0,
+    max_storage: 100,
+    current_users: 0,
+    max_users: 10,
+  };
+
+  const profile = tenant.profile || {};
+
+  const storagePercent = settings.max_storage > 0 
+    ? (settings.current_storage / settings.max_storage) * 100 
+    : 0;
+  const usersPercent = settings.max_users > 0 
+    ? (settings.current_users / settings.max_users) * 100 
+    : 0;
 
   return (
     <div 
       className="bg-card rounded-xl border border-border/40 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer"
-      onClick={() => navigate(`/tenants/${tenant.id}`)}
+      onClick={() => navigate(`/core/tenants/${tenant._id}`)}
     >
       <div className="space-y-4">
         {/* Header */}
@@ -47,11 +62,11 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-lg font-semibold truncate">{tenant.name}</h3>
-                {tenant.domain && (
+                {profile.domain && (
                   <Globe className="w-4 h-4 text-muted-foreground shrink-0" />
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">@{tenant.slug}</p>
+              <p className="text-sm text-muted-foreground">/{tenant.code}</p>
             </div>
           </div>
 
@@ -83,7 +98,7 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
                 <DropdownMenuSeparator />
                 {onDelete && (
                   <DropdownMenuItem 
-                    onClick={(e) => { e.stopPropagation(); onDelete(tenant.id); }}
+                    onClick={(e) => { e.stopPropagation(); onDelete(tenant._id); }}
                     className="text-destructive"
                   >
                     {t('common.delete')}
@@ -96,13 +111,15 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
 
         {/* Subscription Info */}
         <div className="flex items-center gap-2">
-          <Badge className={`${subscriptionTierColors[tenant.subscriptionTier]} text-white`}>
-            {t(`tenants.tier.${tenant.subscriptionTier}`)}
+          <Badge className={`${tenantTierColors[tenant.tier]} text-white`}>
+            {t(`tenants.tier.${tenant.tier}`)}
           </Badge>
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            <span>{t('tenants.until')}: {new Date(tenant.subscriptionEndDate).toLocaleDateString('vi-VN')}</span>
-          </div>
+          {settings.subscription_end_date && (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Calendar className="w-4 h-4" />
+              <span>{t('tenants.until')}: {new Date(settings.subscription_end_date).toLocaleDateString('vi-VN')}</span>
+            </div>
+          )}
         </div>
 
         {/* Usage Stats */}
@@ -115,7 +132,7 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
                 <span className="font-medium">{t('tenants.users')}</span>
               </div>
               <span className="text-muted-foreground">
-                {tenant.currentUsers}/{tenant.maxUsers}
+                {settings.current_users}/{settings.max_users}
               </span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
@@ -136,7 +153,7 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
                 <span className="font-medium">{t('tenants.storage')}</span>
               </div>
               <span className="text-muted-foreground">
-                {tenant.currentStorage}/{tenant.maxStorage} GB
+                {settings.current_storage}/{settings.max_storage} GB
               </span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2">
@@ -152,14 +169,16 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
 
         {/* Contact Info */}
         <div className="pt-4 border-t border-border/40 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Mail className="w-4 h-4" />
-            <span className="truncate">{tenant.billingEmail}</span>
-          </div>
-          {tenant.phone && (
+          {profile.billing_email && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="w-4 h-4" />
+              <span className="truncate">{profile.billing_email}</span>
+            </div>
+          )}
+          {profile.phone && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="w-4 h-4" />
-              <span>{tenant.phone}</span>
+              <span>{profile.phone}</span>
             </div>
           )}
         </div>

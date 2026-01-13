@@ -151,3 +151,92 @@ export type Optional<T> = T | undefined;
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
+
+// ============================================
+// DEPARTMENT TYPES
+// ============================================
+
+export interface Department {
+  _id: string;
+  tenant_id: string;
+  code: string;
+  name: string;
+  parent_department_id?: string | null;
+  manager_id?: string | null;
+  description?: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  order?: number;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  version: number;
+}
+
+export interface DepartmentMember {
+  _id: string;
+  tenant_id: string;
+  department_id: string;
+  tenant_member_id: string;
+  is_primary: boolean;
+  role_in_department?: string | null;
+  joined_at?: string | null;
+  left_at?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  version: number;
+}
+
+export type DepartmentStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+
+// ============================================
+// USER GROUP TYPES
+// ============================================
+
+export interface UserGroup {
+  _id: string;
+  tenant_id: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  group_type?: string | null;
+  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+  order?: number;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  version: number;
+}
+
+export interface GroupMember {
+  _id: string;
+  tenant_id: string;
+  user_group_id: string;
+  tenant_member_id: string;
+  is_primary: boolean;
+  role_in_group?: string | null;
+  joined_at?: string | null;
+  left_at?: string | null;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  created_by?: string | null;
+  updated_by?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+  version: number;
+}
+
+export type UserGroupStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';

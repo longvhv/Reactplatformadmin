@@ -138,7 +138,7 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/dev-docs')}>
+              <DropdownMenuItem onClick={() => navigate('/core/dev-docs')}>
                 <FileCode className="mr-2 h-4 w-4" />
                 {t('navigation.devDocs')}
               </DropdownMenuItem>

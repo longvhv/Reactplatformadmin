@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { TableSchema } from "../../data/database-schema";
-import { Table as TableIcon, Key, Link2, Database } from "lucide-react";
+import { Table as TableIcon, Key, Link2, Database, Globe, Building2 } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";
 
 interface DatabaseTableProps {
@@ -135,10 +135,24 @@ export const DatabaseTable = memo(({ table, compact = false }: DatabaseTableProp
             <TableIcon className="w-5 h-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg flex items-center gap-2 mb-1">
-              <Database className="w-4 h-4 text-primary" />
-              <code className="text-primary">{table.name}</code>
-            </h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Database className="w-4 h-4 text-primary" />
+                <code className="text-primary">{table.name}</code>
+              </h3>
+              {/* Table Type Badge */}
+              {table.tableType === 'GLOBAL' ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                  <Globe className="w-3 h-3" />
+                  GLOBAL
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                  <Building2 className="w-3 h-3" />
+                  TENANT-SPECIFIC
+                </span>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">{table.description}</p>
           </div>
         </div>

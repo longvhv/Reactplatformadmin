@@ -7,7 +7,7 @@ import { Settings, Globe, Shield, Bell, Database, Sliders } from "lucide-react";
  * Lazy load Settings page component
  */
 const SettingsPage = lazy(() => 
-  import("./SettingsPage").then(module => ({ default: module.SettingsPage }))
+  import("../../pages/SettingsPage").then(module => ({ default: module.SettingsPage }))
 );
 
 /**
@@ -24,7 +24,7 @@ export const SettingsModule: ModuleConfig = {
   showInSidebar: true, // Show menu items in sidebar
   routes: [
     {
-      path: "/settings",
+      path: "/core/settings",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải cài đặt..." />}>
           <SettingsPage />
@@ -38,7 +38,7 @@ export const SettingsModule: ModuleConfig = {
       id: "settings",
       label: "navigation.settings",
       icon: <Settings className="w-5 h-5" />,
-      path: "/settings",
+      path: "/core/settings",
     },
   ],
 };

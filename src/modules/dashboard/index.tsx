@@ -24,7 +24,7 @@ export const DashboardModule: ModuleConfig = {
   showInSidebar: true, // Show menu items in sidebar
   routes: [
     {
-      path: "/",
+      path: "/core",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Dashboard..." />}>
           <DashboardPage />
@@ -38,7 +38,7 @@ export const DashboardModule: ModuleConfig = {
       id: "dashboard",
       label: "navigation.dashboard",
       icon: <LayoutDashboard className="w-5 h-5" />,
-      path: "/dashboard",
+      path: "/core/dashboard",
     },
   ],
 };

@@ -3,7 +3,7 @@
  * Demonstrate internationalization usage
  */
 
-import { useTranslation, useLanguage } from '../providers/LanguageProvider';
+import { useLanguage } from '../providers/LanguageProvider';
 import { LanguageSwitcher } from '../components/common';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -16,17 +16,17 @@ import { SUPPORTED_LANGUAGES } from '../constants/languages';
  * Example 1: Basic Translation
  */
 export function BasicTranslationExample() {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   return (
     <Card className="p-6">
       <h3 className="font-semibold mb-4">Basic Translation</h3>
       <div className="space-y-2">
-        <p>{t.common.hello}</p>
-        <p>{t.common.welcome}</p>
+        <p>{t('common.hello')}</p>
+        <p>{t('common.welcome')}</p>
         <div className="flex gap-2">
-          <Button>{t.common.save}</Button>
-          <Button variant="outline">{t.common.cancel}</Button>
+          <Button>{t('common.save')}</Button>
+          <Button variant="outline">{t('common.cancel')}</Button>
         </div>
       </div>
     </Card>
@@ -37,7 +37,7 @@ export function BasicTranslationExample() {
  * Example 2: Dynamic Translation with Parameters
  */
 export function DynamicTranslationExample() {
-  const { translate } = useTranslation();
+  const { translate } = useLanguage();
   const [fieldName, setFieldName] = useState('Email');
   const [minLength, setMinLength] = useState(8);
 
@@ -100,7 +100,7 @@ export function LanguageSwitcherExample() {
  * Example 4: Form Validation
  */
 export function FormValidationExample() {
-  const { t, translate } = useTranslation();
+  const { t, translate } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -109,14 +109,14 @@ export function FormValidationExample() {
     const newErrors: Record<string, string> = {};
 
     if (!email) {
-      newErrors.email = translate('validation.required', { field: t.auth.email });
+      newErrors.email = translate('validation.required', { field: t('auth.email') });
     }
 
     if (!password) {
-      newErrors.password = translate('validation.required', { field: t.auth.password });
+      newErrors.password = translate('validation.required', { field: t('auth.password') });
     } else if (password.length < 8) {
       newErrors.password = translate('validation.minLength', { 
-        field: t.auth.password, 
+        field: t('auth.password'), 
         min: 8 
       });
     }
@@ -128,7 +128,7 @@ export function FormValidationExample() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      alert(t.auth.loginSuccess);
+      alert(t('auth.loginSuccess'));
     }
   };
 
@@ -137,12 +137,12 @@ export function FormValidationExample() {
       <h3 className="font-semibold mb-4">Form Validation</h3>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <Label>{t.auth.email}</Label>
+          <Label>{t('auth.email')}</Label>
           <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={t.auth.email}
+            placeholder={t('auth.email')}
           />
           {errors.email && (
             <p className="text-sm text-destructive mt-1">{errors.email}</p>
@@ -150,19 +150,19 @@ export function FormValidationExample() {
         </div>
 
         <div>
-          <Label>{t.auth.password}</Label>
+          <Label>{t('auth.password')}</Label>
           <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={t.auth.password}
+            placeholder={t('auth.password')}
           />
           {errors.password && (
             <p className="text-sm text-destructive mt-1">{errors.password}</p>
           )}
         </div>
 
-        <Button type="submit">{t.auth.login}</Button>
+        <Button type="submit">{t('auth.login')}</Button>
       </form>
     </Card>
   );
@@ -172,13 +172,13 @@ export function FormValidationExample() {
  * Example 5: Navigation Menu
  */
 export function NavigationMenuExample() {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   const menuItems = [
-    { label: t.navigation.dashboard, href: '/dashboard' },
-    { label: t.navigation.profile, href: '/profile' },
-    { label: t.navigation.settings, href: '/settings' },
-    { label: t.navigation.help, href: '/help' },
+    { label: t('navigation.dashboard'), href: '/dashboard' },
+    { label: t('navigation.profile'), href: '/profile' },
+    { label: t('navigation.settings'), href: '/settings' },
+    { label: t('navigation.help'), href: '/help' },
   ];
 
   return (
@@ -204,7 +204,7 @@ export function NavigationMenuExample() {
  * Example 6: Time Formatting
  */
 export function TimeFormattingExample() {
-  const { translate } = useTranslation();
+  const { translate } = useLanguage();
 
   const formatTime = (minutesAgo: number) => {
     if (minutesAgo < 1) return translate('time.justNow');
@@ -247,7 +247,7 @@ export function TimeFormattingExample() {
  */
 export function AllLanguagesExample() {
   const { language, setLanguage } = useLanguage();
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   return (
     <Card className="p-6">
@@ -268,7 +268,7 @@ export function AllLanguagesExample() {
             <div className="text-sm text-muted-foreground">{lang.name}</div>
             {language === lang.code && (
               <div className="mt-2 text-xs text-primary font-medium">
-                {t.common.select}ed
+                {t('common.select')}ed
               </div>
             )}
           </button>
@@ -282,13 +282,13 @@ export function AllLanguagesExample() {
  * Main Examples Page
  */
 export function I18nExamplesPage() {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-semibold mb-2">
-          {t.common.welcome} - i18n Examples
+          {t('common.welcome')} - i18n Examples
         </h1>
         <p className="text-muted-foreground">
           Real-world examples of internationalization

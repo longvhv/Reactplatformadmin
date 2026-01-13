@@ -69,8 +69,8 @@ export function EnhancedSystemCategoryForm({
   const loadGroupsAndCategories = async () => {
     try {
       const [groupsData, categoriesData] = await Promise.all([
-        systemCategoryApi.getGroups(),
-        systemCategoryApi.getCategories(),
+        systemCategoryApi.getAllGroups(),
+        systemCategoryApi.getAllTypes(),
       ]);
       console.log('Loaded groups:', groupsData);
       console.log('Loaded categories:', categoriesData);

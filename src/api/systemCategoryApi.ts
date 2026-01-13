@@ -90,7 +90,10 @@ export const systemCategoryApi = {
       .order('order');
     
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: CategoryStatusHelper.fromString(item.status),
+    }));
   },
 
   /**
@@ -101,11 +104,14 @@ export const systemCategoryApi = {
       .from(TABLE_NAME)
       .select('*')
       .eq('type', 'SYSTEM_CATEGORY_GROUP')
-      .eq('status', CategoryStatusHelper.ACTIVE)
+      .eq('status', 'active')
       .order('order');
     
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: CategoryStatusHelper.fromString(item.status),
+    }));
   },
 
   // ========== LEVEL 2: Types ==========
@@ -122,7 +128,10 @@ export const systemCategoryApi = {
       .order('order', { ascending: true });
     
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: CategoryStatusHelper.fromString(item.status),
+    }));
   },
 
   /**
@@ -134,11 +143,14 @@ export const systemCategoryApi = {
       .select('*')
       .eq('type', 'SYSTEM_CATEGORY_TYPE')
       .eq('group_category_id', groupCode)
-      .eq('status', CategoryStatusHelper.ACTIVE)
+      .eq('status', 'active')
       .order('order');
     
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: CategoryStatusHelper.fromString(item.status),
+    }));
   },
 
   /**
@@ -156,7 +168,10 @@ export const systemCategoryApi = {
       if (error.code === 'PGRST116') return null;
       throw new Error(error.message);
     }
-    return data;
+    return {
+      ...data,
+      status: CategoryStatusHelper.fromString(data.status),
+    };
   },
 
   // ========== LEVEL 3: Categories ==========
@@ -172,7 +187,10 @@ export const systemCategoryApi = {
       .order('order');
     
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: CategoryStatusHelper.fromString(item.status),
+    }));
   },
 
   /**
@@ -183,11 +201,14 @@ export const systemCategoryApi = {
       .from(TABLE_NAME)
       .select('*')
       .eq('type', typeCode)
-      .eq('status', CategoryStatusHelper.ACTIVE)
+      .eq('status', 'active')
       .order('order');
     
     if (error) throw new Error(error.message);
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: CategoryStatusHelper.fromString(item.status),
+    }));
   },
 
   /**
@@ -204,7 +225,10 @@ export const systemCategoryApi = {
       if (error.code === 'PGRST116') return null;
       throw new Error(error.message);
     }
-    return data;
+    return {
+      ...data,
+      status: CategoryStatusHelper.fromString(data.status),
+    };
   },
 
   /**
@@ -221,7 +245,10 @@ export const systemCategoryApi = {
       if (error.code === 'PGRST116') return null;
       throw new Error(error.message);
     }
-    return data;
+    return {
+      ...data,
+      status: CategoryStatusHelper.fromString(data.status),
+    };
   },
 
   // ========== CRUD Operations ==========
@@ -230,29 +257,55 @@ export const systemCategoryApi = {
    * Create a new category (any level)
    */
   create: async (data: Partial<SystemCategory>): Promise<SystemCategory> => {
+    // Convert status from number to string for database
+    const dbData = {
+      ...data,
+      status: typeof data.status === 'number' 
+        ? CategoryStatusHelper.toString(data.status as CategoryStatus)
+        : data.status,
+    };
+    
     const { data: result, error } = await supabase
       .from(TABLE_NAME)
-      .insert([data])
+      .insert([dbData])
       .select()
       .single();
     
     if (error) throw new Error(error.message);
-    return result;
+    
+    // Convert status back to number for frontend
+    return {
+      ...result,
+      status: CategoryStatusHelper.fromString(result.status),
+    };
   },
 
   /**
    * Update a category
    */
   update: async (id: string, data: Partial<SystemCategory>): Promise<SystemCategory> => {
+    // Convert status from number to string for database
+    const dbData = {
+      ...data,
+      status: typeof data.status === 'number' 
+        ? CategoryStatusHelper.toString(data.status as CategoryStatus)
+        : data.status,
+    };
+    
     const { data: result, error } = await supabase
       .from(TABLE_NAME)
-      .update(data)
+      .update(dbData)
       .eq('id', id)
       .select()
       .single();
     
     if (error) throw new Error(error.message);
-    return result;
+    
+    // Convert status back to number for frontend
+    return {
+      ...result,
+      status: CategoryStatusHelper.fromString(result.status),
+    };
   },
 
   /**
@@ -276,7 +329,7 @@ export const systemCategoryApi = {
   softDelete: async (id: string): Promise<void> => {
     const { error } = await supabase
       .from(TABLE_NAME)
-      .update({ status: CategoryStatusHelper.INACTIVE })
+      .update({ status: 'inactive' })
       .eq('id', id);
     
     if (error) throw new Error(error.message);
@@ -366,7 +419,7 @@ export const systemCategoryApi = {
     };
 
     data?.forEach(item => {
-      const isActive = item.status === CategoryStatusHelper.ACTIVE;
+      const isActive = item.status === 'active';
       
       if (item.type === 'SYSTEM_CATEGORY_GROUP') {
         stats.totalGroups++;

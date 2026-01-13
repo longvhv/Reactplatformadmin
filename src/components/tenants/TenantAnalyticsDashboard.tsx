@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { Building2, Users, DollarSign, TrendingUp, HardDrive, Activity } from 'lucide-react';
 import { getTenantAnalytics, TenantAnalytics } from '../../api/tenantApi';
 import { useLanguage } from '../../providers/LanguageProvider';
-import { subscriptionTierColors } from '../../data/tenants';
+import { tenantTierColors } from '../../utils/tenant-utils';
 
 export function TenantAnalyticsDashboard() {
   const { t } = useLanguage();
@@ -117,7 +117,7 @@ export function TenantAnalyticsDashboard() {
               </div>
               <div className="w-full bg-secondary rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full ${subscriptionTierColors[tier as keyof typeof subscriptionTierColors]}`}
+                  className={`h-2 rounded-full ${tenantTierColors[tier as keyof typeof tenantTierColors]}`}
                   style={{ width: `${(count / analytics.totalTenants) * 100}%` }}
                 />
               </div>

@@ -14,6 +14,7 @@ import {
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { SeedDataButton } from "../components/SeedDataButton";
 
 /**
  * Settings Page - Application settings
@@ -319,6 +320,9 @@ export function SettingsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Demo Data Management */}
+      <SeedDataButton />
     </div>
   );
 }

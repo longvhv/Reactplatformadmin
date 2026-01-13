@@ -77,10 +77,10 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
 
           <div className="flex items-center gap-2">
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
               className="gap-2"
-              onClick={() => navigate(`/tenants/edit/${tenant.id}`)}
+              onClick={() => navigate(`/core/tenants/edit/${tenant.id}`)}
             >
               <Settings className="w-4 h-4" />
               {t("tenants.editTenant")}

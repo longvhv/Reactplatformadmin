@@ -77,7 +77,7 @@ export default function SystemCategoryForm({
 
   const loadGroups = async () => {
     try {
-      const data = await systemCategoryApi.getGroups();
+      const data = await systemCategoryApi.getAllGroups();
       setGroups(data);
     } catch (error) {
       console.error('Failed to load groups:', error);
