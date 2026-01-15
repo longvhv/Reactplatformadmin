@@ -1,6 +1,7 @@
 /**
  * RateLimitsPage Component
  * Global Rate Limits Management Page
+ * ✅ UPDATED 2026-01-15: Unified statistics design
  */
 
 import React, { useState, useEffect } from 'react';
@@ -11,6 +12,7 @@ import {
 import { useTenantRateLimits } from '../hooks/useTenantRateLimits';
 import { RateLimitModal } from '../components/tenants/RateLimitModal';
 import { TenantRateLimit, ResourceType } from '../api/tenantRateLimitsApi';
+import { StatisticsCards, StatCard } from '../components/common/StatisticsCards';
 
 export function RateLimitsPage() {
   const { limits, loading, createLimit, updateLimit, enableLimit, disableLimit, resetUsage, deleteLimit, getStats } = useTenantRateLimits();
@@ -120,33 +122,22 @@ export function RateLimitsPage() {
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Rate Limits</h1>
-        <p className="text-gray-500">Quản lý rate limiting cho tất cả tenants</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Rate Limits</h1>
+        <p className="text-gray-500 dark:text-gray-400">Quản lý rate limiting cho tất cả tenants</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Tổng Limits</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Enabled</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{stats.enabled}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">API</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">{stats.api}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Alerts</p>
-          <p className="text-2xl font-bold text-orange-600 mt-1">{stats.alertsEnabled}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Exceeded</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">{stats.exceeded}</p>
-        </div>
-      </div>
+      <StatisticsCards 
+        stats={[
+          { label: 'Tổng Limits', value: stats.total, color: 'gray' },
+          { label: 'Enabled', value: stats.enabled, color: 'green' },
+          { label: 'API', value: stats.api, color: 'blue' },
+          { label: 'Alerts', value: stats.alertsEnabled, color: 'orange' },
+          { label: 'Exceeded', value: stats.exceeded, color: 'red' },
+        ]}
+        columns={5}
+        className="mb-6"
+      />
 
       {/* Filters & Actions */}
       <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">

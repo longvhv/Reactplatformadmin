@@ -21,7 +21,7 @@ const UserDelegationsPage = lazy(() => import('../../pages/UserDelegationsPage')
 
 export const UserDelegationsModule: ModuleDefinition = {
   id: 'user-delegations',
-  name: 'Ủy quyền',
+  name: 'navigation.userDelegations',
   description: 'Quản lý ủy quyền giữa các users',
   icon: <UserCog className="w-4 h-4" />,
   version: '1.0.0',
@@ -41,7 +41,7 @@ export const UserDelegationsModule: ModuleDefinition = {
   menuItems: [
     {
       id: 'user-delegations',
-      label: 'Ủy quyền',
+      label: 'navigation.userDelegations',
       path: '/core/user-delegations',
       icon: <UserCog className="w-4 h-4" />,
       order: 95,

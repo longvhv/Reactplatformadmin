@@ -361,7 +361,7 @@ export function TenantDetailPage() {
                           >
                             <div className="flex items-center gap-3">
                               <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500'}`} />
-                              <span className="font-normal">{item.label}</span>
+                              <span className="font-normal">{t(item.label)}</span>
                             </div>
                             {item.badge && (
                               <Badge variant="secondary" className="ml-auto">

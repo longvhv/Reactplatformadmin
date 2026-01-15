@@ -12,7 +12,7 @@ const ReservedSlugsPage = lazy(() => import('../../pages/ReservedSlugsPage'));
 
 export const ReservedSlugsModule: ModuleDefinition = {
   id: 'reserved-slugs',
-  name: 'Reserved Slugs',
+  name: 'navigation.reservedSlugs',
   description: 'Manage system-wide reserved slugs and keywords',
   icon: <Shield className="w-4 h-4" />,
   version: '1.0.0',
@@ -33,7 +33,7 @@ export const ReservedSlugsModule: ModuleDefinition = {
   menuItems: [
     {
       id: 'reserved-slugs',
-      label: 'Reserved Slugs',
+      label: 'navigation.reservedSlugs',
       path: '/core/reserved-slugs',
       icon: <Shield className="w-4 h-4" />,
       category: 'system',

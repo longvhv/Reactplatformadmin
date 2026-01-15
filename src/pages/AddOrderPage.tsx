@@ -1,17 +1,15 @@
 /**
  * Add Subscription Order Page
  * Production-ready form for creating subscription orders
- * ✅ Matches new subscription_orders schema (migration 023)
- * ✅ Full validation and error handling
- * ✅ Stripe/GitHub inspired design
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ordersApi, CreateOrderRequest } from '../api/ordersApi';
 import { OrderForm } from '../components/orders/OrderForm';
-import { Button } from '../components/ui/button';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
+import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
 export default function AddOrderPage() {
@@ -59,41 +57,19 @@ export default function AddOrderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/core/subscription-orders')}
-              className="mb-4"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Quay lại danh sách
-            </Button>
-            
-            <h1 className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-                <ShoppingCart className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-3xl font-bold text-foreground">
-                Tạo đơn hàng mới
-              </span>
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Tạo đơn hàng mua gói dịch vụ cho khách hàng
-            </p>
-          </div>
-        </div>
-
-        {/* Form */}
-        <OrderForm
-          onSubmit={handleSubmit}
-          onCancel={() => navigate('/core/subscription-orders')}
-          loading={loading}
-        />
-      </div>
-    </div>
+    <FormPageLayout
+      mode="add"
+      title="Tạo đơn hàng mới"
+      description="Tạo đơn hàng subscription cho tenant"
+      icon={ShoppingCart}
+      backPath="/core/subscription-orders"
+      backLabel="Quay lại danh sách"
+    >
+      <OrderForm
+        onSubmit={handleSubmit}
+        onCancel={() => navigate('/core/subscription-orders')}
+        isLoading={loading}
+      />
+    </FormPageLayout>
   );
 }

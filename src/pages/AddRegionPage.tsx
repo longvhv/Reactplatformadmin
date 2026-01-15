@@ -1,13 +1,13 @@
 /**
  * Add Region Page
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { Map } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { regionsApi } from '@/api/regionsApi';
 import { RegionForm } from '@/components/regions/RegionForm';
 import { toast } from 'sonner@2.0.3';
@@ -26,6 +26,7 @@ export default function AddRegionPage() {
     } catch (error: any) {
       console.error('Failed to create region:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -36,20 +37,19 @@ export default function AddRegionPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/core/regions')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Thêm Region</h1>
-          <p className="text-gray-600 mt-1">Tạo địa giới mới</p>
-        </div>
-      </div>
-
-      <Card className="p-6">
-        <RegionForm onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} />
-      </Card>
-    </div>
+    <FormPageLayout
+      mode="add"
+      title="Thêm Region"
+      description="Tạo địa giới mới"
+      icon={Map}
+      backPath="/core/regions"
+      backLabel="Quay lại danh sách"
+    >
+      <RegionForm 
+        onSubmit={handleSubmit} 
+        onCancel={handleCancel} 
+        loading={loading} 
+      />
+    </FormPageLayout>
   );
 }

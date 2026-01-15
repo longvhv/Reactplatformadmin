@@ -1,13 +1,14 @@
 /**
  * Edit Webhook Page
  * Page for editing an existing webhook
- * ✅ UPDATED 2026-01-15: Full implementation with WebhookForm
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { ArrowLeft, Webhook } from 'lucide-react';
+import { Webhook } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { WebhookForm } from '../components/webhooks/WebhookForm';
 import { webhooksApi, UpdateWebhookRequest, Webhook as WebhookType } from '../api/webhooksApi';
 import { toast } from 'sonner@2.0.3';
@@ -53,7 +54,20 @@ export default function EditWebhookPage() {
   };
 
   const handleCancel = () => {
-    navigate(`/core/webhooks/${id}`);
+    console.log('🔙 handleCancel called, navigating to:', `/core/webhooks/${id}`);
+    if (!id) {
+      console.error('❌ Error: id is undefined!');
+      toast.error('Lỗi: Không tìm thấy ID webhook');
+      navigate('/core/webhooks');
+      return;
+    }
+    try {
+      navigate(`/core/webhooks/${id}`);
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+      toast.error('Lỗi khi quay lại trang chi tiết');
+      navigate('/core/webhooks');
+    }
   };
 
   if (loading) {
@@ -81,41 +95,21 @@ export default function EditWebhookPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate(`/core/webhooks/${id}`)}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Quay lại chi tiết
-          </Button>
-          
-          <div className="flex items-center gap-3">
-            <Webhook className="w-8 h-8 text-indigo-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Chỉnh sửa Webhook
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {webhook.name}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <WebhookForm
-          mode="edit"
-          initialData={webhook}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          isLoading={isSubmitting}
-        />
-      </div>
-    </div>
+    <FormPageLayout
+      mode="edit"
+      title="Chỉnh sửa Webhook"
+      description={webhook.name}
+      icon={Webhook}
+      backPath={`/core/webhooks/${id}`}
+      backLabel="Quay lại chi tiết"
+    >
+      <WebhookForm
+        mode="edit"
+        initialData={webhook}
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        isLoading={isSubmitting}
+      />
+    </FormPageLayout>
   );
 }

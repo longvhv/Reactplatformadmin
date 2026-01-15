@@ -1,16 +1,16 @@
 /**
  * Add System Category Page
  * Page for creating new system category
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { Folder } from 'lucide-react';
 import { useLanguage } from '../providers/LanguageProvider';
 import { systemCategoryApi } from '../api/systemCategoryApi';
 import { EnhancedSystemCategoryForm } from '../components/systemCategories/EnhancedSystemCategoryForm';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { toast } from 'sonner@2.0.3';
 
 export function AddSystemCategoryPage() {
@@ -27,6 +27,7 @@ export function AddSystemCategoryPage() {
     } catch (error: any) {
       console.error('Failed to create system category:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -37,27 +38,20 @@ export function AddSystemCategoryPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/core/system-categories')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            {t('systemCategories.createCategory')}
-          </h1>
-          <p className="text-gray-600 mt-1">
-            {t('systemCategories.addCategoryDescription')}
-          </p>
-        </div>
-      </div>
-
-      {/* Form */}
-      <Card className="p-6">
-        <EnhancedSystemCategoryForm onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} />
-      </Card>
-    </div>
+    <FormPageLayout
+      mode="add"
+      title={t('systemCategories.createCategory')}
+      description={t('systemCategories.addCategoryDescription')}
+      icon={Folder}
+      backPath="/core/system-categories"
+      backLabel={t('common.backToList')}
+    >
+      <EnhancedSystemCategoryForm 
+        onSubmit={handleSubmit} 
+        onCancel={handleCancel} 
+        loading={loading} 
+      />
+    </FormPageLayout>
   );
 }
 

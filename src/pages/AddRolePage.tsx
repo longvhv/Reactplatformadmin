@@ -1,62 +1,53 @@
 /**
  * Add Role Page
- * Page for creating a new role
+ * ✅ IMPLEMENTED 2026-01-15: Full role creation with FormPageLayout
  */
 
-import React from 'react';
-import { useNavigate } from 'react-router';
-import { ArrowLeft, Shield } from 'lucide-react';
-import { Button } from '../components/ui/button';
+import React, { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
+import { Shield } from 'lucide-react';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
+import { RoleForm } from '../components/roles/RoleForm';
+import { rolesApi, CreateRoleRequest } from '../api/rolesApi';
+import { toast } from 'sonner@2.0.3';
 
 export default function AddRolePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tenantId = searchParams.get('tenant_id');
+  
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (data: CreateRoleRequest) => {
+    try {
+      setIsLoading(true);
+      const created = await rolesApi.create(data);
+      toast.success(`Đã tạo vai trò: ${created.name}`);
+      navigate('/core/roles');
+    } catch (error: any) {
+      console.error('Error creating role:', error);
+      toast.error('Không thể tạo vai trò: ' + error.message);
+      throw error; // Re-throw to let form handle it
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/core/roles')}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Quay lại danh sách
-          </Button>
-          
-          <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-indigo-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Tạo Vai Trò Mới
-            </h1>
-          </div>
-        </div>
-
-        {/* Coming Soon Card */}
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <Shield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-            Trang đang được phát triển
-          </h2>
-          <p className="text-gray-600 mb-6">
-            Tính năng tạo vai trò mới đang được hoàn thiện và sẽ sớm có mặt.
-          </p>
-          <div className="space-y-2 text-sm text-gray-500">
-            <p>📝 Form nhập tên và mô tả vai trò</p>
-            <p>🔐 Chọn quyền hạn (permissions)</p>
-            <p>🎨 Chọn loại vai trò (SYSTEM/CUSTOM)</p>
-            <p>✅ Validate và kiểm tra trùng lặp</p>
-            <p>👥 Preview danh sách quyền được chọn</p>
-          </div>
-          <Button
-            onClick={() => navigate('/core/roles')}
-            className="mt-6"
-          >
-            Quay lại danh sách vai trò
-          </Button>
-        </div>
-      </div>
-    </div>
+    <FormPageLayout
+      mode="add"
+      title="Tạo vai trò mới"
+      description="Tạo vai trò với các quyền hạn cụ thể"
+      icon={Shield}
+      backPath="/core/roles"
+      backLabel="Quay lại danh sách"
+    >
+      <RoleForm
+        tenantId={tenantId}
+        onSubmit={handleSubmit}
+        onCancel={() => navigate('/core/roles')}
+        isLoading={isLoading}
+      />
+    </FormPageLayout>
   );
 }

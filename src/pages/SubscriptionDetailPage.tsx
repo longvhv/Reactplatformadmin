@@ -40,6 +40,8 @@ export default function SubscriptionDetailPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'entitlements' | 'apps' | 'stats'>('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -63,6 +65,23 @@ export default function SubscriptionDetailPage() {
       navigate('/core/tenant-subscriptions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!subscription) return;
+    
+    setDeleting(true);
+    try {
+      await subscriptionApi.delete(subscription._id);
+      toast.success('Đã xóa đăng ký dịch vụ');
+      setShowDeleteDialog(false);
+      navigate('/core/tenant-subscriptions');
+    } catch (error: any) {
+      console.error('Error deleting subscription:', error);
+      toast.error('Không thể xóa: ' + error.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -327,7 +346,7 @@ export default function SubscriptionDetailPage() {
                       <button
                         onClick={() => {
                           setShowActions(false);
-                          // Handle delete
+                          setShowDeleteDialog(true);
                         }}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
@@ -823,6 +842,36 @@ export default function SubscriptionDetailPage() {
           )}
         </div>
       </main>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Xác nhận xóa đăng ký dịch vụ
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Bạn có chắc chắn muốn xóa đăng ký dịch vụ <strong>{subscription?.package_name || 'này'}</strong>? 
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

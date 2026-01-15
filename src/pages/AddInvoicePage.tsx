@@ -1,15 +1,15 @@
 /**
  * Add Invoice Page
  * Page for creating new invoices
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { subscriptionInvoiceApi, SubscriptionInvoice } from '../api/subscriptionInvoiceApi';
 import { InvoiceForm } from '../components/invoices/InvoiceForm';
-import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { useLanguage } from '../providers/LanguageProvider';
 import { toast } from 'sonner@2.0.3';
 
@@ -30,8 +30,7 @@ export const AddInvoicePage: React.FC = () => {
       
       if (exists) {
         toast.error(t('invoices.errors.invoiceNumberExists'));
-        setLoading(false);
-        return;
+        throw new Error('Invoice number exists');
       }
 
       await subscriptionInvoiceApi.create(data);
@@ -40,6 +39,7 @@ export const AddInvoicePage: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to create invoice:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -50,27 +50,20 @@ export const AddInvoicePage: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/core/subscription-invoices')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('invoices.addInvoice')}</h1>
-          <p className="text-gray-500 mt-1">{t('invoices.addInvoiceDescription')}</p>
-        </div>
-      </div>
-
-      {/* Form */}
-      <div className="max-w-5xl">
-        <InvoiceForm
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          loading={loading}
-        />
-      </div>
-    </div>
+    <FormPageLayout
+      mode="add"
+      title={t('invoices.addInvoice')}
+      description={t('invoices.addInvoiceDescription')}
+      icon={FileText}
+      backPath="/core/subscription-invoices"
+      backLabel={t('common.backToList')}
+    >
+      <InvoiceForm
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        loading={loading}
+      />
+    </FormPageLayout>
   );
 };
 

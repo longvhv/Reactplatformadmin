@@ -1,18 +1,19 @@
 /**
  * TenantsPage Component
  * Main tenant management page with hooks - Under 400 lines
+ * ✅ UPDATED 2026-01-15: Unified statistics design
  */
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Search, LayoutGrid, Network, List, Building2 } from 'lucide-react';
+import { Plus, Search, LayoutGrid, Network, List, Building2, CheckCircle, Clock, Crown, Handshake, Users } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTenants } from '@/hooks/useTenants';
 import { useTenantTree } from '@/hooks/useTenantTree';
 import { TenantFilters } from '@/components/tenants/TenantFilters';
-import { TenantOverviewStats } from '@/components/tenants/TenantOverviewStats';
+import { StatisticsCards } from '../components/common/StatisticsCards';
 import { TenantTreeView } from '@/components/tenants/TenantTreeView';
 import { TenantDetailView } from '@/components/tenants/TenantDetailView';
 import { TenantGrid } from '@/components/tenants/TenantGrid';
@@ -130,7 +131,18 @@ export default function TenantsPage() {
           </div>
 
           {/* Collapsible Stats */}
-          <TenantOverviewStats stats={stats} />
+          <StatisticsCards 
+            stats={[
+              { label: 'Total Tenants', value: stats.total, color: 'indigo', icon: Building2 },
+              { label: 'Active', value: stats.active, color: 'green', icon: CheckCircle },
+              { label: 'Trial', value: stats.trial, color: 'yellow', icon: Clock },
+              { label: 'Enterprise', value: stats.enterprise, color: 'purple', icon: Crown },
+              { label: 'Partners', value: stats.partners, color: 'blue', icon: Handshake },
+              { label: 'Root Tenants', value: stats.rootTenants, color: 'gray', icon: Users },
+            ]}
+            columns={6}
+            className="mb-4"
+          />
         </div>
       </div>
 

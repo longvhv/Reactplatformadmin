@@ -1,35 +1,24 @@
 /**
- * UsersPage Component
- * Main user management page - Under 500 lines
+ * Users Page
+ * Main users management page with table/grid view modes
+ * ✅ UPDATED 2026-01-15: Unified statistics design
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { 
-  Plus, 
-  Search, 
-  Filter,
-  Download,
-  Upload,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Lock,
-  Unlock,
-  Mail,
-  Shield,
-  UserCheck,
-  UserX,
-  Users
+  Plus, Search, Grid, List, User, CheckCircle, Shield, 
+  Users as UsersIcon, UserCheck, Download, Upload, Filter 
 } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useUsers } from '@/hooks/useUsers';
-import type { UserStatus } from '@/data/users';
+import { useUsers } from '../hooks/useUsers';
+import { UserTable } from '../components/users/UserTable';
+import { UserGrid } from '../components/users/UserGrid';
+import { toast } from 'sonner';
+import { StatisticsCards } from '../components/common/StatisticsCards';
 
 export default function UsersPage() {
-  const { t } = useLanguage();
   const navigate = useNavigate();
 
   // State
@@ -39,6 +28,7 @@ export default function UsersPage() {
   const [mfaFilter, setMfaFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
   // Hooks
   const { users, loading, error, deleteUser, updateUser } = useUsers({ autoLoad: true });
@@ -80,19 +70,21 @@ export default function UsersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('users.confirmDelete'))) return;
+    if (!confirm('Are you sure you want to delete this user?')) return;
     try {
       await deleteUser(id);
+      toast.success('User deleted successfully');
     } catch (err) {
-      alert('Failed to delete user');
+      toast.error('Failed to delete user');
     }
   };
 
   const handleStatusChange = async (id: string, status: UserStatus) => {
     try {
       await updateUser(id, { status });
+      toast.success('Status updated successfully');
     } catch (err) {
-      alert('Failed to update status');
+      toast.error('Failed to update status');
     }
   };
 
@@ -131,7 +123,7 @@ export default function UsersPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -145,10 +137,10 @@ export default function UsersPage() {
           <div>
             <h1 className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-                <Users className="h-6 w-6 text-white" />
+                <UsersIcon className="h-6 w-6 text-white" />
               </div>
               <span className="text-3xl font-bold text-foreground">
-                {t('users.title')}
+                Users
               </span>
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -181,34 +173,23 @@ export default function UsersPage() {
               onClick={() => navigate('/core/users/new')}
             >
               <Plus className="w-4 h-4" />
-              {t('users.addNew')}
+              Add New
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Tổng số</p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.total}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Active</p>
-            <p className="text-2xl font-bold text-green-600 mt-2">{stats.active}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Verified</p>
-            <p className="text-2xl font-bold text-blue-600 mt-2">{stats.verified}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">MFA Enabled</p>
-            <p className="text-2xl font-bold text-purple-600 mt-2">{stats.mfa}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Support Staff</p>
-            <p className="text-2xl font-bold text-indigo-600 mt-2">{stats.support}</p>
-          </div>
-        </div>
+        <StatisticsCards 
+          stats={[
+            { label: 'Tổng số', value: stats.total, color: 'gray', icon: UsersIcon },
+            { label: 'Active', value: stats.active, color: 'green', icon: CheckCircle },
+            { label: 'Verified', value: stats.verified, color: 'blue', icon: UserCheck },
+            { label: 'MFA Enabled', value: stats.mfa, color: 'purple', icon: Shield },
+            { label: 'Support Staff', value: stats.support, color: 'indigo', icon: User },
+          ]}
+          columns={5}
+          className="mb-6"
+        />
 
         {/* Filters & Search */}
         <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -315,167 +296,46 @@ export default function UsersPage() {
           )}
         </div>
 
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.length === filteredUsers.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedUsers(filteredUsers.map(u => u._id));
-                        } else {
-                          setSelectedUsers([]);
-                        }
-                      }}
-                      className="rounded border-gray-300"
-                    />
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Người dùng
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Trạng thái
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Bảo mật
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Ngày tạo
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <p className="text-gray-500">Không tìm thấy người dùng</p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user._id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.includes(user._id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedUsers([...selectedUsers, user._id]);
-                            } else {
-                              setSelectedUsers(selectedUsers.filter(id => id !== user._id));
-                            }
-                          }}
-                          className="rounded border-gray-300"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          {user.avatar_url ? (
-                            <button
-                              onClick={() => navigate(`/core/users/${user._id}`)}
-                              className="focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
-                            >
-                              <img
-                                src={user.avatar_url}
-                                alt={user.full_name}
-                                className="w-10 h-10 rounded-full hover:opacity-80 transition-opacity cursor-pointer"
-                              />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => navigate(`/core/users/${user._id}`)}
-                              className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center hover:bg-indigo-200 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                              <span className="text-indigo-600 font-medium">
-                                {(user.full_name || user.email || '?').charAt(0).toUpperCase()}
-                              </span>
-                            </button>
-                          )}
-                          <div className="ml-4">
-                            <button
-                              onClick={() => navigate(`/core/users/${user._id}`)}
-                              className="text-sm font-medium text-gray-900 hover:text-indigo-600 text-left block"
-                            >
-                              {user.full_name}
-                            </button>
-                            <button
-                              onClick={() => navigate(`/core/users/${user._id}`)}
-                              className="text-sm text-gray-500 hover:text-indigo-600 text-left block"
-                            >
-                              {user.email}
-                            </button>
-                            {user.phone && (
-                              <button
-                                onClick={() => navigate(`/core/users/${user._id}`)}
-                                className="text-xs text-gray-400 hover:text-indigo-600 text-left block"
-                              >
-                                {user.phone}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-                          {user.status}
-                        </span>
-                        {user.metadata?.is_support_staff && (
-                          <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                            <Shield className="w-3 h-3 inline mr-1" />
-                            Support
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          {user.email_verified ? (
-                            <UserCheck className="w-4 h-4 text-green-600" title="Verified" />
-                          ) : (
-                            <UserX className="w-4 h-4 text-gray-400" title="Not verified" />
-                          )}
-                          {user.metadata?.mfa_enabled ? (
-                            <Lock className="w-4 h-4 text-green-600" title="MFA enabled" />
-                          ) : (
-                            <Unlock className="w-4 h-4 text-gray-400" title="MFA disabled" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {formatDate(user.created_at)}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/core/users/${user._id}/edit`)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(user._id)}
-                          >
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+        {/* View Mode Toggle */}
+        <div className="flex items-center justify-end mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setViewMode('table')}
+          >
+            <List className="w-4 h-4" />
+            Table
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid className="w-4 h-4" />
+            Grid
+          </Button>
         </div>
+
+        {/* Users Table/Grid */}
+        {viewMode === 'table' ? (
+          <UserTable
+            users={filteredUsers}
+            selectedUsers={selectedUsers}
+            setSelectedUsers={setSelectedUsers}
+            handleDelete={handleDelete}
+            handleStatusChange={handleStatusChange}
+          />
+        ) : (
+          <UserGrid
+            users={filteredUsers}
+            selectedUsers={selectedUsers}
+            setSelectedUsers={setSelectedUsers}
+            handleDelete={handleDelete}
+            handleStatusChange={handleStatusChange}
+          />
+        )}
       </div>
     </div>
   );

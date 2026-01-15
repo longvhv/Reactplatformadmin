@@ -1,12 +1,12 @@
 /**
  * Edit Service Package Page
- * 
- * Page for editing existing service packages
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
 import { useNavigate, useParams } from 'react-router';
 import { Button } from '../components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { Package as PackageIcon } from 'lucide-react';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { ServicePackageForm } from '../components/service-packages/ServicePackageForm';
 import { packagesApi, CreatePackageRequest } from '../api/packagesApi';
 import { toast } from 'sonner@2.0.3';
@@ -63,32 +63,41 @@ export default function EditServicePackagePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Đang tải gói dịch vụ...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!pkg) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600">Không tìm thấy gói dịch vụ</p>
+          <Button onClick={() => navigate('/core/service-packages')} className="mt-4">
+            Quay lại danh sách
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate('/core/service-packages')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Quay lại
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Chỉnh sửa gói dịch vụ
-        </h1>
-      </div>
-
-      {/* Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-        <ServicePackageForm
-          package={pkg}
-          onSubmit={handleSubmit}
-          onCancel={() => navigate('/core/service-packages')}
-        />
-      </div>
-    </div>
+    <FormPageLayout
+      mode="edit"
+      title="Chỉnh sửa gói dịch vụ"
+      description={pkg.name}
+      icon={PackageIcon}
+      backPath="/core/service-packages"
+      backLabel="Quay lại danh sách"
+    >
+      <ServicePackageForm
+        package={pkg}
+        onSubmit={handleSubmit}
+        onCancel={() => navigate('/core/service-packages')}
+      />
+    </FormPageLayout>
   );
 }

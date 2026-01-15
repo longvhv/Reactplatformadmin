@@ -1,11 +1,12 @@
 /**
  * Add Product Page
+ * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router';
-import { Button } from '../components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { Package } from 'lucide-react';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
 import { ProductForm } from '../components/products/ProductForm';
 import { toast } from 'sonner@2.0.3';
@@ -29,25 +30,18 @@ export default function AddProductPage() {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate('/core/products')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Quay lại
-        </Button>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Thêm sản phẩm mới
-        </h1>
-      </div>
-
-      {/* Form */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8">
-        <ProductForm
-          onSubmit={handleSubmit}
-          onCancel={() => navigate('/core/products')}
-        />
-      </div>
-    </div>
+    <FormPageLayout
+      mode="add"
+      title="Thêm sản phẩm mới"
+      description="Tạo sản phẩm SaaS mới với tất cả thông tin cần thiết"
+      icon={Package}
+      backPath="/core/products"
+      backLabel="Quay lại danh sách"
+    >
+      <ProductForm
+        onSubmit={handleSubmit}
+        onCancel={() => navigate('/core/products')}
+      />
+    </FormPageLayout>
   );
 }

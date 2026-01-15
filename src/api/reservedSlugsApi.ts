@@ -131,8 +131,19 @@ export const reservedSlugsApi = {
     const normalizedData = {
       ...data,
       slug: data.slug.toLowerCase(),
+      items_snapshot: data.items_snapshot || null,  // Default to null if not provided
     };
-    return adapter.create(normalizedData);
+    
+    console.log('📤 Creating reserved slug:', normalizedData);
+    try {
+      const result = await adapter.create(normalizedData);
+      console.log('✅ Created reserved slug:', result);
+      return result;
+    } catch (error: any) {
+      console.error('❌ Failed to create reserved slug:', error);
+      console.error('Request data:', normalizedData);
+      throw error;
+    }
   },
 
   /**

@@ -1,30 +1,18 @@
 /**
- * ApplicationsPage Component
- * Main applications management page - Under 500 lines
+ * Applications Page
+ * Manage third-party applications
+ * ✅ UPDATED 2026-01-15: Unified statistics design
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { 
-  Plus, 
-  Search, 
-  Filter,
-  Download,
-  Upload,
-  MoreVertical,
-  Edit,
-  Trash2,
-  Code,
-  Power,
-  PowerOff,
-  Settings,
-  Activity,
-  Target
-} from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useApplications } from '@/hooks/useApplications';
+import { Application, applicationsApi } from '../api/applicationsApi';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Plus, Search, Grid as GridIcon, List, Server, CheckCircle, XCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { useLanguage } from '../providers/LanguageProvider';
+import { StatisticsCards } from '../components/common/StatisticsCards';
 
 export function ApplicationsPage() {
   const { t } = useLanguage();
@@ -35,9 +23,25 @@ export function ApplicationsPage() {
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Hooks
-  const { applications, loading, error, deleteApplication, updateApplication } = useApplications({ autoLoad: true });
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const data = await applicationsApi.getAll();
+        setApplications(data);
+      } catch (err) {
+        setError('Failed to load applications');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplications();
+  }, []);
 
   // Apply filters
   const filteredApplications = applications.filter(app => {
@@ -68,18 +72,20 @@ export function ApplicationsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm(t('applications.confirmDelete'))) return;
     try {
-      await deleteApplication(id);
+      await applicationsApi.delete(id);
+      setApplications(applications.filter(app => app._id !== id));
     } catch (err) {
-      alert('Failed to delete application');
+      toast.error('Failed to delete application');
     }
   };
 
   const handleToggleActive = async (id: string, currentStatus: string) => {
     try {
       const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      await updateApplication(id, { status: newStatus });
+      const updatedApp = await applicationsApi.update(id, { status: newStatus });
+      setApplications(applications.map(app => app._id === id ? updatedApp : app));
     } catch (err) {
-      alert('Failed to update status');
+      toast.error('Failed to update status');
     }
   };
 
@@ -122,14 +128,14 @@ export function ApplicationsPage() {
           <div>
             <h1 className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-                <Target className="h-6 w-6 text-white" />
+                <Server className="h-6 w-6 text-white" />
               </div>
               <span className="text-3xl font-bold text-foreground">
                 {t('applications.title')}
               </span>
             </h1>
             <p className="text-muted-foreground mt-2">
-              Quản lý ứng dụng trong hệ thống
+              Quản lý ứng dụng bên thứ ba
             </p>
           </div>
 
@@ -164,20 +170,7 @@ export function ApplicationsPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Tổng số</p>
-            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.total}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Đang hoạt động</p>
-            <p className="text-2xl font-bold text-green-600 mt-2">{stats.active}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <p className="text-sm text-gray-500">Không hoạt động</p>
-            <p className="text-2xl font-bold text-gray-600 mt-2">{stats.inactive}</p>
-          </div>
-        </div>
+        <StatisticsCards stats={stats} />
 
         {/* Filters & Search */}
         <div className="bg-white rounded-lg shadow-sm border p-4">
