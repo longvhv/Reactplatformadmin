@@ -13,6 +13,13 @@ import { useRoles } from '@/hooks/useRoles';
 import { RoleFormModal } from '@/components/roles/RoleFormModal';
 import { Role } from '@/api/rolesApi';
 import { toast } from 'sonner';
+import { DEFAULT_TENANT_ID } from '@/constants/tenant-constants';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function RolesPage() {
   const { t } = useLanguage();
@@ -282,31 +289,29 @@ export default function RolesPage() {
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="relative group ml-2">
-                      <button className="p-1 hover:bg-gray-100 rounded">
-                        <MoreVertical className="w-4 h-4 text-gray-400" />
-                      </button>
+                    {/* Actions - Fixed with DropdownMenu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 hover:bg-gray-100 rounded ml-2">
+                          <MoreVertical className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </DropdownMenuTrigger>
                       
-                      <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-10">
-                        <div className="py-1">
-                          <button
-                            onClick={() => navigate(`/core/roles/${role._id}`)}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <Eye className="w-4 h-4" />
-                            Xem chi tiết
-                          </button>
-                          <button
-                            onClick={() => handleEdit(role)}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Chỉnh sửa
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/core/roles/${role._id}`)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          Xem chi tiết
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleEdit(role)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Chỉnh sửa
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
 
                   {role.description && (
@@ -342,7 +347,7 @@ export default function RolesPage() {
         onClose={() => setIsModalOpen(false)}
         role={editingRole}
         onSave={handleSave}
-        tenantId="default-tenant"
+        tenantId={DEFAULT_TENANT_ID}
       />
     </div>
   );

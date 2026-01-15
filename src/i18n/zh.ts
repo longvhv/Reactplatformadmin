@@ -78,6 +78,14 @@ export const zh: TranslationKeys = {
     applications: '应用程序',
     rateLimits: '速率限制',
     webhooks: 'Webhooks',
+    // Menu groups
+    groupMain: '主要',
+    groupIdentity: '身份与访问',
+    groupCommerce: '商务与账单',
+    groupPlatform: '平台与配置',
+    groupIntegrations: '集成与API',
+    groupAnalytics: '分析与报告',
+    groupSystem: '系统与支持',
   },
 
   auth: {

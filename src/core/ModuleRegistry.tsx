@@ -163,4 +163,40 @@ export class ModuleRegistry {
     this.modules.clear();
     console.log('✓ Module Registry đã được reset');
   }
+
+  /**
+   * Get all menu items from registered modules
+   * Returns flattened list of menu items sorted by order
+   */
+  public getAllMenuItems(): MenuItem[] {
+    const menuItems: (MenuItem & { order?: number })[] = [];
+    
+    const enabledModules = this.getEnabledModules();
+    console.log('🔍 DEBUG getAllMenuItems: Enabled modules:', enabledModules.map(m => ({ 
+      id: m.id, 
+      showInSidebar: m.showInSidebar, 
+      menuItemsCount: m.menuItems?.length,
+      menuItems: m.menuItems 
+    })));
+    
+    enabledModules.forEach((module) => {
+      // Only include modules that should show in sidebar
+      if (module.showInSidebar !== false && Array.isArray(module.menuItems)) {
+        console.log(`🔍 DEBUG getAllMenuItems: Module "${module.id}" - showInSidebar: ${module.showInSidebar}, menuItems:`, module.menuItems);
+        module.menuItems.forEach((item) => {
+          menuItems.push({
+            ...item,
+            order: (item as any).order ?? (module as any).order ?? 999,
+          });
+        });
+      } else {
+        console.log(`🔍 DEBUG getAllMenuItems: Module "${module.id}" SKIPPED - showInSidebar: ${module.showInSidebar}, hasMenuItems: ${Array.isArray(module.menuItems)}, menuItemsCount: ${module.menuItems?.length}`);
+      }
+    });
+    
+    console.log('🔍 DEBUG getAllMenuItems: Final menu items:', menuItems);
+    
+    // Sort by order
+    return menuItems.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  }
 }

@@ -91,6 +91,7 @@ const vi = {
     groupPlatform: 'NỀN TẢNG & CẤU HÌNH',
     groupIntegrations: 'TÍCH HỢP & API',
     groupAnalytics: 'PHÂN TÍCH & BÁO CÁO',
+    groupSystem: 'HỆ THỐNG & HỖ TRỢ',
     // Menu items
     overview: 'Tổng Quan',
     products: 'Sản Phẩm',
@@ -1791,6 +1792,23 @@ const vi = {
     duplicateSuccess: 'Đã sao chép mẫu',
     loadError: 'Không thể tải mẫu: {error}',
   },
+  
+  // Direct translation keys for hardcoded labels
+  // These are used when labels are passed directly to t() function
+  'Tổng quan': 'Tổng quan',
+  'Hoạt động': 'Hoạt động',
+  'Thống kê': 'Thống kê',
+  'Thành viên': 'Thành viên',
+  'Vai trò': 'Vai trò',
+  'Phòng ban': 'Phòng ban',
+  'Nhóm người dùng': 'Nhóm người dùng',
+  'Ủy quyền': 'Ủy quyền',
+  'Địa điểm': 'Địa điểm',
+  'Routing Slugs': 'Routing Slugs',
+  'App Routes': 'App Routes',
+  'Rate Limits': 'Rate Limits',
+  'Webhooks': 'Webhooks',
+  'SSO Configs': 'SSO Configs',
 };
 
 export default vi;

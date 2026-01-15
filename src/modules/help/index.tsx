@@ -18,6 +18,7 @@ export const HelpModule: ModuleDefinition = {
   icon: <HelpCircle className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
+  order: 120, // PHÂN TÍCH & BÁO CÁO group (bottom)
   routes: [
     {
       path: "/core/help",

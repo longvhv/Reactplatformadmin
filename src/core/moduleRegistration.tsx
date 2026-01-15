@@ -24,15 +24,17 @@ import { ServicePackagesModule } from '../modules/service-packages/index';
 import { SubscriptionOrdersModule } from '../modules/subscription-orders/index';
 import { SubscriptionInvoicesModule } from '../modules/subscription-invoices/index';
 import { TenantSubscriptionsModule } from '../modules/tenant-subscriptions/index';
+import { DigitalAssetsModule } from '../modules/digital-assets/index';
+import { ServiceDeliveriesModule } from '../modules/service-deliveries/index';
+import { RateLimitsModule } from '../modules/rate-limits/index';
+import { WebhooksModule } from '../modules/webhooks/index';
+import { ReservedSlugsModule } from '../modules/reserved-slugs/module';
 import { SystemAnnouncementsModule } from '../modules/system-announcements/index';
 import { NotificationTemplatesModule } from '../modules/notification-templates/index';
 import { RolesModule } from '../modules/roles/index';
 import { AuthLogsModule } from '../modules/auth-logs/index';
 import { LegalDocumentsModule } from '../modules/legal-documents/index';
 import { UserDelegationsModule } from '../modules/user-delegations/index';
-import { RateLimitsModule } from '../modules/rate-limits/index';
-import { WebhooksModule } from '../modules/webhooks/index';
-import { ReservedSlugsModule } from '../modules/reserved-slugs/module';
 
 /**
  * Register all modules
@@ -46,7 +48,6 @@ export function registerAllModules(): void {
   registry.register(TenantMembersModule);
   registry.register(UsersModule); // ✅ MOVED UP - Quản lý người dùng
   registry.register(UserRolesModule);
-  registry.register(RolesModule);
   registry.register(SystemCategoryModule);
   registry.register(ApplicationsModule);
   registry.register(ProductsModule);
@@ -54,20 +55,47 @@ export function registerAllModules(): void {
   registry.register(SubscriptionOrdersModule);
   registry.register(SubscriptionInvoicesModule);
   registry.register(TenantSubscriptionsModule);
+  registry.register(DigitalAssetsModule);
+  registry.register(ServiceDeliveriesModule);
   registry.register(RateLimitsModule);
   registry.register(WebhooksModule);
   registry.register(ReservedSlugsModule);
   registry.register(SystemAnnouncementsModule);
   registry.register(NotificationTemplatesModule);
+  registry.register(RolesModule);
   registry.register(AuthLogsModule);
   registry.register(LegalDocumentsModule);
   registry.register(UserDelegationsModule);
-  registry.register(HelpModule);
-  registry.register(DevDocsModule);
-  registry.register(SettingsModule);
-  registry.register(AuthModule);
   
   console.log('✅ All modules registered successfully');
+  
+  // 🔍 FORCE DEBUG: Check if digital-assets and service-deliveries are registered correctly
+  const digitalAssetsCheck = registry.getModule('digital-assets');
+  const serviceDeliveriesCheck = registry.getModule('service-deliveries');
+  
+  console.log('🔍 FORCE DEBUG: Digital Assets module:', {
+    id: digitalAssetsCheck?.id,
+    name: digitalAssetsCheck?.name,
+    enabled: digitalAssetsCheck?.enabled,
+    showInSidebar: digitalAssetsCheck?.showInSidebar,
+    menuItemsCount: digitalAssetsCheck?.menuItems?.length,
+    menuItems: digitalAssetsCheck?.menuItems,
+  });
+  
+  console.log('🔍 FORCE DEBUG: Service Deliveries module:', {
+    id: serviceDeliveriesCheck?.id,
+    name: serviceDeliveriesCheck?.name,
+    enabled: serviceDeliveriesCheck?.enabled,
+    showInSidebar: serviceDeliveriesCheck?.showInSidebar,
+    menuItemsCount: serviceDeliveriesCheck?.menuItems?.length,
+    menuItems: serviceDeliveriesCheck?.menuItems,
+  });
+  
+  // 🔍 FORCE DEBUG: Test getAllMenuItems right after registration
+  const allMenuItems = registry.getAllMenuItems();
+  console.log('🔍 FORCE DEBUG: getAllMenuItems() returned', allMenuItems.length, 'items');
+  console.log('🔍 FORCE DEBUG: Digital Assets in menu?', allMenuItems.find(m => m.id === 'digital-assets'));
+  console.log('🔍 FORCE DEBUG: Service Deliveries in menu?', allMenuItems.find(m => m.id === 'service-deliveries'));
 }
 
 // Auto-register on import

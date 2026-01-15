@@ -27,6 +27,7 @@ export const ApplicationsModule: ModuleDefinition = {
   icon: <AppWindow className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
+  order: 50, // NỀN TẢNG & CẤU HÌNH group
   routes: [
     {
       path: '/core/applications',

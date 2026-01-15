@@ -16,6 +16,7 @@ export const UsersModule: ModuleDefinition = {
   icon: <Users className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
+  order: 12, // QUẢN TRỊ & TRUY CẬP group
   routes: [
     {
       path: "/core/users",

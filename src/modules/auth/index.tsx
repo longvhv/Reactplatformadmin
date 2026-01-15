@@ -19,7 +19,7 @@ export const AuthModule: ModuleConfig = {
   name: "Authentication",
   icon: <Shield className="w-4 h-4" />,
   enabled: true,
-  showInSidebar: true, // Show menu items in sidebar
+  showInSidebar: false, // Hidden from sidebar - auth pages don't need menu
   routes: [
     {
       path: "/login",

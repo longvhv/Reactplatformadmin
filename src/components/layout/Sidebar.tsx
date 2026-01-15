@@ -3,29 +3,13 @@
  * Professional sidebar with hierarchical groups, similar to Stripe/Linear/GitHub design
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useLocation } from 'react-router';
 import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  Shield,
-  Package,
-  Gift,
-  RefreshCcw,
-  ShoppingCart,
-  Target,
-  Route,
-  Clock,
-  Megaphone,
-  Webhook,
-  Key,
-  FileText,
-  Activity,
-  Settings,
-  Folder,
   ChevronLeft,
+  Settings,
 } from 'lucide-react';
+import { ModuleRegistry } from '../../core/ModuleRegistry';
 
 // Menu item type
 interface MenuItem {
@@ -34,6 +18,7 @@ interface MenuItem {
   icon: React.ReactNode;
   badge?: number | string;
   description?: string;
+  order?: number;
 }
 
 // Menu group type
@@ -43,145 +28,114 @@ interface MenuGroup {
   items: MenuItem[];
 }
 
-// Menu configuration with grouped structure
-const MENU_GROUPS: MenuGroup[] = [
-  {
-    id: 'main',
-    label: 'CHÍNH',
-    items: [
-      {
-        label: 'Tổng Quan',
-        path: '/core/dashboard',
-        icon: <LayoutDashboard className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    id: 'identity',
-    label: 'QUẢN TRỊ & TRUY CẬP',
-    items: [
-      {
-        label: 'Tenants',
-        path: '/core/tenants',
-        icon: <Building2 className="w-5 h-5" />,
-      },
-      {
-        label: 'Người Dùng',
-        path: '/core/users',
-        icon: <Users className="w-5 h-5" />,
-      },
-      {
-        label: 'Vai Trò',
-        path: '/core/roles',
-        icon: <Shield className="w-5 h-5" />,
-      },
-      {
-        label: 'Lịch Sử Truy Cập',
-        path: '/core/audit-logs',
-        icon: <Activity className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    id: 'commerce',
-    label: 'THƯƠNG MẠI & THANH TOÁN',
-    items: [
-      {
-        label: 'Sản Phẩm',
-        path: '/core/products',
-        icon: <Package className="w-5 h-5" />,
-      },
-      {
-        label: 'Gói Dịch Vụ',
-        path: '/core/packages',
-        icon: <Gift className="w-5 h-5" />,
-      },
-      {
-        label: 'Đăng Ký',
-        path: '/core/subscriptions',
-        icon: <RefreshCcw className="w-5 h-5" />,
-      },
-      {
-        label: 'Đơn Hàng',
-        path: '/core/orders',
-        icon: <ShoppingCart className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    id: 'platform',
-    label: 'NỀN TẢNG & CẤU HÌNH',
-    items: [
-      {
-        label: 'Ứng Dụng',
-        path: '/core/applications',
-        icon: <Target className="w-5 h-5" />,
-      },
-      {
-        label: 'Danh Mục Hệ Thống',
-        path: '/core/system-categories',
-        icon: <Folder className="w-5 h-5" />,
-      },
-      {
-        label: 'App Routes',
-        path: '/core/app-routes',
-        icon: <Route className="w-5 h-5" />,
-      },
-      {
-        label: 'Giới Hạn Tốc Độ',
-        path: '/core/rate-limits',
-        icon: <Clock className="w-5 h-5" />,
-      },
-      {
-        label: 'Reserved Slugs',
-        path: '/core/reserved-slugs',
-        icon: <Shield className="w-5 h-5" />,
-      },
-      {
-        label: 'Thông Báo',
-        path: '/core/announcements',
-        icon: <Megaphone className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    id: 'integrations',
-    label: 'TÍCH HỢP & API',
-    items: [
-      {
-        label: 'Webhooks',
-        path: '/core/webhooks',
-        icon: <Webhook className="w-5 h-5" />,
-        badge: 'ACTIVE',
-      },
-      {
-        label: 'API Keys',
-        path: '/core/api-keys',
-        icon: <Key className="w-5 h-5" />,
-      },
-    ],
-  },
-  {
-    id: 'analytics',
-    label: 'PHÂN TÍCH & BÁO CÁO',
-    items: [
-      {
-        label: 'Báo Cáo',
-        path: '/core/reports',
-        icon: <FileText className="w-5 h-5" />,
-      },
-      {
-        label: 'Nhật Ký Kiểm Toán',
-        path: '/core/audit-logs',
-        icon: <Activity className="w-5 h-5" />,
-      },
-    ],
-  },
-];
+/**
+ * Function to determine menu group based on order
+ */
+function getMenuGroup(order: number): string {
+  if (order < 10) return 'main';           // 0-9: Dashboard
+  if (order < 30) return 'identity';        // 10-29: Tenants, Users, Roles
+  if (order < 50) return 'commerce';        // 30-49: Products, Services, Orders, Invoices
+  if (order < 70) return 'platform';        // 50-69: Applications, System Categories
+  if (order < 90) return 'integrations';    // 70-89: (Reserved for future)
+  if (order < 110) return 'settings';       // 90-109: System Announcements, Templates, Settings
+  return 'analytics';                       // 110+: Help, Audit logs
+}
+
+/**
+ * Group labels mapping
+ */
+const GROUP_LABELS: Record<string, string> = {
+  main: 'CHÍNH',
+  identity: 'QUẢN TRỊ & TRUY CẬP',
+  commerce: 'THƯƠNG MẠI & THANH TOÁN',
+  platform: 'NỀN TẢNG & CẤU HÌNH',
+  integrations: 'TÍCH HỢP & API',
+  analytics: 'PHÂN TÍCH & BÁO CÁO',
+  settings: 'CẤU HÌNH HỆ THỐNG',
+};
 
 export function Sidebar() {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [modulesReady, setModulesReady] = useState(false);
+  
+  console.log('🔍 DEBUG: Sidebar component RENDERED! modulesReady:', modulesReady);
+  
+  // Wait for modules to be registered
+  useEffect(() => {
+    console.log('🔍 DEBUG: Sidebar useEffect RUNNING - setting up timer');
+    // Give moduleRegistration time to complete
+    const timer = setTimeout(() => {
+      console.log('🔍 DEBUG: Timer fired! Setting modulesReady = true');
+      setModulesReady(true);
+      console.log('🔍 DEBUG Sidebar: Modules ready, triggering useMemo recalculation');
+    }, 100);
+    
+    return () => {
+      console.log('🔍 DEBUG: Sidebar useEffect CLEANUP');
+      clearTimeout(timer);
+    };
+  }, []);
+
+  // Get menu items from ModuleRegistry
+  const MENU_GROUPS = useMemo(() => {
+    console.log('🔍 DEBUG Sidebar useMemo: Running... modulesReady =', modulesReady);
+    
+    if (!modulesReady) {
+      console.log('🔍 DEBUG Sidebar useMemo: Modules not ready yet, returning empty groups');
+      return [];
+    }
+    
+    const registry = ModuleRegistry.getInstance();
+    const menuItems = registry.getAllMenuItems();
+    
+    console.log('🔍 DEBUG Sidebar: All menu items from registry:', menuItems);
+    console.log('🔍 DEBUG Sidebar: Digital Assets found?', menuItems.find(m => m.label?.includes('Tài Sản')));
+    console.log('🔍 DEBUG Sidebar: Service Deliveries found?', menuItems.find(m => m.label?.includes('Dịch Vụ')));
+
+    // Group menu items by their order
+    const groupedItems: Record<string, MenuItem[]> = {};
+
+    menuItems.forEach((item) => {
+      const order = (item as any).order ?? 999;
+      const groupId = getMenuGroup(order);
+      
+      console.log(`🔍 DEBUG Sidebar: Item "${item.label}" - order: ${order}, group: ${groupId}`);
+
+      if (!groupedItems[groupId]) {
+        groupedItems[groupId] = [];
+      }
+
+      groupedItems[groupId].push({
+        label: item.label,
+        path: item.path || '#',
+        icon: item.icon || null,
+        badge: item.badge,
+        description: (item as any).description,
+        order,
+      });
+    });
+    
+    console.log('🔍 DEBUG: Grouped items:', groupedItems);
+
+    // Convert to MenuGroup array in order
+    const groups: MenuGroup[] = [];
+    const groupOrder = ['main', 'identity', 'commerce', 'platform', 'integrations', 'analytics', 'settings'];
+
+    groupOrder.forEach((groupId) => {
+      if (groupedItems[groupId] && groupedItems[groupId].length > 0) {
+        groups.push({
+          id: groupId,
+          label: GROUP_LABELS[groupId] || groupId.toUpperCase(),
+          items: groupedItems[groupId].sort((a, b) => (a.order ?? 999) - (b.order ?? 999)),
+        });
+      }
+    });
+    
+    console.log('🔍 DEBUG: Final groups:', groups);
+
+    return groups;
+  }, [modulesReady]);
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -280,18 +234,6 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="border-t border-gray-200 p-2 space-y-0.5">
-          <Link
-            to="/core/settings"
-            className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 ${
-              isActiveRoute('/core/settings')
-                ? 'bg-indigo-600 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            <Settings className="w-5 h-5" />
-            <span className="text-sm">Cài Đặt</span>
-          </Link>
-
           <Link
             to="/core/profile"
             className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 ${

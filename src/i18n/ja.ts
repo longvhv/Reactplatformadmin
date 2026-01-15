@@ -78,6 +78,14 @@ export const ja: TranslationKeys = {
     applications: 'アプリケーション',
     rateLimits: 'レート制限',
     webhooks: 'Webhook',
+    // Menu groups
+    groupMain: 'メイン',
+    groupIdentity: 'アイデンティティ＆アクセス',
+    groupCommerce: 'コマース＆請求',
+    groupPlatform: 'プラットフォーム＆設定',
+    groupIntegrations: '統合＆API',
+    groupAnalytics: '分析＆レポート',
+    groupSystem: 'システム＆サポート',
   },
 
   auth: {

@@ -11,6 +11,21 @@ export { formatCurrency, formatDate } from '@/lib/format';
 
 // ==================== TYPES ====================
 
+// Line Item Types
+export type LineItemType = 'PLAN' | 'PRODUCT';
+export type ProductType = 'SSL' | 'DOMAIN' | 'LICENSE' | 'SERVICE' | 'CONSULTING' | 'TRAINING' | 'OTHER';
+export type OrderType = 'SUBSCRIPTION' | 'ONE_TIME' | 'HYBRID';
+
+export interface LineItem {
+  item_type: LineItemType;
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  product_type?: ProductType; // Only for PRODUCT items
+  metadata?: Record<string, any>;
+}
+
 export interface ItemSnapshot {
   product_id: string;
   name: string;
@@ -38,7 +53,7 @@ export interface Order {
   // II. THÔNG TIN NGHIỆP VỤ
   order_number: string;
   po_number: string | null;
-  type: 'NEW' | 'RENEWAL' | 'UPGRADE' | 'DOWNGRADE' | 'ADD_ON';
+  type: OrderType; // Updated: SUBSCRIPTION | ONE_TIME | HYBRID
   status: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED' | 'REFUNDED';
   
   // III. TÀI CHÍNH
@@ -49,8 +64,8 @@ export interface Order {
   credit_applied: number;
   total_amount: number;
   
-  // IV. SNAPSHOT DỮ LIỆU
-  items_snapshot: ItemSnapshot[];
+  // IV. SNAPSHOT DỮ LIỆU - Updated to support line items
+  items_snapshot: LineItem[]; // Changed from ItemSnapshot[] to LineItem[]
   billing_info: BillingInfo;
   
   // V. THANH TOÁN
@@ -78,7 +93,7 @@ export interface CreateOrderRequest {
   created_by?: string;
   order_number: string;
   po_number?: string;
-  type?: 'NEW' | 'RENEWAL' | 'UPGRADE' | 'DOWNGRADE' | 'ADD_ON';
+  type?: OrderType; // Updated
   status?: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED' | 'REFUNDED';
   currency_code?: string;
   subtotal_amount: number;
@@ -86,7 +101,7 @@ export interface CreateOrderRequest {
   discount_amount?: number;
   credit_applied?: number;
   total_amount: number;
-  items_snapshot: ItemSnapshot[];
+  items_snapshot: LineItem[]; // Updated
   billing_info?: BillingInfo;
   payment_method?: string;
   payment_ref_id?: string;
@@ -94,7 +109,7 @@ export interface CreateOrderRequest {
 
 export interface UpdateOrderRequest {
   po_number?: string;
-  type?: 'NEW' | 'RENEWAL' | 'UPGRADE' | 'DOWNGRADE' | 'ADD_ON';
+  type?: OrderType; // Updated
   status?: 'DRAFT' | 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED' | 'REFUNDED';
   payment_method?: string;
   payment_ref_id?: string;
@@ -369,6 +384,12 @@ export function getStatusLabel(status: string): string {
  */
 export function getTypeLabel(type: string): string {
   switch (type.toUpperCase()) {
+    case 'SUBSCRIPTION':
+      return 'Gói cước';
+    case 'ONE_TIME':
+      return 'Mua lẻ';
+    case 'HYBRID':
+      return 'Kết hợp';
     case 'NEW':
       return 'Mới';
     case 'RENEWAL':
@@ -389,6 +410,12 @@ export function getTypeLabel(type: string): string {
  */
 export function getTypeColor(type: string): string {
   switch (type.toUpperCase()) {
+    case 'SUBSCRIPTION':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
+    case 'ONE_TIME':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
+    case 'HYBRID':
+      return 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300';
     case 'NEW':
       return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
     case 'RENEWAL':
@@ -402,6 +429,54 @@ export function getTypeColor(type: string): string {
     default:
       return 'bg-gray-100 text-gray-800';
   }
+}
+
+/**
+ * Get product type label
+ */
+export function getProductTypeLabel(type: ProductType): string {
+  switch (type) {
+    case 'SSL':
+      return 'Chứng chỉ SSL';
+    case 'DOMAIN':
+      return 'Tên miền';
+    case 'LICENSE':
+      return 'Giấy phép';
+    case 'SERVICE':
+      return 'Dịch vụ';
+    case 'CONSULTING':
+      return 'Tư vấn';
+    case 'TRAINING':
+      return 'Đào tạo';
+    case 'OTHER':
+      return 'Khác';
+    default:
+      return type;
+  }
+}
+
+/**
+ * Calculate order totals from line items
+ */
+export function calculateOrderTotals(items: LineItem[]): {
+  subtotal: number;
+  itemCount: number;
+} {
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  return { subtotal, itemCount };
+}
+
+/**
+ * Determine order type based on line items
+ */
+export function determineOrderType(items: LineItem[]): OrderType {
+  const hasPlans = items.some(item => item.item_type === 'PLAN');
+  const hasProducts = items.some(item => item.item_type === 'PRODUCT');
+  
+  if (hasPlans && hasProducts) return 'HYBRID';
+  if (hasPlans) return 'SUBSCRIPTION';
+  return 'ONE_TIME';
 }
 
 export default ordersApi;

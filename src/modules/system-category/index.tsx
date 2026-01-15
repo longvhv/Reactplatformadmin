@@ -40,6 +40,7 @@ export const SystemCategoryModule: ModuleDefinition = {
   icon: <FolderTree className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
+  order: 52, // NỀN TẢNG & CẤU HÌNH group
   routes: [
     {
       path: "/core/system-categories",

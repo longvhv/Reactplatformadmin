@@ -42,7 +42,7 @@ export function ApplicationStats({ appId, appCode }: ApplicationStatsProps) {
 
       console.log('🔍 [ApplicationStats] Fetching stats for app:', { appId, appCode });
 
-      // Fetch capabilities count (FIXED: use correct table name + filter deleted)
+      // Fetch capabilities count (FIXED: use correct field name 'status' not 'is_enabled')
       const { count: totalCapabilities, error: capError1 } = await supabase
         .from('app_capabilities')
         .select('*', { count: 'exact', head: true })
@@ -58,7 +58,7 @@ export function ApplicationStats({ appId, appCode }: ApplicationStatsProps) {
         .from('app_capabilities')
         .select('*', { count: 'exact', head: true })
         .eq('app_id', appId)
-        .eq('is_enabled', true)
+        .eq('status', 'active')
         .is('deleted_at', null);
 
       if (capError2) {

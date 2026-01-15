@@ -19,7 +19,8 @@ export const SettingsModule: ModuleConfig = {
   name: "Hệ thống",
   icon: <Settings className="w-4 h-4" />,
   enabled: true,
-  showInSidebar: true, // Show menu items in sidebar
+  showInSidebar: true, // ✅ CHANGED: Show in main sidebar
+  order: 100, // ✅ ADDED: Platform & Configuration group (80-99)
   routes: [
     {
       path: "/core/settings",
@@ -34,9 +35,10 @@ export const SettingsModule: ModuleConfig = {
   menuItems: [
     {
       id: "settings",
-      label: "navigation.settings",
+      label: "Cài Đặt",
       icon: <Settings className="w-5 h-5" />,
       path: "/core/settings",
-    },
+      order: 100, // ✅ ADDED: Consistent ordering
+    } as any,
   ],
 };

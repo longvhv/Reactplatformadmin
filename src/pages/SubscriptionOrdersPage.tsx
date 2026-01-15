@@ -9,13 +9,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { ordersApi, Order, OrderFilters, getStatusColor, getStatusLabel } from '../api/ordersApi';
+import { 
+  ordersApi, 
+  Order, 
+  OrderFilters, 
+  getStatusColor, 
+  getStatusLabel,
+  getTypeLabel,
+  getTypeColor,
+  LineItem
+} from '../api/ordersApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Plus, Search, Filter, RefreshCw, List, Grid, Eye, Edit2, Trash2, ShoppingCart, DollarSign, Package } from 'lucide-react';
+import { Plus, Search, Filter, RefreshCw, List, Grid, Eye, Edit2, Trash2, ShoppingCart, DollarSign, Package, Box } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { useLanguage } from '../providers/LanguageProvider';
 import { OrderDetailModal } from '../components/orders/OrderDetailModal';
@@ -28,6 +37,9 @@ interface OrderStats {
   cancelled: number;
   failed: number;
   totalRevenue: number;
+  subscriptionOrders: number;
+  oneTimeOrders: number;
+  hybridOrders: number;
 }
 
 export default function SubscriptionOrdersPage() {
@@ -78,11 +90,19 @@ export default function SubscriptionOrdersPage() {
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(order => 
-        order.order_code.toLowerCase().includes(search) ||
-        order.package_snapshot?.name?.toLowerCase().includes(search) ||
-        order.package_snapshot?.code?.toLowerCase().includes(search)
-      );
+      filtered = filtered.filter(order => {
+        // Search in order number
+        if (order.order_number?.toLowerCase().includes(search)) return true;
+        
+        // Search in items snapshot
+        if (order.items_snapshot && Array.isArray(order.items_snapshot)) {
+          return order.items_snapshot.some((item: LineItem) => 
+            item.name?.toLowerCase().includes(search)
+          );
+        }
+        
+        return false;
+      });
     }
 
     // Status filter
@@ -103,6 +123,9 @@ export default function SubscriptionOrdersPage() {
       totalRevenue: orders
         .filter(o => o.status === 'PAID')
         .reduce((sum, o) => sum + o.total_amount, 0),
+      subscriptionOrders: orders.filter(o => o.type === 'SUBSCRIPTION').length,
+      oneTimeOrders: orders.filter(o => o.type === 'ONE_TIME').length,
+      hybridOrders: orders.filter(o => o.type === 'HYBRID').length,
     };
     setStats(stats);
   };
@@ -113,7 +136,7 @@ export default function SubscriptionOrdersPage() {
   };
 
   const handleDelete = async (order: Order) => {
-    if (!confirm(`Bạn có chắc muốn xóa đơn hàng \"${order.order_code}\"?`)) return;
+    if (!confirm(`Bạn có chắc muốn xóa đơn hàng "${order.order_number}"?`)) return;
 
     try {
       await ordersApi.delete(order._id);
@@ -123,6 +146,25 @@ export default function SubscriptionOrdersPage() {
       console.error('Error deleting order:', error);
       toast.error('Không thể xóa: ' + error.message);
     }
+  };
+  
+  // Helper function to get line items summary
+  const getItemsSummary = (order: Order): string => {
+    if (!order.items_snapshot || !Array.isArray(order.items_snapshot) || order.items_snapshot.length === 0) {
+      return 'N/A';
+    }
+    
+    if (order.items_snapshot.length === 1) {
+      return order.items_snapshot[0].name;
+    }
+    
+    return `${order.items_snapshot[0].name} (+${order.items_snapshot.length - 1} item khác)`;
+  };
+
+  // Helper function to count total items
+  const getTotalItems = (order: Order): number => {
+    if (!order.items_snapshot || !Array.isArray(order.items_snapshot)) return 0;
+    return order.items_snapshot.reduce((sum, item) => sum + (item.quantity || 0), 0);
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -362,13 +404,19 @@ export default function SubscriptionOrdersPage() {
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {order.order_number || 'N/A'}
                         </div>
+                        {order.type && (
+                          <Badge className={`mt-1 ${getTypeColor(order.type)}`} variant="outline">
+                            {getTypeLabel(order.type)}
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {order.package_snapshot?.name || order.package_name || 'N/A'}
+                          {getItemsSummary(order)}
                         </div>
-                        <div className="text-xs text-gray-500">
-                          {order.package_snapshot?.code || order.package_code || ''}
+                        <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                          <Box className="h-3 w-3" />
+                          {getTotalItems(order)} items
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -427,11 +475,16 @@ export default function SubscriptionOrdersPage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">
-                        {order.order_code}
+                        {order.order_number || 'N/A'}
                       </CardTitle>
                       <p className="text-sm text-gray-500 mt-1">
-                        {order.package_snapshot?.name || 'N/A'}
+                        {getItemsSummary(order)}
                       </p>
+                      {order.type && (
+                        <Badge className={`mt-2 ${getTypeColor(order.type)}`} variant="outline">
+                          {getTypeLabel(order.type)}
+                        </Badge>
+                      )}
                     </div>
                     <Badge className={getStatusColor(order.status)}>
                       {getStatusLabel(order.status)}
@@ -440,6 +493,13 @@ export default function SubscriptionOrdersPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Số items:</span>
+                      <span className="text-sm flex items-center gap-1">
+                        <Box className="h-4 w-4" />
+                        {getTotalItems(order)}
+                      </span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-600 dark:text-gray-400">Số tiền:</span>
                       <span className="text-sm font-semibold">

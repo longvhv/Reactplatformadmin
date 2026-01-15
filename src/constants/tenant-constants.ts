@@ -5,6 +5,9 @@
 
 import type { TenantStatus, TenantTier, DataRegion, ComplianceLevel, BillingType } from '@/data/tenants';
 
+// Default tenant ID (UUID của default tenant trong database)
+export const DEFAULT_TENANT_ID = '078e19ae-af67-4452-9ccd-10e27acb2dfe';
+
 // Status values
 export const TENANT_STATUSES: readonly TenantStatus[] = ['TRIAL', 'ACTIVE', 'SUSPENDED', 'CANCELLED'] as const;
 

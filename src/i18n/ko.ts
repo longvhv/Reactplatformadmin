@@ -78,6 +78,14 @@ export const ko: TranslationKeys = {
     applications: '애플리케이션',
     rateLimits: '속도 제한',
     webhooks: '웹훅',
+    // Menu groups
+    groupMain: '메인',
+    groupIdentity: 'ID & 액세스',
+    groupCommerce: '커머스 & 결제',
+    groupPlatform: '플랫폼 & 설정',
+    groupIntegrations: '통합 & API',
+    groupAnalytics: '분석 & 보고서',
+    groupSystem: '시스템 & 지원',
   },
 
   auth: {

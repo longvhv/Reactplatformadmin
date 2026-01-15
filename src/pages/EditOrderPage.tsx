@@ -5,13 +5,14 @@
  * ✅ Matches new subscription_orders schema (migration 023)
  * ✅ Optimistic locking with version control
  * ✅ Full validation and error handling
+ * ✅ UPDATED 2026-01-15: Switched to OrderFormV2 with LineItemsEditor support
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { ordersApi, Order } from '../api/ordersApi';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
-import { OrderForm } from '../components/orders/OrderForm';
+import { OrderFormV2 } from '../components/orders/OrderFormV2';
 import { ShoppingCart, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 
@@ -102,7 +103,7 @@ export default function EditOrderPage() {
       backPath="/core/subscription-orders"
       backLabel="Quay lại danh sách"
     >
-      <OrderForm
+      <OrderFormV2
         order={order}
         onSubmit={handleSubmit}
         onCancel={() => navigate('/core/subscription-orders')}

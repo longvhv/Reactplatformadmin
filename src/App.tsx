@@ -12,6 +12,7 @@ import { TenantDetailPage } from "./pages/TenantDetailPage";
 import AddTenantPage from "./pages/AddTenantPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import EditUserPage from "./pages/EditUserPage";
+import AddUserPage from "./pages/AddUserPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import ApplicationFormPage from "./pages/ApplicationFormPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
@@ -27,6 +28,8 @@ import AddSubscriptionPage from "./pages/AddSubscriptionPage";
 import "./core/moduleRegistration";
 // Import ModuleRegistry to get all routes
 import { ModuleRegistry } from "./core/ModuleRegistry";
+
+// 🔍 FORCE REBUILD - 2026-01-15 - Debug missing menu items
 
 /**
  * VHV Platform React Framework
@@ -54,8 +57,13 @@ function AppContent() {
       <Route path="/core/tenants/add" element={<AddTenantPage />} />
       <Route path="/core/tenants/new" element={<AddTenantPage />} />
       <Route path="/core/tenants/:id" element={<TenantDetailPage />} />
-      <Route path="/core/users/:id" element={<UserDetailPage />} />
+      
+      {/* 
+        ⚠️ CRITICAL FIX: Users routes - /new and /edit/:id MUST come BEFORE /:id
+      */}
+      <Route path="/core/users/new" element={<AddUserPage />} />
       <Route path="/core/users/:id/edit" element={<EditUserPage />} />
+      <Route path="/core/users/:id" element={<UserDetailPage />} />
       
       {/* 
         ⚠️ CRITICAL FIX: Applications routes - /new MUST come BEFORE /:id

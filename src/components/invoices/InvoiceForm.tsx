@@ -4,7 +4,7 @@
  * Follows DRY principle and SonarQube standards
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Save, X, Plus, Trash2, Calculator } from 'lucide-react';
 import { 

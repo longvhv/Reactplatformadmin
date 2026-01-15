@@ -6,9 +6,12 @@
 import { Suspense, lazy } from 'react';
 import { Shield } from 'lucide-react';
 import type { ModuleDefinition } from '../../core/ModuleRegistry';
-import { reservedSlugsRoutes } from './index';
+import { LoadingFallback } from '../../components/LoadingFallback';
 
 const ReservedSlugsPage = lazy(() => import('../../pages/ReservedSlugsPage'));
+const AddReservedSlugPage = lazy(() => import('../../pages/AddReservedSlugPage'));
+const EditReservedSlugPage = lazy(() => import('../../pages/EditReservedSlugPage'));
+const ReservedSlugDetailPage = lazy(() => import('../../pages/ReservedSlugDetailPage'));
 
 export const ReservedSlugsModule: ModuleDefinition = {
   id: 'reserved-slugs',
@@ -19,15 +22,43 @@ export const ReservedSlugsModule: ModuleDefinition = {
   category: 'system',
   enabled: true,
   showInSidebar: true,
+  order: 54, // NỀN TẢNG & CẤU HÌNH group
   routes: [
     {
       path: '/core/reserved-slugs',
       element: (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<LoadingFallback />}>
           <ReservedSlugsPage />
         </Suspense>
       ),
       title: 'Reserved Slugs',
+    },
+    {
+      path: '/core/reserved-slugs/add',
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <AddReservedSlugPage />
+        </Suspense>
+      ),
+      title: 'Thêm Từ Khóa Dành Riêng',
+    },
+    {
+      path: '/core/reserved-slugs/edit/:id',
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <EditReservedSlugPage />
+        </Suspense>
+      ),
+      title: 'Chỉnh Sửa Từ Khóa Dành Riêng',
+    },
+    {
+      path: '/core/reserved-slugs/:id',
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <ReservedSlugDetailPage />
+        </Suspense>
+      ),
+      title: 'Chi Tiết Từ Khóa Dành Riêng',
     },
   ],
   menuItems: [

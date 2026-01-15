@@ -20,6 +20,7 @@ import {
   Settings,
   AlertCircle
 } from 'lucide-react';
+import { DEFAULT_TENANT_ID } from '@/constants/tenant-constants';
 
 interface WebhookFormProps {
   initialData?: Webhook;
@@ -51,7 +52,7 @@ const COMMON_EVENTS = [
 
 export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }: WebhookFormProps) {
   const [formData, setFormData] = useState({
-    tenant_id: initialData?.tenant_id || 'default-tenant',
+    tenant_id: initialData?.tenant_id || DEFAULT_TENANT_ID,
     name: initialData?.name || '',
     description: initialData?.description || '',
     url: initialData?.url || '',

@@ -21,6 +21,7 @@ export const RolesModule: ModuleDefinition = {
   icon: <Shield className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
+  order: 14, // QUẢN TRỊ & TRUY CẬP group
   routes: [
     {
       path: "/core/roles",

@@ -35,17 +35,22 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     id: 'commerce',
     label: 'THƯƠNG MẠI & THANH TOÁN',
-    moduleIds: ['products', 'service-packages', 'subscriptions', 'subscription-invoices', 'subscription-orders', 'tenant-subscriptions'],
+    moduleIds: ['products', 'service-packages', 'subscriptions', 'subscription-invoices', 'subscription-orders', 'tenant-subscriptions', 'digital-assets', 'service-deliveries'],
   },
   {
     id: 'platform',
     label: 'NỀN TẢNG & CẤU HÌNH',
-    moduleIds: ['applications', 'system-categories', 'rate-limits', 'reserved-slugs', 'system-announcements', 'notification-templates'],
+    moduleIds: ['applications', 'system-categories', 'rate-limits', 'reserved-slugs', 'system-announcements', 'notification-templates', 'legal-documents'],
   },
   {
     id: 'integrations',
     label: 'TÍCH HỢP & API',
     moduleIds: ['webhooks', 'dev-docs'],
+  },
+  {
+    id: 'system',
+    label: 'HỆ THỐNG & HỖ TRỢ',
+    moduleIds: ['settings', 'help'],
   },
 ];
 

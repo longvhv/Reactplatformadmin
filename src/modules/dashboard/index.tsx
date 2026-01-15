@@ -20,6 +20,7 @@ export const DashboardModule: ModuleConfig = {
   icon: <LayoutDashboard className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true, // Show menu items in sidebar
+  order: 1, // CHÍNH group
   routes: [
     {
       path: "/core/dashboard",

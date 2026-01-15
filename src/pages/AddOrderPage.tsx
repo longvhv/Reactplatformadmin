@@ -2,12 +2,13 @@
  * Add Subscription Order Page
  * Production-ready form for creating subscription orders
  * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * ✅ UPDATED 2026-01-15: Switched to OrderFormV2 with LineItemsEditor support
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ordersApi, CreateOrderRequest } from '../api/ordersApi';
-import { OrderForm } from '../components/orders/OrderForm';
+import { OrderFormV2 } from '../components/orders/OrderFormV2';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
@@ -65,10 +66,10 @@ export default function AddOrderPage() {
       backPath="/core/subscription-orders"
       backLabel="Quay lại danh sách"
     >
-      <OrderForm
+      <OrderFormV2
         onSubmit={handleSubmit}
         onCancel={() => navigate('/core/subscription-orders')}
-        isLoading={loading}
+        loading={loading}
       />
     </FormPageLayout>
   );

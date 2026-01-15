@@ -9,10 +9,16 @@ import { useNavigate } from 'react-router';
 import { Application, applicationsApi } from '../api/applicationsApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Plus, Search, Grid as GridIcon, List, Server, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Grid as GridIcon, List, Server, CheckCircle, XCircle, Download, Upload, Filter, Code, Activity, MoreVertical, Edit, Settings, PowerOff, Power, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '../providers/LanguageProvider';
 import { StatisticsCards } from '../components/common/StatisticsCards';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 
 export function ApplicationsPage() {
   const { t } = useLanguage();
@@ -170,7 +176,13 @@ export function ApplicationsPage() {
         </div>
 
         {/* Stats */}
-        <StatisticsCards stats={stats} />
+        <StatisticsCards 
+          stats={[
+            { label: 'Total', value: stats.total, color: 'gray', icon: Server },
+            { label: 'Active', value: stats.active, color: 'green', icon: CheckCircle },
+            { label: 'Inactive', value: stats.inactive, color: 'red', icon: XCircle },
+          ]}
+        />
 
         {/* Filters & Search */}
         <div className="bg-white rounded-lg shadow-sm border p-4">
@@ -330,53 +342,51 @@ export function ApplicationsPage() {
                       </div>
                     </div>
 
-                    <div className="relative group">
-                      <button className="p-1 hover:bg-gray-100 rounded">
-                        <MoreVertical className="w-4 h-4 text-gray-400" />
-                      </button>
+                    {/* Actions - Fixed with DropdownMenu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 hover:bg-gray-100 rounded ml-2">
+                          <MoreVertical className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </DropdownMenuTrigger>
                       
-                      <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-10">
-                        <div className="py-1">
-                          <button
-                            onClick={() => navigate(`/core/applications/${app._id}/edit`)}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Chỉnh sửa
-                          </button>
-                          <button
-                            onClick={() => navigate(`/core/applications/${app._id}/settings`)}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            <Settings className="w-4 h-4" />
-                            Cài đặt
-                          </button>
-                          <button
-                            onClick={() => handleToggleActive(app._id, app.status)}
-                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
-                          >
-                            {app.status === 'ACTIVE' ? (
-                              <>
-                                <PowerOff className="w-4 h-4" />
-                                Deactivate
-                              </>
-                            ) : (
-                              <>
-                                <Power className="w-4 h-4" />
-                                Activate
-                              </>
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(app._id)}
-                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Xóa
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/core/applications/${app._id}/edit`)}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Chỉnh sửa
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => navigate(`/core/applications/${app._id}/settings`)}
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Cài đặt
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleToggleActive(app._id, app.status)}
+                        >
+                          {app.status === 'ACTIVE' ? (
+                            <>
+                              <PowerOff className="w-4 h-4 mr-2" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <Power className="w-4 h-4 mr-2" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(app._id)}
+                          className="text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Xóa
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>

@@ -15,8 +15,10 @@ import {
 import { useUsers } from '../hooks/useUsers';
 import { UserTable } from '../components/users/UserTable';
 import { UserGrid } from '../components/users/UserGrid';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 import { StatisticsCards } from '../components/common/StatisticsCards';
+
+type UserStatus = 'ACTIVE' | 'BANNED' | 'DISABLED' | 'PENDING';
 
 export default function UsersPage() {
   const navigate = useNavigate();

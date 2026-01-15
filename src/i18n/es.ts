@@ -78,6 +78,14 @@ export const es: TranslationKeys = {
     applications: 'Aplicaciones',
     rateLimits: 'Límites de velocidad',
     webhooks: 'Webhooks',
+    // Menu groups
+    groupMain: 'PRINCIPAL',
+    groupIdentity: 'IDENTIDAD & ACCESO',
+    groupCommerce: 'COMERCIO & FACTURACIÓN',
+    groupPlatform: 'PLATAFORMA & CONFIG',
+    groupIntegrations: 'INTEGRACIONES & API',
+    groupAnalytics: 'ANÁLISIS & INFORMES',
+    groupSystem: 'SISTEMA & SOPORTE',
   },
 
   auth: {

@@ -85,6 +85,7 @@ const en: TranslationKeys = {
     groupPlatform: 'PLATFORM & CONFIG',
     groupIntegrations: 'INTEGRATIONS & API',
     groupAnalytics: 'ANALYTICS & REPORTS',
+    groupSystem: 'SYSTEM & SUPPORT',
     // Menu items
     overview: 'Overview',
     products: 'Products',
@@ -1492,6 +1493,23 @@ const en: TranslationKeys = {
     targetAudienceHelp: 'User group this flag applies to',
     conditionsHelp: 'JSON conditions for automatic enable/disable',
   },
+  
+  // Direct translation keys for hardcoded labels
+  // These are used when labels are passed directly to t() function
+  'Tổng quan': 'Overview',
+  'Hoạt động': 'Activity',
+  'Thống kê': 'Statistics',
+  'Thành viên': 'Members',
+  'Vai trò': 'Roles',
+  'Phòng ban': 'Departments',
+  'Nhóm người dùng': 'User Groups',
+  'Ủy quyền': 'Delegations',
+  'Địa điểm': 'Locations',
+  'Routing Slugs': 'Routing Slugs',
+  'App Routes': 'App Routes',
+  'Rate Limits': 'Rate Limits',
+  'Webhooks': 'Webhooks',
+  'SSO Configs': 'SSO Configs',
 };
 
 export { en };
