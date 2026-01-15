@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router';
 import { 
   ShoppingCart, ArrowLeft, Package, CreditCard, Clock, 
   AlertCircle, CheckCircle, XCircle, Loader 

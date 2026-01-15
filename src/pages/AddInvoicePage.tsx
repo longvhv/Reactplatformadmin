@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import { subscriptionInvoiceApi, SubscriptionInvoice } from '../api/subscriptionInvoiceApi';
 import { InvoiceForm } from '../components/invoices/InvoiceForm';

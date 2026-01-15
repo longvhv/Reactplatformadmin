@@ -22,7 +22,6 @@ import AddServicePackagePage from "./pages/AddServicePackagePage";
 import EditServicePackagePage from "./pages/EditServicePackagePage";
 import SubscriptionDetailPageFullscreen from "./pages/SubscriptionDetailPage";
 import AddSubscriptionPage from "./pages/AddSubscriptionPage";
-import SubscriptionOrderDetailPage from "./pages/SubscriptionOrderDetailPage";
 
 // Import module registration to register all modules
 import "./core/moduleRegistration";
@@ -62,6 +61,11 @@ function AppContent() {
         ⚠️ CRITICAL FIX: Applications routes - /new MUST come BEFORE /:id
       */}
       <Route path="/core/applications/new" element={
+        <AppLayout>
+          <ApplicationFormPage />
+        </AppLayout>
+      } />
+      <Route path="/core/applications/:id/edit" element={
         <AppLayout>
           <ApplicationFormPage />
         </AppLayout>
@@ -106,7 +110,6 @@ function AppContent() {
       */}
       <Route path="/core/subscriptions/add" element={<AddSubscriptionPage />} />
       <Route path="/core/subscriptions/:id" element={<SubscriptionDetailPageFullscreen />} />
-      <Route path="/core/subscription-orders/:id" element={<SubscriptionOrderDetailPage />} />
       
       {/* All other routes with AppLayout */}
       <Route path="*" element={

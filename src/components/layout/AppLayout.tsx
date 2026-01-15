@@ -30,7 +30,7 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     id: 'identity',
     label: 'QUẢN TRỊ & TRUY CẬP',
-    moduleIds: ['tenants', 'user', 'roles', 'audit-logs', 'auth-logs', 'tenant-members', 'user-roles'],
+    moduleIds: ['tenants', 'users', 'roles', 'audit-logs', 'auth-logs', 'tenant-members', 'user-roles', 'user-delegations'],
   },
   {
     id: 'commerce',
@@ -40,17 +40,12 @@ const MENU_GROUPS: MenuGroup[] = [
   {
     id: 'platform',
     label: 'NỀN TẢNG & CẤU HÌNH',
-    moduleIds: ['applications', 'system-category', 'rate-limits', 'reserved-slugs', 'system-announcements', 'notification-templates'],
+    moduleIds: ['applications', 'system-categories', 'rate-limits', 'reserved-slugs', 'system-announcements', 'notification-templates'],
   },
   {
     id: 'integrations',
     label: 'TÍCH HỢP & API',
     moduleIds: ['webhooks', 'dev-docs'],
-  },
-  {
-    id: 'analytics',
-    label: 'PHÂN TÍCH & BÁO CÁO',
-    moduleIds: ['legal-documents'],
   },
 ];
 

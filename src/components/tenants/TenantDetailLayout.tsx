@@ -4,7 +4,7 @@
  */
 
 import { ReactNode, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { TenantDetailSidebar } from './TenantDetailSidebar';
 import { Loader2 } from 'lucide-react';
 

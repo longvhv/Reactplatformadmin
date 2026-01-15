@@ -6,10 +6,10 @@
  */
 
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router';
 import { 
   ShoppingCart, ArrowLeft, Package, CreditCard, Clock, 
-  AlertCircle, CheckCircle, XCircle, Loader, Edit2
+  AlertCircle, CheckCircle, XCircle, Loader, Edit2, Trash2
 } from 'lucide-react';
 import { useOrderDetails, useCancelOrder, useProcessPayment, getStatusColor, getStatusLabel } from '../api/ordersApi';
 import { OrderOverviewTab } from '../components/orders/OrderOverviewTab';
@@ -39,6 +39,8 @@ export default function SubscriptionOrderDetailPage() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<string>('CREDIT_CARD');
 
   // Loading state
@@ -110,6 +112,24 @@ export default function SubscriptionOrderDetailPage() {
     }
   };
 
+  const handleDeleteOrder = async () => {
+    if (!order) return;
+    
+    setDeleting(true);
+    try {
+      const { ordersApi } = await import('../api/ordersApi');
+      await ordersApi.delete(order._id);
+      setShowDeleteDialog(false);
+      // Navigate back to list after successful deletion
+      navigate('/core/subscription-orders');
+    } catch (error) {
+      console.error('Failed to delete order:', error);
+      alert('Không thể xóa đơn hàng. Vui lòng thử lại.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Tab configuration
   const tabs = [
     { id: 'overview' as TabType, label: 'Tổng quan', icon: ShoppingCart },
@@ -163,6 +183,16 @@ export default function SubscriptionOrderDetailPage() {
               >
                 <Edit2 className="w-4 h-4 mr-2" />
                 Chỉnh sửa
+              </button>
+
+              {/* Delete Button */}
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={deleting}
+                className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Xóa
               </button>
 
               {/* Action Buttons for PENDING status */}
@@ -338,6 +368,36 @@ export default function SubscriptionOrderDetailPage() {
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
               >
                 {processing ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Order Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Xác nhận xóa đơn hàng
+            </h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Bạn có chắc chắn muốn xóa đơn hàng <strong>#{order.order_code}</strong>? 
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={handleDeleteOrder}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleting ? 'Đang xóa...' : 'Xác nhận xóa'}
               </button>
             </div>
           </div>

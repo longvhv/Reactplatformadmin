@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { MapPin, Plus, Search, Pencil, Trash2, Globe, Building, MapPinned } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';

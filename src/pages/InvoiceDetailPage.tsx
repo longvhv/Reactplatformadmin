@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router';
 import { 
   ArrowLeft, Edit, Trash2, Send, DollarSign, 
   Download, Calendar, FileText, Receipt, Package, User, ShoppingCart, Calculator

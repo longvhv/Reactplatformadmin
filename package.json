@@ -47,7 +47,6 @@
           "language_state.dart": "*",
           "lucide-react": "^0.487.0",
           "mermaid": "*",
-          "next": "*",
           "next-themes": "^0.4.6",
           "package:dartz": "*",
           "package:dio": "*",

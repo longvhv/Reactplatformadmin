@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Building2, Package, CreditCard, Calendar, DollarSign, ExternalLink } from 'lucide-react';
 import { OrderWithDetails, formatCurrency, formatDate } from '@/api/ordersApi';
 

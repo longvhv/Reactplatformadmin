@@ -4,7 +4,7 @@
  * Page for creating new service packages
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { ServicePackageForm } from '../components/service-packages/ServicePackageForm';

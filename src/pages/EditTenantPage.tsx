@@ -3,7 +3,7 @@
  * Wrapper for editing existing tenant
  */
 
-import { useParams } from 'react-router-dom';
+import { useParams } from 'react-router';
 import { TenantForm } from '@/components/tenants/TenantForm';
 import { useTenants } from '@/hooks/useTenants';
 

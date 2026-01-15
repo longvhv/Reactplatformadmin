@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { 
   CreditCard, Calendar, DollarSign, Users, HardDrive,
   Eye, Pencil, Trash2, RefreshCw, Sparkles, Clock

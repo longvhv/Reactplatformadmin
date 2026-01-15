@@ -4,7 +4,7 @@
  */
 
 import { lazy } from 'react';
-import type { RouteObject } from 'react-router-dom';
+import type { RouteObject } from 'react-router';
 
 const ReservedSlugsPage = lazy(() => import('../../pages/ReservedSlugsPage'));
 const AddReservedSlugPage = lazy(() => import('../../pages/AddReservedSlugPage'));

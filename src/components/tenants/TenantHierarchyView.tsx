@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ChevronRight, Building2, Users, Database } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

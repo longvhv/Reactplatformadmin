@@ -3,7 +3,7 @@
  * Refactored with useTenantForm hook - Under 300 lines
  */
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { ArrowLeft, Save, Building2, MapPin, CreditCard, Settings } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';

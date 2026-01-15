@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { 
   CreditCard, Eye, Pencil, Trash2, RefreshCw, Ban, 
   Calendar, DollarSign, Users, HardDrive, AlertCircle,

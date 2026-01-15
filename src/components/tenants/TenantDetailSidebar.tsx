@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router';
 import {
   LayoutDashboard,
   FileText,

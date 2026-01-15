@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useLanguage } from '../providers/LanguageProvider';
 import { systemCategoryApi, SystemCategory } from '../api/systemCategoryApi';
 import { EnhancedSystemCategoryForm } from '../components/systemCategories/EnhancedSystemCategoryForm';

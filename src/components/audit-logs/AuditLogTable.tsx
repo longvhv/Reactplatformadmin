@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { AuditLog } from '../../api/auditLogApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';

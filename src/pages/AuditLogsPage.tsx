@@ -6,7 +6,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { AuditLogTable } from '../components/audit-logs/AuditLogTable';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 import { Button } from '../components/ui/button';

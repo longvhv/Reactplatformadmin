@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Order, getStatusColor, getStatusLabel, getTypeColor, getTypeLabel } from '../../api/ordersApi';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';

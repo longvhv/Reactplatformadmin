@@ -4,7 +4,7 @@
  * Page for editing existing service packages
  */
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { Button } from '../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { ServicePackageForm } from '../components/service-packages/ServicePackageForm';

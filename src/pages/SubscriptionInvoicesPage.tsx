@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { Plus, Search, Filter, Download, RefreshCw, List, Grid } from 'lucide-react';
 import { subscriptionInvoiceApi, SubscriptionInvoice, InvoiceFilters, InvoiceStatistics } from '../api/subscriptionInvoiceApi';
 import { InvoiceTable } from '../components/invoices/InvoiceTable';

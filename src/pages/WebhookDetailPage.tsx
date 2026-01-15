@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router';
 import { 
   ArrowLeft, 
   Webhook as WebhookIcon, 
@@ -186,24 +186,28 @@ export default function WebhookDetailPage() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Target URL</h2>
             </div>
             <p className="text-gray-900 dark:text-white font-mono bg-gray-50 dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700 break-all">
-              {webhook.target_url}
+              {webhook.url}
             </p>
           </div>
 
           {/* Subscribed Events */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-              Subscribed Events ({webhook.subscribed_events.length})
+              Subscribed Events ({webhook.event_types?.length || 0})
             </h2>
             <div className="flex flex-wrap gap-2">
-              {webhook.subscribed_events.map((event) => (
-                <span 
-                  key={event}
-                  className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 text-sm rounded-md font-medium"
-                >
-                  {event}
-                </span>
-              ))}
+              {webhook.event_types && webhook.event_types.length > 0 ? (
+                webhook.event_types.map((event) => (
+                  <span 
+                    key={event}
+                    className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 text-sm rounded-md font-medium"
+                  >
+                    {event}
+                  </span>
+                ))
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400 text-sm">No events subscribed</p>
+              )}
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { 
   Building2, Edit, Trash2, ExternalLink, Users, Database, 
   Shield, MapPin, CreditCard, Calendar, Network 

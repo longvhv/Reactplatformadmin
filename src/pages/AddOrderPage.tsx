@@ -7,7 +7,7 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { ordersApi, CreateOrderRequest } from '../api/ordersApi';
 import { OrderForm } from '../components/orders/OrderForm';
 import { Button } from '../components/ui/button';

@@ -1,195 +1,357 @@
-# 🐛 Bug Fix Documentation
+# 🐛 BUGFIX DOCUMENTATION
 
-Thư mục này chứa tất cả tài liệu về bug fixes đã thực hiện trong project.
-
----
-
-## 📁 Structure
-
-```
-/docs/bugfix/
-├── README.md                      # This file
-├── BUGFIX_SUMMARY.md              # Tổng kết tất cả bugs (MAIN DOCUMENT)
-├── BUGFIX_TENANT_TABS.md          # Fix tenant tabs loading issue
-├── QUICK_DEBUG_TENANT_TABS.md     # Quick debug guide
-├── BUGFIX_PRODUCTS.md             # Fix product detail page
-├── BUGFIX_ORDERS.md               # Fix order detail page
-└── BUGFIX_SUBSCRIPTIONS.md        # Fix subscription detail redirect
-```
+**Thư mục tổng hợp tất cả các bugfix logs và fixes**
 
 ---
 
-## 📊 Bug Fix Summary
+## 📋 MỤC LỤC
 
-**Ngày:** January 14, 2026  
-**Tổng bugs fixed:** 5  
-**Thời gian:** ~80 phút  
-**Files changed:** 6  
-**Lines changed:** ~1,300
-
-| # | Bug | Status | Document |
-|---|-----|--------|----------|
-| 1 | Tenant tabs loading | ✅ FIXED | `BUGFIX_TENANT_TABS.md` |
-| 2 | Application stats error | ✅ FIXED | `BUGFIX_SUMMARY.md` |
-| 3 | Product detail error | ✅ FIXED | `BUGFIX_PRODUCTS.md` |
-| 4 | Order detail error | ✅ FIXED | `BUGFIX_ORDERS.md` |
-| 5 | Subscription detail redirect | ✅ FIXED | `BUGFIX_SUBSCRIPTIONS.md` |
-
----
-
-## 🎯 Common Pattern
-
-**Tất cả 5 bugs đều có cùng nguyên nhân:**
-
-❌ Components gọi HTTP endpoints không tồn tại
-```typescript
-const response = await fetch('/api/something');
-```
-
-✅ **Solution:** Migrate sang Supabase direct queries
-```typescript
-import { someApi } from '@/api/someApi';
-const data = await someApi.getAll();
-```
+1. [Bugfix History](#bugfix-history)
+2. [CRUD Checks](#crud-checks)
+3. [Application Fixes](#application-fixes)
+4. [Products Fixes](#products-fixes)
+5. [Service Packages Fixes](#service-packages-fixes)
+6. [Orders & Invoices Fixes](#orders--invoices-fixes)
+7. [Tenants Fixes](#tenants-fixes)
+8. [Users Fixes](#users-fixes)
+9. [Webhooks Fixes](#webhooks-fixes)
+10. [Schema Migrations](#schema-migrations)
+11. [Routing & Navigation](#routing--navigation)
+12. [Database & RLS](#database--rls)
 
 ---
 
-## 📖 Documents
+## 📚 BUGFIX HISTORY
 
-### **1. BUGFIX_SUMMARY.md** ⭐ **START HERE**
-- Tổng kết tất cả 5 bugs
-- Pattern analysis
-- Architecture clarification
-- Testing checklist
+**BUGFIX_HISTORY.md** - Tổng hợp consolidated tất cả bugfix logs
+- Session summaries
+- Critical errors fixed
+- Schema migrations completed
 - Lessons learned
 
-### **2. BUGFIX_TENANT_TABS.md**
-- Chi tiết bug tenant tabs loading issue
-- Root cause analysis
-- Step-by-step fix
-- Code examples
+---
 
-### **3. QUICK_DEBUG_TENANT_TABS.md**
-- Quick reference guide
-- Debugging steps
-- Common issues
-- Solutions
+## ✅ CRUD CHECKS
 
-### **4. BUGFIX_PRODUCTS.md**
-- Product detail "Không tìm thấy sản phẩm"
-- Complete API rewrite (~350 lines)
-- React hooks migration
-- Features now working
+### Invoices Module
+**CHECK-2026-01-15-invoices-crud-complete.md**
+- ✅ Create - Thêm hóa đơn
+- ✅ Read - Xem danh sách & chi tiết
+- ✅ Update - Chỉnh sửa
+- ✅ Delete - Xóa (list + detail)
+- ✅ Statistics dashboard
+- ✅ Multi-view (Table + Grid)
+- ✅ Optimistic locking
 
-### **5. BUGFIX_ORDERS.md**
-- Order detail "Error fetching product"
-- Orders API migration (~500 lines)
-- Payment processing
-- Subscription creation
-
-### **6. BUGFIX_SUBSCRIPTIONS.md**
-- Subscription detail redirect issue
-- Subscriptions API migration (~350 lines)
-- JOINs with related data
-- Advanced filtering
-- Optimistic locking
+### Orders Module
+**CHECK-2026-01-15-orders-crud-complete.md**
+- ✅ Create - Thêm đơn hàng
+- ✅ Read - Xem danh sách & chi tiết
+- ✅ Update - Chỉnh sửa
+- ⚠️ Delete - Chỉ trong list (thiếu trong detail)
+- ✅ Tab-based detail page
+- ✅ Custom hooks
+- ✅ Joined data
 
 ---
 
-## 🔄 Migration Strategy
+## 🔧 APPLICATION FIXES
 
-### **From HTTP to Supabase**
+### 1. Edit Route Conflict
+**FIX-2026-01-15-applications-edit-route.md**
+- **Issue:** UUID route conflict với /edit route
+- **Fix:** Reorder routes - static trước dynamic
+- **Status:** ✅ Fixed
 
-All bugs involved migrating from non-existent HTTP endpoints to Supabase:
+### 2. Detail Page Supabase Integration
+**APPLICATION_DETAIL_PAGE_SUPABASE_INTEGRATION.md**
+- **Issue:** Detail page không load data từ Supabase
+- **Fix:** Integrate Supabase client
+- **Status:** ✅ Fixed
 
+### 3. Detail Sidebar Layout
+**REFACTOR-2026-01-15-application-detail-sidebar-layout.md**
+- **Issue:** Layout không consistent
+- **Fix:** Refactor sidebar structure
+- **Status:** ✅ Fixed
+
+---
+
+## 🏷️ PRODUCTS FIXES
+
+### 1. Routing Conflicts
+**FIXED-2026-01-15-products-routing.md**
+- **Issue:** Route conflicts
+- **Fix:** Route reordering
+- **Status:** ✅ Fixed
+
+### 2. Table Name
+**FIXED-2026-01-15-products-table-name.md**
+- **Issue:** Wrong table name in queries
+- **Fix:** Update to correct table name
+- **Status:** ✅ Fixed
+
+### 3. Detail Not Found
+**FIXING-2026-01-15-product-detail-not-found.md**
+- **Issue:** Product detail page 404
+- **Fix:** Fix route and data loading
+- **Status:** ✅ Fixed
+
+---
+
+## 📦 SERVICE PACKAGES FIXES
+
+### 1. Edit Button Navigation
+**FIXED-2026-01-15-service-packages-edit-button.md**
+- **Issue:** Edit button không navigate
+- **Fix:** Add onClick handler
+- **Status:** ✅ Fixed
+
+### 2. Form Submission
+**FIXED-2026-01-15-service-packages-form.md**
+- **Issue:** Form submit errors
+- **Fix:** Fix validation và API calls
+- **Status:** ✅ Fixed
+
+### 3. Detail Data Loading
+**FIX-2026-01-15-service-package-detail-data-loading.md**
+- **Issue:** Detail page không load data
+- **Fix:** Fix Supabase query
+- **Status:** ✅ Fixed
+
+---
+
+## 🛒 ORDERS & INVOICES FIXES
+
+### Orders
+
+#### 1. Hardcoded Route Conflict
+**FIX-2026-01-15-orders-module-hardcoded-route-conflict.md**
+- **Issue:** Hardcoded routes conflict với module routes
+- **Fix:** Remove hardcoded routes, use module registry
+- **Status:** ✅ Fixed
+
+#### 2. Schema Migration
+**SUBSCRIPTION_ORDERS_SCHEMA_MIGRATION_COMPLETE.md**
+- **Issue:** Schema mismatch giữa DB và API types
+- **Fix:** Migration 023 - add missing fields
+- **Status:** ✅ Fixed
+
+#### 3. Complete Fix
+**SUBSCRIPTION_ORDERS_COMPLETE_FIX.md**
+- **Issue:** Multiple issues trong orders module
+- **Fix:** Comprehensive fix
+- **Status:** ✅ Fixed
+
+### Invoices
+
+#### 1. Routing & Navigation
+**FIX-2026-01-15-invoice-module-routing-navigation.md**
+- **Issue:** Routing và navigation issues
+- **Fix:** Fix routes và navigation paths
+- **Status:** ✅ Fixed
+
+#### 2. Schema Migration
+**SUBSCRIPTION_INVOICES_SCHEMA_MIGRATION_COMPLETE.md**
+- **Issue:** Schema không match API
+- **Fix:** Migration 015 - update schema
+- **Status:** ✅ Fixed
+
+#### 3. Subscription Fetch Error
+**FIX_SUBSCRIPTION_FETCH_ERROR.md**
+- **Issue:** Fetch subscription data error
+- **Fix:** Fix API call
+- **Status:** ✅ Fixed
+
+---
+
+## 🏢 TENANTS FIXES
+
+### 1. Menu Missing
+**FIXED-2026-01-15-tenants-menu-missing.md**
+- **Issue:** Tenants không hiện trong menu
+- **Fix:** Fix module ID mismatch
+- **Status:** ✅ Fixed
+
+---
+
+## 👥 USERS FIXES
+
+### 1. Translation Keys Missing
+**FIXED-2026-01-15-translation-keys-missing.md**
+- **Issue:** Translation keys undefined
+- **Fix:** Add missing keys trong i18n files
+- **Status:** ✅ Fixed
+
+---
+
+## 🔗 WEBHOOKS FIXES
+
+### 1. React Router Translations
+**FIX-2026-01-15-react-router-translations-webhook.md**
+- **Issue:** Translations không work với React Router
+- **Fix:** Update translation integration
+- **Status:** ✅ Fixed
+
+### 2. Add/Edit Forms
+**FEATURE-2026-01-15-webhooks-add-edit-forms.md**
+- **Issue:** Thiếu Add/Edit forms
+- **Fix:** Implement complete forms
+- **Status:** ✅ Fixed
+
+---
+
+## 🗄️ SCHEMA MIGRATIONS
+
+### Migration 023: Subscription Orders
+**SUBSCRIPTION_ORDERS_SCHEMA_MIGRATION_COMPLETE.md**
+- Added: order_number, po_number, type
+- Added: currency_code, subtotal_amount, credit_applied
+- Added: items_snapshot, billing_info, payment_ref_id
+- Migrated existing data
+- **Status:** ✅ Complete
+
+### Migration 015: Subscription Invoices
+**SUBSCRIPTION_INVOICES_SCHEMA_MIGRATION_COMPLETE.md**
+- Updated schema to match API types
+- Added missing fields
+- **Status:** ✅ Complete
+
+---
+
+## 🧭 ROUTING & NAVIGATION
+
+### 1. Missing Menu Items
+**FIX-2026-01-15-missing-menu-items-module-id-mismatch.md**
+- **Issue:** Modules không hiện menu do module ID mismatch
+- **Fix:** Align module IDs với route prefixes
+- **Status:** ✅ Fixed
+
+### 2. UUID Route Conflict
+**UUID_ROUTE_CONFLICT_FIX_FINAL.md**
+- **Issue:** UUID routes conflict với static routes
+- **Fix:** Always đặt static routes trước dynamic routes
+- **Status:** ✅ Fixed
+
+---
+
+## 🔐 DATABASE & RLS
+
+### 1. Roles RLS Policy
+**ROLES_RLS_POLICY_FIX.md**
+- **Issue:** RLS policy blocking valid queries
+- **Fix:** Update RLS policies
+- **Status:** ✅ Fixed
+
+### 2. Database Limitations
+**DATABASE_LIMITATIONS_AND_FIXES.md**
+- **Issue:** Database limitations và workarounds
+- **Fix:** Document limitations và solutions
+- **Status:** ✅ Documented
+
+---
+
+## 📊 SUMMARY
+
+**Total Fixes:** 25+ bugs fixed  
+**Time Period:** 2026-01-13 to 2026-01-15  
+**Scope:** All modules  
+**Status:** ✅ All critical bugs resolved
+
+**Modules Fixed:**
+- ✅ Applications
+- ✅ Products
+- ✅ Service Packages
+- ✅ Subscription Orders
+- ✅ Subscription Invoices
+- ✅ Tenants
+- ✅ Users
+- ✅ Webhooks
+- ✅ Database/Schema
+
+---
+
+## 🎯 LESSONS LEARNED
+
+### 1. Route Ordering
+**Lesson:** Luôn đặt static routes TRƯỚC dynamic routes
 ```typescript
-// ❌ OLD - HTTP calls
-const response = await fetch('/api/v1/products');
-const data = await response.json();
+// ✅ CORRECT
+{ path: "/module/add", ... }
+{ path: "/module/:id", ... }
 
-// ✅ NEW - Supabase queries
-const { data, error } = await supabase
-  .from('products')
-  .select('*');
+// ❌ WRONG
+{ path: "/module/:id", ... }
+{ path: "/module/add", ... } // Will never match!
 ```
 
-### **API Clients Migrated**
+### 2. Module Registry
+**Lesson:** Module ID PHẢI match với route prefix
+```typescript
+// ✅ CORRECT
+{
+  id: "tenants",
+  menuItems: [{ path: "/core/tenants", ... }]
+}
 
-1. ✅ `productsApi.ts` - ~350 lines
-2. ✅ `ordersApi.ts` - ~500 lines
-3. ✅ `subscriptionApi.ts` - ~350 lines
-4. ✅ Components updated to use hooks
+// ❌ WRONG
+{
+  id: "tenant", // Mismatch!
+  menuItems: [{ path: "/core/tenants", ... }]
+}
+```
 
-Total: ~1,200 lines of API code rewritten
+### 3. Schema Migrations
+**Lesson:** LUÔN tạo migration script cho schema changes
+- Không được sửa schema manually
+- Phải migrate existing data
+- Maintain backward compatibility
+
+### 4. Translation Keys
+**Lesson:** Define translation keys TRƯỚC KHI dùng
+```typescript
+// ✅ CORRECT - Define in i18n first
+export default {
+  users: {
+    title: "Users"
+  }
+}
+
+// Then use
+t('users.title')
+```
+
+### 5. Optimistic Locking
+**Lesson:** Version field critical cho concurrent updates
+- Always include version in update requests
+- Handle version conflicts gracefully
+- Reload data on conflict
 
 ---
 
-## 🏗️ Architecture Impact
+## 📖 HOW TO USE
 
-### **Before Fixes:**
+### Khi gặp bug mới:
+1. Check BUGFIX_HISTORY.md xem đã fix chưa
+2. Search trong thư mục này
+3. Nếu chưa có, tạo file mới: `FIX-YYYY-MM-DD-{description}.md`
 
-```
-Components → fetch('/api/...') → ❌ 404 Error
-```
-
-### **After Fixes:**
-
-```
-Components → API Clients → Supabase → Database ✅
-```
-
-### **Future (Golang):**
-
-```
-Components → API Clients → Golang API → Database
-                ↓
-           (no component changes needed!)
-```
-
-See `/docs/architecture/API_CLIENT_ARCHITECTURE.md` for details.
+### Khi fix xong:
+1. Document trong file bugfix
+2. Update BUGFIX_HISTORY.md
+3. Mark status: ✅ Fixed
+4. Commit với message rõ ràng
 
 ---
 
-## 🧪 Testing
+## 🔗 RELATED DOCS
 
-All bugs have been manually tested:
-
-- ✅ Tenant tabs load correctly
-- ✅ Application stats display
-- ✅ Product detail shows data
-- ✅ Order detail works
-- ✅ Subscription detail no redirect
-- ✅ All CRUD operations functional
-- ✅ No console errors
+- `/docs/README.md` - Documentation index
+- `/docs/CLEANUP_COMPLETE_REPORT.md` - Cleanup report
+- `/DEVELOPMENT-GUIDE.md` - Development guide
 
 ---
 
-## 📚 Related Documents
-
-- `/docs/architecture/API_CLIENT_ARCHITECTURE.md` - API design for Golang migration
-- `/ARCHITECTURE.md` - Overall system architecture
-- `/api/*.ts` - API client implementations
-
----
-
-## 🎓 Lessons Learned
-
-1. **Always use API clients** - Never fetch directly
-2. **Abstraction layer is critical** - Enables easy migration
-3. **TypeScript interfaces matter** - Type safety prevents bugs
-4. **Error handling is essential** - Wrap in try-catch
-5. **Documentation saves time** - Write it down!
-
----
-
-## ✅ Status
-
-**All 5 bugs:** ✅ **COMPLETELY FIXED**
-
-**Production ready:** ✅ Yes
-
-**Golang ready:** ✅ API clients prepared for migration
-
----
-
-**For new bugs:** Create new document following same pattern and add to this README.
+**Last updated:** 2026-01-15  
+**Total fixes documented:** 25+  
+**Status:** ✅ Up to date

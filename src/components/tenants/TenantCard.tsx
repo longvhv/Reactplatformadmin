@@ -5,7 +5,7 @@
  */
 
 import { Building2, Users, HardDrive, Calendar, Mail, Phone, Globe, MoreVertical } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import type { Tenant } from '../../data/tenants';
 import { tenantStatusColors, tenantTierColors } from '../../utils/tenant-utils';
 import { Badge } from '../ui/badge';

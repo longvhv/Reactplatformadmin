@@ -17,6 +17,8 @@ export const ReservedSlugsModule: ModuleDefinition = {
   icon: <Shield className="w-4 h-4" />,
   version: '1.0.0',
   category: 'system',
+  enabled: true,
+  showInSidebar: true,
   routes: [
     {
       path: '/core/reserved-slugs',

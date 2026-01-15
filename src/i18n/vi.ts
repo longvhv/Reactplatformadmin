@@ -83,6 +83,7 @@ const vi = {
     applications: 'Ứng dụng',
     rateLimits: 'Giới hạn tốc độ',
     webhooks: 'Webhooks',
+    userDelegations: 'Ủy quyền',
     // Menu groups
     groupMain: 'CHÍNH',
     groupIdentity: 'QUẢN TRỊ & TRUY CẬP',
@@ -97,7 +98,7 @@ const vi = {
     subscriptions: 'Đăng Ký',
     orders: 'Đơn Hàng',
     appRoutes: 'App Routes',
-    reservedSlugs: 'Reserved Slugs',
+    reservedSlugs: 'Từ Khóa Dành Riêng',
     announcements: 'Thông Báo',
     apiKeys: 'API Keys',
     reports: 'Báo Cáo',

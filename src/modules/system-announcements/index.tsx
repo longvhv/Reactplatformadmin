@@ -43,15 +43,6 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       title: 'systemAnnouncements.add',
     },
     {
-      path: '/core/system-announcements/:id',
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <NotificationDetailPage />
-        </Suspense>
-      ),
-      title: 'systemAnnouncements.detail',
-    },
-    {
       path: '/core/system-announcements/edit/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
@@ -59,6 +50,15 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
         </Suspense>
       ),
       title: 'systemAnnouncements.edit',
+    },
+    {
+      path: '/core/system-announcements/:id',
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <NotificationDetailPage />
+        </Suspense>
+      ),
+      title: 'systemAnnouncements.detail',
     },
   ],
   

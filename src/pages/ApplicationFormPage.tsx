@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { applicationsApi, CreateApplicationRequest, UpdateApplicationRequest } from '../api/applicationsApi';
 import { Button } from '../components/ui/button';

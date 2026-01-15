@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router';
 import { STORAGE_KEYS, LIMITS } from '../constants/app';
 import { getStorageItem, setStorageItem } from '../lib/storage';
 
