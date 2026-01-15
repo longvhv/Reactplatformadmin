@@ -240,7 +240,7 @@ export function RegionForm({ region, type = 'country', onSubmit, onCancel, loadi
 
       {/* Actions */}
       <div className="flex gap-3 pt-4 border-t">
-        <Button type="submit" className="bg-[#6366f1] hover:bg-[#4f46e5] text-white" disabled={loading}>
+        <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground" disabled={loading}>
           {loading ? t('common.saving') : region ? t('common.saveChanges') : t('common.add')}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>

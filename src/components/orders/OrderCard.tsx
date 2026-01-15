@@ -1,75 +1,73 @@
 /**
  * Order Card Component
  * Display subscription order in card format
+ * ✅ Updated for new subscription_orders schema (2026-01-15)
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SubscriptionOrder } from '../../api/subscriptionOrderApi';
+import { Order, getStatusColor, getStatusLabel, getTypeColor, getTypeLabel } from '../../api/ordersApi';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Card, CardHeader, CardContent, CardFooter } from '../ui/card';
+import { User, Calendar, CreditCard, DollarSign, Eye, Edit, Trash2, FileText, Package, Tag } from 'lucide-react';
 
 interface OrderCardProps {
-  order: SubscriptionOrder;
-  onEdit?: (order: SubscriptionOrder) => void;
-  onDelete?: (order: SubscriptionOrder) => void;
+  order: Order;
+  onEdit?: (order: Order) => void;
+  onDelete?: (order: Order) => void;
 }
 
 export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
   const { t } = useLanguage();
   const navigate = useNavigate();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'cancelled': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      case 'expired': return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
-      case 'suspended': return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-      case 'failed': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-      case 'refunded': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('vi-VN', {
+    if (currency === 'VND') {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+      }).format(amount);
+    }
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency || 'USD',
     }).format(amount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
+    <Card className="hover:shadow-lg transition-shadow duration-200 border-l-4 border-l-indigo-500">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {order.order_code}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {order.billing_cycle}
-            </p>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {order.order_number}
+              </h3>
+            </div>
+            {order.po_number && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                <Tag className="h-3 w-3" />
+                PO: {order.po_number}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <Badge className={getStatusColor(order.status)}>
-              {t(`subscriptionOrders.status${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`)}
+              {getStatusLabel(order.status)}
             </Badge>
-            <Badge className={getPaymentStatusColor(order.payment_status)}>
-              {t(`subscriptionOrders.payment${order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}`)}
+            <Badge className={getTypeColor(order.type)}>
+              {getTypeLabel(order.type)}
             </Badge>
           </div>
         </div>
@@ -77,19 +75,34 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
       
       <CardContent className="space-y-3">
         {/* Customer Info */}
-        <div className="flex items-center gap-2 text-sm">
-          <User className="h-4 w-4 text-gray-400" />
-          <div>
-            <p className="font-medium text-gray-900 dark:text-white">{order.customer_name}</p>
-            <p className="text-gray-500 dark:text-gray-400 text-xs">{order.customer_email}</p>
+        {order.billing_info?.customer_name ? (
+          <div className="flex items-center gap-2 text-sm">
+            <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-gray-900 dark:text-white truncate">
+                {order.billing_info.customer_name}
+              </p>
+              {order.billing_info?.customer_email && (
+                <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                  {order.billing_info.customer_email}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm">
+            <User className="h-4 w-4 text-gray-400" />
+            <p className="text-gray-500 dark:text-gray-400 italic text-xs">
+              Chưa có thông tin khách hàng
+            </p>
+          </div>
+        )}
 
         {/* Order Date */}
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="h-4 w-4 text-gray-400" />
           <span className="text-gray-700 dark:text-gray-300">
-            {formatDate(order.order_date)}
+            {formatDate(order.created_at)}
           </span>
         </div>
 
@@ -104,27 +117,64 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
         )}
 
         {/* Total Amount */}
-        <div className="flex items-center gap-2 text-sm">
-          <DollarSign className="h-4 w-4 text-gray-400" />
-          <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-            {formatCurrency(order.total_amount, order.currency)}
-          </span>
-        </div>
-
-        {/* Duration */}
-        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-            <span>{t('subscriptionOrders.startDate')}: {formatDate(order.start_date)}</span>
-            {order.end_date && (
-              <span>{t('subscriptionOrders.endDate')}: {formatDate(order.end_date)}</span>
+        <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div className="space-y-1">
+            {/* Subtotal */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-400">Tạm tính:</span>
+              <span className="font-semibold text-gray-900 dark:text-white">
+                {formatCurrency(order.subtotal_amount, order.currency_code)}
+              </span>
+            </div>
+            
+            {/* Discount */}
+            {order.discount_amount > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Giảm giá:</span>
+                <span className="font-semibold text-red-600 dark:text-red-400">
+                  -{formatCurrency(order.discount_amount, order.currency_code)}
+                </span>
+              </div>
             )}
+            
+            {/* Tax */}
+            {order.tax_amount > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Thuế:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {formatCurrency(order.tax_amount, order.currency_code)}
+                </span>
+              </div>
+            )}
+            
+            {/* Credit Applied */}
+            {order.credit_applied > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600 dark:text-gray-400">Credit:</span>
+                <span className="font-semibold text-purple-600 dark:text-purple-400">
+                  -{formatCurrency(order.credit_applied, order.currency_code)}
+                </span>
+              </div>
+            )}
+            
+            {/* Total */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-gray-400" />
+                <span className="font-bold text-gray-900 dark:text-white">Tổng:</span>
+              </div>
+              <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                {formatCurrency(order.total_amount, order.currency_code)}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Auto Renewal */}
-        {order.auto_renewal && (
-          <div className="text-xs text-green-600 dark:text-green-400">
-            ✓ {t('subscriptionOrders.autoRenewal')}
+        {/* Items Count */}
+        {order.items_snapshot && order.items_snapshot.length > 0 && (
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <Package className="h-3 w-3" />
+            <span>{order.items_snapshot.length} sản phẩm/dịch vụ</span>
           </div>
         )}
       </CardContent>
@@ -134,6 +184,7 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
           variant="outline"
           size="sm"
           onClick={() => navigate(`/core/subscription-orders/${order._id}`)}
+          className="hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-400"
         >
           <Eye className="h-4 w-4 mr-1" />
           {t('common.viewDetails')}
@@ -145,8 +196,9 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
               variant="ghost"
               size="sm"
               onClick={() => onEdit(order)}
+              className="hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
             >
-              <Edit className="h-4 w-4" />
+              <Edit className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             </Button>
           )}
           {onDelete && (
@@ -154,7 +206,7 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
               variant="ghost"
               size="sm"
               onClick={() => onDelete(order)}
-              className="text-red-600 hover:text-red-700 dark:text-red-400"
+              className="text-red-600 hover:text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -164,3 +216,5 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
     </Card>
   );
 }
+
+export default OrderCard;

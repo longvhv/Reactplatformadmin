@@ -95,7 +95,7 @@ export function DraggableCategorySelect({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1] focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-between px-3 py-2 border rounded-lg bg-card hover:border-primary focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <span className={selectedOption ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500'}>
           {selectedOption ? selectedOption.label : placeholder}
@@ -157,8 +157,8 @@ export function DraggableCategorySelect({
                     <div
                       draggable={onDragToGroup ? true : false}
                       onDragStart={(e) => handleDragStart(e, option)}
-                      className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                        value === option.value ? 'bg-[#6366f1]/10 text-[#6366f1]' : ''
+                      className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-secondary/50 transition-colors ${
+                        value === option.value ? 'bg-primary/10 text-primary' : ''
                       }`}
                       onClick={() => {
                         onChange(option.value);
@@ -243,7 +243,7 @@ export function DraggableCategorySelect({
                   </div>
                 ) : (
                   <button
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[#6366f1] hover:bg-[#6366f1]/10 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsAdding(true);

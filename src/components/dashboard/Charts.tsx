@@ -17,6 +17,7 @@ import {
   Legend,
 } from "recharts";
 import { Card } from "../../components/ui/card";
+import { CHART_COLORS, CHART_UI } from "../../constants/chartColors";
 
 // Revenue Chart Data
 const revenueData = [
@@ -42,9 +43,9 @@ const activityData = [
 
 // Device Distribution Data
 const deviceData = [
-  { name: "Desktop", value: 45, color: "#6366f1" },
-  { name: "Mobile", value: 35, color: "#a855f7" },
-  { name: "Tablet", value: 20, color: "#ec4899" },
+  { name: "Desktop", value: 45, color: CHART_COLORS.primary },
+  { name: "Mobile", value: 35, color: CHART_COLORS.secondary },
+  { name: "Tablet", value: 20, color: CHART_COLORS.accent },
 ];
 
 // Traffic Sources Data
@@ -74,25 +75,25 @@ export const RevenueChart = memo(() => {
         <AreaChart data={revenueData}>
           <defs>
             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+              <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="colorExpenses" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+              <stop offset="5%" stopColor={CHART_COLORS.red} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={CHART_COLORS.red} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_UI.grid.stroke} opacity={CHART_UI.grid.opacity} />
           <XAxis
             dataKey="month"
-            stroke="#9ca3af"
+            stroke={CHART_COLORS.chartAxis}
             style={{ fontSize: "12px" }}
           />
-          <YAxis stroke="#9ca3af" style={{ fontSize: "12px" }} />
+          <YAxis stroke={CHART_COLORS.chartAxis} style={{ fontSize: "12px" }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: CHART_UI.tooltip.background,
+              border: `1px solid ${CHART_UI.tooltip.border}`,
               borderRadius: "12px",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
             }}
@@ -101,7 +102,7 @@ export const RevenueChart = memo(() => {
           <Area
             type="monotone"
             dataKey="revenue"
-            stroke="#6366f1"
+            stroke={CHART_COLORS.primary}
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#colorRevenue)"
@@ -110,7 +111,7 @@ export const RevenueChart = memo(() => {
           <Area
             type="monotone"
             dataKey="expenses"
-            stroke="#ef4444"
+            stroke={CHART_COLORS.red}
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#colorExpenses)"
@@ -142,21 +143,21 @@ export const ActivityChart = memo(() => {
         <BarChart data={activityData}>
           <defs>
             <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity={0.9} />
+              <stop offset="0%" stopColor={CHART_COLORS.secondary} stopOpacity={0.9} />
+              <stop offset="100%" stopColor={CHART_COLORS.primary} stopOpacity={0.9} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_UI.grid.stroke} opacity={CHART_UI.grid.opacity} />
           <XAxis
             dataKey="day"
-            stroke="#9ca3af"
+            stroke={CHART_COLORS.chartAxis}
             style={{ fontSize: "12px" }}
           />
-          <YAxis stroke="#9ca3af" style={{ fontSize: "12px" }} />
+          <YAxis stroke={CHART_COLORS.chartAxis} style={{ fontSize: "12px" }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: CHART_UI.tooltip.background,
+              border: `1px solid ${CHART_UI.tooltip.border}`,
               borderRadius: "12px",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
             }}
@@ -245,19 +246,19 @@ export const TrafficChart = memo(() => {
       </div>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={trafficData} layout="vertical">
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
-          <XAxis type="number" stroke="#9ca3af" style={{ fontSize: "12px" }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART_UI.grid.stroke} opacity={CHART_UI.grid.opacity} />
+          <XAxis type="number" stroke={CHART_COLORS.chartAxis} style={{ fontSize: "12px" }} />
           <YAxis
             type="category"
             dataKey="source"
-            stroke="#9ca3af"
+            stroke={CHART_COLORS.chartAxis}
             style={{ fontSize: "12px" }}
             width={80}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: "rgba(255, 255, 255, 0.95)",
-              border: "1px solid #e5e7eb",
+              backgroundColor: CHART_UI.tooltip.background,
+              border: `1px solid ${CHART_UI.tooltip.border}`,
               borderRadius: "12px",
               boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
             }}
@@ -265,7 +266,7 @@ export const TrafficChart = memo(() => {
           />
           <Bar
             dataKey="visits"
-            fill="#6366f1"
+            fill={CHART_COLORS.primary}
             radius={[0, 8, 8, 0]}
             name="Lượt truy cập"
           />

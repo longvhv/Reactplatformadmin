@@ -1,15 +1,16 @@
 /**
  * InvoiceTable Component
  * Displays invoices in a table format with full CRUD operations
+ * ✅ Schema compatible: subscriptionInvoiceApi is alias to invoiceApi
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { 
-  FileText, Eye, Pencil, Trash2, Send, DollarSign, 
+  FileText, Pencil, Trash2, Send, DollarSign, 
   Calendar, CreditCard, AlertCircle, CheckCircle, XCircle 
 } from 'lucide-react';
-import { SubscriptionInvoice, InvoiceStatus, PaymentStatus } from '../../api/subscriptionInvoiceApi';
+import { SubscriptionInvoice } from '../../api/subscriptionInvoiceApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useLanguage } from '../../providers/LanguageProvider';
@@ -17,7 +18,7 @@ import { useLanguage } from '../../providers/LanguageProvider';
 interface InvoiceTableProps {
   invoices: SubscriptionInvoice[];
   onDelete: (id: string) => void;
-  onStatusChange?: (id: string, status: InvoiceStatus) => void;
+  onStatusChange?: (id: string, status: SubscriptionInvoice['status']) => void;
   loading?: boolean;
 }
 
@@ -31,21 +32,19 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   const { t } = useLanguage();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const getStatusBadge = (status: InvoiceStatus) => {
+  const getStatusBadge = (status: SubscriptionInvoice['status']) => {
     const statusConfig = {
-      draft: { color: 'bg-gray-100 text-gray-800', label: t('invoices.status.draft') },
-      sent: { color: 'bg-blue-100 text-blue-800', label: t('invoices.status.sent') },
-      paid: { color: 'bg-green-100 text-green-800', label: t('invoices.status.paid') },
-      overdue: { color: 'bg-red-100 text-red-800', label: t('invoices.status.overdue') },
-      cancelled: { color: 'bg-gray-100 text-gray-800', label: t('invoices.status.cancelled') },
-      refunded: { color: 'bg-purple-100 text-purple-800', label: t('invoices.status.refunded') },
-      partially_paid: { color: 'bg-yellow-100 text-yellow-800', label: t('invoices.status.partiallyPaid') },
+      DRAFT: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300', label: 'Draft' },
+      OPEN: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', label: 'Open' },
+      PAID: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', label: 'Paid' },
+      VOID: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', label: 'Void' },
+      UNCOLLECTIBLE: { color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400', label: 'Uncollectible' },
     };
-    const config = statusConfig[status];
+    const config = statusConfig[status] || statusConfig.DRAFT;
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
-  const getPaymentStatusBadge = (status: PaymentStatus) => {
+  const getPaymentStatusBadge = (status: SubscriptionInvoice['payment_status']) => {
     const statusConfig = {
       unpaid: { color: 'bg-red-100 text-red-800', label: t('invoices.paymentStatus.unpaid'), icon: XCircle },
       paid: { color: 'bg-green-100 text-green-800', label: t('invoices.paymentStatus.paid'), icon: CheckCircle },
@@ -53,7 +52,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
       refunded: { color: 'bg-purple-100 text-purple-800', label: t('invoices.paymentStatus.refunded'), icon: AlertCircle },
       failed: { color: 'bg-red-100 text-red-800', label: t('invoices.paymentStatus.failed'), icon: XCircle },
     };
-    const config = statusConfig[status];
+    const config = statusConfig[status] || statusConfig.unpaid; // ✅ Add fallback
     const Icon = config.icon;
     return (
       <Badge className={`${config.color} flex items-center gap-1`}>
@@ -143,9 +142,12 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                   <div className="flex items-center">
                     <FileText className="h-5 w-5 text-indigo-600 mr-2" />
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <button
+                        onClick={() => navigate(`/core/subscription-invoices/${invoice._id}`)}
+                        className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                      >
                         {invoice.invoice_number}
-                      </div>
+                      </button>
                       <div className="text-xs text-gray-500">
                         {formatDate(invoice.invoice_date)}
                       </div>
@@ -195,14 +197,6 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex items-center justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => navigate(`/core/subscription-invoices/${invoice._id}`)}
-                      title={t('common.viewDetails')}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"

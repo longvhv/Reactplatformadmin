@@ -4,11 +4,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { LogIn, UserPlus, Lock, KeyRound, Shield } from "lucide-react";
 
 /**
- * Lazy load Login page component
+ * Lazy-load Login Page
  */
-const LoginPage = lazy(() => 
-  import("./LoginPage").then(module => ({ default: module.LoginPage }))
-);
+const LoginPage = lazy(() => import("./LoginPage"));
 
 /**
  * Auth Module

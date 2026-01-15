@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { getVisibleRange } from "../utils/performance";
+import { getVisibleRange } from "../lib/performance";
 
 interface VirtualScrollOptions {
   itemHeight: number;

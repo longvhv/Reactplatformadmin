@@ -1,15 +1,14 @@
 /**
- * System Category API
+ * System Category API Client
+ * Uses Adapter pattern - Ready for Golang migration
+ * 
  * 3-Level Hierarchy: Group -> Type -> Category
+ * IMPORTANT: status field is INT2 (0=inactive, 1=active)
  */
 
-import { supabase } from '../utils/supabase/client';
+import { createAdapter, BaseFilters } from './adapters';
 
-const TABLE_NAME = 'system_categories';
-
-// ============================================
-// Types & Interfaces
-// ============================================
+// ==================== TYPES ====================
 
 export type CategoryStatus = 0 | 1;
 
@@ -18,11 +17,19 @@ export const CategoryStatusHelper = {
   ACTIVE: 1 as CategoryStatus,
   isActive: (status: CategoryStatus) => status === 1,
   isInactive: (status: CategoryStatus) => status === 0,
-  toString: (status: CategoryStatus) => status === 1 ? 'active' : 'inactive',
-  fromString: (str: string): CategoryStatus => str === 'active' ? 1 : 0,
+  toString: (status: CategoryStatus) => (status === 1 ? 'active' : 'inactive'),
+  toNumber: (str: string): CategoryStatus => (str === 'active' ? 1 : 0),
+  toDbValue: (status: CategoryStatus | string | undefined): number => {
+    if (status === undefined) return 1;
+    if (typeof status === 'number') return status;
+    return status === 'active' ? 1 : 0;
+  },
+  fromDbValue: (value: number | string): CategoryStatus => {
+    if (typeof value === 'number') return value as CategoryStatus;
+    return value === 'active' || value === '1' || value === 1 ? 1 : 0;
+  },
 };
 
-// Extra field definition for SystemCategoryType
 export interface ExtraField {
   code: string;
   name: string;
@@ -31,10 +38,9 @@ export interface ExtraField {
   config?: Record<string, any>;
 }
 
-// Base SystemCategory interface
 export interface SystemCategory {
-  id?: string;
-  type: string; // 'SYSTEM_CATEGORY_GROUP', 'SYSTEM_CATEGORY_TYPE', or TYPE_XXX code
+  _id?: string;
+  type: string;
   code: string;
   name: string;
   status: CategoryStatus;
@@ -53,12 +59,10 @@ export interface SystemCategory {
   updated_by?: string;
 }
 
-// Level 1: Category Group
 export interface SystemCategoryGroup extends SystemCategory {
   type: 'SYSTEM_CATEGORY_GROUP';
 }
 
-// Level 2: Category Type
 export interface SystemCategoryType extends SystemCategory {
   type: 'SYSTEM_CATEGORY_TYPE';
   group_category_id: string;
@@ -66,334 +70,201 @@ export interface SystemCategoryType extends SystemCategory {
   extra_fields: ExtraField[];
 }
 
-// Level 3: Category Instance
 export interface CategoryInstance extends SystemCategory {
   group_category_id: string;
-  // Dynamic fields from extraFields will be in metadata
 }
 
-// ============================================
-// API Functions
-// ============================================
+export interface CreateCategoryRequest {
+  type: string;
+  code: string;
+  name: string;
+  status?: CategoryStatus;
+  parent_id?: string;
+  group_category_id?: string;
+  collection_name?: string;
+  extra_fields?: ExtraField[];
+  description?: string;
+  metadata?: Record<string, any>;
+  order?: number;
+}
+
+export interface UpdateCategoryRequest {
+  code?: string;
+  name?: string;
+  status?: CategoryStatus;
+  parent_id?: string;
+  collection_name?: string;
+  extra_fields?: ExtraField[];
+  description?: string;
+  metadata?: Record<string, any>;
+  order?: number;
+}
+
+export interface CategoryFilters extends BaseFilters {
+  type?: string;
+  status?: CategoryStatus;
+  group_category_id?: string;
+  parent_id?: string;
+}
+
+// ==================== ADAPTER ====================
+
+const adapter = createAdapter<SystemCategory, CreateCategoryRequest, UpdateCategoryRequest>(
+  'system_categories',
+  '/system-categories'
+);
+
+// ==================== API CLIENT ====================
 
 export const systemCategoryApi = {
-  // ========== LEVEL 1: Groups ==========
-  
   /**
-   * Get all category groups
+   * GET /system-categories
    */
-  getAllGroups: async (): Promise<SystemCategoryGroup[]> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', 'SYSTEM_CATEGORY_GROUP')
-      .order('order');
-    
-    if (error) throw new Error(error.message);
-    return (data || []).map(item => ({
-      ...item,
-      status: CategoryStatusHelper.fromString(item.status),
-    }));
+  getAll: async (filters?: CategoryFilters): Promise<SystemCategory[]> => {
+    return adapter.getAll(filters);
   },
 
   /**
-   * Get active category groups only
+   * GET /system-categories/:id
+   */
+  getById: async (id: string): Promise<SystemCategory> => {
+    return adapter.getById(id);
+  },
+
+  /**
+   * POST /system-categories
+   */
+  create: async (data: CreateCategoryRequest): Promise<SystemCategory> => {
+    return adapter.create(data);
+  },
+
+  /**
+   * PATCH /system-categories/:id
+   */
+  update: async (id: string, data: UpdateCategoryRequest): Promise<SystemCategory> => {
+    return adapter.update(id, data);
+  },
+
+  /**
+   * DELETE /system-categories/:id (soft delete)
+   */
+  delete: async (id: string): Promise<void> => {
+    return adapter.delete(id);
+  },
+
+  // ========== LEVEL 1: Groups ==========
+
+  /**
+   * GET /system-categories/groups
+   * TODO (Golang): Implement dedicated endpoint
+   */
+  getAllGroups: async (): Promise<SystemCategoryGroup[]> => {
+    return adapter.getAll({ type: 'SYSTEM_CATEGORY_GROUP' }) as Promise<SystemCategoryGroup[]>;
+  },
+
+  /**
+   * GET /system-categories/groups?status=1
    */
   getActiveGroups: async (): Promise<SystemCategoryGroup[]> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', 'SYSTEM_CATEGORY_GROUP')
-      .eq('status', 'active')
-      .order('order');
-    
-    if (error) throw new Error(error.message);
-    return (data || []).map(item => ({
-      ...item,
-      status: CategoryStatusHelper.fromString(item.status),
-    }));
+    return adapter.getAll({ 
+      type: 'SYSTEM_CATEGORY_GROUP', 
+      status: 1 
+    }) as Promise<SystemCategoryGroup[]>;
   },
 
   // ========== LEVEL 2: Types ==========
-  
+
   /**
-   * Get all category types
+   * GET /system-categories/types
+   * TODO (Golang): Implement dedicated endpoint
    */
   getAllTypes: async (): Promise<SystemCategoryType[]> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', 'SYSTEM_CATEGORY_TYPE')
-      .order('group_category_id', { ascending: true })
-      .order('order', { ascending: true });
-    
-    if (error) throw new Error(error.message);
-    return (data || []).map(item => ({
-      ...item,
-      status: CategoryStatusHelper.fromString(item.status),
-    }));
+    return adapter.getAll({ type: 'SYSTEM_CATEGORY_TYPE' }) as Promise<SystemCategoryType[]>;
   },
 
   /**
-   * Get category types by group
+   * GET /system-categories/types?group_category_id={groupCode}
    */
   getTypesByGroup: async (groupCode: string): Promise<SystemCategoryType[]> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', 'SYSTEM_CATEGORY_TYPE')
-      .eq('group_category_id', groupCode)
-      .eq('status', 'active')
-      .order('order');
-    
-    if (error) throw new Error(error.message);
-    return (data || []).map(item => ({
-      ...item,
-      status: CategoryStatusHelper.fromString(item.status),
-    }));
+    return adapter.getAll({ 
+      type: 'SYSTEM_CATEGORY_TYPE',
+      group_category_id: groupCode,
+      status: 1
+    }) as Promise<SystemCategoryType[]>;
   },
 
   /**
-   * Get a single category type by code
+   * GET /system-categories/by-code/:code
+   * TODO (Golang): Implement dedicated endpoint
    */
   getTypeByCode: async (code: string): Promise<SystemCategoryType | null> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', 'SYSTEM_CATEGORY_TYPE')
-      .eq('code', code)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(error.message);
-    }
-    return {
-      ...data,
-      status: CategoryStatusHelper.fromString(data.status),
-    };
+    throw new Error('Not implemented - migrate to Golang');
   },
 
   // ========== LEVEL 3: Categories ==========
-  
+
   /**
-   * Get categories by type code
+   * GET /system-categories?type={typeCode}
    */
   getCategoriesByType: async (typeCode: string): Promise<CategoryInstance[]> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', typeCode)
-      .order('order');
-    
-    if (error) throw new Error(error.message);
-    return (data || []).map(item => ({
-      ...item,
-      status: CategoryStatusHelper.fromString(item.status),
-    }));
+    return adapter.getAll({ type: typeCode }) as Promise<CategoryInstance[]>;
   },
 
   /**
-   * Get active categories by type code
+   * GET /system-categories?type={typeCode}&status=1
    */
   getActiveCategoriesByType: async (typeCode: string): Promise<CategoryInstance[]> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('type', typeCode)
-      .eq('status', 'active')
-      .order('order');
-    
-    if (error) throw new Error(error.message);
-    return (data || []).map(item => ({
-      ...item,
-      status: CategoryStatusHelper.fromString(item.status),
-    }));
+    return adapter.getAll({ 
+      type: typeCode, 
+      status: 1 
+    }) as Promise<CategoryInstance[]>;
   },
 
   /**
-   * Get a single category by code
+   * GET /system-categories/by-code/:code
+   * TODO (Golang): Implement dedicated endpoint
    */
   getCategoryByCode: async (code: string): Promise<SystemCategory | null> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('code', code)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(error.message);
-    }
-    return {
-      ...data,
-      status: CategoryStatusHelper.fromString(data.status),
-    };
+    throw new Error('Not implemented - migrate to Golang');
   },
 
   /**
-   * Get category by ID
+   * PATCH /system-categories/by-code/:code
+   * TODO (Golang): Implement dedicated endpoint
    */
-  getById: async (id: string): Promise<SystemCategory | null> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      throw new Error(error.message);
-    }
-    return {
-      ...data,
-      status: CategoryStatusHelper.fromString(data.status),
-    };
-  },
-
-  // ========== CRUD Operations ==========
-  
-  /**
-   * Create a new category (any level)
-   */
-  create: async (data: Partial<SystemCategory>): Promise<SystemCategory> => {
-    // Convert status from number to string for database
-    const dbData = {
-      ...data,
-      status: typeof data.status === 'number' 
-        ? CategoryStatusHelper.toString(data.status as CategoryStatus)
-        : data.status,
-    };
-    
-    const { data: result, error } = await supabase
-      .from(TABLE_NAME)
-      .insert([dbData])
-      .select()
-      .single();
-    
-    if (error) throw new Error(error.message);
-    
-    // Convert status back to number for frontend
-    return {
-      ...result,
-      status: CategoryStatusHelper.fromString(result.status),
-    };
+  updateByCode: async (code: string, data: UpdateCategoryRequest): Promise<SystemCategory> => {
+    throw new Error('Not implemented - migrate to Golang');
   },
 
   /**
-   * Update a category
-   */
-  update: async (id: string, data: Partial<SystemCategory>): Promise<SystemCategory> => {
-    // Convert status from number to string for database
-    const dbData = {
-      ...data,
-      status: typeof data.status === 'number' 
-        ? CategoryStatusHelper.toString(data.status as CategoryStatus)
-        : data.status,
-    };
-    
-    const { data: result, error } = await supabase
-      .from(TABLE_NAME)
-      .update(dbData)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw new Error(error.message);
-    
-    // Convert status back to number for frontend
-    return {
-      ...result,
-      status: CategoryStatusHelper.fromString(result.status),
-    };
-  },
-
-  /**
-   * Update category by code
-   */
-  updateByCode: async (code: string, data: Partial<SystemCategory>): Promise<SystemCategory> => {
-    const { data: result, error } = await supabase
-      .from(TABLE_NAME)
-      .update(data)
-      .eq('code', code)
-      .select()
-      .single();
-    
-    if (error) throw new Error(error.message);
-    return result;
-  },
-
-  /**
-   * Delete a category (soft delete by setting status to 0)
-   */
-  softDelete: async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .update({ status: 'inactive' })
-      .eq('id', id);
-    
-    if (error) throw new Error(error.message);
-  },
-
-  /**
-   * Hard delete a category
+   * DELETE /system-categories/:id?hard=true
+   * TODO (Golang): Implement hard delete endpoint
    */
   hardDelete: async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from(TABLE_NAME)
-      .delete()
-      .eq('id', id);
-    
-    if (error) throw new Error(error.message);
+    throw new Error('Not implemented - migrate to Golang');
   },
 
   // ========== Utility Functions ==========
-  
+
   /**
-   * Check if code exists
+   * GET /system-categories/exists/:code
+   * TODO (Golang): Implement code uniqueness check
    */
   codeExists: async (code: string, excludeId?: string): Promise<boolean> => {
-    let query = supabase
-      .from(TABLE_NAME)
-      .select('id')
-      .eq('code', code);
-    
-    if (excludeId) {
-      query = query.neq('id', excludeId);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) throw new Error(error.message);
-    return (data?.length || 0) > 0;
+    throw new Error('Not implemented - migrate to Golang');
   },
 
   /**
-   * Get category hierarchy (for breadcrumb)
+   * GET /system-categories/:code/hierarchy
+   * TODO (Golang): Implement hierarchy traversal
    */
   getHierarchy: async (categoryCode: string): Promise<SystemCategory[]> => {
-    const category = await systemCategoryApi.getCategoryByCode(categoryCode);
-    if (!category) return [];
-
-    const hierarchy: SystemCategory[] = [category];
-
-    // If has parentId, get parent
-    if (category.parent_id) {
-      const parent = await systemCategoryApi.getCategoryByCode(category.parent_id);
-      if (parent) hierarchy.unshift(parent);
-    }
-
-    // If has groupCategoryId, get group
-    if (category.group_category_id) {
-      const group = await systemCategoryApi.getCategoryByCode(category.group_category_id);
-      if (group) hierarchy.unshift(group);
-    }
-
-    return hierarchy;
+    throw new Error('Not implemented - complex hierarchy, migrate to Golang');
   },
 
   /**
-   * Get statistics
+   * GET /system-categories/statistics
+   * TODO (Golang): Implement statistics aggregation
    */
   getStatistics: async (): Promise<{
     totalGroups: number;
@@ -403,37 +274,7 @@ export const systemCategoryApi = {
     activeTypes: number;
     activeCategories: number;
   }> => {
-    const { data, error } = await supabase
-      .from(TABLE_NAME)
-      .select('type, status');
-
-    if (error) throw new Error(error.message);
-
-    const stats = {
-      totalGroups: 0,
-      totalTypes: 0,
-      totalCategories: 0,
-      activeGroups: 0,
-      activeTypes: 0,
-      activeCategories: 0,
-    };
-
-    data?.forEach(item => {
-      const isActive = item.status === 'active';
-      
-      if (item.type === 'SYSTEM_CATEGORY_GROUP') {
-        stats.totalGroups++;
-        if (isActive) stats.activeGroups++;
-      } else if (item.type === 'SYSTEM_CATEGORY_TYPE') {
-        stats.totalTypes++;
-        if (isActive) stats.activeTypes++;
-      } else {
-        stats.totalCategories++;
-        if (isActive) stats.activeCategories++;
-      }
-    });
-
-    return stats;
+    throw new Error('Not implemented - complex aggregation, migrate to Golang');
   },
 };
 

@@ -4,42 +4,38 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useLanguage } from '../providers/LanguageProvider';
-import { regionsApi, Region } from '../api/regionsApi';
-import { RegionForm } from '../components/regions/RegionForm';
-import { Card } from '../components/ui/card';
-import { Button } from '../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { regionsApi, Region } from '@/api/regionsApi';
+import { RegionForm } from '@/components/regions/RegionForm';
 import { toast } from 'sonner@2.0.3';
 
-export function EditRegionPage() {
-  const { t } = useLanguage();
-  const navigate = useNavigate();
+export default function EditRegionPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { t } = useLanguage();
   const [region, setRegion] = useState<Region | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      loadRegion();
-    }
+    loadRegion();
   }, [id]);
 
   const loadRegion = async () => {
     try {
       setLoading(true);
       const data = await regionsApi.getById(id!);
-      if (data) {
-        setRegion(data);
-      } else {
+      if (!data) {
         toast.error('Region không tồn tại');
-        navigate('/regions');
+        navigate('/core/regions');
       }
-    } catch (error) {
+      setRegion(data);
+    } catch (error: any) {
       console.error('Failed to load region:', error);
       toast.error(t('errors.somethingWentWrong'));
-      navigate('/regions');
+      navigate('/core/regions');
     } finally {
       setLoading(false);
     }
@@ -47,40 +43,37 @@ export function EditRegionPage() {
 
   const handleSubmit = async (data: any) => {
     try {
-      setSubmitting(true);
+      setLoading(true);
       await regionsApi.update(id!, data);
       toast.success('Đã cập nhật region');
-      navigate('/regions');
+      navigate('/core/regions');
     } catch (error: any) {
       console.error('Failed to update region:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    navigate('/regions');
+    navigate('/core/regions');
   };
 
-  if (loading) {
+  if (loading && !region) {
     return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
   }
 
-  if (!region) {
-    return null;
-  }
-
   return (
     <div className="container mx-auto p-6 max-w-4xl space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/regions')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/core/regions')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -90,7 +83,7 @@ export function EditRegionPage() {
       </div>
 
       <Card className="p-6">
-        <RegionForm region={region} onSubmit={handleSubmit} onCancel={handleCancel} loading={submitting} />
+        <RegionForm region={region} onSubmit={handleSubmit} onCancel={handleCancel} loading={loading} />
       </Card>
     </div>
   );

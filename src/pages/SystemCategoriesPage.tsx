@@ -6,109 +6,102 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../providers/LanguageProvider';
 import {
-  systemCategoryApi,
   SystemCategoryGroup,
   SystemCategoryType,
   CategoryInstance,
   CategoryStatusHelper,
 } from '../api/systemCategoryApi';
 import { Button } from '../components/ui/button';
-import { Plus, Layers, FolderTree, FileText } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { CategoryGroupSelector } from '../components/systemCategories/CategoryGroupSelector';
 import { CategoryTypeSelector } from '../components/systemCategories/CategoryTypeSelector';
 import { CategoryTable } from '../components/systemCategories/CategoryTable';
 import { CategoryFormDialog } from '../components/systemCategories/CategoryFormDialog';
+import { useSystemCategories } from '../hooks/useSystemCategories';
 
 export function SystemCategoriesPage() {
   const { t } = useLanguage();
+  const {
+    groups,
+    loading: hookLoading,
+    error: hookError,
+    getTypesByGroup,
+    getCategoriesByType,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    refresh,
+  } = useSystemCategories();
   
   // State for 3-level selection
   const [selectedGroup, setSelectedGroup] = useState<SystemCategoryGroup | null>(null);
   const [selectedType, setSelectedType] = useState<SystemCategoryType | null>(null);
   
   // Data state
-  const [groups, setGroups] = useState<SystemCategoryGroup[]>([]);
   const [types, setTypes] = useState<SystemCategoryType[]>([]);
   const [categories, setCategories] = useState<CategoryInstance[]>([]);
   
   // UI state
-  const [loading, setLoading] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryInstance | null>(null);
 
-  // Load groups on mount
+  // Auto-select first group when groups are loaded
   useEffect(() => {
-    loadGroups();
-  }, []);
+    if (groups.length > 0 && !selectedGroup) {
+      setSelectedGroup(groups[0]);
+    }
+  }, [groups]);
 
   // Load types when group changes
   useEffect(() => {
-    if (selectedGroup) {
-      loadTypes(selectedGroup.code);
-      setSelectedType(null);
-      setCategories([]);
-    } else {
-      setTypes([]);
-      setSelectedType(null);
-      setCategories([]);
-    }
-  }, [selectedGroup]);
+    const loadTypes = async () => {
+      if (selectedGroup) {
+        try {
+          const groupTypes = await getTypesByGroup(selectedGroup.code);
+          setTypes(groupTypes);
+          
+          // Auto-select first type if available
+          if (groupTypes.length > 0) {
+            setSelectedType(groupTypes[0]);
+          } else {
+            setSelectedType(null);
+            setCategories([]);
+          }
+        } catch (error) {
+          console.error('Failed to load types:', error);
+          setTypes([]);
+          setSelectedType(null);
+          setCategories([]);
+        }
+      } else {
+        setTypes([]);
+        setSelectedType(null);
+        setCategories([]);
+      }
+    };
+    
+    loadTypes();
+  }, [selectedGroup, getTypesByGroup]);
 
   // Load categories when type changes
   useEffect(() => {
-    if (selectedType) {
-      loadCategories(selectedType.code);
-    } else {
-      setCategories([]);
-    }
-  }, [selectedType]);
-
-  const loadGroups = async () => {
-    try {
-      setLoading(true);
-      const data = await systemCategoryApi.getActiveGroups();
-      setGroups(data);
-      
-      // Auto-select first group if available
-      if (data.length > 0 && !selectedGroup) {
-        setSelectedGroup(data[0]);
+    const loadCategories = async () => {
+      if (selectedType) {
+        try {
+          const typeCats = await getCategoriesByType(selectedType.code);
+          setCategories(typeCats);
+        } catch (error) {
+          console.error('Failed to load categories:', error);
+          setCategories([]);
+        }
+      } else {
+        setCategories([]);
       }
-    } catch (error: any) {
-      toast.error('Không thể tải nhóm danh mục: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadTypes = async (groupCode: string) => {
-    try {
-      setLoading(true);
-      const data = await systemCategoryApi.getTypesByGroup(groupCode);
-      setTypes(data);
-      
-      // Auto-select first type if available
-      if (data.length > 0) {
-        setSelectedType(data[0]);
-      }
-    } catch (error: any) {
-      toast.error('Không thể tải loại danh mục: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCategories = async (typeCode: string) => {
-    try {
-      setLoading(true);
-      const data = await systemCategoryApi.getCategoriesByType(typeCode);
-      setCategories(data);
-    } catch (error: any) {
-      toast.error('Không thể tải danh mục: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    loadCategories();
+  }, [selectedType, getCategoriesByType]);
 
   const handleAddCategory = () => {
     if (!selectedType) {
@@ -128,10 +121,12 @@ export function SystemCategoriesPage() {
     if (!confirm('Bạn có chắc chắn muốn xóa danh mục này?')) return;
     
     try {
-      await systemCategoryApi.hardDelete(id);
+      await deleteCategory(id);
       toast.success('Đã xóa danh mục');
+      // Reload categories after delete
       if (selectedType) {
-        loadCategories(selectedType.code);
+        const typeCats = await getCategoriesByType(selectedType.code);
+        setCategories(typeCats);
       }
     } catch (error: any) {
       toast.error('Không thể xóa danh mục: ' + error.message);
@@ -144,11 +139,13 @@ export function SystemCategoriesPage() {
         ? CategoryStatusHelper.INACTIVE
         : CategoryStatusHelper.ACTIVE;
       
-      await systemCategoryApi.update(category.id!, { status: newStatus });
+      await updateCategory(category.id!, { status: newStatus });
       toast.success('Đã cập nhật trạng thái');
       
+      // Reload categories after update
       if (selectedType) {
-        loadCategories(selectedType.code);
+        const typeCats = await getCategoriesByType(selectedType.code);
+        setCategories(typeCats);
       }
     } catch (error: any) {
       toast.error('Không thể cập nhật trạng thái: ' + error.message);
@@ -158,14 +155,14 @@ export function SystemCategoriesPage() {
   const handleFormSubmit = async (data: any) => {
     try {
       if (editingCategory) {
-        await systemCategoryApi.update(editingCategory.id!, data);
+        await updateCategory(editingCategory.id!, data);
         toast.success('Đã cập nhật danh mục');
       } else {
         // Create new category with type from selected type
-        await systemCategoryApi.create({
+        await createCategory({
           ...data,
           type: selectedType!.code,
-          groupCategoryId: selectedGroup!.code,
+          group_category_id: selectedGroup!.code,
         });
         toast.success('Đã tạo danh mục mới');
       }
@@ -173,8 +170,10 @@ export function SystemCategoriesPage() {
       setShowFormDialog(false);
       setEditingCategory(null);
       
+      // Reload categories after create/update
       if (selectedType) {
-        loadCategories(selectedType.code);
+        const typeCats = await getCategoriesByType(selectedType.code);
+        setCategories(typeCats);
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -193,7 +192,56 @@ export function SystemCategoriesPage() {
             Quản lý cấu trúc danh mục 3 cấp: Nhóm → Loại → Danh mục
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              localStorage.removeItem('system_categories_data');
+              toast.info('Đã xóa cache');
+            }}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Xóa cache
+          </Button>
+          <Button
+            onClick={async () => {
+              toast.info('Đang tải lại dữ liệu từ API...');
+              await refresh();
+              toast.success('Đã làm mới dữ liệu');
+            }}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Làm mới
+          </Button>
+        </div>
       </div>
+
+      {/* Error Alert */}
+      {hookError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <h4 className="text-sm font-medium text-red-800 dark:text-red-400">
+                Lỗi khi tải dữ liệu
+              </h4>
+              <p className="text-sm text-red-700 dark:text-red-500 mt-1">
+                {hookError}
+              </p>
+            </div>
+            <Button
+              onClick={refresh}
+              variant="ghost"
+              size="sm"
+              className="text-red-800 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
+            >
+              Thử lại
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Level Selectors Card */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 space-y-6">
@@ -208,7 +256,7 @@ export function SystemCategoriesPage() {
             groups={groups}
             selectedGroup={selectedGroup}
             onSelectGroup={setSelectedGroup}
-            loading={loading}
+            loading={hookLoading}
           />
         </div>
 
@@ -231,7 +279,7 @@ export function SystemCategoriesPage() {
             types={types}
             selectedType={selectedType}
             onSelectType={setSelectedType}
-            loading={loading}
+            loading={hookLoading}
             disabled={!selectedGroup}
           />
         </div>
@@ -283,7 +331,7 @@ export function SystemCategoriesPage() {
             onEdit={handleEditCategory}
             onDelete={handleDeleteCategory}
             onToggleStatus={handleToggleStatus}
-            loading={loading}
+            loading={hookLoading}
           />
         </div>
       )}

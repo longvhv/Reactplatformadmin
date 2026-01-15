@@ -9,11 +9,11 @@ import { TemplateTable } from '../components/notification-templates/TemplateTabl
 import { TemplateForm } from '../components/notification-templates/TemplateForm';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Plus, Search, Mail } from 'lucide-react';
+import { Plus, Search, Mail, MessageSquare, Bell } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { useLanguage } from '../providers/LanguageProvider';
 
-export function NotificationTemplatesPage() {
+export default function NotificationTemplatesPage() {
   const { t } = useLanguage();
   const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
   const [loading, setLoading] = useState(false);
@@ -27,8 +27,33 @@ export function NotificationTemplatesPage() {
 
   useEffect(() => {
     loadTemplates();
-    loadStats();
   }, [filters]);
+
+  useEffect(() => {
+    // Calculate stats from templates data
+    if (templates.length > 0) {
+      const calculatedStats = {
+        total: templates.length,
+        active: templates.filter(t => t.is_active).length,
+        inactive: templates.filter(t => !t.is_active).length,
+        email: templates.filter(t => t.channel === 'EMAIL').length,
+        sms: templates.filter(t => t.channel === 'SMS').length,
+        push: templates.filter(t => t.channel === 'PUSH').length,
+        in_app: templates.filter(t => t.channel === 'IN_APP').length,
+      };
+      setStats(calculatedStats);
+    } else {
+      setStats({
+        total: 0,
+        active: 0,
+        inactive: 0,
+        email: 0,
+        sms: 0,
+        push: 0,
+        in_app: 0,
+      });
+    }
+  }, [templates]);
 
   const loadTemplates = async () => {
     try {
@@ -39,15 +64,6 @@ export function NotificationTemplatesPage() {
       toast.error(t('notificationTemplates.loadError', { error: error.message }));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const data = await notificationTemplateApi.getStatistics(filters.tenant_id);
-      setStats(data);
-    } catch (error) {
-      console.error('Failed to load stats:', error);
     }
   };
 
@@ -83,7 +99,6 @@ export function NotificationTemplatesPage() {
       setShowForm(false);
       setEditingTemplate(undefined);
       loadTemplates();
-      loadStats();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -98,29 +113,38 @@ export function NotificationTemplatesPage() {
       await notificationTemplateApi.delete(id);
       toast.success(t('notificationTemplates.deleteSuccess'));
       loadTemplates();
-      loadStats();
     } catch (error: any) {
       toast.error(error.message);
     }
   };
 
-  const handleToggleStatus = async (id: string, status: string) => {
+  const handleToggleStatus = async (template: NotificationTemplate) => {
     try {
-      await notificationTemplateApi.updateStatus(id, status as any);
+      await notificationTemplateApi.update(template._id, {
+        is_active: !template.is_active,
+        version: template.version
+      });
       toast.success(t('notificationTemplates.statusUpdated'));
       loadTemplates();
-      loadStats();
     } catch (error: any) {
       toast.error(error.message);
     }
   };
 
-  const handleDuplicate = async (id: string) => {
+  const handleDuplicate = async (template: NotificationTemplate) => {
     try {
-      await notificationTemplateApi.duplicate(id);
+      const duplicateData = {
+        tenant_id: template.tenant_id,
+        code: `${template.code}_COPY_${Date.now()}`,
+        name: `${template.name} (Copy)`,
+        channel: template.channel,
+        subject: template.subject,
+        body: template.body,
+        metadata: template.metadata,
+      };
+      await notificationTemplateApi.create(duplicateData);
       toast.success(t('notificationTemplates.duplicateSuccess'));
       loadTemplates();
-      loadStats();
     } catch (error: any) {
       toast.error(error.message);
     }
@@ -158,33 +182,33 @@ export function NotificationTemplatesPage() {
               <div className="text-sm text-gray-600">{t('notificationTemplates.active')}</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-gray-200">
-              <div className="text-2xl font-bold text-gray-600">{stats.draft}</div>
-              <div className="text-sm text-gray-600">{t('notificationTemplates.draft')}</div>
+              <div className="text-2xl font-bold text-gray-600">{stats.inactive}</div>
+              <div className="text-sm text-gray-600">{t('notificationTemplates.inactive')}</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-blue-200">
               <div className="flex items-center gap-2">
                 <Mail className="w-5 h-5 text-blue-600" />
-                <div className="text-2xl font-bold text-blue-600">{stats.by_type.email}</div>
+                <div className="text-2xl font-bold text-blue-600">{stats.email}</div>
               </div>
               <div className="text-sm text-gray-600">Email</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-green-200">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-5 h-5 text-green-600" />
-                <div className="text-2xl font-bold text-green-600">{stats.by_type.sms}</div>
+                <div className="text-2xl font-bold text-green-600">{stats.sms}</div>
               </div>
               <div className="text-sm text-gray-600">SMS</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-purple-200">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-purple-600" />
-                <div className="text-2xl font-bold text-purple-600">{stats.by_type.push}</div>
+                <div className="text-2xl font-bold text-purple-600">{stats.push}</div>
               </div>
               <div className="text-sm text-gray-600">Push</div>
             </div>
             <div className="bg-white rounded-lg p-4 border border-indigo-200">
-              <div className="text-2xl font-bold text-indigo-600">{stats.total_usage.toLocaleString()}</div>
-              <div className="text-sm text-gray-600">{t('notificationTemplates.totalUsage')}</div>
+              <div className="text-2xl font-bold text-indigo-600">{stats.in_app}</div>
+              <div className="text-sm text-gray-600">In-App</div>
             </div>
           </div>
         )}
@@ -213,9 +237,7 @@ export function NotificationTemplatesPage() {
             >
               <option value="all">{t('notificationTemplates.allStatuses')}</option>
               <option value="active">Active</option>
-              <option value="draft">Draft</option>
               <option value="inactive">Inactive</option>
-              <option value="archived">Archived</option>
             </select>
 
             <select

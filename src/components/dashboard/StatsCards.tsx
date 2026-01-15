@@ -1,15 +1,17 @@
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Users, 
-  TrendingUp, 
-  Activity, 
-  Bell,
+import {
+  Users,
+  Activity,
+  TrendingUp,
+  DollarSign,
   ArrowUpRight,
   ArrowDownRight,
-  LucideIcon
+  Package,
+  ShoppingCart,
+  CreditCard,
+  Building2,
+  UserCheck,
 } from 'lucide-react';
-import type { Stat } from '@/services/dashboardApi';
+import type { Stat } from '@/types/dashboard.types';
 
 interface StatsCardsProps {
   stats: Stat[];
@@ -19,7 +21,12 @@ const iconMap: Record<string, LucideIcon> = {
   Users,
   Activity,
   TrendingUp,
-  Bell,
+  DollarSign,
+  Package,
+  ShoppingCart,
+  CreditCard,
+  Building2,
+  UserCheck,
 };
 
 export function StatsCards({ stats }: StatsCardsProps) {

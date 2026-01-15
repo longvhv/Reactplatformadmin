@@ -1,4 +1,4 @@
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router";
 import { Home, ChevronRight } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";
 

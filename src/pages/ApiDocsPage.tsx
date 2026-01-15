@@ -68,12 +68,12 @@ export function ApiDocsPage() {
   }, [endpoints, selectedTag, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a]">
+      <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
           <div className="flex items-start gap-4 mb-6">
-            <div className="p-3 bg-[#6366f1] rounded-lg">
+            <div className="p-3 bg-primary rounded-lg">
               <BookOpen className="h-6 w-6 text-white" />
             </div>
             <div className="flex-1">
@@ -237,3 +237,5 @@ export function ApiDocsPage() {
     </div>
   );
 }
+
+export default ApiDocsPage;

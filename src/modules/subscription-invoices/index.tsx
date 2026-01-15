@@ -5,20 +5,14 @@
 
 import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { LoadingFallback } from '../../components/LoadingFallback';
 import { FileText } from 'lucide-react';
 
 // Lazy-loaded pages
-const SubscriptionInvoicesPage = lazy(() => import('../../pages/SubscriptionInvoicesPage').then(m => ({ default: m.SubscriptionInvoicesPage })));
-const InvoiceDetailPage = lazy(() => import('../../pages/InvoiceDetailPage').then(m => ({ default: m.InvoiceDetailPage })));
-const AddInvoicePage = lazy(() => import('../../pages/AddInvoicePage').then(m => ({ default: m.AddInvoicePage })));
-const EditInvoicePage = lazy(() => import('../../pages/EditInvoicePage').then(m => ({ default: m.EditInvoicePage })));
-
-// Loading fallback
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-  </div>
-);
+const SubscriptionInvoicesPage = lazy(() => import('../../pages/SubscriptionInvoicesPage'));
+const InvoiceDetailPage = lazy(() => import('../../pages/InvoiceDetailPage'));
+const AddInvoicePage = lazy(() => import('../../pages/AddInvoicePage'));
+const EditInvoicePage = lazy(() => import('../../pages/EditInvoicePage'));
 
 /**
  * Subscription Invoices Module Definition
@@ -53,15 +47,6 @@ export const SubscriptionInvoicesModule: ModuleDefinition = {
       title: "invoices.title", // Translation key
     },
     {
-      path: "/core/subscription-invoices/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <InvoiceDetailPage />
-        </Suspense>
-      ),
-      title: "invoices.viewDetails", // Translation key
-    },
-    {
       path: "/core/subscription-invoices/add",
       element: (
         <Suspense fallback={<LoadingFallback />}>
@@ -78,6 +63,15 @@ export const SubscriptionInvoicesModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "invoices.editInvoice", // Translation key
+    },
+    {
+      path: "/core/subscription-invoices/:id",
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <InvoiceDetailPage />
+        </Suspense>
+      ),
+      title: "invoices.viewDetails", // Translation key
     },
   ],
 

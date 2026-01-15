@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, Download, RefreshCw, Grid, List } from 'lucide-react';
+import { Plus, Search, Filter, Download, RefreshCw, List, Grid } from 'lucide-react';
 import { subscriptionInvoiceApi, SubscriptionInvoice, InvoiceFilters, InvoiceStatistics } from '../api/subscriptionInvoiceApi';
 import { InvoiceTable } from '../components/invoices/InvoiceTable';
 import { InvoiceCard } from '../components/invoices/InvoiceCard';
@@ -66,19 +66,33 @@ export const SubscriptionInvoicesPage: React.FC = () => {
     let filtered = [...invoices];
 
     if (searchTerm) {
-      filtered = filtered.filter(inv => 
-        inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inv.customer_email?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = filtered.filter(inv => {
+        const customerName = inv.customer_snapshot?.name || '';
+        const customerEmail = inv.customer_snapshot?.email || '';
+        
+        return (
+          inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(inv => inv.status === statusFilter);
+      filtered = filtered.filter(inv => inv.status.toLowerCase() === statusFilter.toLowerCase());
     }
 
     if (paymentFilter !== 'all') {
-      filtered = filtered.filter(inv => inv.payment_status === paymentFilter);
+      // Map payment filter to status logic
+      if (paymentFilter === 'unpaid') {
+        filtered = filtered.filter(inv => inv.amount_due > 0);
+      } else if (paymentFilter === 'paid') {
+        filtered = filtered.filter(inv => inv.status === 'PAID');
+      } else if (paymentFilter === 'partially_paid') {
+        filtered = filtered.filter(inv => 
+          inv.amount_paid > 0 && inv.amount_due > 0
+        );
+      }
     }
 
     setFilteredInvoices(filtered);
@@ -141,33 +155,49 @@ export const SubscriptionInvoicesPage: React.FC = () => {
 
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600">{t('invoices.stats.total')}</div>
               <div className="text-2xl font-bold text-gray-900">{statistics.total}</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {formatCurrency(statistics.total_amount, 'VND')}
+              </div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600">{t('invoices.stats.paid')}</div>
               <div className="text-2xl font-bold text-green-600">{statistics.paid}</div>
-              <div className="text-xs text-gray-500">
-                {formatCurrency(statistics.paid_amount, 'USD')}
+              <div className="text-xs text-gray-500 mt-1">
+                {formatCurrency(statistics.paid_amount, 'VND')}
               </div>
             </CardContent>
           </Card>
+          
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-gray-600">Open</div>
+              <div className="text-2xl font-bold text-blue-600">{statistics.open}</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {formatCurrency(statistics.outstanding_amount, 'VND')}
+              </div>
+            </CardContent>
+          </Card>
+          
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-gray-600">{t('invoices.stats.overdue')}</div>
               <div className="text-2xl font-bold text-red-600">{statistics.overdue}</div>
             </CardContent>
           </Card>
+          
           <Card>
             <CardContent className="pt-6">
-              <div className="text-sm text-gray-600">{t('invoices.stats.outstanding')}</div>
+              <div className="text-sm text-gray-600">Amount Due</div>
               <div className="text-2xl font-bold text-orange-600">
-                {formatCurrency(statistics.outstanding_amount, 'USD')}
+                {formatCurrency(statistics.amount_due, 'VND')}
               </div>
             </CardContent>
           </Card>

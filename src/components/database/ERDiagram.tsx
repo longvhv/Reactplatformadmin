@@ -1,6 +1,7 @@
-import { memo, useEffect, useRef } from "react";
-import mermaid from "mermaid";
-import { useLanguage } from "../../providers/LanguageProvider";
+import React, { memo, useEffect, useRef } from 'react';
+import mermaid from 'mermaid';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { CHART_COLORS } from '../../constants/chartColors';
 
 interface ERDiagramProps {
   diagram: string;
@@ -27,8 +28,8 @@ export const ERDiagram = memo(({ diagram }: ERDiagramProps) => {
         minEntityWidth: 100,
         minEntityHeight: 75,
         entityPadding: 15,
-        stroke: '#6366f1',
-        fill: '#f0f0f0',
+        stroke: CHART_COLORS.primary,
+        fill: CHART_COLORS.gray[100],
         fontSize: 12,
       },
     });

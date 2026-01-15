@@ -1,56 +1,33 @@
-import { SystemAnnouncementsPage } from "./pages/SystemAnnouncementsPage";
-import { NotificationTemplatesPage } from "./pages/NotificationTemplatesPage";
 import { PerformanceMonitor } from "./components/PerformanceMonitor";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { LanguageProvider } from "./providers/LanguageProvider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
-// Import all page components
+// Import layout
 import { AppLayout } from "./components/layout/AppLayout";
-import { DashboardPage } from "./modules/dashboard/DashboardPage";
-import UsersPage from "./pages/UsersPage";
-import UserDetailPage from "./pages/UserDetailPage";
-import { DevDocsPage } from "./pages/DevDocsPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { HelpPage } from "./pages/HelpPage";
-import TenantsPage from "./pages/TenantsPage";
+
+// Import ONLY full-screen detail pages (not in module registry)
 import { TenantDetailPage } from "./pages/TenantDetailPage";
 import AddTenantPage from "./pages/AddTenantPage";
-import EditTenantPage from "./pages/EditTenantPage";
-import { SystemCategoriesPage } from "./pages/SystemCategoriesPage";
-import { AddSystemCategoryPage } from "./pages/AddSystemCategoryPage";
-import { EditSystemCategoryPage } from "./pages/EditSystemCategoryPage";
-import { AppComponentsPage } from "./pages/AppComponentsPage";
-import { AddAppComponentPage } from "./pages/AddAppComponentPage";
-import { EditAppComponentPage } from "./pages/EditAppComponentPage";
-import { RegionsPage } from "./pages/RegionsPage";
-import { AddRegionPage } from "./pages/AddRegionPage";
-import { EditRegionPage } from "./pages/EditRegionPage";
-import { ApplicationsPage } from "./pages/ApplicationsPage";
+import UserDetailPage from "./pages/UserDetailPage";
+import EditUserPage from "./pages/EditUserPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
-import { ProductsPage } from "./pages/ProductsPage";
+import ApplicationFormPage from "./pages/ApplicationFormPage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
-import { AddProductPage } from "./pages/AddProductPage";
-import { EditProductPage } from "./pages/EditProductPage";
-import { ServicePackagesPage } from "./pages/ServicePackagesPage";
-import { AddServicePackagePage } from "./pages/AddServicePackagePage";
-import { EditServicePackagePage } from "./pages/EditServicePackagePage";
-import { SubscriptionOrdersPage } from "./pages/SubscriptionOrdersPage";
-import { OrderDetailPage } from "./pages/OrderDetailPage";
-import { AddOrderPage } from "./pages/AddOrderPage";
-import { EditOrderPage } from "./pages/EditOrderPage";
-import { SubscriptionInvoicesPage } from "./pages/SubscriptionInvoicesPage";
-import { InvoiceDetailPage } from "./pages/InvoiceDetailPage";
-import { AddInvoicePage } from "./pages/AddInvoicePage";
-import { EditInvoicePage } from "./pages/EditInvoicePage";
-import { TenantSubscriptionsPage } from "./pages/TenantSubscriptionsPage";
-import { SubscriptionDetailPage } from "./pages/SubscriptionDetailPage";
-import { AddSubscriptionPage } from "./pages/AddSubscriptionPage";
-import { EditSubscriptionPage } from "./pages/EditSubscriptionPage";
+import AddProductPage from "./pages/AddProductPage";
+import EditProductPage from "./pages/EditProductPage";
+import ServicePackageDetailPage from "./pages/ServicePackageDetailPage";
+import AddServicePackagePage from "./pages/AddServicePackagePage";
+import EditServicePackagePage from "./pages/EditServicePackagePage";
+import SubscriptionDetailPageFullscreen from "./pages/SubscriptionDetailPage";
+import AddSubscriptionPage from "./pages/AddSubscriptionPage";
+import SubscriptionOrderDetailPage from "./pages/SubscriptionOrderDetailPage";
 
 // Import module registration to register all modules
 import "./core/moduleRegistration";
+// Import ModuleRegistry to get all routes
+import { ModuleRegistry } from "./core/ModuleRegistry";
 
 /**
  * VHV Platform React Framework
@@ -64,12 +41,72 @@ import "./core/moduleRegistration";
  * - Real-time performance monitoring
  */
 function AppContent() {
+  // Get all routes from ModuleRegistry
+  const registry = ModuleRegistry.getInstance();
+  const moduleRoutes = registry.getAllRoutes();
+  
   return (
     <Routes>
       {/* Full-screen detail pages (NO AppLayout wrapper) */}
+      {/* 
+        ⚠️ CRITICAL FIX: Tenants routes MUST be ordered correctly!
+        /add and /new MUST come BEFORE /:id to avoid matching as an ID
+      */}
+      <Route path="/core/tenants/add" element={<AddTenantPage />} />
+      <Route path="/core/tenants/new" element={<AddTenantPage />} />
       <Route path="/core/tenants/:id" element={<TenantDetailPage />} />
       <Route path="/core/users/:id" element={<UserDetailPage />} />
-      <Route path="/core/applications/:id/*" element={<ApplicationDetailPage />} />
+      <Route path="/core/users/:id/edit" element={<EditUserPage />} />
+      
+      {/* 
+        ⚠️ CRITICAL FIX: Applications routes - /new MUST come BEFORE /:id
+      */}
+      <Route path="/core/applications/new" element={
+        <AppLayout>
+          <ApplicationFormPage />
+        </AppLayout>
+      } />
+      <Route path="/core/applications/:id" element={<ApplicationDetailPage />} />
+      
+      {/* 
+        ⚠️ CRITICAL FIX: Products routes MUST be ordered correctly!
+        /add and /edit/:id MUST come BEFORE /:id to avoid matching "add"/"edit" as IDs
+      */}
+      <Route path="/core/products/add" element={
+        <AppLayout>
+          <AddProductPage />
+        </AppLayout>
+      } />
+      <Route path="/core/products/edit/:id" element={
+        <AppLayout>
+          <EditProductPage />
+        </AppLayout>
+      } />
+      <Route path="/core/products/:id" element={<ProductDetailPage />} />
+      
+      {/* 
+        ⚠️ CRITICAL FIX: Service Packages routes MUST be ordered correctly!
+        /add and /edit/:id MUST come BEFORE /:id to avoid matching "add"/"edit" as IDs
+      */}
+      <Route path="/core/service-packages/add" element={
+        <AppLayout>
+          <AddServicePackagePage />
+        </AppLayout>
+      } />
+      <Route path="/core/service-packages/edit/:id" element={
+        <AppLayout>
+          <EditServicePackagePage />
+        </AppLayout>
+      } />
+      <Route path="/core/service-packages/:id" element={<ServicePackageDetailPage />} />
+      
+      {/* 
+        ⚠️ CRITICAL FIX: Subscriptions routes MUST be ordered correctly!
+        /add MUST come BEFORE /:id to avoid matching "add" as an ID
+      */}
+      <Route path="/core/subscriptions/add" element={<AddSubscriptionPage />} />
+      <Route path="/core/subscriptions/:id" element={<SubscriptionDetailPageFullscreen />} />
+      <Route path="/core/subscription-orders/:id" element={<SubscriptionOrderDetailPage />} />
       
       {/* All other routes with AppLayout */}
       <Route path="*" element={
@@ -78,70 +115,14 @@ function AppContent() {
             {/* Default redirect to dashboard */}
             <Route path="/" element={<Navigate to="/core/dashboard" replace />} />
             
-            {/* Core application routes - all pages start with /core/ */}
-            <Route path="/core/dashboard" element={<DashboardPage />} />
-            <Route path="/core/users" element={<UsersPage />} />
-            <Route path="/core/dev-docs" element={<DevDocsPage />} />
-            <Route path="/core/settings" element={<SettingsPage />} />
-            <Route path="/core/help" element={<HelpPage />} />
-            
-            {/* Tenant routes */}
-            <Route path="/core/tenants" element={<TenantsPage />} />
-            <Route path="/core/tenants/new" element={<AddTenantPage />} />
-            <Route path="/core/tenants/edit/:id" element={<EditTenantPage />} />
-            
-            {/* System Categories */}
-            <Route path="/core/system-categories" element={<SystemCategoriesPage />} />
-            <Route path="/core/system-categories/add" element={<AddSystemCategoryPage />} />
-            <Route path="/core/system-categories/edit/:id" element={<EditSystemCategoryPage />} />
-            
-            {/* App Components */}
-            <Route path="/core/app-components" element={<AppComponentsPage />} />
-            <Route path="/core/app-components/add" element={<AddAppComponentPage />} />
-            <Route path="/core/app-components/edit/:id" element={<EditAppComponentPage />} />
-            
-            {/* Regions */}
-            <Route path="/core/regions" element={<RegionsPage />} />
-            <Route path="/core/regions/add" element={<AddRegionPage />} />
-            <Route path="/core/regions/edit/:id" element={<EditRegionPage />} />
-            
-            {/* Applications */}
-            <Route path="/core/applications" element={<ApplicationsPage />} />
-            
-            {/* Products */}
-            <Route path="/core/products" element={<ProductsPage />} />
-            <Route path="/core/products/:id" element={<ProductDetailPage />} />
-            <Route path="/core/products/add" element={<AddProductPage />} />
-            <Route path="/core/products/edit/:id" element={<EditProductPage />} />
-            
-            {/* Service Packages */}
-            <Route path="/core/service-packages" element={<ServicePackagesPage />} />
-            <Route path="/core/service-packages/add" element={<AddServicePackagePage />} />
-            <Route path="/core/service-packages/edit/:id" element={<EditServicePackagePage />} />
-            
-            {/* Subscription Orders */}
-            <Route path="/core/subscription-orders" element={<SubscriptionOrdersPage />} />
-            <Route path="/core/subscription-orders/:id" element={<OrderDetailPage />} />
-            <Route path="/core/subscription-orders/add" element={<AddOrderPage />} />
-            <Route path="/core/subscription-orders/edit/:id" element={<EditOrderPage />} />
-            
-            {/* Subscription Invoices */}
-            <Route path="/core/subscription-invoices" element={<SubscriptionInvoicesPage />} />
-            <Route path="/core/subscription-invoices/:id" element={<InvoiceDetailPage />} />
-            <Route path="/core/subscription-invoices/add" element={<AddInvoicePage />} />
-            <Route path="/core/subscription-invoices/edit/:id" element={<EditInvoicePage />} />
-            
-            {/* Tenant Subscriptions */}
-            <Route path="/core/tenant-subscriptions" element={<TenantSubscriptionsPage />} />
-            <Route path="/core/tenant-subscriptions/:id" element={<SubscriptionDetailPage />} />
-            <Route path="/core/tenant-subscriptions/add" element={<AddSubscriptionPage />} />
-            <Route path="/core/tenant-subscriptions/edit/:id" element={<EditSubscriptionPage />} />
-            
-            {/* System Announcements */}
-            <Route path="/core/system-announcements" element={<SystemAnnouncementsPage />} />
-            
-            {/* Notification Templates */}
-            <Route path="/core/notification-templates" element={<NotificationTemplatesPage />} />
+            {/* Dynamic routes from ModuleRegistry */}
+            {moduleRoutes.map((route, index) => (
+              <Route 
+                key={route.path || index}
+                path={route.path} 
+                element={route.element} 
+              />
+            ))}
             
             {/* Catch-all route - redirect to dashboard */}
             <Route path="*" element={<Navigate to="/core/dashboard" replace />} />

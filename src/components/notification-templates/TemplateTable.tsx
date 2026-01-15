@@ -14,8 +14,8 @@ interface TemplateTableProps {
   templates: NotificationTemplate[];
   onEdit: (template: NotificationTemplate) => void;
   onDelete: (id: string) => void;
-  onDuplicate: (id: string) => void;
-  onToggleStatus: (id: string, status: string) => void;
+  onDuplicate: (template: NotificationTemplate) => void;
+  onToggleStatus: (template: NotificationTemplate) => void;
   onPreview?: (template: NotificationTemplate) => void;
 }
 
@@ -52,25 +52,22 @@ export function TemplateTable({
         <thead className="bg-gray-50">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('notificationTemplates.templateName')}
+              Template Name
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('notificationTemplates.type')}
+              Channel
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('notificationTemplates.category')}
+              Subject
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('notificationTemplates.status')}
+              Status
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('notificationTemplates.usage')}
-            </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('notificationTemplates.lastUsed')}
+              Updated
             </th>
             <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {t('common.actions')}
+              Actions
             </th>
           </tr>
         </thead>
@@ -79,48 +76,39 @@ export function TemplateTable({
             <tr key={template._id} className="hover:bg-gray-50">
               <td className="px-4 py-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium text-gray-900">
-                      {template.template_name}
-                    </div>
-                    {template.is_system_template && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
-                        System
-                      </span>
-                    )}
+                  <div className="text-sm font-medium text-gray-900">
+                    {template.name}
                   </div>
-                  <div className="text-xs text-gray-500">{template.template_code}</div>
+                  <div className="text-xs text-gray-500 font-mono">{template.code}</div>
                 </div>
               </td>
               <td className="px-4 py-3">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${TYPE_BADGE_STYLES[template.notification_type] || 'bg-gray-100 text-gray-700 border-gray-300'}`}>
-                  {template.notification_type}
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                  template.channel === 'EMAIL' ? 'bg-blue-100 text-blue-700 border-blue-300' :
+                  template.channel === 'SMS' ? 'bg-green-100 text-green-700 border-green-300' :
+                  template.channel === 'PUSH' ? 'bg-purple-100 text-purple-700 border-purple-300' :
+                  'bg-orange-100 text-orange-700 border-orange-300'
+                }`}>
+                  {template.channel}
                 </span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm text-gray-700">{template.category || '-'}</span>
+                <span className="text-sm text-gray-700">{template.subject || '-'}</span>
               </td>
               <td className="px-4 py-3">
-                <select
-                  value={template.status}
-                  onChange={(e) => onToggleStatus(template._id!, e.target.value)}
-                  disabled={template.is_system_template && !template.is_editable}
-                  className="text-xs rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                <button
+                  onClick={() => onToggleStatus(template)}
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    template.is_active
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="draft">Draft</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </td>
-              <td className="px-4 py-3">
-                <div className="text-sm text-gray-900">{template.usage_count || 0}</div>
-                <div className="text-xs text-gray-500">
-                  {template.success_count || 0} / {(template.success_count || 0) + (template.failure_count || 0)}
-                </div>
+                  {template.is_active ? 'Active' : 'Inactive'}
+                </button>
               </td>
               <td className="px-4 py-3 text-sm text-gray-500">
-                {formatDate(template.last_used_at)}
+                {formatDate(template.updated_at)}
               </td>
               <td className="px-4 py-3 text-right">
                 <div className="flex items-center justify-end gap-2">
@@ -137,7 +125,7 @@ export function TemplateTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onDuplicate(template._id!)}
+                    onClick={() => onDuplicate(template)}
                     title="Duplicate"
                   >
                     <Copy className="w-4 h-4" />
@@ -146,15 +134,13 @@ export function TemplateTable({
                     variant="ghost"
                     size="sm"
                     onClick={() => onEdit(template)}
-                    disabled={template.is_system_template && !template.is_editable}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onDelete(template._id!)}
-                    disabled={template.is_system_template && !template.is_editable}
+                    onClick={() => onDelete(template._id)}
                   >
                     <Trash2 className="w-4 h-4 text-red-600" />
                   </Button>
@@ -166,7 +152,7 @@ export function TemplateTable({
       </table>
       {templates.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          {t('notificationTemplates.noData')}
+          No templates found
         </div>
       )}
     </div>

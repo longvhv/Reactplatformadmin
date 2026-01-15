@@ -5,19 +5,15 @@
 
 import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { LoadingFallback } from '../../components/LoadingFallback';
 import { Package2 } from 'lucide-react';
 
 // Lazy-loaded pages
-const ServicePackagesPage = lazy(() => import('../../pages/ServicePackagesPage').then(m => ({ default: m.ServicePackagesPage })));
-const AddServicePackagePage = lazy(() => import('../../pages/AddServicePackagePage').then(m => ({ default: m.AddServicePackagePage })));
-const EditServicePackagePage = lazy(() => import('../../pages/EditServicePackagePage').then(m => ({ default: m.EditServicePackagePage })));
+const ServicePackagesPage = lazy(() => import('../../pages/ServicePackagesPage'));
+// Note: AddServicePackagePage and EditServicePackagePage moved to App.tsx
+// to fix routing precedence issue (must come before /:id route)
 
-// Loading fallback
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-  </div>
-);
+// Note: ServicePackageDetailPage is full-screen (defined in App.tsx)
 
 /**
  * Service Packages Module Definition
@@ -51,24 +47,8 @@ export const ServicePackagesModule: ModuleDefinition = {
       ),
       title: "servicePackages.title", // Translation key
     },
-    {
-      path: "/core/service-packages/add",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <AddServicePackagePage />
-        </Suspense>
-      ),
-      title: "servicePackages.add", // Translation key
-    },
-    {
-      path: "/core/service-packages/edit/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <EditServicePackagePage />
-        </Suspense>
-      ),
-      title: "servicePackages.edit", // Translation key
-    },
+    // Note: /add and /edit/:id routes moved to App.tsx
+    // to ensure correct routing precedence (must come before /:id)
   ],
 
   initialize: async () => {

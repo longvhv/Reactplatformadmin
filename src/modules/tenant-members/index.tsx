@@ -4,10 +4,10 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Users } from "lucide-react";
 
 /**
- * Lazy load Tenant Members page
+ * Lazy-load Tenant Members Page
  */
 const TenantMembersPage = lazy(() => 
-  import("../../pages/TenantMembersPage").then(module => ({ default: module.TenantMembersPage }))
+  import("../../pages/TenantMembersPage")
 );
 
 /**

@@ -36,24 +36,24 @@ export const AddInvoicePage: React.FC = () => {
 
       await subscriptionInvoiceApi.create(data);
       toast.success(t('invoices.createSuccess'));
-      navigate('/core/invoices');
+      navigate('/core/subscription-invoices');
     } catch (error: any) {
-      console.error('Error creating invoice:', error);
-      toast.error(error.message || t('invoices.errors.createFailed'));
+      console.error('Failed to create invoice:', error);
+      toast.error(error.message || t('errors.somethingWentWrong'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    navigate('/core/invoices');
+    navigate('/core/subscription-invoices');
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="container mx-auto p-6 max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => navigate('/core/invoices')}>
+        <Button variant="ghost" onClick={() => navigate('/core/subscription-invoices')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>

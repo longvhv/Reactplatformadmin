@@ -87,9 +87,12 @@ export function ProductCard({
 
       {/* Product Name & Code */}
       <div className="mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+        <button
+          onClick={() => onView?.(product)}
+          className="text-lg font-semibold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left mb-1 w-full"
+        >
           {product.name}
-        </h3>
+        </button>
         <p className="text-sm font-mono text-gray-500 dark:text-gray-400">
           {product.code}
         </p>

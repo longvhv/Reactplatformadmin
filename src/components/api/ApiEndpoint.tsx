@@ -118,7 +118,7 @@ export function ApiEndpoint(props: ApiEndpointProps) {
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <code className="text-sm font-mono text-[#6366f1]">
+                          <code className="text-sm font-mono text-primary">
                             {param.name}
                           </code>
                           <Badge variant="outline" className="text-xs">

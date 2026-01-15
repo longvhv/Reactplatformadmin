@@ -4,11 +4,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Settings, Globe, Shield, Bell, Database, Sliders } from "lucide-react";
 
 /**
- * Lazy load Settings page component
+ * Lazy-load Settings Page
  */
-const SettingsPage = lazy(() => 
-  import("../../pages/SettingsPage").then(module => ({ default: module.SettingsPage }))
-);
+const SettingsPage = lazy(() => import("../../pages/SettingsPage"));
 
 /**
  * Settings Module

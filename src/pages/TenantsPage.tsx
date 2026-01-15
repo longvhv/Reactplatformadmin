@@ -5,19 +5,20 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, LayoutGrid, Network, List } from 'lucide-react';
+import { Plus, Search, LayoutGrid, Network, List, Building2 } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTenants } from '@/hooks/useTenants';
 import { useTenantTree } from '@/hooks/useTenantTree';
 import { TenantFilters } from '@/components/tenants/TenantFilters';
-import { TenantStats } from '@/components/tenants/TenantStats';
+import { TenantOverviewStats } from '@/components/tenants/TenantOverviewStats';
 import { TenantTreeView } from '@/components/tenants/TenantTreeView';
 import { TenantDetailView } from '@/components/tenants/TenantDetailView';
 import { TenantGrid } from '@/components/tenants/TenantGrid';
 import { TenantList } from '@/components/tenants/TenantList';
 import { isRootTenant } from '@/utils/tenant-utils';
+import { toast } from 'sonner';
 import type { TenantStatus, TenantTier, DataRegion } from '@/data/tenants';
 
 type ViewMode = 'grid' | 'tree' | 'list';
@@ -85,8 +86,9 @@ export default function TenantsPage() {
     if (!confirm(t('tenants.confirmDelete'))) return;
     try {
       await deleteTenant(id);
+      toast.success(t('tenants.deleteSuccess'));
     } catch (err) {
-      alert('Failed to delete tenant');
+      toast.error(t('tenants.deleteError'));
     }
   };
 
@@ -98,25 +100,37 @@ export default function TenantsPage() {
     setHierarchyFilter('all');
   };
 
+  const handleAddTenant = () => {
+    navigate('/core/tenants/add');
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card sticky top-0 z-10">
+      {/* Header - NOT sticky anymore */}
+      <div className="border-b border-border bg-card">
         <div className="max-w-[1920px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-semibold">{t('tenants.title') || 'Tenant Management'}</h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h1 className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
+                  <Building2 className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-3xl font-bold text-foreground">
+                  {t('tenants.title') || 'Tenant Management'}
+                </span>
+              </h1>
+              <p className="text-muted-foreground mt-2">
                 {t('tenants.subtitle') || 'Manage organizations and hierarchical structure'}
               </p>
             </div>
-            <Button onClick={() => navigate('/core/tenants/new')} className="gap-2">
+            <Button onClick={handleAddTenant} className="gap-2">
               <Plus className="w-4 h-4" />
               {t('tenants.addTenant') || 'Add Tenant'}
             </Button>
           </div>
 
-          <TenantStats stats={stats} />
+          {/* Collapsible Stats */}
+          <TenantOverviewStats stats={stats} />
         </div>
       </div>
 

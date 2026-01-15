@@ -4,11 +4,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { HelpCircle } from "lucide-react";
 
 /**
- * Lazy load Help page
+ * Lazy-load Help Page
  */
-const HelpPage = lazy(() => 
-  import("../../pages/HelpPage").then(module => ({ default: module.HelpPage }))
-);
+const HelpPage = lazy(() => import("../../pages/HelpPage"));
 
 /**
  * Help Module

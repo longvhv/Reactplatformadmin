@@ -7,7 +7,7 @@ import React from 'react';
 import { SaaSProduct } from '../../api/saasProductApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Edit2, Trash2, Eye, Star, Copy } from 'lucide-react';
+import { Edit2, Trash2, Star, Copy } from 'lucide-react';
 import { useLanguage } from '../../providers/LanguageProvider';
 
 interface ProductTableProps {
@@ -119,9 +119,12 @@ export function ProductTable({
                     <Star className="w-4 h-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />
                   )}
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">
+                    <button
+                      onClick={() => onView?.(product)}
+                      className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
+                    >
                       {product.name}
-                    </div>
+                    </button>
                     <div className="text-sm font-mono text-gray-500 dark:text-gray-400">
                       {product.code}
                     </div>
@@ -154,16 +157,6 @@ export function ProductTable({
               </td>
               <td className="px-4 py-4">
                 <div className="flex gap-1">
-                  {onView && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onView(product)}
-                      title="Xem chi tiết"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  )}
                   {onEdit && (
                     <Button
                       variant="ghost"

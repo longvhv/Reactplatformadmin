@@ -79,7 +79,7 @@ export function RegionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#6366f1] to-[#4f46e5] rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
               <MapPin className="h-6 w-6 text-white" />
             </div>
             Quản lý Địa giới
@@ -91,7 +91,7 @@ export function RegionsPage() {
         
         <Button
           onClick={() => navigate(`/regions/add?type=${selectedType}`)}
-          className="bg-[#6366f1] hover:bg-[#4f46e5] text-white"
+          className="bg-primary hover:bg-primary/90 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Thêm Region
@@ -110,12 +110,12 @@ export function RegionsPage() {
                 onClick={() => setSelectedType(type.value as any)}
                 className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${ 
                   selectedType === type.value
-                    ? 'border-[#6366f1] bg-[#6366f1]/5 shadow-lg shadow-[#6366f1]/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-[#6366f1]/50'
+                    ? 'border-primary bg-primary/5 shadow-lg shadow-primary/20'
+                    : 'border-border hover:border-primary/50'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className="h-5 w-5 text-[#6366f1]" />
+                  <Icon className="h-5 w-5 text-primary" />
                   <span className="font-medium">{type.label}</span>
                 </div>
               </button>
@@ -136,7 +136,7 @@ export function RegionsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#6366f1] focus:border-transparent bg-white dark:bg-gray-800"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-card"
               />
             </div>
             <Button onClick={handleSearch} variant="outline">
@@ -209,3 +209,5 @@ export function RegionsPage() {
     </div>
   );
 }
+
+export default RegionsPage;

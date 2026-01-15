@@ -4,10 +4,17 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { AppWindow } from 'lucide-react';
 
 /**
- * Lazy load Applications pages
+ * Lazy-load Applications Page
  */
 const ApplicationsPage = lazy(() =>
-  import('../../pages/ApplicationsPage').then((module) => ({ default: module.ApplicationsPage }))
+  import('../../pages/ApplicationsPage')
+);
+
+/**
+ * Lazy-load Application Form Page
+ */
+const ApplicationFormPage = lazy(() =>
+  import('../../pages/ApplicationFormPage')
 );
 
 /**
@@ -30,6 +37,8 @@ export const ApplicationsModule: ModuleDefinition = {
       ),
       title: 'Applications',
     },
+    // Note: /core/applications/:id and /core/applications/new routes
+    // are defined in App.tsx (full-screen detail pages)
   ],
   menuItems: [
     {

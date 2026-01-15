@@ -490,3 +490,103 @@ export async function toggleApplicationActive(id: string, userId?: string): Prom
     );
   }
 }
+
+/**
+ * GET /make-server-7eedb4e0/applications/:id/stats
+ * Lấy thống kê của một application
+ */
+export async function getApplicationStats(id: string): Promise<Response> {
+  try {
+    const supabase = getSupabaseClient();
+
+    // Verify application exists
+    const { data: app, error: appError } = await supabase
+      .from('applications')
+      .select('_id, code, name')
+      .eq('_id', id)
+      .is('deleted_at', null)
+      .single();
+
+    if (appError || !app) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Application not found', 
+          details: 'Application does not exist or has been deleted' 
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get total capabilities for this app
+    const { count: totalCapabilities } = await supabase
+      .from('app_capabilities')
+      .select('*', { count: 'exact', head: true })
+      .eq('app_code', app.code)
+      .is('deleted_at', null);
+
+    // Get active capabilities
+    const { count: activeCapabilities } = await supabase
+      .from('app_capabilities')
+      .select('*', { count: 'exact', head: true })
+      .eq('app_code', app.code)
+      .eq('is_active', true)
+      .is('deleted_at', null);
+
+    // Get total tenants using this application
+    const { count: totalTenants } = await supabase
+      .from('tenant_applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('app_code', app.code)
+      .is('deleted_at', null);
+
+    // Get active tenants
+    const { count: activeTenants } = await supabase
+      .from('tenant_applications')
+      .select('*', { count: 'exact', head: true })
+      .eq('app_code', app.code)
+      .eq('is_active', true)
+      .is('deleted_at', null);
+
+    // Get top tenants by usage (mock calculation based on tenant count)
+    const { data: topTenantsData } = await supabase
+      .from('tenant_applications')
+      .select(`
+        tenant_code,
+        tenants!inner(name)
+      `)
+      .eq('app_code', app.code)
+      .eq('is_active', true)
+      .is('deleted_at', null)
+      .limit(5);
+
+    const topTenants = (topTenantsData || []).map((item: any, index: number) => ({
+      tenant_code: item.tenant_code,
+      name: item.tenants?.name || 'Unknown Tenant',
+      usage: Math.floor(Math.random() * 1000) + 500, // Mock usage for now
+      percentage: 100 - (index * 15), // Mock percentage
+    }));
+
+    // Calculate usage this month (mock for now)
+    const usageThisMonth = Math.floor(Math.random() * 10000) + 5000;
+
+    const stats = {
+      totalCapabilities: totalCapabilities || 0,
+      activeCapabilities: activeCapabilities || 0,
+      totalTenants: totalTenants || 0,
+      activeTenants: activeTenants || 0,
+      usageThisMonth,
+      topTenants,
+    };
+
+    return new Response(JSON.stringify(stats), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Unexpected error in getApplicationStats:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: String(error) }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}

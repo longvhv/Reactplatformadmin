@@ -9,7 +9,8 @@ import { ArrowLeft } from 'lucide-react';
 import { 
   getTenantSubscriptionById, 
   updateTenantSubscription, 
-  TenantSubscription 
+  TenantSubscription,
+  UpdateSubscriptionRequest
 } from '../api/tenantSubscriptionApi';
 import { SubscriptionForm } from '../components/subscriptions/SubscriptionForm';
 import { Button } from '../components/ui/button';
@@ -34,18 +35,10 @@ export const EditSubscriptionPage: React.FC = () => {
   const fetchSubscription = async (subscriptionId: string) => {
     setLoading(true);
     try {
-      const { data, error } = await getTenantSubscriptionById(subscriptionId);
-      
-      if (error || !data) {
-        console.error('Error fetching subscription:', error);
-        toast.error(t('subscriptions.notFound'));
-        navigate('/core/subscriptions');
-        return;
-      }
-
+      const data = await getTenantSubscriptionById(subscriptionId);
       setSubscription(data);
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (error: any) {
+      console.error('Error fetching subscription:', error);
       toast.error(t('subscriptions.fetchError'));
       navigate('/core/subscriptions');
     } finally {
@@ -58,18 +51,11 @@ export const EditSubscriptionPage: React.FC = () => {
 
     setSaving(true);
     try {
-      const { data, error } = await updateTenantSubscription(id, formData);
-      
-      if (error) {
-        console.error('Error updating subscription:', error);
-        toast.error(t('subscriptions.updateError'));
-        return;
-      }
-
+      await updateTenantSubscription(id, formData as UpdateSubscriptionRequest);
       toast.success(t('subscriptions.updateSuccess'));
       navigate('/core/subscriptions');
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (error: any) {
+      console.error('Error updating subscription:', error);
       toast.error(t('subscriptions.updateError'));
     } finally {
       setSaving(false);
@@ -134,3 +120,5 @@ export const EditSubscriptionPage: React.FC = () => {
     </div>
   );
 };
+
+export default EditSubscriptionPage;

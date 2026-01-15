@@ -38,7 +38,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/tenants")}
+            onClick={() => navigate("/core/tenants")}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />

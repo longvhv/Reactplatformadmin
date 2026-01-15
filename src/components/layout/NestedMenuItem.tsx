@@ -1,5 +1,5 @@
 import { useState, memo, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router";
 import { ChevronRight, ChevronDown, Circle } from "lucide-react";
 import { MenuItem } from "../../core/ModuleRegistry";
 import { Tooltip } from "../ui/Tooltip";
@@ -140,10 +140,10 @@ export const NestedMenuItem = memo(({ item, level, collapsed, onClose, searchQue
     transition-all duration-200 relative overflow-hidden cursor-pointer
     ${collapsed ? 'justify-center' : ''}
     ${isActive 
-      ? 'bg-gradient-to-r from-[#6366f1] to-[#6366f1]/90 text-white shadow-lg shadow-[#6366f1]/20' 
+      ? 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground shadow-lg shadow-primary/20' 
       : hasActiveChild && !collapsed
-        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-l-2 border-[#6366f1]/50'
-        : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-l-2 hover:border-[#6366f1]/30'
+        ? 'bg-secondary text-foreground border-l-2 border-primary/50'
+        : 'text-foreground/70 hover:text-foreground hover:bg-secondary dark:hover:bg-secondary/50 hover:border-l-2 hover:border-primary/30'
     }
     ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}
   `;

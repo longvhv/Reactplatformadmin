@@ -49,7 +49,7 @@ app.get('/tenant-sso-configs', async (c: Context) => {
     
     let query = supabase
       .from('tenant_sso_configs')
-      .select('*, tenant:tenants(name, slug)', { count: 'exact' })
+      .select('*, tenant:tenants(name, code)', { count: 'exact' })
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -91,7 +91,7 @@ app.get('/tenant-sso-configs/:id', async (c: Context) => {
     
     const { data, error } = await supabase
       .from('tenant_sso_configs')
-      .select('*, tenant:tenants(name, slug)')
+      .select('*, tenant:tenants(name, code)')
       .eq('_id', id)
       .is('deleted_at', null)
       .single();

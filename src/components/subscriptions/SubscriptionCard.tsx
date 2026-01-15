@@ -69,9 +69,12 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
                 <CreditCard className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 line-clamp-1">
+                <button
+                  onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
+                  className="font-semibold text-gray-900 hover:text-indigo-600 transition-colors text-left"
+                >
                   {subscription.subscription_name}
-                </h3>
+                </button>
                 <p className="text-sm text-gray-500">{subscription.subscription_number}</p>
               </div>
             </div>
@@ -221,7 +224,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/core/subscriptions/${subscription._id}`)}
+            onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
             className="flex-1"
           >
             <Eye className="w-4 h-4 mr-2" />
@@ -230,7 +233,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onEdit ? onEdit(subscription._id!) : navigate(`/core/subscriptions/edit/${subscription._id}`)}
+            onClick={() => onEdit ? onEdit(subscription._id!) : navigate(`/core/tenant-subscriptions/edit/${subscription._id}`)}
             className="flex-1"
           >
             <Pencil className="w-4 h-4 mr-2" />

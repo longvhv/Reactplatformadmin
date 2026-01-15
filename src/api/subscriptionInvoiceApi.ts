@@ -1,231 +1,136 @@
 /**
- * Subscription Invoice API - Simplified REST API client
+ * Subscription Invoice API Client
+ * Extended methods for subscription invoices
+ * 
+ * ✅ REWRITTEN 2026-01-14: Now 100% matches subscription_invoices schema
  */
+import { 
+  invoiceApi, 
+  Invoice, 
+  CreateInvoiceRequest, 
+  UpdateInvoiceRequest, 
+  InvoiceFilters,
+  PriceAdjustment,
+} from './invoiceApi';
 
-import { projectId, publicAnonKey } from '../utils/supabase/info';
+// Re-export types
+export type SubscriptionInvoice = Invoice;
+export type { 
+  Invoice, 
+  CreateInvoiceRequest, 
+  UpdateInvoiceRequest, 
+  InvoiceFilters,
+  PriceAdjustment,
+};
 
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
-const STORAGE_KEY = 'subscription_invoices_cache';
+// Export enum-like types for status
+export type InvoiceStatus = Invoice['status'];
 
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'refunded';
-export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded' | 'partially_paid';
-
-export interface SubscriptionInvoice {
-  _id?: string;
-  tenant_id: string;
-  order_id: string;
-  subscription_id?: string;
-  invoice_number: string;
-  invoice_date: string;
-  due_date: string;
-  payment_date?: string;
-  status: InvoiceStatus;
-  payment_status: PaymentStatus;
-  subtotal: number;
-  tax_amount: number;
-  discount_amount: number;
-  total_amount: number;
-  currency: string;
-  customer_name?: string;
-  customer_email?: string;
-  customer_phone?: string;
-  billing_address?: Record<string, any>;
-  line_items?: any[];
-  payment_method?: string;
-  payment_reference?: string;
-  notes?: string;
-  terms?: string;
-  metadata?: Record<string, any>;
-  created_at?: string;
-  created_by?: string;
-  updated_at?: string;
-  updated_by?: string;
-  deleted_at?: string | null;
-  deleted_by?: string | null;
-  version?: number;
-}
-
-export interface InvoiceFilters {
-  tenant_id?: string;
-  status?: InvoiceStatus;
-  payment_status?: PaymentStatus;
-  search?: string;
-  invoice_date_from?: string;
-  invoice_date_to?: string;
-  due_date_from?: string;
-  due_date_to?: string;
-}
-
+// Statistics interface for dashboard
 export interface InvoiceStatistics {
   total: number;
   draft: number;
-  sent: number;
+  open: number;
   paid: number;
-  overdue: number;
-  cancelled: number;
+  void: number;
+  uncollectible: number;
+  overdue: number; // NEW
+  
+  // Financial breakdown (NEW)
   total_amount: number;
   paid_amount: number;
-  pending_amount: number;
+  outstanding_amount: number;
+  amount_due: number; // NEW: Total amount due across all invoices
+  
+  // Deprecated (for backward compatibility)
+  total_revenue?: number; // Use total_amount
 }
 
-const getFromLocalStorage = (): SubscriptionInvoice[] => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch (error) {
-    console.error('Error reading from localStorage:', error);
-    return [];
-  }
-};
-
-const saveToLocalStorage = (invoices: SubscriptionInvoice[]): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
-  } catch (error) {
-    console.error('Error saving to localStorage:', error);
-  }
-};
-
+// Extended API with additional methods for subscriptions page
 export const subscriptionInvoiceApi = {
-  getAll: async (filters?: InvoiceFilters): Promise<SubscriptionInvoice[]> => {
-    try {
-      const params = new URLSearchParams();
-      if (filters?.tenant_id) params.append('tenant_id', filters.tenant_id);
-      if (filters?.status) params.append('status', filters.status);
-      if (filters?.payment_status) params.append('payment_status', filters.payment_status);
-      if (filters?.search) params.append('search', filters.search);
+  ...invoiceApi,
+  
+  /**
+   * Send invoice (change from DRAFT to OPEN)
+   */
+  send: async (id: string, version: number): Promise<Invoice> => {
+    return invoiceApi.update(id, { 
+      status: 'OPEN', 
+      version 
+    });
+  },
+
+  /**
+   * Get invoice statistics
+   * TODO (Golang): Implement /invoices/statistics endpoint
+   */
+  getStatistics: async (filters?: InvoiceFilters): Promise<InvoiceStatistics> => {
+    const invoices = await invoiceApi.getAll(filters);
+    
+    const now = new Date();
+    
+    const stats: InvoiceStatistics = {
+      total: invoices.length,
+      draft: invoices.filter(i => i.status === 'DRAFT').length,
+      open: invoices.filter(i => i.status === 'OPEN').length,
+      paid: invoices.filter(i => i.status === 'PAID').length,
+      void: invoices.filter(i => i.status === 'VOID').length,
+      uncollectible: invoices.filter(i => i.status === 'UNCOLLECTIBLE').length,
+      overdue: invoices.filter(i => 
+        i.status === 'OPEN' && new Date(i.due_date) < now
+      ).length,
       
-      const response = await fetch(`${API_BASE}/subscription-invoices?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      // Use new financial fields
+      total_amount: invoices.reduce((sum, i) => sum + (i.total_amount || i.amount || 0), 0),
+      paid_amount: invoices.reduce((sum, i) => sum + (i.amount_paid || 0), 0),
+      outstanding_amount: invoices
+        .filter(i => i.status === 'OPEN')
+        .reduce((sum, i) => sum + (i.amount_due || 0), 0),
+      amount_due: invoices.reduce((sum, i) => sum + (i.amount_due || 0), 0),
+    };
+    
+    return stats;
+  },
+
+  /**
+   * Get invoices by subscription
+   */
+  getBySubscription: async (subscriptionId: string): Promise<Invoice[]> => {
+    return invoiceApi.getAll({ subscription_id: subscriptionId });
+  },
+
+  /**
+   * Soft delete invoice
+   * TODO (Golang): Implement soft delete endpoint
+   */
+  softDelete: async (id: string, deletedBy: string): Promise<void> => {
+    // For now, use regular delete
+    // Later, Golang should handle soft delete with deleted_at
+    return invoiceApi.delete(id);
+  },
+
+  /**
+   * Change invoice status
+   */
+  changeStatus: async (
+    id: string, 
+    newStatus: Invoice['status'], 
+    version: number
+  ): Promise<Invoice> => {
+    return invoiceApi.update(id, { status: newStatus, version });
+  },
+
+  /**
+   * Calculate total with adjustments
+   */
+  calculateTotal: (baseAmount: number, adjustments: PriceAdjustment[]): number => {
+    return adjustments.reduce((total, adj) => {
+      const amount = adj.amount || 0;
+      if (adj.type === 'discount' || adj.type === 'credit') {
+        return total - amount;
       }
-      
-      const result = await response.json();
-      const data = result.data || [];
-      saveToLocalStorage(data);
-      return data;
-    } catch (error: any) {
-      console.error('Error fetching invoices:', error);
-      return getFromLocalStorage();
-    }
-  },
-
-  getById: async (id: string): Promise<SubscriptionInvoice | null> => {
-    try {
-      const response = await fetch(`${API_BASE}/subscription-invoices/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) return null;
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('Error fetching invoice:', error);
-      const invoices = getFromLocalStorage();
-      return invoices.find(i => i._id === id) || null;
-    }
-  },
-
-  create: async (invoice: Omit<SubscriptionInvoice, '_id'>): Promise<SubscriptionInvoice> => {
-    const response = await fetch(`${API_BASE}/subscription-invoices`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(invoice),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to create invoice: ${await response.text()}`);
-    }
-    
-    const result = await response.json();
-    return result.data;
-  },
-
-  update: async (id: string, updates: Partial<SubscriptionInvoice>): Promise<SubscriptionInvoice> => {
-    const response = await fetch(`${API_BASE}/subscription-invoices/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to update invoice: ${await response.text()}`);
-    }
-    
-    const result = await response.json();
-    return result.data;
-  },
-
-  softDelete: async (id: string): Promise<void> => {
-    const response = await fetch(`${API_BASE}/subscription-invoices/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to delete invoice: ${await response.text()}`);
-    }
-  },
-
-  getStatistics: async (tenant_id?: string): Promise<InvoiceStatistics> => {
-    try {
-      const params = new URLSearchParams();
-      if (tenant_id) params.append('tenant_id', tenant_id);
-      
-      const response = await fetch(`${API_BASE}/subscription-invoices/stats/overview?${params}`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('Error fetching invoice statistics:', error);
-      return {
-        total: 0,
-        draft: 0,
-        sent: 0,
-        paid: 0,
-        overdue: 0,
-        cancelled: 0,
-        total_amount: 0,
-        paid_amount: 0,
-        pending_amount: 0,
-      };
-    }
-  },
-
-  getPaid: async (tenant_id?: string): Promise<SubscriptionInvoice[]> => {
-    return subscriptionInvoiceApi.getAll({ status: 'paid', tenant_id });
-  },
-
-  getOverdue: async (tenant_id?: string): Promise<SubscriptionInvoice[]> => {
-    return subscriptionInvoiceApi.getAll({ status: 'overdue', tenant_id });
-  },
-
-  search: async (searchTerm: string, tenant_id?: string): Promise<SubscriptionInvoice[]> => {
-    return subscriptionInvoiceApi.getAll({ search: searchTerm, tenant_id });
+      return total + amount;
+    }, baseAmount);
   },
 };
 

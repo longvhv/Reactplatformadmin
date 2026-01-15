@@ -1,451 +1,396 @@
 /**
- * Applications Page
- * Quản lý các ứng dụng hệ thống
+ * ApplicationsPage Component
+ * Main applications management page - Under 500 lines
  */
 
-import { useState, useEffect } from 'react';
-import { useLanguage } from '@/providers/LanguageProvider';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import {  
-  Plus,
-  Search,
+import { 
+  Plus, 
+  Search, 
   Filter,
+  Download,
+  Upload,
+  MoreVertical,
   Edit,
   Trash2,
-  ToggleLeft,
-  ToggleRight,
-  Loader2,
-  FileText,
+  Code,
+  Power,
+  PowerOff,
+  Settings,
+  Activity,
+  Target
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { toast } from 'sonner@2.0.3';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-import { ApplicationsDebug } from '@/components/debug/ApplicationsDebug';
-
-interface Application {
-  _id: string;
-  code: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  version: number;
-}
+import { useLanguage } from '@/providers/LanguageProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useApplications } from '@/hooks/useApplications';
 
 export function ApplicationsPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Fetch applications
-  const fetchApplications = async () => {
+  // State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [selectedApps, setSelectedApps] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Hooks
+  const { applications, loading, error, deleteApplication, updateApplication } = useApplications({ autoLoad: true });
+
+  // Apply filters
+  const filteredApplications = applications.filter(app => {
+    // Search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matches = 
+        app.code.toLowerCase().includes(query) ||
+        app.name.toLowerCase().includes(query) ||
+        app.description?.toLowerCase().includes(query);
+      if (!matches) return false;
+    }
+
+    // Active filter - map to status field
+    if (activeFilter === 'active' && app.status !== 'ACTIVE') return false;
+    if (activeFilter === 'inactive' && app.status === 'ACTIVE') return false;
+
+    return true;
+  });
+
+  // Stats - use status field
+  const stats = {
+    total: applications.length,
+    active: applications.filter(a => a.status === 'ACTIVE').length,
+    inactive: applications.filter(a => a.status !== 'ACTIVE').length,
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(t('applications.confirmDelete'))) return;
     try {
-      setLoading(true);
-      const url = new URL(`https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/applications`);
-      
-      // Add filters
-      if (statusFilter !== 'all') {
-        url.searchParams.append('is_active', statusFilter);
-      }
-      if (searchTerm) {
-        url.searchParams.append('search', searchTerm);
-      }
-
-      console.log('Fetching applications from:', url.toString());
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch applications: ${response.status} ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('Applications result:', result);
-      setApplications(result.data || []);
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      toast.error(`Không thể tải danh sách ứng dụng: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setLoading(false);
+      await deleteApplication(id);
+    } catch (err) {
+      alert('Failed to delete application');
     }
   };
 
-  // Initial load and when filters change
-  useEffect(() => {
-    fetchApplications();
-  }, [statusFilter]);
-
-  // Search with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchTerm !== undefined) {
-        fetchApplications();
-      }
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-
-  // Toggle application status
-  const handleToggleStatus = async (app: Application) => {
+  const handleToggleActive = async (id: string, currentStatus: string) => {
     try {
-      setActionLoading(app._id);
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/applications/${app._id}/toggle-active`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to toggle status');
-      }
-
-      toast.success(t('applications.statusUpdated'));
-      fetchApplications();
-    } catch (error) {
-      console.error('Error toggling status:', error);
-      toast.error('Không thể cập nhật trạng thái');
-    } finally {
-      setActionLoading(null);
+      const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      await updateApplication(id, { status: newStatus });
+    } catch (err) {
+      alert('Failed to update status');
     }
   };
 
-  // Delete application
-  const handleDelete = async () => {
-    if (!selectedApp) return;
-
-    try {
-      setActionLoading(selectedApp._id);
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/applications/${selectedApp._id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to delete application');
-      }
-
-      toast.success(t('applications.deleted'));
-      setDeleteDialogOpen(false);
-      setSelectedApp(null);
-      fetchApplications();
-    } catch (error) {
-      console.error('Error deleting application:', error);
-      toast.error('Không thể xóa ứng dụng');
-    } finally {
-      setActionLoading(null);
+  const handleBulkAction = async (action: string) => {
+    if (selectedApps.length === 0) {
+      alert('Please select applications first');
+      return;
     }
+    
+    if (!confirm(`${action} ${selectedApps.length} applications?`)) return;
+    
+    // Implementation for bulk actions
+    console.log(`Bulk ${action}:`, selectedApps);
   };
 
-  // Calculate statistics
-  const totalApps = applications.length;
-  const activeApps = applications.filter(app => app.is_active).length;
-  const inactiveApps = totalApps - activeApps;
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('vi-VN', {
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('vi-VN', {
       year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+      month: 'short',
+      day: 'numeric',
     });
   };
 
-  return (
-    <div className="flex-1 space-y-6 p-6 md:p-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">
-            {t('applications.title')}
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {t('applications.description')}
-          </p>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
-        <Button
-          onClick={() => navigate('/core/applications/add')}
-          className="bg-[#6366f1] hover:bg-[#4f46e5] text-white"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          {t('applications.add')}
-        </Button>
       </div>
+    );
+  }
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('applications.totalApplications')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalApps}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('applications.activeApplications')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeApps}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('applications.inactive')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-500">{inactiveApps}</div>
-          </CardContent>
-        </Card>
-      </div>
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
+                <Target className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-3xl font-bold text-foreground">
+                {t('applications.title')}
+              </span>
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Quản lý ứng dụng trong hệ thống
+            </p>
+          </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{t('common.filter')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4 md:flex-row">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
-                <Input
-                  placeholder={t('applications.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {/* Export */}}
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={() => {/* Import */}}
+            >
+              <Upload className="w-4 h-4" />
+              Import
+            </Button>
+            <Button
+              size="sm"
+              className="gap-2"
+              onClick={() => navigate('/core/applications/new')}
+            >
+              <Plus className="w-4 h-4" />
+              {t('applications.addNew')}
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <p className="text-sm text-gray-500">Tổng số</p>
+            <p className="text-2xl font-bold text-gray-900 mt-2">{stats.total}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <p className="text-sm text-gray-500">Đang hoạt động</p>
+            <p className="text-2xl font-bold text-green-600 mt-2">{stats.active}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <p className="text-sm text-gray-500">Không hoạt động</p>
+            <p className="text-2xl font-bold text-gray-600 mt-2">{stats.inactive}</p>
+          </div>
+        </div>
+
+        {/* Filters & Search */}
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Input
+                placeholder="Tìm theo mã, tên, mô tả..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </Button>
+          </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Trạng thái
+                </label>
+                <select
+                  value={activeFilter}
+                  onChange={(e) => setActiveFilter(e.target.value as any)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="all">Tất cả</option>
+                  <option value="active">Đang hoạt động</option>
+                  <option value="inactive">Không hoạt động</option>
+                </select>
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder={t('applications.filterByStatus')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('applications.allStatuses')}</SelectItem>
-                <SelectItem value="true">{t('applications.active')}</SelectItem>
-                <SelectItem value="false">{t('applications.inactive')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+          )}
 
-      {/* Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('applications.title')}</CardTitle>
-          <CardDescription>
-            {t('common.showing')} {applications.length} {t('applications.title').toLowerCase()}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-[#6366f1]" />
-            </div>
-          ) : applications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-gray-500 dark:text-gray-400">
-                {t('applications.noApplications')}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('applications.code')}</TableHead>
-                    <TableHead>{t('applications.name')}</TableHead>
-                    <TableHead>{t('applications.appDescription')}</TableHead>
-                    <TableHead>{t('applications.isActive')}</TableHead>
-                    <TableHead>{t('applications.createdAt')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {applications.map((app) => (
-                    <TableRow key={app._id}>
-                      <TableCell className="font-mono text-sm">{app.code}</TableCell>
-                      <TableCell>
-                        <button
-                          onClick={() => navigate(`/core/applications/${app._id}/overview`)}
-                          className="font-medium text-[#6366f1] hover:text-[#4f46e5] hover:underline text-left"
-                        >
-                          {app.name}
-                        </button>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate text-gray-600 dark:text-gray-400">
-                        {app.description || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={app.is_active ? 'default' : 'secondary'}>
-                          {app.is_active ? t('applications.active') : t('applications.inactive')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatDate(app.created_at)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/core/applications/${app._id}/overview`)}
-                            title="Xem chi tiết"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleToggleStatus(app)}
-                            disabled={actionLoading === app._id}
-                            title={t('applications.toggleStatus')}
-                          >
-                            {actionLoading === app._id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : app.is_active ? (
-                              <ToggleRight className="h-4 w-4 text-green-600" />
-                            ) : (
-                              <ToggleLeft className="h-4 w-4 text-gray-400" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => navigate(`/core/applications/edit/${app._id}`)}
-                            title={t('common.edit')}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedApp(app);
-                              setDeleteDialogOpen(true);
-                            }}
-                            title={t('common.delete')}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          {/* Bulk actions */}
+          {selectedApps.length > 0 && (
+            <div className="flex items-center gap-2 pt-4 border-t mt-4">
+              <span className="text-sm text-gray-600">
+                {selectedApps.length} đã chọn
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkAction('delete')}
+              >
+                Delete
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkAction('activate')}
+              >
+                Activate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleBulkAction('deactivate')}
+              >
+                Deactivate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedApps([])}
+              >
+                Clear
+              </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('applications.confirmDelete')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('applications.confirmDeleteMessage')}
-              {selectedApp && (
-                <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-md">
-                  <p className="font-medium">{selectedApp.name}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 font-mono">{selectedApp.code}</p>
+        {/* Applications Grid */}
+        {filteredApplications.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border p-12 text-center">
+            <Code className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500">Không tìm thấy ứng dụng</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredApplications.map((app) => (
+              <div key={app._id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedApps.includes(app._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedApps([...selectedApps, app._id]);
+                          } else {
+                            setSelectedApps(selectedApps.filter(id => id !== app._id));
+                          }
+                        }}
+                        className="mt-1 rounded border-gray-300"
+                      />
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                            <Code className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          
+                          <div className="flex-1">
+                            <button
+                              onClick={() => navigate(`/core/applications/${app._id}`)}
+                              className="text-base font-semibold text-gray-900 hover:text-indigo-600"
+                            >
+                              {app.name}
+                            </button>
+                            <div className="flex items-center gap-2 mt-1">
+                              <code className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                {app.code}
+                              </code>
+                              {app.status === 'ACTIVE' ? (
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Active
+                                </span>
+                              ) : app.status === 'DEPRECATED' ? (
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                  Deprecated
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {app.description && (
+                          <p className="mt-3 text-sm text-gray-600 line-clamp-2">
+                            {app.description}
+                          </p>
+                        )}
+
+                        <div className="mt-4 flex items-center gap-4 text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Activity className="w-3 h-3" />
+                            v{app.version}
+                          </span>
+                          <span>
+                            {formatDate(app.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative group">
+                      <button className="p-1 hover:bg-gray-100 rounded">
+                        <MoreVertical className="w-4 h-4 text-gray-400" />
+                      </button>
+                      
+                      <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border z-10">
+                        <div className="py-1">
+                          <button
+                            onClick={() => navigate(`/core/applications/${app._id}/edit`)}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Chỉnh sửa
+                          </button>
+                          <button
+                            onClick={() => navigate(`/core/applications/${app._id}/settings`)}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            <Settings className="w-4 h-4" />
+                            Cài đặt
+                          </button>
+                          <button
+                            onClick={() => handleToggleActive(app._id, app.status)}
+                            className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                          >
+                            {app.status === 'ACTIVE' ? (
+                              <>
+                                <PowerOff className="w-4 h-4" />
+                                Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <Power className="w-4 h-4" />
+                                Activate
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(app._id)}
+                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Xóa
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading !== null}>
-              {t('common.cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={actionLoading !== null}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {actionLoading !== null ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Debug Component */}
-      <ApplicationsDebug />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

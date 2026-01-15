@@ -5,20 +5,14 @@
 
 import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { LoadingFallback } from '../../components/LoadingFallback';
 import { ShoppingCart } from 'lucide-react';
 
 // Lazy-loaded pages
-const SubscriptionOrdersPage = lazy(() => import('../../pages/SubscriptionOrdersPage').then(m => ({ default: m.SubscriptionOrdersPage })));
-const OrderDetailPage = lazy(() => import('../../pages/OrderDetailPage').then(m => ({ default: m.OrderDetailPage })));
-const AddOrderPage = lazy(() => import('../../pages/AddOrderPage').then(m => ({ default: m.AddOrderPage })));
-const EditOrderPage = lazy(() => import('../../pages/EditOrderPage').then(m => ({ default: m.EditOrderPage })));
-
-// Loading fallback
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-  </div>
-);
+const SubscriptionOrdersPage = lazy(() => import('../../pages/SubscriptionOrdersPage'));
+const OrderDetailPage = lazy(() => import('../../pages/OrderDetailPage'));
+const AddOrderPage = lazy(() => import('../../pages/AddOrderPage'));
+const EditOrderPage = lazy(() => import('../../pages/EditOrderPage'));
 
 /**
  * Subscription Orders Module Definition
@@ -53,15 +47,6 @@ export const SubscriptionOrdersModule: ModuleDefinition = {
       title: "subscriptionOrders.title", // Translation key
     },
     {
-      path: "/core/subscription-orders/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <OrderDetailPage />
-        </Suspense>
-      ),
-      title: "subscriptionOrders.viewDetails", // Translation key
-    },
-    {
       path: "/core/subscription-orders/add",
       element: (
         <Suspense fallback={<LoadingFallback />}>
@@ -78,6 +63,15 @@ export const SubscriptionOrdersModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "subscriptionOrders.edit", // Translation key
+    },
+    {
+      path: "/core/subscription-orders/:id",
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <OrderDetailPage />
+        </Suspense>
+      ),
+      title: "subscriptionOrders.viewDetails", // Translation key
     },
   ],
 

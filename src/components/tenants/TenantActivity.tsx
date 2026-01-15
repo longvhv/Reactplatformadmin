@@ -1,152 +1,240 @@
-import { UserPlus, Settings, CreditCard, AlertCircle, CheckCircle, Clock } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
+/**
+ * TenantActivity Component
+ * Hiển thị lịch sử hoạt động của tenant
+ */
 
-interface ActivityItem {
-  id: string;
-  type: string;
-  user: string;
-  action: string;
-  timestamp: string;
-  metadata?: Record<string, any>;
-}
+import { useState, useEffect } from 'react';
+import { Search, Filter, Activity, User, Settings, FileText, Users, Shield, Clock, History } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { projectId, publicAnonKey } from '../../utils/supabase/info';
+
+const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
 
 interface TenantActivityProps {
   tenantId: string;
 }
 
+interface Activity {
+  _id: string;
+  tenant_id: string;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  action: string;
+  resource: string;
+  details: string;
+  ip_address: string;
+  created_at: string;
+}
+
 export function TenantActivity({ tenantId }: TenantActivityProps) {
-  const { t } = useLanguage();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAction, setFilterAction] = useState<string>('all');
 
-  // Mock data - in real app, fetch from API
-  const activities: ActivityItem[] = [
-    {
-      id: "1",
-      type: "user.added",
-      user: "Admin",
-      action: "Added new user: Jane Smith",
-      timestamp: "2024-01-08T10:30:00Z",
-    },
-    {
-      id: "2",
-      type: "settings.updated",
-      user: "John Doe",
-      action: "Updated tenant settings",
-      timestamp: "2024-01-08T09:15:00Z",
-    },
-    {
-      id: "3",
-      type: "billing.payment",
-      user: "System",
-      action: "Payment processed successfully",
-      timestamp: "2024-01-07T14:20:00Z",
-      metadata: { amount: "$99.00" },
-    },
-    {
-      id: "4",
-      type: "user.removed",
-      user: "Admin",
-      action: "Removed user: Bob Wilson",
-      timestamp: "2024-01-07T11:45:00Z",
-    },
-    {
-      id: "5",
-      type: "settings.updated",
-      user: "Jane Smith",
-      action: "Changed notification preferences",
-      timestamp: "2024-01-06T16:30:00Z",
-    },
-  ];
+  useEffect(() => {
+    fetchActivities();
+  }, [tenantId]);
 
-  const getActivityIcon = (type: string) => {
-    const icons = {
-      "user.added": UserPlus,
-      "user.removed": UserPlus,
-      "settings.updated": Settings,
-      "billing.payment": CreditCard,
-      "error": AlertCircle,
-      "success": CheckCircle,
+  useEffect(() => {
+    filterActivities();
+  }, [searchQuery, filterAction, activities]);
+
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      // Activities might not be implemented yet, use empty array
+      setActivities([]);
+      setFilteredActivities([]);
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+      setActivities([]);
+      setFilteredActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterActivities = () => {
+    let result = [...activities];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (a) =>
+          a.user_name?.toLowerCase().includes(query) ||
+          a.user_email?.toLowerCase().includes(query) ||
+          a.action?.toLowerCase().includes(query) ||
+          a.resource?.toLowerCase().includes(query) ||
+          a.details?.toLowerCase().includes(query)
+      );
+    }
+
+    // Action filter
+    if (filterAction !== 'all') {
+      result = result.filter((a) => a.action === filterAction);
+    }
+
+    setFilteredActivities(result);
+  };
+
+  const getActionColor = (action: string) => {
+    const colors: Record<string, string> = {
+      CREATE: 'bg-green-100 text-green-800',
+      UPDATE: 'bg-blue-100 text-blue-800',
+      DELETE: 'bg-red-100 text-red-800',
+      LOGIN: 'bg-purple-100 text-purple-800',
+      LOGOUT: 'bg-gray-100 text-gray-800',
+      INVITE: 'bg-yellow-100 text-yellow-800',
+      APPROVE: 'bg-teal-100 text-teal-800',
+      REJECT: 'bg-orange-100 text-orange-800',
     };
-    return icons[type as keyof typeof icons] || Clock;
+    return colors[action] || 'bg-gray-100 text-gray-800';
   };
 
-  const getActivityColor = (type: string) => {
-    const colors = {
-      "user.added": "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
-      "user.removed": "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
-      "settings.updated": "text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30",
-      "billing.payment": "text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30",
-      "error": "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30",
-      "success": "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30",
+  const getActionIcon = (action: string) => {
+    // Simple text icon for actions
+    const icons: Record<string, string> = {
+      CREATE: '➕',
+      UPDATE: '✏️',
+      DELETE: '🗑️',
+      LOGIN: '🔓',
+      LOGOUT: '🔒',
+      INVITE: '📧',
+      APPROVE: '✅',
+      REJECT: '❌',
     };
-    return colors[type as keyof typeof colors] || "text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/30";
+    return icons[action] || '📝';
   };
 
-  const getRelativeTime = (timestamp: string) => {
-    const now = new Date();
-    const date = new Date(timestamp);
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const uniqueActions = Array.from(new Set(activities.map((a) => a.action)));
 
-    if (diffInSeconds < 60) return t("time.justNow");
-    if (diffInSeconds < 3600) return t("time.minutesAgo", { count: Math.floor(diffInSeconds / 60) });
-    if (diffInSeconds < 86400) return t("time.hoursAgo", { count: Math.floor(diffInSeconds / 3600) });
-    if (diffInSeconds < 2592000) return t("time.daysAgo", { count: Math.floor(diffInSeconds / 86400) });
-    return date.toLocaleDateString();
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          {t("tenants.activityLog")}
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          {t("tenants.activityLogDescription")}
-        </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Lịch sử hoạt động</h2>
+          <p className="text-sm text-gray-600">
+            Theo dõi tất cả các hoạt động trong tenant
+          </p>
+        </div>
+        <Button onClick={fetchActivities} variant="outline" size="sm">
+          <History className="w-4 h-4 mr-2" />
+          Làm mới
+        </Button>
       </div>
 
-      <div className="divide-y divide-gray-200 dark:divide-gray-800">
-        {activities.map((activity) => {
-          const Icon = getActivityIcon(activity.type);
-          const colorClasses = getActivityColor(activity.type);
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Tìm kiếm theo user, action, resource..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-          return (
-            <div key={activity.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-              <div className="flex gap-4">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-lg ${colorClasses} flex items-center justify-center`}>
-                  <Icon className="w-5 h-5" />
+          {/* Action Filter */}
+          <div className="flex gap-2 items-center">
+            <Filter className="w-4 h-4 text-gray-400" />
+            <select
+              value={filterAction}
+              onChange={(e) => setFilterAction(e.target.value)}
+              className="px-3 py-2 border rounded-lg text-sm"
+            >
+              <option value="all">Tất cả actions</option>
+              {uniqueActions.map((action) => (
+                <option key={action} value={action}>
+                  {action}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
+
+      {/* Activities List */}
+      <div className="space-y-3">
+        {filteredActivities.length === 0 ? (
+          <Card className="p-8 text-center">
+            <History className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600">Không có hoạt động nào</p>
+          </Card>
+        ) : (
+          filteredActivities.map((activity) => (
+            <Card key={activity._id} className="p-4 hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-4">
+                {/* Icon */}
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg">
+                  {getActionIcon(activity.action)}
                 </div>
+
+                {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {activity.action}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {activity.user}
-                    </p>
-                    <span className="text-gray-300 dark:text-gray-700">•</span>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {getRelativeTime(activity.timestamp)}
-                    </p>
-                  </div>
-                  {activity.metadata && (
-                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                      {Object.entries(activity.metadata).map(([key, value]) => (
-                        <span key={key} className="inline-block mr-3">
-                          <span className="font-medium">{key}:</span> {value}
-                        </span>
-                      ))}
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className={getActionColor(activity.action)}>
+                        {activity.action}
+                      </Badge>
+                      <span className="text-sm font-medium text-gray-900">
+                        {activity.resource}
+                      </span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <Clock className="w-3 h-3" />
+                      {new Date(activity.created_at).toLocaleString('vi-VN')}
+                    </div>
+                  </div>
+
+                  <p className="text-sm text-gray-700 mb-2">
+                    {activity.details || 'No details'}
+                  </p>
+
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <User className="w-3 h-3" />
+                      <span>
+                        {activity.user_name || 'Unknown'} ({activity.user_email})
+                      </span>
+                    </div>
+                    {activity.ip_address && (
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono">{activity.ip_address}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            </Card>
+          ))
+        )}
       </div>
 
-      {activities.length === 0 && (
-        <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-          {t("tenants.noActivityYet")}
+      {/* Load More */}
+      {filteredActivities.length > 0 && filteredActivities.length % 50 === 0 && (
+        <div className="text-center">
+          <Button variant="outline" onClick={fetchActivities}>
+            Tải thêm
+          </Button>
         </div>
       )}
     </div>

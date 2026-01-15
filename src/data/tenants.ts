@@ -54,6 +54,7 @@ export interface Tenant {
   data_region: DataRegion;
   compliance_level: ComplianceLevel;
   parent_tenant_id: string | null;  // UUID for hierarchical structure
+  partner_tenant_id: string | null;  // UUID for partner relationship
   path?: string;  // Materialized path: /parent_id/child_id/
   
   // II. BUSINESS INFORMATION & LOCALIZATION

@@ -1,9 +1,11 @@
 /**
  * Tenant SSO Configs Tab Component
- * Manage SSO configurations for tenant (SAML, OAuth2, OIDC)
+ * Manage SSO configurations for tenant (SAML, OAuth2, OIDC, LDAP, CAS, OTHER)
+ * 
+ * ✅ FIXED 2026-01-14: Provider 6 values, Status 4 values, 4 audit fields added
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -25,108 +27,84 @@ import {
 } from '../ui/dialog';
 import { Badge } from '../ui/badge';
 import { Shield, Plus, Edit2, Trash2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { useTenantSSOConfigs } from '../../hooks/useTenantSSOConfigs';
+import {
+  TenantSSOConfig,
+  SSOProvider,
+  SSOConfigStatus,
+  getProviderLabel,
+  getProviderColor,
+  getStatusColor,
+  getStatusIcon,
+} from '../../api/tenantSSOConfigsApi';
+import { toast } from 'sonner@2.0.3';
 import { projectId, publicAnonKey } from '../../utils/supabase/info';
-
-interface TenantSSOConfig {
-  _id: string;
-  tenant_id: string;
-  provider: 'SAML' | 'OAUTH2' | 'OIDC';
-  name: string;
-  description?: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'TESTING';
-  entity_id?: string;
-  sso_url?: string;
-  slo_url?: string;
-  certificate?: string;
-  metadata_url?: string;
-  client_id?: string;
-  client_secret?: string;
-  authorization_endpoint?: string;
-  token_endpoint?: string;
-  userinfo_endpoint?: string;
-  jwks_uri?: string;
-  scopes?: string[];
-  attribute_mapping?: Record<string, any>;
-  settings?: Record<string, any>;
-  version: number;
-  created_at: string;
-  updated_at: string;
-}
 
 interface TenantSSOConfigsTabProps {
   tenantId: string;
 }
 
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
-
 export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
-  const [configs, setConfigs] = useState<TenantSSOConfig[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    configs,
+    loading,
+    error,
+    createConfig,
+    updateConfig,
+    deleteConfig,
+    testConfig: testConfigHook,
+    activateConfig,
+    deactivateConfig,
+    setTesting,
+    deprecateConfig,
+    refresh,
+  } = useTenantSSOConfigs({ tenant_id: tenantId });
+
   const [showDialog, setShowDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState<TenantSSOConfig | null>(null);
   const [formData, setFormData] = useState<Partial<TenantSSOConfig>>({
-    provider: 'SAML',
-    status: 'TESTING',
+    provider: 'SAML' as SSOProvider,
+    status: 'TESTING' as SSOConfigStatus,
     scopes: ['openid', 'profile', 'email'],
   });
 
-  useEffect(() => {
-    loadConfigs();
-  }, [tenantId]);
-
-  const loadConfigs = async () => {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/tenant-sso-configs?tenant_id=${tenantId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to load SSO configs');
-
-      const result = await response.json();
-      setConfigs(result.data || []);
-    } catch (error) {
-      console.error('Error loading SSO configs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
     try {
-      const url = editingConfig
-        ? `${API_BASE_URL}/tenant-sso-configs/${editingConfig._id}`
-        : `${API_BASE_URL}/tenant-sso-configs`;
-
-      const method = editingConfig ? 'PATCH' : 'POST';
-
-      const payload = editingConfig
-        ? { ...formData, version: editingConfig.version }
-        : { ...formData, tenant_id: tenantId };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save SSO config');
+      if (!formData.name || !formData.provider) {
+        toast.error('Name and Provider are required');
+        return;
       }
 
-      await loadConfigs();
+      if (editingConfig) {
+        await updateConfig(editingConfig._id, formData);
+        toast.success('SSO config updated');
+      } else {
+        await createConfig({
+          tenant_id: tenantId,
+          provider: formData.provider as SSOProvider,
+          name: formData.name,
+          description: formData.description,
+          status: formData.status as SSOConfigStatus,
+          entity_id: formData.entity_id,
+          sso_url: formData.sso_url,
+          slo_url: formData.slo_url,
+          certificate: formData.certificate,
+          metadata_url: formData.metadata_url,
+          client_id: formData.client_id,
+          client_secret: formData.client_secret,
+          authorization_endpoint: formData.authorization_endpoint,
+          token_endpoint: formData.token_endpoint,
+          userinfo_endpoint: formData.userinfo_endpoint,
+          jwks_uri: formData.jwks_uri,
+          scopes: formData.scopes,
+          attribute_mapping: formData.attribute_mapping,
+          settings: formData.settings,
+        });
+        toast.success('SSO config created');
+      }
       handleCloseDialog();
-    } catch (error) {
-      console.error('Error saving SSO config:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save');
     }
   };
 
@@ -134,52 +112,29 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
     if (!confirm(`Delete SSO config "${config.name}"?`)) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/tenant-sso-configs/${config._id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to delete SSO config');
-
-      await loadConfigs();
-    } catch (error) {
-      console.error('Error deleting SSO config:', error);
-      alert('Failed to delete SSO config');
+      await deleteConfig(config._id);
+      toast.success('SSO config deleted');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete');
     }
   };
 
   const handleTestConfig = async (config: TenantSSOConfig) => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/tenant-sso-configs/${config._id}/test`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      const result = await response.json();
+      const result = await testConfigHook(config._id);
       
       if (result.success) {
-        alert('✅ Configuration is valid!');
+        toast.success('✅ Configuration is valid!');
       } else {
         const message = [
           'Configuration has issues:',
           ...result.errors?.map((e: string) => `❌ ${e}`) || [],
           ...result.warnings?.map((w: string) => `⚠️ ${w}`) || [],
         ].join('\n');
-        alert(message);
+        toast.error(message);
       }
-    } catch (error) {
-      console.error('Error testing SSO config:', error);
-      alert('Failed to test configuration');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to test configuration');
     }
   };
 
@@ -206,19 +161,6 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
       status: 'TESTING',
       scopes: ['openid', 'profile', 'email'],
     });
-  };
-
-  const getProviderIcon = (provider: string) => {
-    return <Shield className="w-4 h-4" />;
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800';
-      case 'INACTIVE': return 'bg-gray-100 text-gray-800';
-      case 'TESTING': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
   };
 
   if (loading) {
@@ -268,7 +210,7 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3 flex-1">
                   <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    {getProviderIcon(config.provider)}
+                    <Shield className={`w-4 h-4 ${getProviderColor(config.provider)}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -276,7 +218,7 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
                         {config.name}
                       </h4>
                       <Badge variant="outline" className="text-xs">
-                        {config.provider}
+                        {getProviderLabel(config.provider)}
                       </Badge>
                       <Badge className={`text-xs ${getStatusColor(config.status)}`}>
                         {config.status}
@@ -363,6 +305,9 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
                     <SelectItem value="SAML">SAML 2.0</SelectItem>
                     <SelectItem value="OAUTH2">OAuth 2.0</SelectItem>
                     <SelectItem value="OIDC">OpenID Connect</SelectItem>
+                    <SelectItem value="LDAP">LDAP</SelectItem>
+                    <SelectItem value="CAS">CAS</SelectItem>
+                    <SelectItem value="OTHER">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -380,6 +325,7 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
                     <SelectItem value="TESTING">Testing</SelectItem>
                     <SelectItem value="ACTIVE">Active</SelectItem>
                     <SelectItem value="INACTIVE">Inactive</SelectItem>
+                    <SelectItem value="DEPRECATED">Deprecated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

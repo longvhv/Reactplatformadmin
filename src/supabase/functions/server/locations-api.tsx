@@ -205,7 +205,7 @@ app.get('/locations', async (c: Context) => {
     
     if (error) {
       // Handle table not exists
-      if (error.code === 'PGRST204' || error.code === '42P01') {
+      if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') {
         console.log('⚠️ Table locations does not exist yet.');
         return c.json({ 
           data: [], 
@@ -278,8 +278,9 @@ app.post('/locations', async (c: Context) => {
     
     const supabase = getSupabaseClient();
     
-    // Prepare insert data
+    // Prepare insert data with UUID
     const insertData = {
+      _id: crypto.randomUUID(), // Generate UUID for primary key
       tenant_id: body.tenant_id,
       code: body.code,
       name: body.name,
@@ -318,17 +319,25 @@ app.post('/locations', async (c: Context) => {
       .single();
     
     if (error) {
+      // Handle table not exists
+      if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01') {
+        console.log('⚠️ Table locations does not exist yet.');
+        return c.json({ 
+          error: 'Table locations is not available. Please use KV store for prototyping.',
+          code: 'TABLE_NOT_FOUND'
+        }, 503);
+      }
       console.error('Error creating location:', error);
       if (error.code === '23505') { // Unique violation
         return c.json({ error: 'Location with this code already exists' }, 409);
       }
-      return c.json({ error: error.message }, 500);
+      return c.json({ error: error.message, details: error }, 500);
     }
     
     return c.json({ data }, 201);
   } catch (err) {
     console.error('Unexpected error in POST /locations:', err);
-    return c.json({ error: 'Internal server error' }, 500);
+    return c.json({ error: 'Internal server error', details: String(err) }, 500);
   }
 });
 

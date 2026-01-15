@@ -4,13 +4,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
-import { ProductForm } from '../components/products/ProductForm';
 import { Button } from '../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
+import { ProductForm } from '../components/products/ProductForm';
 import { toast } from 'sonner@2.0.3';
 
-export function EditProductPage() {
+export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [product, setProduct] = useState<SaaSProduct | null>(null);
@@ -60,9 +60,12 @@ export function EditProductPage() {
       <div className="p-6 max-w-4xl mx-auto">
         <div className="text-center py-12">
           <p className="text-gray-500 dark:text-gray-400">Không tìm thấy sản phẩm</p>
-          <Button onClick={() => navigate('/core/products')} className="mt-4">
+          <button 
+            onClick={() => navigate('/core/products')} 
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
             Quay lại danh sách
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -72,10 +75,13 @@ export function EditProductPage() {
     <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" onClick={() => navigate('/core/products')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+        <button 
+          onClick={() => navigate('/core/products')}
+          className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        >
+          <ArrowLeft className="w-4 h-4" />
           Quay lại
-        </Button>
+        </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Chỉnh sửa sản phẩm

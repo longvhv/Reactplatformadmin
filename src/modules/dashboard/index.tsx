@@ -4,11 +4,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { LayoutDashboard, BarChart3, PieChart, TrendingUp, Activity } from "lucide-react";
 
 /**
- * Lazy load Dashboard page component
+ * Lazy-load Dashboard Page
  */
-const DashboardPage = lazy(() => 
-  import("./DashboardPage").then(module => ({ default: module.DashboardPage }))
-);
+const DashboardPage = lazy(() => import("./DashboardPage"));
 
 /**
  * Dashboard Module
@@ -24,7 +22,7 @@ export const DashboardModule: ModuleConfig = {
   showInSidebar: true, // Show menu items in sidebar
   routes: [
     {
-      path: "/core",
+      path: "/core/dashboard",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Dashboard..." />}>
           <DashboardPage />

@@ -23,7 +23,7 @@ export function AddSystemCategoryPage() {
       setLoading(true);
       await systemCategoryApi.create(data);
       toast.success(t('systemCategories.createSuccess'));
-      navigate('/system-categories');
+      navigate('/core/system-categories');
     } catch (error: any) {
       console.error('Failed to create system category:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
@@ -33,14 +33,14 @@ export function AddSystemCategoryPage() {
   };
 
   const handleCancel = () => {
-    navigate('/system-categories');
+    navigate('/core/system-categories');
   };
 
   return (
     <div className="container mx-auto p-6 max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/system-categories')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/core/system-categories')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -60,3 +60,5 @@ export function AddSystemCategoryPage() {
     </div>
   );
 }
+
+export default AddSystemCategoryPage;

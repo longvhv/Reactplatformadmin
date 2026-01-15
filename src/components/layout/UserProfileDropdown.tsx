@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { 
   User, Settings, HelpCircle, LogOut, ChevronRight, 
   Crown, Shield, Mail, Bell, Palette, Keyboard, Moon, Sun, Monitor, Database, FileCode

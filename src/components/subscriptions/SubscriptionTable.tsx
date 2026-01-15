@@ -168,9 +168,12 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                         <CreditCard className="h-5 w-5 text-indigo-600" />
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <button
+                          onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
+                          className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
+                        >
                           {subscription.subscription_name}
-                        </div>
+                        </button>
                         <div className="text-sm text-gray-500">{subscription.subscription_number}</div>
                         <div className="flex items-center gap-2 mt-1">
                           {subscription.plan_name && (
@@ -256,7 +259,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/core/subscriptions/${subscription._id}`)}
+                        onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
                         title={t('common.view')}
                       >
                         <Eye className="w-4 h-4" />
@@ -264,7 +267,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/core/subscriptions/edit/${subscription._id}`)}
+                        onClick={() => navigate(`/core/tenant-subscriptions/edit/${subscription._id}`)}
                         title={t('common.edit')}
                       >
                         <Pencil className="w-4 h-4" />

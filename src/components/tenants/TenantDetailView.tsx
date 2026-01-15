@@ -1,394 +1,344 @@
 /**
- * Tenant Detail View Component
- * Comprehensive view of all tenant information
+ * TenantDetailView Component
+ * Hiển thị chi tiết overview của tenant
  */
 
+import { useState } from 'react';
 import { 
-  Building2, Globe, Mail, Phone, MapPin, Clock, Shield, 
-  Database, Users, CreditCard, Calendar, Settings, Network,
-  TrendingUp, CheckCircle2, XCircle
+  Building2, 
+  MapPin, 
+  Globe, 
+  Shield, 
+  CreditCard,
+  Calendar,
+  Settings,
+  Edit,
+  GitBranch,
+  Clock,
+  Database
 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import type { Tenant } from '@/data/tenants';
-import { 
-  tenantStatusColors, 
-  tenantTierColors, 
-  complianceLevelColors,
-  dataRegionColors,
-  dataRegionNames,
-  tierNames,
-  statusNames,
-  formatRelativeDate,
-  formatStorage,
-  calculateUsagePercentage,
-  getUsageColor,
-  getUsageBarColor,
-  getFeatureDisplayNames,
-  isRootTenant,
-  getHierarchyDepth
-} from '@/utils/tenant-utils';
 
 interface TenantDetailViewProps {
   tenant: Tenant;
-  parentTenant?: Tenant | null;
-  childrenCount?: number;
 }
 
-export function TenantDetailView({ tenant, parentTenant, childrenCount = 0 }: TenantDetailViewProps) {
-  const userPercentage = calculateUsagePercentage(
-    tenant.settings.current_users,
-    tenant.settings.max_users
-  );
-  
-  const storagePercentage = calculateUsagePercentage(
-    tenant.settings.current_storage,
-    tenant.settings.max_storage
-  );
+export function TenantDetailView({ tenant }: TenantDetailViewProps) {
+  const [showRawData, setShowRawData] = useState(false);
 
-  const depth = getHierarchyDepth(tenant);
-  const isRoot = isRootTenant(tenant);
+  // Parse JSONB fields
+  const profile = typeof tenant.profile === 'string' 
+    ? JSON.parse(tenant.profile) 
+    : tenant.profile || {};
+  
+  const settings = typeof tenant.settings === 'string'
+    ? JSON.parse(tenant.settings)
+    : tenant.settings || {};
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                <Building2 className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">{tenant.name}</h2>
-                <p className="text-muted-foreground font-mono">/{tenant.code}</p>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge className={tenantStatusColors[tenant.status]}>
-                    {statusNames[tenant.status]}
-                  </Badge>
-                  <Badge variant="outline" className={tenantTierColors[tenant.tier]}>
-                    {tierNames[tenant.tier]}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-            
-            <div className="text-right text-sm text-muted-foreground">
-              <p>Created {formatRelativeDate(tenant.created_at)}</p>
-              <p>Updated {formatRelativeDate(tenant.updated_at)}</p>
-              <p className="text-xs">v{tenant.version}</p>
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Tổng quan Tenant</h2>
+        <p className="text-sm text-gray-600">
+          Thông tin chi tiết và cấu hình của tenant
+        </p>
+      </div>
+
+      {/* Basic Info */}
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 rounded-lg bg-indigo-50">
+            <Building2 className="w-6 h-6 text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Thông tin cơ bản</h3>
+            <p className="text-sm text-gray-500">Định danh và cấu hình chính</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Tên Tenant</label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.name}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Code (Subdomain)</label>
+            <p className="text-sm font-mono font-semibold text-gray-900 mt-1">
+              {tenant.code}
+            </p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Tier</label>
+            <div className="mt-1">
+              <Badge variant="outline" className="font-semibold">
+                {tenant.tier}
+              </Badge>
             </div>
           </div>
-        </CardHeader>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Status</label>
+            <div className="mt-1">
+              <Badge className={
+                tenant.status === 'active' ? 'bg-green-100 text-green-800' :
+                tenant.status === 'trial' ? 'bg-blue-100 text-blue-800' :
+                tenant.status === 'suspended' ? 'bg-orange-100 text-orange-800' :
+                'bg-gray-100 text-gray-800'
+              }>
+                {tenant.status}
+              </Badge>
+            </div>
+          </div>
+        </div>
       </Card>
 
-      {/* Infrastructure */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            Infrastructure & Compliance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      {/* Infrastructure & Compliance */}
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 rounded-lg bg-purple-50">
+            <Globe className="w-6 h-6 text-purple-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Hạ tầng & Tuân thủ</h3>
+            <p className="text-sm text-gray-500">Vùng dữ liệu và yêu cầu tuân thủ</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              Data Region
+            </label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.data_region}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              Compliance Level
+            </label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.compliance_level}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
+              <CreditCard className="w-3 h-3" />
+              Billing Type
+            </label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.billing_type}</p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Timezone
+            </label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.timezone}</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* Profile (JSONB) */}
+      {Object.keys(profile).length > 0 && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-green-50">
+                <Building2 className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Thông tin doanh nghiệp</h3>
+                <p className="text-sm text-gray-500">Hồ sơ và thông tin liên hệ</p>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Data Region</label>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className={dataRegionColors[tenant.data_region]}>
-                  {dataRegionNames[tenant.data_region]}
-                </Badge>
+            {profile.company_name && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Tên công ty</label>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{profile.company_name}</p>
               </div>
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Compliance Level</label>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className={complianceLevelColors[tenant.compliance_level]}>
-                  <Shield className="w-3 h-3 mr-1" />
-                  {tenant.compliance_level}
-                </Badge>
+            )}
+            {profile.tax_code && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Mã số thuế</label>
+                <p className="text-sm font-mono font-semibold text-gray-900 mt-1">{profile.tax_code}</p>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Timezone</label>
-              <div className="flex items-center gap-2 mt-1">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span>{tenant.timezone}</span>
+            )}
+            {profile.industry && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Ngành nghề</label>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{profile.industry}</p>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Billing Type</label>
-              <div className="flex items-center gap-2 mt-1">
-                <CreditCard className="w-4 h-4 text-muted-foreground" />
-                <span>{tenant.billing_type}</span>
+            )}
+            {profile.size && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Quy mô</label>
+                <p className="text-sm font-semibold text-gray-900 mt-1">{profile.size}</p>
               </div>
-            </div>
+            )}
+            {profile.website && (
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Website</label>
+                <a 
+                  href={profile.website} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-indigo-600 hover:underline mt-1 block"
+                >
+                  {profile.website}
+                </a>
+              </div>
+            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Hierarchy */}
-      {(parentTenant || childrenCount > 0 || !isRoot) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Network className="w-5 h-5" />
-              Organizational Hierarchy
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-muted-foreground">Hierarchy Depth:</span>
-              <Badge variant="outline">{depth}</Badge>
-            </div>
-            
-            {parentTenant && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Parent Tenant</label>
-                <div className="flex items-center gap-2 mt-1 p-2 border rounded-md">
-                  <Building2 className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">{parentTenant.name}</span>
-                  <span className="text-sm text-muted-foreground font-mono">/{parentTenant.code}</span>
-                </div>
-              </div>
-            )}
-
-            {isRoot && (
-              <div className="flex items-center gap-2 text-sm text-emerald-600">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Root Tenant (No Parent)</span>
-              </div>
-            )}
-
-            {childrenCount > 0 && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Child Tenants</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary">{childrenCount} children</Badge>
-                </div>
-              </div>
-            )}
-
-            {tenant.path && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Materialized Path</label>
-                <code className="block mt-1 p-2 bg-muted rounded-md text-xs font-mono overflow-x-auto">
-                  {tenant.path}
-                </code>
-              </div>
-            )}
-          </CardContent>
         </Card>
       )}
 
-      {/* Contact Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5" />
-            Contact Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tenant.profile.billing_email && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Billing Email</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Mail className="w-4 h-4 text-muted-foreground" />
-                  <a href={`mailto:${tenant.profile.billing_email}`} className="text-primary hover:underline">
-                    {tenant.profile.billing_email}
-                  </a>
-                </div>
+      {/* Settings (JSONB) */}
+      {Object.keys(settings).length > 0 && (
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-blue-50">
+                <Settings className="w-6 h-6 text-blue-600" />
               </div>
-            )}
-
-            {tenant.profile.phone && (
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Phone</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span>{tenant.profile.phone}</span>
-                </div>
+                <h3 className="font-semibold text-gray-900">Cấu hình hệ thống</h3>
+                <p className="text-sm text-gray-500">Thiết lập và tính năng</p>
               </div>
-            )}
-
-            {tenant.profile.contact_person && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Contact Person</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>{tenant.profile.contact_person}</span>
-                </div>
-              </div>
-            )}
-
-            {tenant.profile.domain && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Custom Domain</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Globe className="w-4 h-4 text-muted-foreground" />
-                  <a href={`https://${tenant.profile.domain}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                    {tenant.profile.domain}
-                  </a>
-                </div>
-              </div>
-            )}
-
-            {tenant.profile.country && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Country</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>{tenant.profile.country}</span>
-                </div>
-              </div>
-            )}
-
-            {tenant.profile.industry && (
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Industry</label>
-                <div className="flex items-center gap-2 mt-1">
-                  <TrendingUp className="w-4 h-4 text-muted-foreground" />
-                  <span>{tenant.profile.industry}</span>
-                </div>
-              </div>
-            )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRawData(!showRawData)}
+            >
+              <Database className="w-4 h-4 mr-2" />
+              {showRawData ? 'Ẩn JSON' : 'Xem JSON'}
+            </Button>
           </div>
 
-          {tenant.profile.address && (
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Address</label>
-              <p className="mt-1 text-sm">{tenant.profile.address}</p>
+          {showRawData ? (
+            <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-auto max-h-96">
+              {JSON.stringify(settings, null, 2)}
+            </pre>
+          ) : (
+            <div className="space-y-4">
+              {settings.security && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Bảo mật</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {settings.security.mfa_required !== undefined && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant={settings.security.mfa_required ? 'default' : 'secondary'}>
+                          MFA: {settings.security.mfa_required ? 'Bắt buộc' : 'Tùy chọn'}
+                        </Badge>
+                      </div>
+                    )}
+                    {settings.security.session_timeout && (
+                      <div className="text-sm">
+                        <span className="text-gray-600">Session:</span>{' '}
+                        <span className="font-semibold">{settings.security.session_timeout}s</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {settings.features && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Tính năng</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(settings.features).map(([key, value]) => (
+                      <Badge 
+                        key={key} 
+                        variant={value ? 'default' : 'secondary'}
+                        className="capitalize"
+                      >
+                        {key.replace(/_/g, ' ')}: {value ? '✓' : '✗'}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {settings.quotas && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Hạn mức</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {Object.entries(settings.quotas).map(([key, value]) => (
+                      <div key={key} className="text-sm">
+                        <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                        <span className="font-semibold">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </Card>
+      )}
 
-      {/* Resource Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="w-5 h-5" />
-            Resource Usage
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Users */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">Users</span>
-              </div>
-              <span className={`text-sm font-medium ${getUsageColor(userPercentage)}`}>
-                {tenant.settings.current_users} / {tenant.settings.max_users}
-              </span>
+      {/* Hierarchy */}
+      {tenant.parent_tenant_id && (
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 rounded-lg bg-orange-50">
+              <GitBranch className="w-6 h-6 text-orange-600" />
             </div>
-            <Progress value={userPercentage} className="h-2" />
-          </div>
-
-          {/* Storage */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Database className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium">Storage</span>
-              </div>
-              <span className={`text-sm font-medium ${getUsageColor(storagePercentage)}`}>
-                {formatStorage(tenant.settings.current_storage)} / {formatStorage(tenant.settings.max_storage)}
-              </span>
-            </div>
-            <Progress value={storagePercentage} className="h-2" />
-          </div>
-
-          {tenant.settings.subscription_end_date && (
             <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">Subscription Ends</span>
-                </div>
-                <span className="text-sm">
-                  {new Date(tenant.settings.subscription_end_date).toLocaleDateString()}
-                </span>
-              </div>
+              <h3 className="font-semibold text-gray-900">Phân cấp</h3>
+              <p className="text-sm text-gray-500">Quan hệ cha - con</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
 
-      {/* Features & Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Features & Settings
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Feature Flags */}
           <div>
-            <label className="text-sm font-medium text-muted-foreground">Enabled Features</label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {getFeatureDisplayNames(tenant.settings.features).map((feature, idx) => (
-                <Badge key={idx} variant="secondary">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  {feature}
-                </Badge>
-              ))}
-              {tenant.settings.features.length === 0 && (
-                <span className="text-sm text-muted-foreground">No features enabled</span>
-              )}
-            </div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Parent Tenant ID</label>
+            <p className="text-sm font-mono font-semibold text-gray-900 mt-1">
+              {tenant.parent_tenant_id}
+            </p>
+            {tenant.path && (
+              <>
+                <label className="text-xs font-medium text-gray-500 uppercase mt-3 block">Path</label>
+                <p className="text-sm font-mono text-gray-900 mt-1">{tenant.path}</p>
+              </>
+            )}
           </div>
+        </Card>
+      )}
 
-          <Separator />
-
-          {/* Security Settings */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">MFA Enforced</span>
-              {tenant.settings.mfa_enforced ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-muted-foreground" />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm">SSO Enabled</span>
-              {tenant.settings.sso_enabled ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-muted-foreground" />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Custom Branding</span>
-              {tenant.settings.custom_branding ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-muted-foreground" />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <span className="text-sm">API Access</span>
-              {tenant.settings.api_access ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              ) : (
-                <XCircle className="w-4 h-4 text-muted-foreground" />
-              )}
-            </div>
+      {/* Metadata */}
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-3 rounded-lg bg-gray-50">
+            <Calendar className="w-6 h-6 text-gray-600" />
           </div>
-        </CardContent>
+          <div>
+            <h3 className="font-semibold text-gray-900">Metadata</h3>
+            <p className="text-sm text-gray-500">Thông tin hệ thống</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Created At</label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">
+              {new Date(tenant.created_at).toLocaleString('vi-VN')}
+            </p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Updated At</label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">
+              {new Date(tenant.updated_at).toLocaleString('vi-VN')}
+            </p>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 uppercase">Version</label>
+            <p className="text-sm font-semibold text-gray-900 mt-1">v{tenant.version}</p>
+          </div>
+        </div>
       </Card>
     </div>
   );

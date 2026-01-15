@@ -1,232 +1,307 @@
 /**
- * Application Detail Page
- * Full screen layout với sidebar riêng cho quản lý chi tiết ứng dụng
+ * ApplicationDetailPage Component
+ * Chi tiết application với sidebar navigation - Under 500 lines
+ * ✅ UPDATED 2026-01-15: Now uses real Supabase data via applicationsApi
+ * ✅ UPDATED 2026-01-15: Refactored to use flexbox layout (removed fixed positioning)
  */
 
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
-  Settings, 
-  Shield, 
-  FileText,
+  Code, 
+  Settings,
+  BarChart,
+  Layers,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Power,
+  PowerOff,
   Activity,
-  Users,
-  Boxes,
+  ChevronRight
 } from 'lucide-react';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-import { toast } from 'sonner@2.0.3';
-import { PermissionsManagementPage } from './PermissionsManagementPage';
-import { TenantsOfAppPage } from './TenantsOfAppPage';
-import { CapabilitiesManagementPage } from './CapabilitiesManagementPage';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { Button } from '@/components/ui/button';
+import { useApplication } from '@/hooks/useApplication';
+import { ApplicationOverview } from '@/components/applications/detail/ApplicationOverview';
+import { ApplicationCapabilities } from '@/components/applications/detail/ApplicationCapabilities';
+import { ApplicationSettings } from '@/components/applications/detail/ApplicationSettings';
+import { ApplicationStats } from '@/components/applications/detail/ApplicationStats';
 
-interface Application {
-  _id: string;
-  code: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+type TabType = 'overview' | 'capabilities' | 'settings' | 'stats';
 
 export function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const location = useLocation();
   const { t } = useLanguage();
-  
-  const [application, setApplication] = useState<Application | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
 
-  // Get active tab from URL
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [showActions, setShowActions] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const { 
+    application, 
+    loading, 
+    error, 
+    updateApplication, 
+    deleteApplication,
+    toggleActive 
+  } = useApplication(id);
+
   useEffect(() => {
-    const path = location.pathname.split('/').pop();
-    if (path && ['overview', 'permissions', 'tenants', 'capabilities', 'settings', 'logs'].includes(path)) {
-      setActiveTab(path);
+    if (!id) {
+      navigate('/core/applications');
     }
-  }, [location.pathname]);
-
-  // Fetch application data
-  useEffect(() => {
-    if (!id) return;
-    
-    const fetchApplication = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/applications/${id}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${publicAnonKey}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch application');
-        }
-
-        const data = await response.json();
-        setApplication(data);
-      } catch (error) {
-        console.error('Error fetching application:', error);
-        toast.error('Không thể tải thông tin ứng dụng');
-        navigate('/core/applications');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchApplication();
   }, [id, navigate]);
-
-  const menuItems = [
-    { key: 'overview', label: 'Tổng quan', icon: FileText },
-    { key: 'permissions', label: 'Permissions', icon: Shield },
-    { key: 'tenants', label: 'Tenants', icon: Users },
-    { key: 'settings', label: 'Cài đặt', icon: Settings },
-    { key: 'logs', label: 'Logs', icon: Activity },
-    { key: 'capabilities', label: 'Capabilities', icon: Boxes },
-  ];
-
-  const handleTabChange = (tabKey: string) => {
-    setActiveTab(tabKey);
-    navigate(`/core/applications/${id}/${tabKey}`);
-  };
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-gray-500">Đang tải...</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+        </div>
       </div>
     );
   }
 
-  if (!application) {
-    return null;
+  if (error || !application) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600">{error || t('applications.notFound')}</p>
+          <Button onClick={() => navigate('/core/applications')} className="mt-4">
+            {t('common.back')}
+          </Button>
+        </div>
+      </div>
+    );
   }
 
+  const menuItems = [
+    { id: 'overview', label: 'Tổng quan', icon: Code },
+    { id: 'capabilities', label: 'Khả năng', icon: Layers },
+    { id: 'settings', label: 'Cài đặt', icon: Settings },
+    { id: 'stats', label: 'Thống kê', icon: BarChart },
+  ];
+
+  const handleDelete = async () => {
+    if (!confirm('Bạn có chắc muốn xóa ứng dụng này?')) return;
+    try {
+      await deleteApplication();
+      navigate('/core/applications');
+    } catch (err) {
+      // Error already handled in hook
+    }
+  };
+
+  const handleToggleActive = async () => {
+    const isActive = application.status === 'ACTIVE';
+    if (!confirm(`Bạn có chắc muốn ${isActive ? 'vô hiệu hóa' : 'kích hoạt'} ứng dụng này?`)) return;
+    try {
+      await toggleActive();
+      setShowActions(false);
+    } catch (err) {
+      // Error already handled in hook
+    }
+  };
+
+  const isActive = application.status === 'ACTIVE';
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#fafafa]">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-gray-200 bg-white">
+      <aside
+        className={`
+          bg-white border-r border-gray-200
+          transition-all duration-300 ease-in-out
+          ${isSidebarCollapsed ? 'w-16' : 'w-64'}
+        `}
+      >
         {/* Header */}
-        <div className="border-b border-gray-200 p-4">
+        <div className="flex items-center gap-2 p-4 border-b border-gray-200">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/core/applications')}
-            className="mb-4 -ml-2"
+            className={`gap-2 ${isSidebarCollapsed ? 'px-2' : ''}`}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Quay lại
+            <ArrowLeft className="w-4 h-4" />
+            {!isSidebarCollapsed && <span>Quay lại</span>}
           </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-semibold text-gray-900">{application.name}</h2>
-              <Badge variant={application.is_active ? 'default' : 'secondary'}>
-                {application.is_active ? 'Active' : 'Inactive'}
-              </Badge>
-            </div>
-            <p className="mt-1 text-sm font-mono text-gray-500">{application.code}</p>
-          </div>
+          
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <ChevronRight className={`w-4 h-4 transition-transform ${isSidebarCollapsed ? '' : 'rotate-180'}`} />
+          </button>
         </div>
 
-        {/* Menu */}
-        <nav className="p-2">
+        {/* App Info */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+              <Code className="w-6 h-6 text-indigo-600" />
+            </div>
+            
+            {!isSidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-gray-900 truncate">
+                  {application.name}
+                </h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="text-xs bg-gray-100 px-1.5 py-0.5 rounded">
+                    {application.code}
+                  </code>
+                  {isActive ? (
+                    <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      Active
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      Inactive
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {!isSidebarCollapsed && (
+            <div className="mt-3 flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/core/applications/${id}/edit`)}
+                className="flex-1 gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Chỉnh sửa
+              </Button>
+              
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowActions(!showActions)}
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+
+                {showActions && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={handleToggleActive}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        {isActive ? (
+                          <>
+                            <PowerOff className="w-4 h-4" />
+                            Vô hiệu hóa
+                          </>
+                        ) : (
+                          <>
+                            <Power className="w-4 h-4" />
+                            Kích hoạt
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="p-3">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.key;
+            const isActive = activeTab === item.id;
             
             return (
               <button
-                key={item.key}
-                onClick={() => handleTabChange(item.key)}
+                key={item.id}
+                onClick={() => setActiveTab(item.id as TabType)}
                 className={`
-                  flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
-                  transition-colors
-                  ${isActive 
-                    ? 'bg-[#6366f1] text-white' 
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+                  transition-colors mb-1
+                  ${isActive
+                    ? 'bg-indigo-50 text-indigo-600'
                     : 'text-gray-700 hover:bg-gray-100'
                   }
                 `}
+                title={isSidebarCollapsed ? item.label : undefined}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {!isSidebarCollapsed && <span>{item.label}</span>}
               </button>
             );
           })}
         </nav>
+
+        {/* Version Info */}
+        {!isSidebarCollapsed && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
+            <div className="text-xs text-gray-500 space-y-1">
+              <div className="flex items-center justify-between">
+                <span>Version</span>
+                <span className="font-medium">{application.version}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Status</span>
+                <span className={`font-medium ${isActive ? 'text-green-600' : 'text-gray-600'}`}>
+                  {isActive ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="p-6 md:p-8">
+      <main className="flex-1 flex flex-col min-w-0">
+        {/* Top Bar */}
+        <div className="bg-white border-b border-gray-200 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {menuItems.find(item => item.id === activeTab)?.label}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Chi tiết và quản lý {application.name}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto p-8">
           {activeTab === 'overview' && (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Tổng quan</h1>
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Mã ứng dụng</label>
-                    <p className="mt-1 font-mono text-gray-900">{application.code}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Tên ứng dụng</label>
-                    <p className="mt-1 text-gray-900">{application.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Mô tả</label>
-                    <p className="mt-1 text-gray-900">{application.description || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Trạng thái</label>
-                    <div className="mt-1">
-                      <Badge variant={application.is_active ? 'default' : 'secondary'}>
-                        {application.is_active ? 'Đang hoạt động' : 'Không hoạt động'}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ApplicationOverview application={application} onUpdate={updateApplication} />
           )}
-
-          {activeTab === 'permissions' && (
-            <PermissionsManagementPage />
-          )}
-
-          {activeTab === 'tenants' && (
-            <TenantsOfAppPage />
-          )}
-
-          {activeTab === 'settings' && (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Cài đặt</h1>
-              <p className="text-gray-600">Cài đặt cho ứng dụng {application.name}</p>
-            </div>
-          )}
-
-          {activeTab === 'logs' && (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Logs</h1>
-              <p className="text-gray-600">Logs của ứng dụng {application.name}</p>
-            </div>
-          )}
-
           {activeTab === 'capabilities' && (
-            <CapabilitiesManagementPage />
+            <ApplicationCapabilities appId={application._id} />
+          )}
+          {activeTab === 'settings' && (
+            <ApplicationSettings application={application} onUpdate={updateApplication} />
+          )}
+          {activeTab === 'stats' && (
+            <ApplicationStats appId={application._id} appCode={application.code} />
           )}
         </div>
       </main>
     </div>
   );
 }
-
-export default ApplicationDetailPage;

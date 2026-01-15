@@ -3,8 +3,9 @@ import { useLanguage } from "../providers/LanguageProvider";
 import { databaseSchema, erdDiagram } from "../data/database-schema";
 import { DatabaseTable } from "../components/database/DatabaseTable";
 import { ERDiagram } from "../components/database/ERDiagram";
-import { Database, GitBranch, Search, Table, FileText } from "lucide-react";
+import { Database, GitBranch, Search, Table, FileText, Filter, BookOpen } from "lucide-react";
 import { Input } from "../components/ui/input";
+import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   Accordion,
@@ -21,16 +22,29 @@ export const DatabaseDocsPage = memo(() => {
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("tables");
+  const [selectedTableType, setSelectedTableType] = useState<string | null>(null);
 
-  // Filter tables based on search query
-  const filteredTables = databaseSchema.filter(table => 
-    table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    table.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    table.columns.some(col => 
-      col.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      col.description.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  // Filter tables based on search query and table type
+  const filteredTables = databaseSchema.filter(table => {
+    // Filter by table type
+    if (selectedTableType && table.tableType !== selectedTableType) {
+      return false;
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      return (
+        table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        table.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        table.columns.some(col => 
+          col.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          col.description.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+
+    return true;
+  });
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -51,11 +65,11 @@ export const DatabaseDocsPage = memo(() => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
           <div className="bg-card rounded-xl border border-border/40 p-4 hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
-                <Table className="w-5 h-5 text-primary" />
+                <Database className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{databaseSchema.length}</p>
@@ -66,30 +80,42 @@ export const DatabaseDocsPage = memo(() => {
 
           <div className="bg-card rounded-xl border border-border/40 p-4 hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-indigo-500/10">
-                <FileText className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <div className="p-2 rounded-lg bg-emerald-500/10">
+                <BookOpen className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {databaseSchema.reduce((sum, table) => sum + table.columns.length, 0)}
+                  {databaseSchema.filter(t => t.tableType === 'GLOBAL').length}
                 </p>
-                <p className="text-sm text-muted-foreground">{t('database.totalColumns')}</p>
+                <p className="text-sm text-muted-foreground">GLOBAL Tables</p>
               </div>
             </div>
           </div>
 
           <div className="bg-card rounded-xl border border-border/40 p-4 hover:shadow-md transition-all duration-200">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <GitBranch className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <div className="p-2 rounded-lg bg-indigo-500/10">
+                <GitBranch className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {databaseSchema.reduce((sum, table) => 
-                    sum + table.columns.filter(col => col.foreignKey).length, 0
-                  )}
+                  {databaseSchema.filter(t => t.tableType === 'TENANT-SPECIFIC').length}
                 </p>
-                <p className="text-sm text-muted-foreground">{t('database.totalRelations')}</p>
+                <p className="text-sm text-muted-foreground">TENANT-SPECIFIC</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border/40 p-4 hover:shadow-md transition-all duration-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-500/10">
+                <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">
+                  {databaseSchema.reduce((sum, table) => sum + table.columns.length, 0)}
+                </p>
+                <p className="text-sm text-muted-foreground">{t('database.totalColumns')}</p>
               </div>
             </div>
           </div>
@@ -121,6 +147,36 @@ export const DatabaseDocsPage = memo(() => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
+          </div>
+
+          {/* Table Type Filter */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Button
+              variant={selectedTableType === null ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedTableType(null)}
+            >
+              All Table Types
+            </Button>
+            <Button
+              variant={selectedTableType === 'GLOBAL' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedTableType('GLOBAL')}
+              className="gap-2"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              GLOBAL
+            </Button>
+            <Button
+              variant={selectedTableType === 'TENANT-SPECIFIC' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setSelectedTableType('TENANT-SPECIFIC')}
+              className="gap-2"
+            >
+              <GitBranch className="w-3.5 h-3.5" />
+              TENANT-SPECIFIC
+            </Button>
           </div>
 
           {/* Tables List */}
@@ -168,4 +224,6 @@ export const DatabaseDocsPage = memo(() => {
   );
 });
 
-DatabaseDocsPage.displayName = "DatabaseDocsPage";
+DatabaseDocsPage.displayName = 'DatabaseDocsPage';
+
+export default DatabaseDocsPage;

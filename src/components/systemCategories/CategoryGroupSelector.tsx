@@ -33,7 +33,7 @@ export function CategoryGroupSelector({
     <div className="flex flex-wrap gap-2">
       {groups.map((group) => (
         <button
-          key={group.code}
+          key={group.id || group.code}
           onClick={() => onSelectGroup(group)}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             selectedGroup?.code === group.code

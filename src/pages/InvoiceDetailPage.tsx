@@ -1,13 +1,15 @@
 /**
  * Invoice Detail Page
- * Displays detailed information about a single invoice
+ * Displays detailed information about a subscription invoice
+ * 
+ * ✅ REWRITTEN 2026-01-14: Now matches subscription_invoices schema
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Edit, Trash2, Send, DollarSign, 
-  Download, Calendar, User, CreditCard, FileText 
+  Download, Calendar, FileText, Receipt, Package, User, ShoppingCart, Calculator
 } from 'lucide-react';
 import { subscriptionInvoiceApi, SubscriptionInvoice } from '../api/subscriptionInvoiceApi';
 import { Button } from '../components/ui/button';
@@ -16,7 +18,7 @@ import { Badge } from '../components/ui/badge';
 import { useLanguage } from '../providers/LanguageProvider';
 import { toast } from 'sonner@2.0.3';
 
-export const InvoiceDetailPage: React.FC = () => {
+const InvoiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -67,12 +69,38 @@ export const InvoiceDetailPage: React.FC = () => {
     if (!invoice) return;
     
     try {
-      await subscriptionInvoiceApi.send(invoice._id!, invoice.version || 1);
+      await subscriptionInvoiceApi.send(invoice._id!, invoice.version);
       toast.success(t('invoices.sendSuccess'));
       loadInvoice();
     } catch (error) {
       console.error('Error sending invoice:', error);
       toast.error(t('invoices.errors.sendFailed'));
+    }
+  };
+
+  const handleMarkAsPaid = async () => {
+    if (!invoice) return;
+    
+    try {
+      await subscriptionInvoiceApi.markAsPaid(invoice._id!, invoice.version);
+      toast.success('Invoice marked as paid');
+      loadInvoice();
+    } catch (error) {
+      console.error('Error marking as paid:', error);
+      toast.error('Failed to mark invoice as paid');
+    }
+  };
+
+  const handleVoid = async () => {
+    if (!invoice || !confirm('Are you sure you want to void this invoice?')) return;
+    
+    try {
+      await subscriptionInvoiceApi.voidInvoice(invoice._id!, invoice.version);
+      toast.success('Invoice voided successfully');
+      loadInvoice();
+    } catch (error) {
+      console.error('Error voiding invoice:', error);
+      toast.error('Failed to void invoice');
     }
   };
 
@@ -84,25 +112,28 @@ export const InvoiceDetailPage: React.FC = () => {
     });
   };
 
-  const formatCurrency = (amount: number, currency: string) => {
+  const formatCurrency = (amount: number, currencyCode: string) => {
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
-      currency: currency || 'USD',
+      currency: currencyCode || 'VND',
     }).format(amount);
   };
 
   const getStatusBadge = (status: string) => {
     const configs: any = {
-      draft: { color: 'bg-gray-100 text-gray-800', label: t('invoices.status.draft') },
-      sent: { color: 'bg-blue-100 text-blue-800', label: t('invoices.status.sent') },
-      paid: { color: 'bg-green-100 text-green-800', label: t('invoices.status.paid') },
-      overdue: { color: 'bg-red-100 text-red-800', label: t('invoices.status.overdue') },
-      cancelled: { color: 'bg-gray-100 text-gray-800', label: t('invoices.status.cancelled') },
-      refunded: { color: 'bg-purple-100 text-purple-800', label: t('invoices.status.refunded') },
-      partially_paid: { color: 'bg-yellow-100 text-yellow-800', label: t('invoices.status.partiallyPaid') },
+      DRAFT: { color: 'bg-gray-100 text-gray-800', label: 'Draft' },
+      OPEN: { color: 'bg-blue-100 text-blue-800', label: 'Open' },
+      PAID: { color: 'bg-green-100 text-green-800', label: 'Paid' },
+      VOID: { color: 'bg-red-100 text-red-800', label: 'Void' },
+      UNCOLLECTIBLE: { color: 'bg-orange-100 text-orange-800', label: 'Uncollectible' },
     };
-    const config = configs[status] || configs.draft;
+    const config = configs[status] || configs.DRAFT;
     return <Badge className={config.color}>{config.label}</Badge>;
+  };
+
+  const calculateFinalAmount = () => {
+    if (!invoice) return 0;
+    return subscriptionInvoiceApi.calculateTotal(invoice.amount, invoice.price_adjustments);
   };
 
   if (loading) {
@@ -145,10 +176,21 @@ export const InvoiceDetailPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          {invoice.status === 'draft' && (
+          {invoice.status === 'DRAFT' && (
             <Button variant="outline" onClick={handleSend}>
               <Send className="h-4 w-4 mr-2" />
-              {t('invoices.sendInvoice')}
+              Send Invoice
+            </Button>
+          )}
+          {invoice.status === 'OPEN' && (
+            <Button variant="outline" onClick={handleMarkAsPaid} className="text-green-600">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Mark as Paid
+            </Button>
+          )}
+          {(invoice.status === 'DRAFT' || invoice.status === 'OPEN') && (
+            <Button variant="outline" onClick={handleVoid} className="text-orange-600">
+              Void Invoice
             </Button>
           )}
           <Button variant="outline" onClick={() => navigate(`/core/subscription-invoices/edit/${invoice._id}`)}>
@@ -177,106 +219,331 @@ export const InvoiceDetailPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-600">{t('invoices.invoiceNumber')}</p>
-                  <p className="font-medium">{invoice.invoice_number}</p>
+                  <p className="font-medium font-mono">{invoice.invoice_number}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">{t('invoices.currency')}</p>
-                  <p className="font-medium">{invoice.currency}</p>
+                  <p className="text-sm text-gray-600">Subscription ID</p>
+                  <p className="font-medium font-mono text-xs">{invoice.subscription_id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">{t('invoices.invoiceDate')}</p>
-                  <p className="font-medium">{formatDate(invoice.invoice_date)}</p>
+                  <p className="text-sm text-gray-600">Billing Period Start</p>
+                  <p className="font-medium">{formatDate(invoice.billing_period_start)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Billing Period End</p>
+                  <p className="font-medium">{formatDate(invoice.billing_period_end)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">{t('invoices.dueDate')}</p>
                   <p className="font-medium">{formatDate(invoice.due_date)}</p>
                 </div>
-                {invoice.paid_date && (
+                {invoice.paid_at && (
                   <div>
-                    <p className="text-sm text-gray-600">{t('invoices.paidDate')}</p>
-                    <p className="font-medium text-green-600">{formatDate(invoice.paid_date)}</p>
+                    <p className="text-sm text-gray-600">Paid Date</p>
+                    <p className="font-medium text-green-600">{formatDate(invoice.paid_at)}</p>
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm text-gray-600">{t('invoices.currency')}</p>
+                  <p className="font-medium">{invoice.currency_code}</p>
+                </div>
+                {invoice.partner_id && (
+                  <div>
+                    <p className="text-sm text-gray-600">Partner ID</p>
+                    <p className="font-medium font-mono text-xs">{invoice.partner_id}</p>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Line Items */}
+          {/* Customer Snapshot - NEW */}
+          {invoice.customer_snapshot && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Customer Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  {invoice.customer_snapshot.name && (
+                    <div>
+                      <p className="text-sm text-gray-600">Customer Name</p>
+                      <p className="font-medium">{invoice.customer_snapshot.name}</p>
+                    </div>
+                  )}
+                  {invoice.customer_snapshot.tax_id && (
+                    <div>
+                      <p className="text-sm text-gray-600">Tax ID</p>
+                      <p className="font-medium font-mono">{invoice.customer_snapshot.tax_id}</p>
+                    </div>
+                  )}
+                  {invoice.customer_snapshot.email && (
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium text-blue-600">{invoice.customer_snapshot.email}</p>
+                    </div>
+                  )}
+                  {invoice.customer_snapshot.phone && (
+                    <div>
+                      <p className="text-sm text-gray-600">Phone</p>
+                      <p className="font-medium">{invoice.customer_snapshot.phone}</p>
+                    </div>
+                  )}
+                  {invoice.customer_snapshot.address && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-gray-600">Address</p>
+                      <p className="font-medium">{invoice.customer_snapshot.address}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Line Items - NEW */}
+          {invoice.line_items && invoice.line_items.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Line Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left text-sm font-medium text-gray-600 pb-2">Item</th>
+                        <th className="text-right text-sm font-medium text-gray-600 pb-2">Qty</th>
+                        <th className="text-right text-sm font-medium text-gray-600 pb-2">Price</th>
+                        <th className="text-right text-sm font-medium text-gray-600 pb-2">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoice.line_items.map((item, index) => (
+                        <tr key={index} className="border-b last:border-0">
+                          <td className="py-3">
+                            <div>
+                              <p className="font-medium">{item.name}</p>
+                              {item.description && (
+                                <p className="text-sm text-gray-500">{item.description}</p>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-right py-3 font-mono">{item.qty}</td>
+                          <td className="text-right py-3">
+                            {formatCurrency(item.price, invoice.currency_code)}
+                          </td>
+                          <td className="text-right py-3 font-semibold">
+                            {formatCurrency(item.total, invoice.currency_code)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Enhanced Amount Breakdown - UPDATED */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('invoices.lineItems')}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Calculator className="h-5 w-5" />
+                Financial Breakdown
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {invoice.line_items?.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center py-2 border-b">
-                    <div className="flex-1">
-                      <p className="font-medium">{item.description}</p>
-                      <p className="text-sm text-gray-500">
-                        {item.quantity} × {formatCurrency(item.unit_price, invoice.currency)}
-                      </p>
-                    </div>
-                    <p className="font-semibold">{formatCurrency(item.amount, invoice.currency)}</p>
-                  </div>
-                ))}
-              </div>
+              <div className="space-y-3">
+                {/* Subtotal */}
+                <div className="flex justify-between text-base">
+                  <span className="text-gray-700">Subtotal</span>
+                  <span className="font-semibold">
+                    {formatCurrency(invoice.subtotal || invoice.amount || 0, invoice.currency_code)}
+                  </span>
+                </div>
 
-              <div className="mt-4 space-y-2 pt-4 border-t">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">{t('invoices.subtotal')}</span>
-                  <span className="font-medium">{formatCurrency(invoice.subtotal, invoice.currency)}</span>
-                </div>
+                {/* Tax Amount */}
                 {invoice.tax_amount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">{t('invoices.taxAmount')}</span>
-                    <span className="font-medium">{formatCurrency(invoice.tax_amount, invoice.currency)}</span>
+                  <div className="flex justify-between text-base">
+                    <span className="text-gray-700">Tax</span>
+                    <span className="font-semibold">
+                      {formatCurrency(invoice.tax_amount, invoice.currency_code)}
+                    </span>
                   </div>
                 )}
+
+                {/* Discount */}
                 {invoice.discount_amount > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">{t('invoices.discount')}</span>
-                    <span className="font-medium text-green-600">-{formatCurrency(invoice.discount_amount, invoice.currency)}</span>
+                  <div className="flex justify-between text-base">
+                    <span className="text-gray-700">Discount</span>
+                    <span className="text-green-600 font-semibold">
+                      -{formatCurrency(invoice.discount_amount, invoice.currency_code)}
+                    </span>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                  <span>{t('invoices.totalAmount')}</span>
-                  <span className="text-indigo-600">{formatCurrency(invoice.total_amount, invoice.currency)}</span>
-                </div>
-                {invoice.amount_paid > 0 && (
+
+                {/* Price Adjustments (if any) */}
+                {invoice.price_adjustments && invoice.price_adjustments.length > 0 && (
                   <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{t('invoices.amountPaid')}</span>
-                      <span className="font-medium text-green-600">{formatCurrency(invoice.amount_paid, invoice.currency)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">{t('invoices.amountDue')}</span>
-                      <span className="font-medium text-red-600">{formatCurrency(invoice.amount_due, invoice.currency)}</span>
+                    <div className="border-t pt-3 space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Additional Adjustments</p>
+                      {invoice.price_adjustments.map((adj, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm pl-4">
+                          <span className="text-gray-600">
+                            {adj.description || adj.type || 'Adjustment'}
+                            {adj.type && <span className="ml-2 text-xs text-gray-400">({adj.type})</span>}
+                          </span>
+                          <span className={
+                            adj.type === 'discount' || adj.type === 'credit' 
+                              ? 'text-green-600 font-medium' 
+                              : 'text-gray-900 font-medium'
+                          }>
+                            {adj.type === 'discount' || adj.type === 'credit' ? '-' : '+'}
+                            {formatCurrency(adj.amount || 0, invoice.currency_code)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </>
                 )}
+
+                {/* Total Amount */}
+                <div className="flex justify-between text-xl font-bold pt-3 border-t">
+                  <span>Total Amount</span>
+                  <span className="text-indigo-600">
+                    {formatCurrency(invoice.total_amount || calculateFinalAmount(), invoice.currency_code)}
+                  </span>
+                </div>
+
+                {/* Amount Paid */}
+                {invoice.amount_paid > 0 && (
+                  <div className="flex justify-between text-base pt-2">
+                    <span className="text-gray-700">Amount Paid</span>
+                    <span className="text-green-600 font-semibold">
+                      -{formatCurrency(invoice.amount_paid, invoice.currency_code)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Amount Due */}
+                {invoice.amount_due !== undefined && invoice.amount_due > 0 && (
+                  <div className="flex justify-between text-xl font-bold pt-2 border-t border-orange-200 bg-orange-50 -mx-6 px-6 py-3 rounded-lg">
+                    <span className="text-orange-700">Amount Due</span>
+                    <span className="text-orange-600">
+                      {formatCurrency(invoice.amount_due, invoice.currency_code)}
+                    </span>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Notes & Terms */}
-          {(invoice.notes || invoice.terms) && (
+          {/* Tax Breakdown - NEW */}
+          {invoice.tax_breakdown && invoice.tax_breakdown.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>{t('invoices.notesAndTerms')}</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Receipt className="h-5 w-5" />
+                  Tax Breakdown
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {invoice.notes && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">{t('invoices.notes')}</p>
-                    <p className="text-sm text-gray-900">{invoice.notes}</p>
+              <CardContent>
+                <div className="space-y-3">
+                  {invoice.tax_breakdown.map((tax, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="font-medium">{tax.name}</p>
+                        {tax.tax_type && (
+                          <p className="text-sm text-gray-500">{tax.tax_type}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">
+                          {formatCurrency(tax.amount, invoice.currency_code)}
+                        </p>
+                        <p className="text-sm text-gray-500">{tax.rate}%</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-between pt-2 border-t font-bold">
+                    <span>Total Tax</span>
+                    <span className="text-indigo-600">
+                      {formatCurrency(
+                        invoice.tax_breakdown.reduce((sum, tax) => sum + tax.amount, 0),
+                        invoice.currency_code
+                      )}
+                    </span>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Amount Breakdown */}
+          <Card className="hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 h-5" />
+                Amount Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between text-base">
+                  <span className="text-gray-700">Base Amount</span>
+                  <span className="font-semibold">{formatCurrency(invoice.amount, invoice.currency_code)}</span>
+                </div>
+
+                {invoice.price_adjustments && invoice.price_adjustments.length > 0 && (
+                  <>
+                    <div className="border-t pt-3 space-y-2">
+                      <p className="text-sm font-medium text-gray-600">Price Adjustments</p>
+                      {invoice.price_adjustments.map((adj, index) => (
+                        <div key={index} className="flex justify-between items-center text-sm pl-4">
+                          <span className="text-gray-600">
+                            {adj.description || adj.type || 'Adjustment'}
+                            {adj.type && <span className="ml-2 text-xs text-gray-400">({adj.type})</span>}
+                          </span>
+                          <span className={
+                            adj.type === 'discount' || adj.type === 'credit' 
+                              ? 'text-green-600 font-medium' 
+                              : 'text-gray-900 font-medium'
+                          }>
+                            {adj.type === 'discount' || adj.type === 'credit' ? '-' : '+'}
+                            {formatCurrency(adj.amount || 0, invoice.currency_code)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
-                {invoice.terms && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-2">{t('invoices.terms')}</p>
-                    <p className="text-sm text-gray-900">{invoice.terms}</p>
-                  </div>
-                )}
+
+                <div className="flex justify-between text-xl font-bold pt-3 border-t">
+                  <span>Total Amount</span>
+                  <span className="text-indigo-600">{formatCurrency(calculateFinalAmount(), invoice.currency_code)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Metadata */}
+          {invoice.metadata && Object.keys(invoice.metadata).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Metadata</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <pre className="text-sm text-gray-900 overflow-x-auto">
+                    {JSON.stringify(invoice.metadata, null, 2)}
+                  </pre>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -284,73 +551,29 @@ export const InvoiceDetailPage: React.FC = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Customer Info */}
+          {/* Status Info */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5" />
-                {t('invoices.customerInfo')}
+                <Package className="h-5 w-5" />
+                Invoice Status
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <p className="text-sm text-gray-600">{t('invoices.customerName')}</p>
-                <p className="font-medium">{invoice.customer_name}</p>
+                <p className="text-sm text-gray-600">Current Status</p>
+                <div className="mt-1">{getStatusBadge(invoice.status)}</div>
               </div>
               <div>
-                <p className="text-sm text-gray-600">{t('invoices.customerEmail')}</p>
-                <p className="font-medium">{invoice.customer_email}</p>
+                <p className="text-sm text-gray-600">Status Description</p>
+                <p className="text-sm text-gray-900 mt-1">
+                  {invoice.status === 'DRAFT' && 'Invoice is being prepared and not yet sent'}
+                  {invoice.status === 'OPEN' && 'Invoice has been sent and awaiting payment'}
+                  {invoice.status === 'PAID' && 'Invoice has been paid in full'}
+                  {invoice.status === 'VOID' && 'Invoice has been voided and cancelled'}
+                  {invoice.status === 'UNCOLLECTIBLE' && 'Invoice is marked as uncollectible'}
+                </p>
               </div>
-              {invoice.customer_phone && (
-                <div>
-                  <p className="text-sm text-gray-600">{t('invoices.customerPhone')}</p>
-                  <p className="font-medium">{invoice.customer_phone}</p>
-                </div>
-              )}
-              {invoice.billing_address && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">{t('invoices.billingAddress')}</p>
-                  <div className="text-sm">
-                    {invoice.billing_address.street && <p>{invoice.billing_address.street}</p>}
-                    {invoice.billing_address.city && (
-                      <p>
-                        {invoice.billing_address.city}
-                        {invoice.billing_address.state && `, ${invoice.billing_address.state}`}
-                        {invoice.billing_address.zip && ` ${invoice.billing_address.zip}`}
-                      </p>
-                    )}
-                    {invoice.billing_address.country && <p>{invoice.billing_address.country}</p>}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Payment Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="h-5 w-5" />
-                {t('invoices.paymentInfo')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-600">{t('invoices.paymentStatus.label')}</p>
-                <p className="font-medium">{t(`invoices.paymentStatus.${invoice.payment_status}`)}</p>
-              </div>
-              {invoice.payment_method && (
-                <div>
-                  <p className="text-sm text-gray-600">{t('invoices.paymentMethod')}</p>
-                  <p className="font-medium">{invoice.payment_method}</p>
-                </div>
-              )}
-              {invoice.payment_reference && (
-                <div>
-                  <p className="text-sm text-gray-600">{t('invoices.paymentReference')}</p>
-                  <p className="font-medium">{invoice.payment_reference}</p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -363,16 +586,18 @@ export const InvoiceDetailPage: React.FC = () => {
               <div>
                 <p className="text-gray-600">{t('common.createdAt')}</p>
                 <p className="font-medium">{formatDate(invoice.created_at!)}</p>
-                {invoice.created_by && <p className="text-xs text-gray-500">{invoice.created_by}</p>}
               </div>
               <div>
                 <p className="text-gray-600">{t('common.updatedAt')}</p>
                 <p className="font-medium">{formatDate(invoice.updated_at!)}</p>
-                {invoice.updated_by && <p className="text-xs text-gray-500">{invoice.updated_by}</p>}
               </div>
               <div>
                 <p className="text-gray-600">{t('common.version')}</p>
                 <p className="font-medium">v{invoice.version}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Invoice ID</p>
+                <p className="font-mono text-xs break-all">{invoice._id}</p>
               </div>
             </CardContent>
           </Card>

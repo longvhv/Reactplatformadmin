@@ -236,3 +236,5 @@ export function HelpPage() {
     </div>
   );
 }
+
+export default HelpPage;

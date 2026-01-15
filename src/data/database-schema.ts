@@ -1177,7 +1177,7 @@ export const databaseSchema: TableSchema[] = [
         type: "TIMESTAMP",
         nullable: false,
         default: "CURRENT_TIMESTAMP",
-        description: "Thời điểm cập nhật cuối cùng"
+        description: "Thời điểm cập nhật"
       }
     ]
   },
@@ -1454,77 +1454,649 @@ export const databaseSchema: TableSchema[] = [
         description: "Thời điểm cập nhật"
       }
     ]
+  },
+
+  // ============================================
+  // SUBSCRIPTION & BILLING TABLES
+  // ============================================
+  {
+    name: "subscription_invoices",
+    description: "TENANT-SPECIFIC: Quản lý hóa đơn thanh toán (subscription invoices) với snapshot dữ liệu bất biến và revenue recognition",
+    tableType: "TENANT-SPECIFIC",
+    columns: [
+      // I. ĐỊNH DANH
+      {
+        name: "_id",
+        type: "UUID",
+        nullable: false,
+        primaryKey: true,
+        description: "Khóa chính (Primary Key)"
+      },
+      {
+        name: "tenant_id",
+        type: "UUID",
+        nullable: false,
+        foreignKey: {
+          table: "tenants",
+          column: "_id"
+        },
+        description: "Tenant isolation"
+      },
+      {
+        name: "subscription_id",
+        type: "UUID",
+        nullable: true,
+        foreignKey: {
+          table: "subscriptions",
+          column: "_id"
+        },
+        description: "Liên kết tới subscription (Optional)"
+      },
+      {
+        name: "order_id",
+        type: "UUID",
+        nullable: true,
+        foreignKey: {
+          table: "subscription_orders",
+          column: "_id"
+        },
+        description: "Liên kết tới đơn hàng (Optional)"
+      },
+
+      // II. THÔNG TIN NGHIỆP VỤ
+      {
+        name: "invoice_number",
+        type: "VARCHAR(50)",
+        nullable: false,
+        unique: true,
+        description: "Mã hóa đơn duy nhất (business key)"
+      },
+      {
+        name: "status",
+        type: "VARCHAR(20)",
+        nullable: false,
+        default: "'DRAFT'",
+        description: "Trạng thái: DRAFT, OPEN, PAID, VOID, UNCOLLECTIBLE"
+      },
+      {
+        name: "currency_code",
+        type: "VARCHAR(3)",
+        nullable: false,
+        default: "'VND'",
+        description: "Mã tiền tệ (ISO 4217): VND, USD, EUR"
+      },
+
+      // III. CHI TIẾT TÀI CHÍNH (FINANCIAL BREAKDOWN)
+      {
+        name: "subtotal",
+        type: "NUMERIC(19,4)",
+        nullable: false,
+        default: "0",
+        description: "Tổng tiền trước thuế và giảm giá"
+      },
+      {
+        name: "tax_amount",
+        type: "NUMERIC(19,4)",
+        nullable: false,
+        default: "0",
+        description: "Tổng thuế (VAT, GST, etc.)"
+      },
+      {
+        name: "discount_amount",
+        type: "NUMERIC(19,4)",
+        nullable: false,
+        default: "0",
+        description: "Tổng giảm giá"
+      },
+      {
+        name: "total_amount",
+        type: "NUMERIC(19,4)",
+        nullable: false,
+        default: "0",
+        description: "Tổng tiền phải thanh toán"
+      },
+      {
+        name: "amount_paid",
+        type: "NUMERIC(19,4)",
+        nullable: false,
+        default: "0",
+        description: "Số tiền đã thanh toán"
+      },
+      {
+        name: "amount_due",
+        type: "NUMERIC(19,4) GENERATED",
+        nullable: false,
+        description: "Số tiền còn nợ (Generated Column: total_amount - amount_paid)"
+      },
+
+      // IV. SNAPSHOT DỮ LIỆU (IMMUTABLE DATA)
+      {
+        name: "customer_snapshot",
+        type: "JSONB",
+        nullable: false,
+        default: "'{}'",
+        description: "Snapshot thông tin khách hàng: {name, tax_id, address, email, phone}"
+      },
+      {
+        name: "line_items",
+        type: "JSONB",
+        nullable: false,
+        default: "'[]'",
+        description: "Chi tiết sản phẩm/dịch vụ: [{name, qty, price, total, description}]"
+      },
+      {
+        name: "tax_breakdown",
+        type: "JSONB",
+        nullable: false,
+        default: "'[]'",
+        description: "Chi tiết thuế: [{name, rate, amount, tax_type}]"
+      },
+
+      // V. THỜI GIAN & CHU KỲ (REVENUE RECOGNITION)
+      {
+        name: "billing_period_start",
+        type: "TIMESTAMPTZ",
+        nullable: false,
+        description: "Ngày bắt đầu kỳ hóa đơn"
+      },
+      {
+        name: "billing_period_end",
+        type: "TIMESTAMPTZ",
+        nullable: false,
+        description: "Ngày kết thúc kỳ hóa đơn"
+      },
+      {
+        name: "due_date",
+        type: "TIMESTAMPTZ",
+        nullable: false,
+        description: "Hạn thanh toán"
+      },
+      {
+        name: "paid_at",
+        type: "TIMESTAMPTZ",
+        nullable: true,
+        description: "Thời điểm thanh toán thực tế"
+      },
+
+      // VI. HỆ THỐNG & AUDIT
+      {
+        name: "metadata",
+        type: "JSONB",
+        nullable: false,
+        default: "'{}'",
+        description: "Metadata bổ sung: {stripe_id, notes, payment_method}"
+      },
+      {
+        name: "price_adjustments",
+        type: "JSONB",
+        nullable: false,
+        default: "'[]'",
+        description: "Điều chỉnh giá: [{type, amount, reason}]"
+      },
+      {
+        name: "pdf_url",
+        type: "TEXT",
+        nullable: true,
+        description: "URL tới file PDF hóa đơn"
+      },
+      {
+        name: "created_at",
+        type: "TIMESTAMPTZ",
+        nullable: false,
+        default: "NOW()",
+        description: "Timestamp: record creation"
+      },
+      {
+        name: "updated_at",
+        type: "TIMESTAMPTZ",
+        nullable: false,
+        default: "NOW()",
+        description: "Timestamp: last update (auto-managed)"
+      },
+      {
+        name: "deleted_at",
+        type: "TIMESTAMPTZ",
+        nullable: true,
+        description: "Soft delete timestamp (NULL = active)"
+      },
+      {
+        name: "version",
+        type: "BIGINT",
+        nullable: false,
+        default: "1",
+        description: "Optimistic locking version counter"
+      }
+    ]
   }
 ];
 
 /**
  * ERD Mermaid Diagram Definition
- * Updated with all production tables including tenants, system_categories, regions, app_components
+ * Complete database schema with all production tables
+ * Updated: 2026-01-15 - Full production ERD with 30+ tables
  */
-export const erdDiagram = `graph TB
+export const erdDiagram = `erDiagram
     %% ============================================
-    %% TENANT MANAGEMENT
+    %% CORE: TENANT MANAGEMENT
     %% ============================================
-    tenants[tenants<br/>GLOBAL]
+    
+    tenants {
+        UUID _id PK
+        VARCHAR code UK
+        VARCHAR name
+        UUID parent_tenant_id FK
+        UUID partner_tenant_id FK
+        VARCHAR tier
+        VARCHAR status
+        VARCHAR data_region
+        VARCHAR compliance_level
+        JSONB profile
+        JSONB settings
+        TIMESTAMPTZ created_at
+    }
     
     %% ============================================
-    %% CATEGORY & COMPONENT MANAGEMENT
+    %% CORE: USER & IDENTITY
     %% ============================================
-    system_categories[system_categories<br/>TENANT-SPECIFIC]
-    app_components[app_components<br/>TENANT-SPECIFIC]
+    
+    users {
+        UUID _id PK
+        VARCHAR email UK
+        VARCHAR username UK
+        VARCHAR password_hash
+        VARCHAR full_name
+        VARCHAR status
+        VARCHAR role
+        BOOLEAN email_verified
+        TIMESTAMPTZ last_login_at
+        TIMESTAMPTZ created_at
+    }
+    
+    tenant_members {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID user_id FK
+        VARCHAR employee_code
+        VARCHAR job_title
+        UUID manager_id FK
+        VARCHAR role
+        VARCHAR status
+        DATE joined_at
+        JSONB permissions
+    }
+    
+    user_sessions {
+        UUID _id PK
+        UUID user_id FK
+        VARCHAR session_token UK
+        VARCHAR device_info
+        VARCHAR ip_address
+        TIMESTAMPTZ expires_at
+    }
+    
+    user_activities {
+        UUID _id PK
+        UUID user_id FK
+        VARCHAR action
+        VARCHAR resource
+        JSONB details
+        VARCHAR ip_address
+        TIMESTAMPTZ created_at
+    }
     
     %% ============================================
-    %% GEOGRAPHIC DATA
+    %% ORGANIZATION: STRUCTURE
     %% ============================================
-    regions[regions<br/>GLOBAL]
+    
+    departments {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code
+        VARCHAR name
+        UUID parent_department_id FK
+        UUID manager_id FK
+        VARCHAR status
+        INTEGER order
+        TIMESTAMPTZ created_at
+    }
+    
+    department_members {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID department_id FK
+        UUID tenant_member_id FK
+        BOOLEAN is_primary
+        DATE joined_at
+    }
+    
+    user_groups {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code
+        VARCHAR name
+        VARCHAR group_type
+        JSONB permissions
+        VARCHAR status
+    }
+    
+    user_group_members {
+        UUID _id PK
+        UUID user_group_id FK
+        UUID tenant_member_id FK
+        TIMESTAMPTZ joined_at
+    }
     
     %% ============================================
-    %% USER MANAGEMENT
+    %% RBAC: ROLES & PERMISSIONS
     %% ============================================
-    users[users<br/>GLOBAL]
-    user_sessions[user_sessions<br/>GLOBAL]
-    user_activities[user_activities<br/>GLOBAL]
-    notifications[notifications<br/>GLOBAL]
-    settings[settings<br/>GLOBAL]
-    tenant_members[tenant_members<br/>GLOBAL]
+    
+    roles {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code
+        VARCHAR name
+        VARCHAR role_type
+        JSONB permissions
+        VARCHAR status
+    }
+    
+    role_assignments {
+        UUID _id PK
+        UUID role_id FK
+        UUID tenant_member_id FK
+        TIMESTAMPTZ assigned_at
+        TIMESTAMPTZ expires_at
+    }
+    
+    %% ============================================
+    %% COMMERCE: PRODUCTS & PACKAGES
+    %% ============================================
+    
+    products {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code UK
+        VARCHAR name
+        VARCHAR product_type
+        DECIMAL base_price
+        VARCHAR currency
+        VARCHAR status
+        JSONB metadata
+    }
+    
+    service_packages {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code UK
+        VARCHAR name
+        VARCHAR package_type
+        VARCHAR billing_period
+        DECIMAL price
+        VARCHAR currency
+        JSONB features
+        VARCHAR status
+    }
+    
+    service_package_items {
+        UUID _id PK
+        UUID service_package_id FK
+        UUID product_id FK
+        INTEGER quantity
+        DECIMAL unit_price
+    }
+    
+    %% ============================================
+    %% COMMERCE: SUBSCRIPTIONS
+    %% ============================================
+    
+    subscriptions {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID service_package_id FK
+        VARCHAR status
+        DATE start_date
+        DATE end_date
+        BOOLEAN auto_renew
+        DECIMAL recurring_amount
+        VARCHAR billing_period
+        TIMESTAMPTZ next_billing_date
+    }
+    
+    subscription_orders {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID subscription_id FK
+        VARCHAR order_number UK
+        VARCHAR order_type
+        VARCHAR status
+        DECIMAL total_amount
+        TIMESTAMPTZ ordered_at
+        TIMESTAMPTZ paid_at
+    }
+    
+    subscription_invoices {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID subscription_id FK
+        VARCHAR invoice_number UK
+        VARCHAR status
+        DECIMAL amount
+        DATE due_date
+        DATE paid_date
+    }
+    
+    %% ============================================
+    %% PLATFORM: CONFIGURATION
+    %% ============================================
+    
+    applications {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code UK
+        VARCHAR name
+        VARCHAR app_type
+        VARCHAR status
+        VARCHAR base_url
+        JSONB config
+    }
+    
+    app_routes {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID application_id FK
+        VARCHAR route_path
+        VARCHAR method
+        BOOLEAN requires_auth
+        JSONB permissions
+        VARCHAR status
+    }
+    
+    rate_limits {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID application_id FK
+        VARCHAR resource_type
+        INTEGER max_requests
+        INTEGER time_window
+        VARCHAR status
+    }
+    
+    webhooks {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR event_type
+        VARCHAR target_url
+        VARCHAR status
+        JSONB headers
+        INTEGER retry_count
+        TIMESTAMPTZ last_triggered_at
+    }
+    
+    sso_configs {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR provider
+        VARCHAR client_id
+        VARCHAR client_secret
+        JSONB config
+        VARCHAR status
+    }
+    
+    %% ============================================
+    %% CATEGORIZATION: TAXONOMY
+    %% ============================================
+    
+    system_categories {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR type
+        VARCHAR code UK
+        VARCHAR name
+        VARCHAR parent_id
+        INTEGER order
+        SMALLINT status
+        JSONB extra_fields
+    }
+    
+    app_components {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code
+        VARCHAR name
+        VARCHAR component_type
+        VARCHAR route
+        UUID parent_id FK
+        JSONB permissions
+        INTEGER order
+    }
+    
+    %% ============================================
+    %% LOCATION: GEOGRAPHIC
+    %% ============================================
+    
+    regions {
+        UUID _id PK
+        VARCHAR code UK
+        VARCHAR name
+        VARCHAR type
+        UUID parent_id FK
+        INTEGER order
+        JSONB metadata
+    }
+    
+    locations {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR code
+        VARCHAR name
+        VARCHAR location_type
+        UUID region_id FK
+        TEXT address
+        VARCHAR status
+    }
+    
+    %% ============================================
+    %% COMMUNICATION: NOTIFICATIONS
+    %% ============================================
+    
+    notifications {
+        UUID _id PK
+        UUID user_id FK
+        VARCHAR type
+        VARCHAR title
+        TEXT message
+        BOOLEAN is_read
+        VARCHAR link
+        TIMESTAMPTZ created_at
+    }
+    
+    announcements {
+        UUID _id PK
+        UUID tenant_id FK
+        VARCHAR title
+        TEXT content
+        VARCHAR type
+        VARCHAR priority
+        VARCHAR status
+        TIMESTAMPTZ publish_at
+        TIMESTAMPTZ expire_at
+    }
+    
+    %% ============================================
+    %% WORKFLOW: DELEGATION
+    %% ============================================
+    
+    delegations {
+        UUID _id PK
+        UUID tenant_id FK
+        UUID delegator_id FK
+        UUID delegate_id FK
+        VARCHAR scope
+        JSONB permissions
+        DATE start_date
+        DATE end_date
+        VARCHAR status
+    }
     
     %% ============================================
     %% RELATIONSHIPS
     %% ============================================
     
-    %% Tenant hierarchy
-    tenants -->|parent_tenant_id| tenants
+    %% Tenant Hierarchy & Isolation
+    tenants ||--o{ tenants : "parent_tenant_id"
+    tenants ||--o{ tenants : "partner_tenant_id"
+    tenants ||--o{ tenant_members : "tenant_id"
+    tenants ||--o{ departments : "tenant_id"
+    tenants ||--o{ products : "tenant_id"
+    tenants ||--o{ service_packages : "tenant_id"
+    tenants ||--o{ subscriptions : "tenant_id"
+    tenants ||--o{ applications : "tenant_id"
+    tenants ||--o{ system_categories : "tenant_id"
+    tenants ||--o{ app_components : "tenant_id"
+    tenants ||--o{ locations : "tenant_id"
+    tenants ||--o{ announcements : "tenant_id"
+    tenants ||--o{ webhooks : "tenant_id"
+    tenants ||--o{ sso_configs : "tenant_id"
     
-    %% Tenant-specific data isolation
-    tenants -.->|tenant_id| system_categories
-    tenants -.->|tenant_id| app_components
+    %% User & Identity
+    users ||--o{ tenant_members : "user_id"
+    users ||--o{ user_sessions : "user_id"
+    users ||--o{ user_activities : "user_id"
+    users ||--o{ notifications : "user_id"
     
-    %% Category hierarchy
-    system_categories -->|parent_id| system_categories
+    %% Tenant Members
+    tenant_members ||--o{ tenant_members : "manager_id"
+    tenant_members ||--o{ department_members : "tenant_member_id"
+    tenant_members ||--o{ user_group_members : "tenant_member_id"
+    tenant_members ||--o{ role_assignments : "tenant_member_id"
+    tenant_members ||--o{ delegations : "delegator_id"
+    tenant_members ||--o{ delegations : "delegate_id"
+    tenant_members ||--o{ departments : "manager_id"
     
-    %% Component hierarchy
-    app_components -->|parent_id| app_components
+    %% Organization
+    departments ||--o{ departments : "parent_department_id"
+    departments ||--o{ department_members : "department_id"
+    user_groups ||--o{ user_group_members : "user_group_id"
     
-    %% Region hierarchy
-    regions -->|parent_id| regions
+    %% RBAC
+    roles ||--o{ role_assignments : "role_id"
     
-    %% User relationships
-    users -->|userId| user_sessions
-    users -->|userId| user_activities
-    users -->|userId| notifications
-    users -->|userId| settings
-    users -->|user_id| tenant_members
+    %% Products & Commerce
+    products ||--o{ service_package_items : "product_id"
+    service_packages ||--o{ service_package_items : "service_package_id"
+    service_packages ||--o{ subscriptions : "service_package_id"
+    subscriptions ||--o{ subscription_orders : "subscription_id"
+    subscriptions ||--o{ subscription_invoices : "subscription_id"
     
-    %% Tenant-member relationships
-    tenants -->|tenant_id| tenant_members
-    tenant_members -->|manager_id| tenant_members
+    %% Platform
+    applications ||--o{ app_routes : "application_id"
+    applications ||--o{ rate_limits : "application_id"
     
-    %% ============================================
-    %% STYLING
-    %% ============================================
-    classDef globalTable fill:#10b981,stroke:#059669,stroke-width:2px,color:#fff,rx:8px
-    classDef tenantTable fill:#6366f1,stroke:#4f46e5,stroke-width:2px,color:#fff,rx:8px
+    %% Categorization
+    system_categories ||--o{ system_categories : "parent_id"
+    app_components ||--o{ app_components : "parent_id"
     
-    class tenants,regions,users,user_sessions,user_activities,notifications,settings,tenant_members globalTable
-    class system_categories,app_components tenantTable
+    %% Geographic
+    regions ||--o{ regions : "parent_id"
+    regions ||--o{ locations : "region_id"
 `;

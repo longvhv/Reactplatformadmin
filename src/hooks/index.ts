@@ -10,7 +10,6 @@ export { useIntersectionObserver } from './useIntersectionObserver';
 export { useKeyboardShortcut } from './useKeyboardShortcut';
 export { useLocalStorage } from './useLocalStorage';
 export { usePinnedRoutes } from './usePinnedRoutes';
-export { useProfile } from './useProfile';
 export { useRecentRoutes } from './useRecentRoutes';
 export { useResourceTiming } from './useResourceTiming';
 export { useSidebarState } from './useSidebarState';
@@ -19,6 +18,8 @@ export { useWebVitals } from './useWebVitals';
 export { useForm } from './useForm';
 export { useAsync } from './useAsync';
 export { useNotification } from './useNotification';
+export { useUsers } from './useUsers';
+export { useUser } from './useUser';
 
 // Performance hooks
 export { useImageLazyLoad } from './useImageLazyLoad';

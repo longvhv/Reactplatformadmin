@@ -1,551 +1,597 @@
 /**
  * TenantLocationsTab Component
- * Displays and manages locations for a specific tenant
- * Used in TenantDetailPage
+ * Tab cho tenant detail page - hiển thị location types và locations của tenant
+ * 
+ * ✅ REWRITTEN 2026-01-14: Use new interfaces with 11+18 fields, manage both types & locations
  */
 
-import { useState, useEffect } from 'react';
-import { Plus, MapPin, Building2, Warehouse, Store, Factory, Trash2, Edit, Loader2, X, Save, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Building2,
+  MapPin,
+  ChevronRight,
+  ChevronDown,
+  Star,
+  Settings,
+} from 'lucide-react';
+import { useLocationTypes } from '../../hooks/useLocationTypes';
+import { useLocations } from '../../hooks/useLocations';
+import {
+  LocationType,
+  ExtraFieldDefinition,
+  formatCode,
+} from '../../api/locationTypesApi';
+import {
+  Location,
+  LocationStatus,
+  LocationWithRelations,
+  getStatusColor,
+  formatAddress,
+  formatCoordinates,
+} from '../../api/locationsApi';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import type { Location, CreateLocationInput, UpdateLocationInput, LocationType, LocationStatus } from '@/data/locations';
-import { LOCATION_TYPES, LOCATION_STATUSES } from '@/data/locations';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { toast } from 'sonner@2.0.3';
 
 interface TenantLocationsTabProps {
   tenantId: string;
 }
 
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
-
 export function TenantLocationsTab({ tenantId }: TenantLocationsTabProps) {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
-  const [formData, setFormData] = useState<Partial<CreateLocationInput>>({});
-  const [saving, setSaving] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'types' | 'locations'>('locations');
+  
+  return (
+    <div className="space-y-6">
+      {/* Tabs */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('locations')}
+            className={`
+              whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+              ${activeTab === 'locations'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400'
+              }
+            `}
+          >
+            <Building2 className="w-5 h-5 inline-block mr-2" />
+            Địa điểm
+          </button>
+          <button
+            onClick={() => setActiveTab('types')}
+            className={`
+              whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+              ${activeTab === 'types'
+                ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400'
+              }
+            `}
+          >
+            <Settings className="w-5 h-5 inline-block mr-2" />
+            Loại địa điểm
+          </button>
+        </nav>
+      </div>
+
+      {/* Content */}
+      {activeTab === 'locations' && <LocationsPanel tenantId={tenantId} />}
+      {activeTab === 'types' && <LocationTypesPanel tenantId={tenantId} />}
+    </div>
+  );
+}
+
+// ==================== LOCATIONS PANEL ====================
+
+function LocationsPanel({ tenantId }: { tenantId: string }) {
+  const {
+    locations,
+    loading,
+    createLocation,
+    updateLocation,
+    deleteLocation,
+    activateLocation,
+    deactivateLocation,
+    closeLocation,
+    setAsHeadquarters,
+    buildTree,
+    getStats,
+  } = useLocations({ tenant_id: tenantId });
+
+  const { locationTypes } = useLocationTypes({ tenant_id: tenantId, include_system: true });
+
+  const [tree, setTree] = useState<LocationWithRelations[]>([]);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [stats, setStats] = useState({
+    total: 0,
+    by_status: { ACTIVE: 0, INACTIVE: 0, CLOSED: 0 },
+    headquarters: 0,
+  });
 
   useEffect(() => {
-    loadLocations();
-  }, [tenantId]);
+    const loadData = async () => {
+      const [treeData, statsData] = await Promise.all([
+        buildTree(tenantId),
+        getStats(),
+      ]);
+      setTree(treeData);
+      setStats(statsData);
+    };
+    loadData();
+  }, [locations]);
 
-  const loadLocations = async () => {
-    setLoading(true);
+  const toggleExpand = (id: string) => {
+    const newExpanded = new Set(expandedIds);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedIds(newExpanded);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bạn có chắc muốn xóa địa điểm này?')) return;
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/locations?tenant_id=${tenantId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      setLocations(result.data || []);
-    } catch (error) {
-      console.error('Error loading locations:', error);
-    } finally {
-      setLoading(false);
+      await deleteLocation(id);
+      toast.success('Đã xóa địa điểm');
+    } catch (error: any) {
+      toast.error(`Lỗi: ${error.message}`);
     }
   };
 
-  const handleCreate = () => {
-    setEditingLocation(null);
-    setFormData({ 
-      tenant_id: tenantId,
-      location_type: 'OFFICE',
-      status: 'ACTIVE',
-      is_primary: false,
-      is_warehouse: false,
-      is_retail: false,
-    });
-    setShowForm(true);
-    setErrors({});
-  };
-
-  const handleEdit = (location: Location) => {
-    setEditingLocation(location);
-    setFormData(location);
-    setShowForm(true);
-    setErrors({});
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingLocation(null);
-    setFormData({});
-    setErrors({});
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.code?.trim()) {
-      newErrors.code = 'Code is required';
-    } else if (!/^[a-z0-9-]+$/i.test(formData.code)) {
-      newErrors.code = 'Code must contain only letters, numbers, and hyphens';
-    }
-
-    if (!formData.name?.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSave = async () => {
-    if (!validateForm()) return;
-
-    setSaving(true);
+  const handleSetHQ = async (id: string) => {
     try {
-      const url = editingLocation
-        ? `${API_BASE_URL}/locations/${editingLocation._id}`
-        : `${API_BASE_URL}/locations`;
-
-      const method = editingLocation ? 'PATCH' : 'POST';
-
-      const body = editingLocation
-        ? { ...formData, version: editingLocation.version } as UpdateLocationInput
-        : { ...formData, tenant_id: tenantId } as CreateLocationInput;
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save location');
-      }
-
-      await loadLocations();
-      handleCancel();
-    } catch (error) {
-      console.error('Error saving location:', error);
-      alert(error instanceof Error ? error.message : 'Failed to save location');
-    } finally {
-      setSaving(false);
+      await setAsHeadquarters(id);
+      toast.success('Đã đặt làm trụ sở chính');
+    } catch (error: any) {
+      toast.error(`Lỗi: ${error.message}`);
     }
   };
 
-  const handleDelete = async (location: Location) => {
-    if (!confirm(`Are you sure you want to delete "${location.name}"?`)) return;
+  const renderLocationNode = (loc: LocationWithRelations, level: number = 0) => {
+    const hasChildren = loc.children && loc.children.length > 0;
+    const isExpanded = expandedIds.has(loc._id);
+    const type = locationTypes.find(t => t._id === loc.type_id);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/locations/${location._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-      });
+    return (
+      <div key={loc._id}>
+        <div
+          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+          style={{ marginLeft: level > 0 ? `${level * 24}px` : '0' }}
+        >
+          <div className="w-6 flex-shrink-0">
+            {hasChildren && (
+              <button
+                onClick={() => toggleExpand(loc._id)}
+                className="hover:bg-gray-200 dark:hover:bg-gray-700 rounded p-1"
+              >
+                {isExpanded ? (
+                  <ChevronDown className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                )}
+              </button>
+            )}
+          </div>
 
-      if (!response.ok) {
-        throw new Error('Failed to delete location');
-      }
+          <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
+            <Building2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
 
-      await loadLocations();
-    } catch (error) {
-      console.error('Error deleting location:', error);
-      alert('Failed to delete location');
-    }
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-gray-900 dark:text-white">{loc.name}</p>
+              {loc.code && (
+                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                  ({loc.code})
+                </span>
+              )}
+              {loc.is_headquarter && (
+                <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                  <Star className="w-3 h-3 mr-1" />
+                  HQ
+                </Badge>
+              )}
+              {type && (
+                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                  {type.name}
+                </Badge>
+              )}
+              <Badge className={getStatusColor(loc.status)}>
+                {loc.status}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {loc.address && Object.keys(loc.address).length > 0 && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  <span className="truncate max-w-xs">{formatAddress(loc.address)}</span>
+                </div>
+              )}
+              {loc.coordinates && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  <span>{formatCoordinates(loc.coordinates)}</span>
+                </div>
+              )}
+              {loc.timezone && (
+                <div>
+                  <span>🌍 {loc.timezone}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!loc.is_headquarter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSetHQ(loc._id)}
+                title="Đặt làm trụ sở chính"
+              >
+                <Star className="w-4 h-4" />
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(loc._id)}
+              className="text-red-600 hover:text-red-700"
+              title="Xóa"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        {hasChildren && isExpanded && (
+          <div>
+            {loc.children!.map((child) => renderLocationNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
-
-  const getLocationIcon = (type: LocationType) => {
-    switch (type) {
-      case 'HEADQUARTERS': return Building2;
-      case 'WAREHOUSE': return Warehouse;
-      case 'RETAIL': return Store;
-      case 'FACTORY': return Factory;
-      default: return MapPin;
-    }
-  };
-
-  const filteredLocations = locations.filter(location =>
-    location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    location.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    location.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Locations</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage physical locations, branches, and offices
-          </p>
-        </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Location
-        </Button>
-      </div>
-
-      {/* Search */}
-      {!showForm && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search locations..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-      )}
-
-      {/* Form */}
-      {showForm && (
-        <div className="bg-card border border-border rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold">
-              {editingLocation ? 'Edit Location' : 'Add New Location'}
-            </h3>
-            <Button variant="ghost" size="icon" onClick={handleCancel}>
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Code */}
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
             <div>
-              <Label htmlFor="code">Code *</Label>
-              <Input
-                id="code"
-                value={formData.code || ''}
-                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                placeholder="HQ-SV, NYC-01"
-                className={errors.code ? 'border-red-500' : ''}
-              />
-              {errors.code && <p className="text-sm text-red-600 mt-1">{errors.code}</p>}
-            </div>
-
-            {/* Name */}
-            <div>
-              <Label htmlFor="name">Name *</Label>
-              <Input
-                id="name"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Silicon Valley Headquarters"
-                className={errors.name ? 'border-red-500' : ''}
-              />
-              {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
-            </div>
-
-            {/* Type */}
-            <div>
-              <Label htmlFor="location_type">Type</Label>
-              <select
-                id="location_type"
-                value={formData.location_type || 'OFFICE'}
-                onChange={(e) => setFormData({ ...formData, location_type: e.target.value as LocationType })}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background"
-              >
-                {LOCATION_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>{type.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Status */}
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                value={formData.status || 'ACTIVE'}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as LocationStatus })}
-                className="w-full h-10 px-3 rounded-md border border-input bg-background"
-              >
-                {LOCATION_STATUSES.map(status => (
-                  <option key={status.value} value={status.value}>{status.label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Address Line 1 */}
-            <div className="md:col-span-2">
-              <Label htmlFor="address_line1">Address Line 1</Label>
-              <Input
-                id="address_line1"
-                value={formData.address_line1 || ''}
-                onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
-                placeholder="123 Main Street"
-              />
-            </div>
-
-            {/* Address Line 2 */}
-            <div className="md:col-span-2">
-              <Label htmlFor="address_line2">Address Line 2</Label>
-              <Input
-                id="address_line2"
-                value={formData.address_line2 || ''}
-                onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
-                placeholder="Suite 100"
-              />
-            </div>
-
-            {/* City */}
-            <div>
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city || ''}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="San Francisco"
-              />
-            </div>
-
-            {/* State/Province */}
-            <div>
-              <Label htmlFor="state_province">State/Province</Label>
-              <Input
-                id="state_province"
-                value={formData.state_province || ''}
-                onChange={(e) => setFormData({ ...formData, state_province: e.target.value })}
-                placeholder="California"
-              />
-            </div>
-
-            {/* Postal Code */}
-            <div>
-              <Label htmlFor="postal_code">Postal Code</Label>
-              <Input
-                id="postal_code"
-                value={formData.postal_code || ''}
-                onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                placeholder="94105"
-              />
-            </div>
-
-            {/* Country */}
-            <div>
-              <Label htmlFor="country">Country</Label>
-              <Input
-                id="country"
-                value={formData.country || ''}
-                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                placeholder="United States"
-              />
-            </div>
-
-            {/* Phone */}
-            <div>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone || ''}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 (555) 123-4567"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="office@company.com"
-                className={errors.email ? 'border-red-500' : ''}
-              />
-              {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
-            </div>
-
-            {/* Description */}
-            <div className="md:col-span-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Additional details about this location..."
-                rows={3}
-              />
-            </div>
-
-            {/* Checkboxes */}
-            <div className="md:col-span-2 flex gap-6">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_primary || false}
-                  onChange={(e) => setFormData({ ...formData, is_primary: e.target.checked })}
-                  className="w-4 h-4 rounded border-input"
-                />
-                <span className="text-sm">Primary Location</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_warehouse || false}
-                  onChange={(e) => setFormData({ ...formData, is_warehouse: e.target.checked })}
-                  className="w-4 h-4 rounded border-input"
-                />
-                <span className="text-sm">Warehouse</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_retail || false}
-                  onChange={(e) => setFormData({ ...formData, is_retail: e.target.checked })}
-                  className="w-4 h-4 rounded border-input"
-                />
-                <span className="text-sm">Retail</span>
-              </label>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tổng số</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-            <Button variant="outline" onClick={handleCancel} disabled={saving}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {editingLocation ? 'Update' : 'Create'}
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* List */}
-      {!showForm && (
-        <>
-          {filteredLocations.length === 0 ? (
-            <div className="bg-card border border-border rounded-lg p-12 text-center">
-              <MapPin className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                {searchTerm ? 'No locations found matching your search' : 'No locations yet. Add your first location to get started.'}
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+              <Building2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {stats.by_status.ACTIVE}
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredLocations.map((location) => {
-                const Icon = getLocationIcon(location.location_type);
-                const statusConfig = LOCATION_STATUSES.find(s => s.value === location.status);
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900/20">
+              <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inactive</p>
+              <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                {stats.by_status.INACTIVE}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+              <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">HQ</p>
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {stats.headquarters}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
 
-                return (
-                  <div
-                    key={location._id}
-                    className="bg-card border border-border rounded-lg p-4 hover:border-primary transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold">{location.name}</h3>
-                          <p className="text-sm text-muted-foreground">{location.code}</p>
-                        </div>
-                      </div>
-                      {location.is_primary && (
-                        <span className="px-2 py-1 text-xs font-medium bg-indigo-50 text-indigo-600 rounded border border-indigo-200">
-                          Primary
-                        </span>
+      {/* Locations Tree */}
+      <Card className="p-6">
+        {tree.length === 0 ? (
+          <div className="text-center py-12">
+            <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 dark:text-gray-400">Chưa có địa điểm nào</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+              Tạo loại địa điểm trước, sau đó tạo địa điểm
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {tree.map((loc) => renderLocationNode(loc))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ==================== LOCATION TYPES PANEL ====================
+
+function LocationTypesPanel({ tenantId }: { tenantId: string }) {
+  const {
+    locationTypes,
+    loading,
+    createLocationType,
+    updateLocationType,
+    deleteLocationType,
+    activateLocationType,
+    deactivateLocationType,
+    getStats,
+  } = useLocationTypes({ tenant_id: tenantId, include_system: true });
+
+  const [stats, setStats] = useState({
+    total: 0,
+    system_types: 0,
+    custom_types: 0,
+    active: 0,
+    with_extra_fields: 0,
+  });
+
+  useEffect(() => {
+    const loadStats = async () => {
+      const s = await getStats();
+      setStats(s);
+    };
+    loadStats();
+  }, [locationTypes]);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bạn có chắc muốn xóa loại địa điểm này?')) return;
+    try {
+      await deleteLocationType(id);
+      toast.success('Đã xóa loại địa điểm');
+    } catch (error: any) {
+      toast.error(`Lỗi: ${error.message}`);
+    }
+  };
+
+  const handleToggleActive = async (type: LocationType) => {
+    try {
+      if (type.is_active) {
+        await deactivateLocationType(type._id);
+        toast.success('Đã vô hiệu hóa');
+      } else {
+        await activateLocationType(type._id);
+        toast.success('Đã kích hoạt');
+      }
+    } catch (error: any) {
+      toast.error(`Lỗi: ${error.message}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  const systemTypes = locationTypes.filter(t => t.is_system);
+  const customTypes = locationTypes.filter(t => !t.is_system);
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+              <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tổng số</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+              <Settings className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Hệ thống</p>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {stats.system_types}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+              <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Tùy chỉnh</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                {stats.custom_types}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+              <Settings className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {stats.active}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
+              <Settings className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Với fields</p>
+              <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                {stats.with_extra_fields}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* System Types */}
+      {systemTypes.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Loại hệ thống
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {systemTypes.map((type) => (
+              <Card key={type._id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">
+                        {type.name}
+                      </h4>
+                      <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                        System
+                      </Badge>
+                      {!type.is_active && (
+                        <Badge variant="secondary">Inactive</Badge>
                       )}
                     </div>
-
-                    {/* Type & Status */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded">
-                        {LOCATION_TYPES.find(t => t.value === location.location_type)?.label}
-                      </span>
-                      <span className={`px-2 py-1 text-xs font-medium rounded border ${statusConfig?.color}`}>
-                        {statusConfig?.label}
-                      </span>
-                    </div>
-
-                    {/* Address */}
-                    {(location.city || location.country) && (
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {[location.city, location.state_province, location.country].filter(Boolean).join(', ')}
+                    <p className="text-xs font-mono text-gray-500 dark:text-gray-400 mb-2">
+                      {type.code}
+                    </p>
+                    {type.description && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        {type.description}
                       </p>
                     )}
-
-                    {/* Contact */}
-                    {location.phone && (
-                      <p className="text-sm text-muted-foreground mb-1">{location.phone}</p>
+                    {type.extra_fields.length > 0 && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {type.extra_fields.length} trường bổ sung
+                      </div>
                     )}
-                    {location.email && (
-                      <p className="text-sm text-muted-foreground mb-3">{location.email}</p>
-                    )}
-
-                    {/* Manager */}
-                    {location.manager && (
-                      <p className="text-sm text-muted-foreground mb-3">
-                        Manager: {location.manager.user.name}
-                      </p>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-3 border-t">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(location)}
-                        className="flex-1"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(location)}
-                        className="text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Types */}
+      {customTypes.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Loại tùy chỉnh
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customTypes.map((type) => (
+              <Card key={type._id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">
+                        {type.name}
+                      </h4>
+                      {!type.is_active && (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs font-mono text-gray-500 dark:text-gray-400 mb-2">
+                      {type.code}
+                    </p>
+                    {type.description && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        {type.description}
+                      </p>
+                    )}
+                    {type.extra_fields.length > 0 && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {type.extra_fields.length} trường bổ sung
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleToggleActive(type)}
+                      title={type.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(type._id)}
+                      className="text-red-600 hover:text-red-700"
+                      title="Xóa"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {locationTypes.length === 0 && (
+        <Card className="p-12">
+          <div className="text-center">
+            <Settings className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-600 dark:text-gray-400">Chưa có loại địa điểm nào</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+              Loại địa điểm định nghĩa schema cho các địa điểm
+            </p>
+          </div>
+        </Card>
       )}
     </div>
   );
 }
+
+export default TenantLocationsTab;

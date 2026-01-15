@@ -72,7 +72,7 @@ app.get('/users', async (c) => {
     
     let query = supabase
       .from('users')
-      .select('*, tenant:tenants(name)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -128,7 +128,7 @@ app.get('/users/:id', async (c) => {
     
     const { data, error } = await supabase
       .from('users')
-      .select('*, tenant:tenants(name)')
+      .select('*')
       .eq('_id', id)
       .is('deleted_at', null)
       .single();

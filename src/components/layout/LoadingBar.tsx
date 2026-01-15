@@ -1,5 +1,5 @@
 import { memo, useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 
 /**
  * Loading Progress Bar - Inspired by YouTube & GitHub

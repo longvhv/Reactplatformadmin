@@ -5,20 +5,16 @@
 
 import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { LoadingFallback } from '../../components/LoadingFallback';
 import { CreditCard } from 'lucide-react';
 
 // Lazy-loaded pages
-const TenantSubscriptionsPage = lazy(() => import('../../pages/TenantSubscriptionsPage').then(m => ({ default: m.TenantSubscriptionsPage })));
-const SubscriptionDetailPage = lazy(() => import('../../pages/SubscriptionDetailPage').then(m => ({ default: m.SubscriptionDetailPage })));
-const AddSubscriptionPage = lazy(() => import('../../pages/AddSubscriptionPage').then(m => ({ default: m.AddSubscriptionPage })));
-const EditSubscriptionPage = lazy(() => import('../../pages/EditSubscriptionPage').then(m => ({ default: m.EditSubscriptionPage })));
+const TenantSubscriptionsPage = lazy(() => import('../../pages/TenantSubscriptionsPage'));
+const SubscriptionDetailPage = lazy(() => import('../../pages/SubscriptionDetailPage'));
+const AddSubscriptionPage = lazy(() => import('../../pages/AddSubscriptionPage'));
+const EditSubscriptionPage = lazy(() => import('../../pages/EditSubscriptionPage'));
 
-// Loading fallback
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-  </div>
-);
+// Note: Some subscription detail views use full-screen layout (defined in App.tsx)
 
 /**
  * Tenant Subscriptions Module Definition

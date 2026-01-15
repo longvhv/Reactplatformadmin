@@ -4,19 +4,13 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Code2, FileText, Database, BookOpen } from "lucide-react";
 
 /**
- * Lazy load Dev Docs pages
+ * Lazy-load Dev Docs Pages
  */
-const DevDocsPage = lazy(() => 
-  import("../../pages/DevDocsPage").then(module => ({ default: module.DevDocsPage }))
-);
+const DevDocsPage = lazy(() => import("../../pages/DevDocsPage"));
 
-const ApiDocsPage = lazy(() => 
-  import("../../pages/ApiDocsPage").then(module => ({ default: module.ApiDocsPage }))
-);
+const ApiDocsPage = lazy(() => import("../../pages/ApiDocsPage"));
 
-const DatabaseDocsPage = lazy(() => 
-  import("../../pages/DatabaseDocsPage").then(module => ({ default: module.DatabaseDocsPage }))
-);
+const DatabaseDocsPage = lazy(() => import("../../pages/DatabaseDocsPage"));
 
 /**
  * Developer Docs Module

@@ -97,7 +97,7 @@ export function UserPagination({
               variant={currentPage === pageNum ? 'default' : 'outline'}
               size="sm"
               onClick={() => onPageChange(pageNum)}
-              className={currentPage === pageNum ? 'bg-[#6366f1] hover:bg-[#4f46e5]' : ''}
+              className={currentPage === pageNum ? 'bg-primary hover:bg-primary/90' : ''}
             >
               {pageNum}
             </Button>

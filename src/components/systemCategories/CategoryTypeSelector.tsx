@@ -44,7 +44,7 @@ export function CategoryTypeSelector({
     <div className="flex flex-wrap gap-2">
       {types.map((type) => (
         <button
-          key={type.code}
+          key={type.id || type.code}
           onClick={() => onSelectType(type)}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
             selectedType?.code === type.code

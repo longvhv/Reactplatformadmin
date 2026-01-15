@@ -1,8 +1,13 @@
 import { ModuleDefinition } from "../../core/ModuleRegistry";
 import { Users } from "lucide-react";
+import { lazy, Suspense } from "react";
+import { LoadingFallback } from "../../components/LoadingFallback";
+
+const UsersPage = lazy(() => import("../../pages/UsersPage"));
+const AddUserPage = lazy(() => import("../../pages/AddUserPage"));
 
 /**
- * Users Module
+ * Users Module  
  */
 export const UsersModule: ModuleDefinition = {
   id: "users",
@@ -14,8 +19,21 @@ export const UsersModule: ModuleDefinition = {
   routes: [
     {
       path: "/core/users",
-      element: <div className="p-6"><h1>Users Management (Coming Soon)</h1></div>,
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải người dùng..." />}>
+          <UsersPage />
+        </Suspense>
+      ),
       title: "Users",
+    },
+    {
+      path: "/core/users/new",
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
+          <AddUserPage />
+        </Suspense>
+      ),
+      title: "Add User",
     },
   ],
   menuItems: [

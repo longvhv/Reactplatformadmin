@@ -128,7 +128,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
       };
 
       await onSubmit(submitData);
-      navigate("/tenants");
+      navigate("/core/tenants");
     } catch (error) {
       console.error("Failed to save tenant:", error);
     } finally {
@@ -155,7 +155,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/tenants")} className="gap-2 mb-4">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/core/tenants")} className="gap-2 mb-4">
             <ArrowLeft className="w-4 h-4" />
             {t("common.back")}
           </Button>
@@ -440,7 +440,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
 
         {/* Form Actions */}
         <div className="flex items-center justify-end gap-4 mt-6">
-          <Button type="button" variant="outline" onClick={() => navigate("/tenants")} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => navigate("/core/tenants")} disabled={loading}>
             {t("common.cancel")}
           </Button>
           <Button type="submit" disabled={loading} className="gap-2">

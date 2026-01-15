@@ -1,12 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { 
-  profileApi, 
-  profileActivitiesApi, 
-  type UserProfile, 
+  type UserProfile,
   type ProfileActivity 
-} from '@/services/profileApi';
+} from '@/types/profile.types';
 
 export function useProfileData() {
   const { t } = useLanguage();

@@ -11,6 +11,7 @@ import {
   updateApplication,
   deleteApplication,
   toggleApplicationActive,
+  getApplicationStats,
 } from './applications-api.tsx';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -143,6 +144,19 @@ app.patch('/applications/:id/toggle-active', async (c) => {
   const userId = body.user_id;
   
   const response = await toggleApplicationActive(id, userId);
+  return new Response(response.body, {
+    status: response.status,
+    headers: response.headers,
+  });
+});
+
+/**
+ * GET /applications/:id/stats
+ * Lấy thống kê của một application
+ */
+app.get('/applications/:id/stats', async (c) => {
+  const id = c.req.param('id');
+  const response = await getApplicationStats(id);
   return new Response(response.body, {
     status: response.status,
     headers: response.headers,

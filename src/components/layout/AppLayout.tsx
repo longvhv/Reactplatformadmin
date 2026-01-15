@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo, memo, ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router";
 import { 
   Sparkles, 
   ChevronLeft, 
-  ChevronRight, 
   Pin,
   TrendingUp,
 } from "lucide-react";
@@ -13,9 +12,47 @@ import { useTheme } from "@/providers/ThemeProvider";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { Button } from "@/components/ui/button";
 import { Header } from "./Header";
-import { Tooltip } from "@/components/ui/Tooltip";
 import { ModuleRegistry, MenuItem } from "../../core/ModuleRegistry.tsx";
-import { NestedMenuItem } from "./NestedMenuItem";
+
+// Define menu groups structure
+interface MenuGroup {
+  id: string;
+  label: string;
+  moduleIds: string[]; // Module IDs that belong to this group
+}
+
+const MENU_GROUPS: MenuGroup[] = [
+  {
+    id: 'main',
+    label: 'CHÍNH',
+    moduleIds: ['dashboard'],
+  },
+  {
+    id: 'identity',
+    label: 'QUẢN TRỊ & TRUY CẬP',
+    moduleIds: ['tenants', 'user', 'roles', 'audit-logs', 'auth-logs', 'tenant-members', 'user-roles'],
+  },
+  {
+    id: 'commerce',
+    label: 'THƯƠNG MẠI & THANH TOÁN',
+    moduleIds: ['products', 'service-packages', 'subscriptions', 'subscription-invoices', 'subscription-orders', 'tenant-subscriptions'],
+  },
+  {
+    id: 'platform',
+    label: 'NỀN TẢNG & CẤU HÌNH',
+    moduleIds: ['applications', 'system-category', 'rate-limits', 'reserved-slugs', 'system-announcements', 'notification-templates'],
+  },
+  {
+    id: 'integrations',
+    label: 'TÍCH HỢP & API',
+    moduleIds: ['webhooks', 'dev-docs'],
+  },
+  {
+    id: 'analytics',
+    label: 'PHÂN TÍCH & BÁO CÁO',
+    moduleIds: ['legal-documents'],
+  },
+];
 
 // Memoized Navigation Item
 const NavigationItem = memo(({ route, icon, name, isPinned, onTogglePin }: {
@@ -27,7 +64,7 @@ const NavigationItem = memo(({ route, icon, name, isPinned, onTogglePin }: {
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isActive = location.pathname === route.path;
+  const isActive = location.pathname === route.path || location.pathname.startsWith(`${route.path}/`);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,28 +80,23 @@ const NavigationItem = memo(({ route, icon, name, isPinned, onTogglePin }: {
         {/* Navigation Button */}
         <button
           onClick={handleClick}
-          className={`flex-1 flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 relative overflow-hidden ${
+          className={`flex-1 flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 relative overflow-hidden ${
             isActive
-              ? "bg-gradient-to-r from-[#6366f1] to-[#6366f1]/90 text-white shadow-lg shadow-[#6366f1]/20"
+              ? "bg-indigo-600 text-white"
               : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
           }`}
         >
-          {/* Active indicator */}
-          {isActive && (
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-full" />
-          )}
-          
           {/* Icon */}
           {icon && (
-            <div className={`flex items-center justify-center transition-transform duration-200 ${
-              isActive ? "scale-110" : "group-hover:scale-105"
+            <div className={`flex items-center justify-center flex-shrink-0 ${
+              isActive ? "text-white" : "text-gray-500 dark:text-gray-400"
             }`}>
               {icon}
             </div>
           )}
           
           {/* Name */}
-          <span className="flex-1 font-medium text-left">
+          <span className="flex-1 font-normal text-sm text-left truncate">
             {name}
           </span>
 
@@ -122,13 +154,38 @@ export function AppLayout({ children }: AppLayoutProps) {
       // Only show modules with showInSidebar = true and menuItems
       if (module.showInSidebar && module.menuItems) {
         module.menuItems.forEach((menuItem) => {
-          menuItems.push(menuItem);
+          menuItems.push({
+            ...menuItem,
+            moduleId: module.id, // Add moduleId for grouping
+          });
         });
       }
     });
     
     return menuItems;
   }, [t]); // Add t as dependency to re-compute when language changes
+
+  // Group menu items by category
+  const groupedMenuItems = useMemo(() => {
+    const groups: Record<string, MenuItem[]> = {};
+    
+    MENU_GROUPS.forEach(group => {
+      groups[group.id] = [];
+    });
+    
+    registryRoutes.forEach(item => {
+      // Find which group this item belongs to based on moduleId
+      const group = MENU_GROUPS.find(g => 
+        g.moduleIds.includes((item as any).moduleId)
+      );
+      
+      if (group) {
+        groups[group.id].push(item);
+      }
+    });
+    
+    return groups;
+  }, [registryRoutes]);
 
   // Load saved preferences
   useEffect(() => {
@@ -183,76 +240,107 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, [registryRoutes, pinnedRoutes]);
 
   return (
-    <div className="flex h-screen bg-[#fafafa] dark:bg-[#0a0a0a]">
+    <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? "w-64" : "w-20"
-        } bg-white dark:bg-[#1a1a1a] border-r border-gray-200 dark:border-gray-800 transition-all duration-300 flex flex-col`}
+        } bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 flex flex-col`}
       >
         {/* Sidebar Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center justify-between">
-            {sidebarOpen && (
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-[#6366f1] to-[#4f46e5] rounded-lg flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-                <span className="font-bold text-lg">BasicSoft</span>
+        <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
+          {sidebarOpen && (
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">VH</span>
               </div>
+              <span className="font-semibold text-base text-gray-900 dark:text-white">VHV Platform</span>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className={`${!sidebarOpen ? "mx-auto" : ""} p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800`}
+          >
+            {sidebarOpen ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <Sparkles className="h-5 w-5" />
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSidebar}
-              className={`${!sidebarOpen ? "mx-auto" : ""}`}
-            >
-              {sidebarOpen ? (
-                <ChevronLeft className="h-5 w-5" />
-              ) : (
-                <ChevronRight className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
+          </Button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+        <nav className="flex-1 overflow-y-auto py-3 px-2">
           {/* Pinned Routes */}
           {sidebarOpen && pinnedRouteObjects.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 px-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                <Pin className="h-3 w-3" />
-                <span>Pinned</span>
+            <div className="mb-5">
+              <div className="px-3 mb-1.5">
+                <h3 className="flex items-center gap-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                  <Pin className="h-3 w-3" />
+                  <span>Pinned</span>
+                </h3>
               </div>
-              {pinnedRouteObjects.map((route: any) => (
+              <div className="space-y-0.5">
+                {pinnedRouteObjects.map((route: any) => (
+                  <NavigationItem
+                    key={route.path}
+                    route={route}
+                    icon={route.icon}
+                    name={route.name}
+                    isPinned={true}
+                    onTogglePin={() => togglePinRoute(route.path)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Grouped Navigation */}
+          {sidebarOpen && MENU_GROUPS.map((group, groupIndex) => {
+            const items = groupedMenuItems[group.id] || [];
+            if (items.length === 0) return null;
+            
+            return (
+              <div key={group.id} className={groupIndex > 0 ? 'mt-5' : ''}>
+                {/* Group header */}
+                <div className="px-3 mb-1.5">
+                  <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                    {group.label}
+                  </h3>
+                </div>
+                
+                {/* Group items */}
+                <div className="space-y-0.5">
+                  {items.map((item) => (
+                    <NavigationItem
+                      key={item.path}
+                      route={item}
+                      icon={item.icon}
+                      name={t(item.label)}
+                      isPinned={pinnedRoutes.includes(item.path || '')}
+                      onTogglePin={item.path ? () => togglePinRoute(item.path!) : undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Collapsed sidebar - icon only */}
+          {!sidebarOpen && (
+            <div className="space-y-2">
+              {registryRoutes.map((item) => (
                 <NavigationItem
-                  key={route.path}
-                  route={route}
-                  icon={route.icon}
-                  name={route.name}
-                  isPinned={true}
-                  onTogglePin={() => togglePinRoute(route.path)}
+                  key={item.path}
+                  route={item}
+                  icon={item.icon}
+                  name={t(item.label)}
                 />
               ))}
             </div>
           )}
-
-          {/* Main Navigation */}
-          <div className="space-y-2">
-            {registryRoutes.map((menuItem) => (
-              <NestedMenuItem
-                key={menuItem.id}
-                item={{
-                  ...menuItem,
-                  label: t(menuItem.label) // Translate label
-                }}
-                level={0}
-                collapsed={!sidebarOpen}
-                onClose={() => {}}
-              />
-            ))}
-          </div>
         </nav>
       </aside>
 

@@ -46,7 +46,7 @@ app.get('/tenants', async (c: Context) => {
     if (status) query = query.eq('status', status);
     if (tier) query = query.eq('tier', tier);
     if (search) {
-      query = query.or(`name.ilike.%${search}%,slug.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`);
     }
     
     const { data, error, count } = await query;
@@ -111,16 +111,16 @@ app.post('/tenants', async (c: Context) => {
     const body = await c.req.json();
     const supabase = getSupabaseClient();
     
-    // Check slug uniqueness
+    // Check code uniqueness
     const { data: existing } = await supabase
       .from('tenants')
       .select('_id')
-      .eq('slug', body.slug)
+      .eq('code', body.code)
       .is('deleted_at', null)
       .single();
     
     if (existing) {
-      return c.json({ error: 'Slug already exists' }, 409);
+      return c.json({ error: 'Code already exists' }, 409);
     }
     
     // Generate UUID
@@ -130,7 +130,7 @@ app.post('/tenants', async (c: Context) => {
     const insertData = {
       _id: newTenantId,
       name: body.name,
-      slug: body.slug,
+      code: body.code,
       domain: body.domain || null,
       logo: body.logo || null,
       description: body.description || null,
@@ -172,7 +172,7 @@ app.patch('/tenants/:id', async (c: Context) => {
     // Get current version for optimistic locking
     const { data: current, error: fetchError } = await supabase
       .from('tenants')
-      .select('version, slug')
+      .select('version, code')
       .eq('_id', id)
       .is('deleted_at', null)
       .single();
@@ -188,17 +188,17 @@ app.patch('/tenants/:id', async (c: Context) => {
       }, 409);
     }
     
-    // Slug validation if changing
-    if (body.slug && body.slug !== current.slug) {
+    // Code validation if changing
+    if (body.code && body.code !== current.code) {
       const { data: existing } = await supabase
         .from('tenants')
         .select('_id')
-        .eq('slug', body.slug)
+        .eq('code', body.code)
         .is('deleted_at', null)
         .single();
       
       if (existing) {
-        return c.json({ error: 'Slug already exists' }, 409);
+        return c.json({ error: 'Code already exists' }, 409);
       }
     }
     

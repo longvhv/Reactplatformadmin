@@ -73,7 +73,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#6366f1] to-[#4f46e5] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/90 rounded-lg flex items-center justify-center">
               <User className="h-4 w-4 text-white" />
             </div>
             {user ? t('users.editUser') : t('users.addUser')}
@@ -196,7 +196,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
             </Button>
             <Button
               type="submit"
-              className="bg-[#6366f1] hover:bg-[#4f46e5]"
+              className="bg-primary hover:bg-primary/90"
             >
               {t('users.saveUser')}
             </Button>

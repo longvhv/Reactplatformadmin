@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { 
   FileText, Calendar, DollarSign, User, CreditCard, 
   Eye, Pencil, Trash2, AlertCircle 

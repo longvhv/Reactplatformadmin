@@ -303,3 +303,5 @@ export function TenantMembersPage() {
     </div>
   );
 }
+
+export default TenantMembersPage;

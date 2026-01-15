@@ -4,23 +4,21 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Building2, Plus, Edit, Eye } from "lucide-react";
 
 /**
- * Lazy load Tenant pages
+ * Lazy-load Tenant Pages
  */
 const TenantsPage = lazy(() => 
-  import("../../pages/TenantsPage").then(module => ({ default: module.TenantsPage }))
+  import("../../pages/TenantsPage")
 );
 
 const AddTenantPage = lazy(() => 
-  import("../../pages/AddTenantPage").then(module => ({ default: module.AddTenantPage }))
+  import("../../pages/AddTenantPage")
 );
 
 const EditTenantPage = lazy(() => 
-  import("../../pages/EditTenantPage").then(module => ({ default: module.EditTenantPage }))
+  import("../../pages/EditTenantPage")
 );
 
-const TenantDetailPage = lazy(() => 
-  import("../../pages/TenantDetailPage").then(module => ({ default: module.TenantDetailPage }))
-);
+// Note: TenantDetailPage is full-screen (defined in App.tsx, not in module registry)
 
 /**
  * Tenants Module
@@ -59,15 +57,6 @@ export const TenantsModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "Edit Tenant",
-    },
-    {
-      path: "/core/tenants/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
-          <TenantDetailPage />
-        </Suspense>
-      ),
-      title: "Tenant Details",
     },
   ],
   menuItems: [

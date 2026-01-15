@@ -1,435 +1,393 @@
 /**
- * TenantDetailPage Component - Sidebar Layout
- * 
- * Full-screen layout with vertical sidebar navigation
- * Tabs: Overview, Edit, Members, Departments, User Groups, Locations, SSO Configs, Children, Activity
+ * TenantDetailPage Component
+ * Chi tiết tenant với sidebar navigation - Full featured
  */
 
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Edit, Save, X, Loader2, Building2, Users, Activity, 
-  Settings, Building, MapPin, Shield, GitBranch 
-} from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { useTenants } from "@/hooks/useTenants";
-import { Button } from "@/components/ui/button";
-import { TenantOverview } from "@/components/tenants/TenantOverview";
-import { BasicInfoTab } from "@/components/tenants/form-tabs/BasicInfoTab";
-import { InfrastructureTab } from "@/components/tenants/form-tabs/InfrastructureTab";
-import { SubscriptionTab } from "@/components/tenants/form-tabs/SubscriptionTab";
-import { SettingsTab } from "@/components/tenants/form-tabs/SettingsTab";
-import { TenantMembersTab } from "@/components/tenants/TenantMembersTab";
-import { TenantDepartmentsTab } from "@/components/tenants/TenantDepartmentsTab";
-import { TenantUserGroupsTab } from "@/components/tenants/TenantUserGroupsTab";
-import { TenantLocationsTab } from "@/components/tenants/TenantLocationsTab";
-import { TenantSSOConfigsTab } from "@/components/tenants/TenantSSOConfigsTab";
-import type { Tenant } from "@/data/tenants";
+  ArrowLeft, 
+  Building2, 
+  Users, 
+  Settings, 
+  BarChart3, 
+  CreditCard, 
+  History,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Power,
+  PowerOff,
+  Route,
+  Gauge,
+  Webhook,
+  Shield,
+  UserCog,
+  FolderTree,
+  MapPin,
+  Share2,
+  Key,
+  GitBranch,
+  Link2
+} from 'lucide-react';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useTenant } from '@/hooks/useTenant';
+import { TenantDetailView } from '@/components/tenants/TenantDetailView';
+import { TenantAppRoutesTab } from '@/components/tenants/TenantAppRoutesTab';
+import { TenantRateLimitsTab } from '@/components/tenants/TenantRateLimitsTab';
+import { TenantWebhooksTab } from '@/components/tenants/TenantWebhooksTab';
+import { TenantRoutingSlugsTab } from '@/components/tenants/TenantRoutingSlugsTab';
+import { TenantMembersTab } from '@/components/tenants/TenantMembersTab';
+import { TenantRolesTab } from '@/components/tenants/TenantRolesTab';
+import { TenantDepartmentsTab } from '@/components/tenants/TenantDepartmentsTab';
+import { TenantUserGroupsTab } from '@/components/tenants/TenantUserGroupsTab';
+import { TenantDelegationsTab } from '@/components/tenants/TenantDelegationsTab';
+import { TenantLocationsTab } from '@/components/tenants/TenantLocationsTab';
+import { TenantSSOConfigsTab } from '@/components/tenants/TenantSSOConfigsTab';
+import { TenantActivity } from '@/components/tenants/TenantActivity';
+import { TenantStats } from '@/components/tenants/TenantStats';
+import type { TenantStatus } from '@/data/tenants';
+import { 
+  tenantStatusColors, 
+  tenantTierColors,
+  tierNames,
+  statusNames 
+} from '@/utils/tenant-utils';
 
-type TabType = "overview" | "edit" | "members" | "departments" | "userGroups" | "locations" | "ssoConfigs" | "children" | "activity";
+type TabType = 
+  | 'overview' 
+  | 'app-routes' 
+  | 'rate-limits' 
+  | 'webhooks'
+  | 'routing-slugs'
+  | 'members'
+  | 'roles'
+  | 'departments'
+  | 'user-groups'
+  | 'delegations'
+  | 'locations'
+  | 'sso-configs'
+  | 'activity'
+  | 'stats';
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
   
-  const { getTenant, updateTenant } = useTenants({ autoLoad: false });
-  
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [formData, setFormData] = useState<Partial<Tenant>>({});
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  // State must be declared before any conditional returns
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [showActions, setShowActions] = useState(false);
 
-  // Load tenant data
+  // Handle invalid routes with useEffect (after hooks)
   useEffect(() => {
-    loadTenant();
-  }, [id]);
-
-  const loadTenant = async () => {
-    if (!id) return;
-    
-    setLoading(true);
-    try {
-      const data = await getTenant(id);
-      if (data) {
-        setTenant(data);
-        setFormData(data);
-      }
-    } catch (err) {
-      console.error("Error loading tenant:", err);
-    } finally {
-      setLoading(false);
+    if (id === 'new' || id === 'add') {
+      navigate('/core/tenants/add', { replace: true });
+    } else if (!id) {
+      navigate('/core/tenants', { replace: true });
     }
-  };
+  }, [id, navigate]);
 
-  // Handle form field change
-  const handleFieldChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
-  };
+  // Use useTenant with guard - it has internal protection
+  const { 
+    tenant, 
+    loading, 
+    error, 
+    updateTenant, 
+    deleteTenant,
+    updateStatus 
+  } = useTenant(id !== 'new' && id !== 'add' ? id : undefined);
 
-  // Handle nested field change
-  const handleNestedChange = (parent: string, field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [parent]: {
-        ...(prev[parent as keyof Tenant] as any || {}),
-        [field]: value
-      }
-    }));
-  };
-
-  // Validate form
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name?.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.code?.trim()) {
-      newErrors.code = "Code is required";
-    } else if (!/^[a-z0-9-]+$/.test(formData.code)) {
-      newErrors.code = "Code must contain only lowercase letters, numbers, and hyphens";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Save changes
-  const handleSave = async () => {
-    if (!validateForm() || !tenant || !id) return;
-
-    setSaving(true);
-    try {
-      const updated = await updateTenant(id, {
-        ...formData,
-        version: tenant.version
-      });
-      
-      setTenant(updated);
-      setFormData(updated);
-      setActiveTab("overview");
-    } catch (err) {
-      console.error("Error saving tenant:", err);
-      alert(err instanceof Error ? err.message : "Failed to save tenant");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Cancel editing
-  const handleCancel = () => {
-    setFormData(tenant || {});
-    setErrors({});
-    setActiveTab("overview");
-  };
-
-  // Sidebar navigation items
-  const navItems = [
-    { id: "overview", label: "Overview", icon: Building2, group: "main" },
-    { id: "edit", label: "Edit Details", icon: Edit, group: "main" },
-    { id: "members", label: "Members", icon: Users, group: "organization" },
-    { id: "departments", label: "Departments", icon: Building, group: "organization" },
-    { id: "userGroups", label: "User Groups", icon: Users, group: "organization" },
-    { id: "locations", label: "Locations", icon: MapPin, group: "organization" },
-    { id: "ssoConfigs", label: "SSO Configs", icon: Shield, group: "security" },
-    { id: "children", label: "Child Tenants", icon: GitBranch, group: "hierarchy" },
-    { id: "activity", label: "Activity Log", icon: Activity, group: "other" },
-  ];
-
-  // Group navigation items
-  const groupedNavItems = [
-    { 
-      title: null, 
-      items: navItems.filter(item => item.group === "main") 
-    },
-    { 
-      title: "Organization", 
-      items: navItems.filter(item => item.group === "organization") 
-    },
-    { 
-      title: "Security", 
-      items: navItems.filter(item => item.group === "security") 
-    },
-    { 
-      title: "Other", 
-      items: navItems.filter(item => item.group === "hierarchy" || item.group === "other") 
-    },
-  ];
+  // Early return AFTER all hooks
+  if (!id || id === 'new' || id === 'add') {
+    return null;
+  }
 
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">{t("common.loading") || "Loading..."}</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading tenant...</p>
         </div>
       </div>
     );
   }
 
-  // Not found state
-  if (!tenant) {
+  // Error state
+  if (error || !tenant) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">{t("errors.notFound") || "Tenant not found"}</p>
-          <Button onClick={() => navigate("/tenants")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t("common.back") || "Back to Tenants"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/tenants")}
-            className="w-full justify-start mb-3"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+          <p className="text-red-600 mb-4">{error || 'Tenant not found'}</p>
+          <Button onClick={() => navigate('/core/tenants')}>
             Back to Tenants
           </Button>
-          <div>
-            <h2 className="font-semibold text-gray-900 truncate">{tenant.name}</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {tenant.code} • {tenant.tier}
-            </p>
-          </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-2">
-          {groupedNavItems.map((group, groupIndex) => (
-            <div key={groupIndex} className="mb-4">
-              {group.title && (
-                <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {group.title}
+  // Grouped sidebar items structure
+  const sidebarGroups = [
+    {
+      id: 'general',
+      label: 'TỔNG QUAN',
+      items: [
+        { id: 'overview', label: 'Tổng quan', icon: Building2, badge: null },
+        { id: 'activity', label: 'Hoạt động', icon: History, badge: null },
+        { id: 'stats', label: 'Thống kê', icon: BarChart3, badge: null },
+      ]
+    },
+    {
+      id: 'access',
+      label: 'QUẢN TRỊ & TRUY CẬP',
+      items: [
+        { id: 'members', label: 'Thành viên', icon: Users, badge: null },
+        { id: 'roles', label: 'Vai trò', icon: Shield, badge: null },
+        { id: 'departments', label: 'Phòng ban', icon: FolderTree, badge: null },
+        { id: 'user-groups', label: 'Nhóm người dùng', icon: UserCog, badge: null },
+        { id: 'delegations', label: 'Ủy quyền', icon: Share2, badge: null },
+        { id: 'locations', label: 'Địa điểm', icon: MapPin, badge: null },
+      ]
+    },
+    {
+      id: 'configuration',
+      label: 'CẤU HÌNH & TÍCH HỢP',
+      items: [
+        { id: 'routing-slugs', label: 'Routing Slugs', icon: Link2, badge: null },
+        { id: 'app-routes', label: 'App Routes', icon: Route, badge: null },
+        { id: 'rate-limits', label: 'Rate Limits', icon: Gauge, badge: null },
+        { id: 'webhooks', label: 'Webhooks', icon: Webhook, badge: null },
+        { id: 'sso-configs', label: 'SSO Configs', icon: Key, badge: null },
+      ]
+    },
+  ];
+
+  const handleDelete = async () => {
+    if (!confirm(t('tenants.confirmDelete'))) return;
+    try {
+      await deleteTenant();
+      navigate('/core/tenants');
+    } catch (err) {
+      alert(t('tenants.deleteFailed'));
+    }
+  };
+
+  const handleStatusChange = async (newStatus: TenantStatus) => {
+    if (!confirm('Bạn có chắc muốn thay đổi trạng thái?')) return;
+    try {
+      await updateStatus(newStatus);
+    } catch (err) {
+      alert('Cập nhật trạng thái thất bại');
+    }
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <TenantDetailView tenant={tenant} />;
+      case 'app-routes':
+        return <TenantAppRoutesTab tenantId={tenant._id} />;
+      case 'rate-limits':
+        return <TenantRateLimitsTab tenantId={tenant._id} />;
+      case 'webhooks':
+        return <TenantWebhooksTab tenantId={tenant._id} />;
+      case 'routing-slugs':
+        return <TenantRoutingSlugsTab tenantId={tenant._id} />;
+      case 'members':
+        return <TenantMembersTab tenantId={tenant._id} />;
+      case 'roles':
+        return <TenantRolesTab tenantId={tenant._id} />;
+      case 'departments':
+        return <TenantDepartmentsTab tenantId={tenant._id} />;
+      case 'user-groups':
+        return <TenantUserGroupsTab tenantId={tenant._id} />;
+      case 'delegations':
+        return <TenantDelegationsTab tenantId={tenant._id} />;
+      case 'locations':
+        return <TenantLocationsTab tenantId={tenant._id} />;
+      case 'sso-configs':
+        return <TenantSSOConfigsTab tenantId={tenant._id} />;
+      case 'activity':
+        return <TenantActivity tenantId={tenant._id} />;
+      case 'stats':
+        return <TenantStats tenantId={tenant._id} />;
+      default:
+        return <TenantDetailView tenant={tenant} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/core/tenants')}
+                className="hover:bg-gray-100"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t('common.back')}
+              </Button>
+              
+              <div className="h-8 w-px bg-gray-300" />
+              
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100">
+                  <Building2 className="w-5 h-5 text-indigo-600" />
                 </div>
-              )}
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id as TabType)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-indigo-50 text-indigo-700"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">{tenant.name}</h1>
+                  <p className="text-sm text-gray-500 font-mono">/{tenant.code}</p>
+                </div>
+                <Badge className={tenantStatusColors[tenant.status]}>
+                  {statusNames[tenant.status]}
+                </Badge>
+                <Badge variant="outline" className={tenantTierColors[tenant.tier]}>
+                  {tierNames[tenant.tier]}
+                </Badge>
               </div>
             </div>
-          ))}
-        </nav>
 
-        {/* Footer Actions */}
-        {activeTab === "edit" && (
-          <div className="p-4 border-t border-gray-200 space-y-2">
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="w-full"
-              size="sm"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
-                </>
+            <div className="flex items-center gap-2">
+              {tenant.status === 'active' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange('suspended')}
+                  className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  <PowerOff className="w-4 h-4 mr-2" />
+                  Tạm ngưng
+                </Button>
               ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Changes
-                </>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStatusChange('active')}
+                  className="text-green-600 border-green-200 hover:bg-green-50"
+                >
+                  <Power className="w-4 h-4 mr-2" />
+                  Kích hoạt
+                </Button>
               )}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              disabled={saving}
-              className="w-full"
-              size="sm"
-            >
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate(`/core/tenants/edit/${id}`)}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                {t('common.edit')}
+              </Button>
+
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowActions(!showActions)}
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+                
+                {showActions && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setShowActions(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      <button
+                        onClick={handleDelete}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {t('common.delete')}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto p-8">
-          {activeTab === "overview" && (
-            <TenantOverview tenant={tenant} />
-          )}
-
-          {activeTab === "edit" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Edit Tenant Details</h1>
-                <p className="text-gray-500">Update tenant information and settings</p>
-              </div>
-
-              {/* Basic Information */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">
-                  Basic Information
-                </h2>
-                <BasicInfoTab
-                  formData={formData}
-                  errors={errors}
-                  onChange={handleFieldChange}
-                  onNestedChange={handleNestedChange}
-                />
-              </div>
-
-              {/* Infrastructure */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">
-                  Infrastructure
-                </h2>
-                <InfrastructureTab
-                  formData={formData}
-                  errors={errors}
-                  onChange={handleFieldChange}
-                />
-              </div>
-
-              {/* Subscription */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">
-                  Subscription
-                </h2>
-                <SubscriptionTab
-                  formData={formData}
-                  errors={errors}
-                  onChange={handleFieldChange}
-                />
-              </div>
-
-              {/* Settings */}
-              <div className="bg-white border border-gray-200 rounded-lg p-6">
-                <h2 className="text-lg font-semibold mb-4 text-gray-900">
-                  Settings
-                </h2>
-                <SettingsTab
-                  formData={formData}
-                  errors={errors}
-                  onChange={handleNestedChange}
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === "members" && id && (
-            <div>
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Members</h1>
-                <p className="text-gray-500">Manage tenant members and their roles</p>
-              </div>
-              <TenantMembersTab tenantId={id} />
-            </div>
-          )}
-
-          {activeTab === "departments" && id && (
-            <div>
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Departments</h1>
-                <p className="text-gray-500">Organize members into departments</p>
-              </div>
-              <TenantDepartmentsTab tenantId={id} />
-            </div>
-          )}
-
-          {activeTab === "userGroups" && id && (
-            <div>
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">User Groups</h1>
-                <p className="text-gray-500">Manage user groups and permissions</p>
-              </div>
-              <TenantUserGroupsTab tenantId={id} />
-            </div>
-          )}
-
-          {activeTab === "locations" && id && (
-            <div>
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Locations</h1>
-                <p className="text-gray-500">Manage physical locations and branches</p>
-              </div>
-              <TenantLocationsTab tenantId={id} />
-            </div>
-          )}
-
-          {activeTab === "ssoConfigs" && id && (
-            <div>
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">SSO Configurations</h1>
-                <p className="text-gray-500">Configure single sign-on integrations</p>
-              </div>
-              <TenantSSOConfigsTab tenantId={id} />
-            </div>
-          )}
-
-          {activeTab === "children" && (
-            <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-              <GitBranch className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Child Tenants
-              </h3>
-              <p className="text-gray-500">
-                Hierarchical tenant management coming soon
-              </p>
-            </div>
-          )}
-
-          {activeTab === "activity" && (
-            <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
-              <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Activity Log
-              </h3>
-              <p className="text-gray-500">
-                Audit trail and activity history coming soon
-              </p>
-            </div>
-          )}
         </div>
-      </main>
+      </div>
+
+      {/* Main Content with Sidebar */}
+      <div className="max-w-[1600px] mx-auto px-6 py-6">
+        <div className="flex gap-6">
+          {/* Sidebar Navigation */}
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden sticky top-24">
+              <div className="p-3 bg-gray-50 border-b border-gray-200">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                  Quản lý Tenant
+                </p>
+              </div>
+              <nav className="py-3 px-2">
+                {sidebarGroups.map((group, groupIndex) => (
+                  <div key={group.id} className={groupIndex > 0 ? 'mt-5' : ''}>
+                    {/* Group header */}
+                    <div className="px-3 mb-1.5">
+                      <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                        {group.label}
+                      </h3>
+                    </div>
+                    
+                    {/* Group items */}
+                    <div className="space-y-0.5">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id as TabType)}
+                            className={`
+                              w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-all duration-150
+                              ${isActive 
+                                ? 'bg-indigo-600 text-white' 
+                                : 'text-gray-700 hover:bg-gray-100'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                              <span className="font-normal">{item.label}</span>
+                            </div>
+                            {item.badge && (
+                              <Badge variant="secondary" className="ml-auto">
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden p-6">
+              {renderTabContent()}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
+export default TenantDetailPage;

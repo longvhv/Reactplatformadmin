@@ -31,16 +31,15 @@ export function EditSystemCategoryPage() {
     try {
       setLoading(true);
       const data = await systemCategoryApi.getById(id!);
-      if (data) {
-        setCategory(data);
-      } else {
+      if (!data) {
         toast.error(t('systemCategories.notFound'));
-        navigate('/system-categories');
+        navigate('/core/system-categories');
       }
-    } catch (error) {
-      console.error('Failed to load system category:', error);
+      setCategory(data);
+    } catch (error: any) {
+      console.error('Failed to load category:', error);
       toast.error(t('errors.somethingWentWrong'));
-      navigate('/system-categories');
+      navigate('/core/system-categories');
     } finally {
       setLoading(false);
     }
@@ -48,41 +47,38 @@ export function EditSystemCategoryPage() {
 
   const handleSubmit = async (data: any) => {
     try {
-      setSubmitting(true);
+      setLoading(true);
       await systemCategoryApi.update(id!, data);
       toast.success(t('systemCategories.updateSuccess'));
-      navigate('/system-categories');
+      navigate('/core/system-categories');
     } catch (error: any) {
-      console.error('Failed to update system category:', error);
+      console.error('Failed to update category:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    navigate('/system-categories');
+    navigate('/core/system-categories');
   };
 
-  if (loading) {
+  if (loading && !category) {
     return (
-      <div className="container mx-auto p-6 max-w-4xl">
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
-  }
-
-  if (!category) {
-    return null;
   }
 
   return (
     <div className="container mx-auto p-6 max-w-4xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/system-categories')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/core/system-categories')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -107,3 +103,5 @@ export function EditSystemCategoryPage() {
     </div>
   );
 }
+
+export default EditSystemCategoryPage;

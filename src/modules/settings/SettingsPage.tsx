@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Card } from "../../components/ui/card";
+import { useState } from 'react';
+import { Switch } from "../../components/ui/switch";
+import { Breadcrumb } from "../../components/layout/Breadcrumb";
+import { useTheme } from "../../providers/ThemeProvider";
+import { Save, User, Bell, Shield, Palette, Check } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Switch } from "../../components/ui/switch";
-import { Breadcrumb } from "../../components/Breadcrumb";
-import { useTheme } from "../../providers/ThemeProvider";
-import { Save, User, Bell, Shield, Palette, Check } from "lucide-react";
+import { Card } from "../../components/ui/card";
 
 /**
  * Modern Settings Page
@@ -316,3 +316,5 @@ export function SettingsPage() {
     </div>
   );
 }
+
+export default SettingsPage;

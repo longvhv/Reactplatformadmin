@@ -6,7 +6,17 @@
 import { ReactNode } from 'react';
 import { LucideIcon } from 'lucide-react';
 
-// Theme Types
+// =====================================================
+// RE-EXPORTS
+// =====================================================
+
+export * from './profile';
+export * from './common';
+
+// =====================================================
+// THEME TYPES
+// =====================================================
+
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ActualTheme = 'light' | 'dark';
 
@@ -16,8 +26,11 @@ export interface ThemeContextValue {
   setTheme: (theme: ThemeMode) => void;
 }
 
-// Language Types
-export type LanguageCode = 'vi' | 'en';
+// =====================================================
+// LANGUAGE TYPES
+// =====================================================
+
+export type LanguageCode = 'vi' | 'en' | 'ja' | 'ko' | 'zh' | 'es';
 
 export interface Language {
   code: LanguageCode;
@@ -25,7 +38,10 @@ export interface Language {
   flag: string;
 }
 
-// Navigation Types
+// =====================================================
+// NAVIGATION TYPES
+// =====================================================
+
 export interface Route {
   path: string;
   element: ReactNode;
@@ -61,7 +77,10 @@ export interface Module {
   priority?: number;
 }
 
-// Search Types
+// =====================================================
+// SEARCH TYPES
+// =====================================================
+
 export interface SearchResult {
   id: string;
   title: string;
@@ -78,7 +97,10 @@ export interface RecentSearch {
   icon: LucideIcon;
 }
 
-// Layout Types
+// =====================================================
+// LAYOUT TYPES
+// =====================================================
+
 export interface HeaderProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
@@ -96,7 +118,10 @@ export interface SidebarProps {
   onToggleCollapse: () => void;
 }
 
-// Component Props Types
+// =====================================================
+// COMPONENT PROPS TYPES
+// =====================================================
+
 export interface TooltipProps {
   content: string;
   children: ReactNode;
@@ -111,7 +136,10 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   asChild?: boolean;
 }
 
-// Notification Types
+// =====================================================
+// NOTIFICATION TYPES
+// =====================================================
+
 export interface Notification {
   id: string;
   type: 'info' | 'success' | 'warning' | 'error';
@@ -125,7 +153,10 @@ export interface Notification {
   };
 }
 
-// User Types
+// =====================================================
+// USER TYPES
+// =====================================================
+
 export interface User {
   id: string;
   name: string;
@@ -135,7 +166,10 @@ export interface User {
   status?: 'online' | 'offline' | 'away';
 }
 
-// State Management Types
+// =====================================================
+// STATE MANAGEMENT TYPES
+// =====================================================
+
 export interface AppState {
   sidebarOpen: boolean;
   sidebarCollapsed: boolean;
@@ -145,16 +179,19 @@ export interface AppState {
   recentRoutes: string[];
 }
 
-// Utility Types
+// =====================================================
+// UTILITY TYPES
+// =====================================================
+
 export type Nullable<T> = T | null;
 export type Optional<T> = T | undefined;
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
-// ============================================
+// =====================================================
 // DEPARTMENT TYPES
-// ============================================
+// =====================================================
 
 export interface Department {
   _id: string;
@@ -197,9 +234,9 @@ export interface DepartmentMember {
 
 export type DepartmentStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
 
-// ============================================
+// =====================================================
 // USER GROUP TYPES
-// ============================================
+// =====================================================
 
 export interface UserGroup {
   _id: string;

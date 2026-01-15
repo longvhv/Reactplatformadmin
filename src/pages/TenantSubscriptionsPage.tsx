@@ -44,15 +44,10 @@ export const TenantSubscriptionsPage: React.FC = () => {
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
-      const { data, error } = await getTenantSubscriptions(filters);
-      if (error) {
-        console.error('Error fetching subscriptions:', error);
-        toast.error(t('subscriptions.fetchError'));
-      } else {
-        setSubscriptions(data);
-      }
+      const data = await getTenantSubscriptions(filters);
+      setSubscriptions(data);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching subscriptions:', error);
       toast.error(t('subscriptions.fetchError'));
     } finally {
       setLoading(false);
@@ -62,12 +57,11 @@ export const TenantSubscriptionsPage: React.FC = () => {
   // Fetch statistics
   const fetchStatistics = async () => {
     try {
-      const { data, error } = await getTenantSubscriptionStatistics();
-      if (!error && data) {
-        setStatistics(data);
-      }
+      const data = await getTenantSubscriptionStatistics();
+      setStatistics(data);
     } catch (error) {
       console.error('Error fetching statistics:', error);
+      // Silently fail for statistics
     }
   };
 
@@ -80,17 +74,13 @@ export const TenantSubscriptionsPage: React.FC = () => {
     if (!confirm(t('subscriptions.deleteConfirm'))) return;
 
     try {
-      const { success, error } = await deleteTenantSubscription(id);
-      if (success) {
-        toast.success(t('subscriptions.deleteSuccess'));
-        fetchSubscriptions();
-        fetchStatistics();
-      } else {
-        toast.error(error?.message || t('subscriptions.deleteError'));
-      }
-    } catch (error) {
+      await deleteTenantSubscription(id);
+      toast.success(t('subscriptions.deleteSuccess'));
+      fetchSubscriptions();
+      fetchStatistics();
+    } catch (error: any) {
       console.error('Error deleting subscription:', error);
-      toast.error(t('subscriptions.deleteError'));
+      toast.error(error?.message || t('subscriptions.deleteError'));
     }
   };
 
@@ -124,7 +114,9 @@ export const TenantSubscriptionsPage: React.FC = () => {
             <p className="text-gray-600 mt-1">{t('subscriptions.subtitle')}</p>
           </div>
           <Button 
-            onClick={() => navigate('/core/subscriptions/add')}
+            onClick={() => {
+              navigate('/core/subscriptions/add');
+            }}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -337,3 +329,5 @@ export const TenantSubscriptionsPage: React.FC = () => {
     </div>
   );
 };
+
+export default TenantSubscriptionsPage;

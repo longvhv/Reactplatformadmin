@@ -1,442 +1,655 @@
 /**
  * TenantUserGroupsTab Component
- * Manages user groups for a specific tenant
- * Under 500 lines
+ * Quản lý user groups trong tenant
+ * 
+ * ✅ REWRITTEN 2026-01-14: Uses userGroupsApi with 16 fields
  */
 
 import { useState, useEffect } from 'react';
-import { Users, Loader2, Plus, Edit, Trash2, UserCheck } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-import type { UserGroup } from '@/types';
-
-// ============================================
-// TYPES
-// ============================================
+  Users,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  UserCog,
+  Shield,
+  Building2,
+  FolderTree,
+  Archive,
+  ArchiveRestore,
+  RefreshCw,
+  Filter,
+} from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { userGroupsApi, UserGroupWithMembers, getStatusColor } from '../../api/userGroupsApi';
+import { toast } from 'sonner@2.0.3';
 
 interface TenantUserGroupsTabProps {
   tenantId: string;
 }
 
-interface UserGroupFormData {
-  code: string;
-  name: string;
-  description?: string;
-  group_type?: string;
-  status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
-  order?: number;
-}
-
-// ============================================
-// COMPONENT
-// ============================================
-
 export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
-  const { t } = useLanguage();
-  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+  const [groups, setGroups] = useState<UserGroupWithMembers[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<UserGroupWithMembers[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<UserGroup | null>(null);
-  const [saving, setSaving] = useState(false);
-  
-  const [formData, setFormData] = useState<UserGroupFormData>({
-    code: '',
-    name: '',
-    description: '',
-    group_type: '',
-    status: 'ACTIVE',
-    order: 0,
-  });
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<UserGroupWithMembers | null>(null);
 
   useEffect(() => {
-    loadUserGroups();
+    loadGroups();
   }, [tenantId]);
 
-  const loadUserGroups = async () => {
-    setLoading(true);
+  useEffect(() => {
+    filterGroups();
+  }, [searchQuery, typeFilter, statusFilter, groups]);
+
+  const loadGroups = async () => {
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/user-groups?tenant_id=${tenantId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user groups');
-      }
-
-      const result = await response.json();
-      setUserGroups(result.data || []);
-    } catch (err) {
-      console.error('Error loading user groups:', err);
-      // Fallback to localStorage
-      const stored = localStorage.getItem('user_groups');
-      if (stored) {
-        const allGroups = JSON.parse(stored);
-        const filtered = allGroups.filter((g: UserGroup) => 
-          g.tenant_id === tenantId && !g.deleted_at
-        );
-        setUserGroups(filtered);
-      }
+      setLoading(true);
+      const data = await userGroupsApi.getWithMemberCounts(tenantId);
+      setGroups(data);
+      
+      // Extract unique types
+      const types = await userGroupsApi.getTypes(tenantId);
+      setAvailableTypes(types);
+    } catch (error) {
+      console.error('Error loading groups:', error);
+      toast.error('Không thể tải danh sách nhóm');
+      setGroups([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const filterGroups = () => {
+    let result = [...groups];
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (g) =>
+          g.name?.toLowerCase().includes(query) ||
+          g.code?.toLowerCase().includes(query) ||
+          g.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Type filter
+    if (typeFilter !== 'all') {
+      result = result.filter((g) => g.group_type === typeFilter);
+    }
+
+    // Status filter
+    if (statusFilter !== 'all') {
+      result = result.filter((g) => g.status === statusFilter);
+    }
+
+    setFilteredGroups(result);
+  };
+
   const handleCreate = () => {
     setEditingGroup(null);
-    setFormData({
-      code: '',
-      name: '',
-      description: '',
-      group_type: '',
-      status: 'ACTIVE',
-      order: 0,
-    });
-    setIsDialogOpen(true);
+    setShowDialog(true);
   };
 
-  const handleEdit = (group: UserGroup) => {
+  const handleEdit = (group: UserGroupWithMembers) => {
     setEditingGroup(group);
-    setFormData({
-      code: group.code,
-      name: group.name,
-      description: group.description || '',
-      group_type: group.group_type || '',
-      status: group.status,
-      order: group.order || 0,
-    });
-    setIsDialogOpen(true);
+    setShowDialog(true);
   };
 
-  const handleSave = async () => {
-    if (!formData.code || !formData.name) {
-      alert('Code and name are required');
-      return;
-    }
-
-    setSaving(true);
+  const handleDelete = async (id: string) => {
+    // Check if can delete
     try {
-      const url = editingGroup
-        ? `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/user-groups/${editingGroup._id}`
-        : `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/user-groups`;
-
-      const method = editingGroup ? 'PUT' : 'POST';
-
-      const payload = {
-        ...formData,
-        tenant_id: tenantId,
-        group_type: formData.group_type || null,
-        ...(editingGroup && { version: editingGroup.version }),
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save user group');
+      const check = await userGroupsApi.canDelete(id);
+      if (!check.can_delete) {
+        toast.error(`Không thể xóa: ${check.reason}`);
+        return;
       }
-
-      await loadUserGroups();
-      setIsDialogOpen(false);
-    } catch (err: any) {
-      console.error('Error saving user group:', err);
-      alert(err.message || 'Failed to save user group');
-    } finally {
-      setSaving(false);
+    } catch (error) {
+      console.error('Error checking delete:', error);
     }
-  };
 
-  const handleDelete = async (group: UserGroup) => {
-    if (!confirm(`Are you sure you want to delete "${group.name}"?`)) {
-      return;
-    }
+    if (!confirm('Bạn có chắc muốn xóa nhóm này?')) return;
 
     try {
-      const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core/user-groups/${group._id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to delete user group');
-      }
-
-      await loadUserGroups();
-    } catch (err) {
-      console.error('Error deleting user group:', err);
-      alert('Failed to delete user group');
+      await userGroupsApi.delete(id);
+      toast.success('Đã xóa nhóm');
+      await loadGroups();
+    } catch (error: any) {
+      console.error('Error deleting group:', error);
+      toast.error(`Không thể xóa: ${error.message}`);
     }
   };
 
-  // Filter user groups by search
-  const filteredUserGroups = userGroups.filter(group => {
-    const query = searchQuery.toLowerCase();
-    return (
-      group.code.toLowerCase().includes(query) ||
-      group.name.toLowerCase().includes(query) ||
-      group.description?.toLowerCase().includes(query)
-    );
-  });
-
-  // Get status badge color
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800 border-green-200';
-      case 'INACTIVE': return 'bg-gray-100 text-gray-800 border-gray-200';
-      case 'ARCHIVED': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+  const handleArchive = async (id: string) => {
+    try {
+      await userGroupsApi.archive(id);
+      toast.success('Đã lưu trữ nhóm');
+      await loadGroups();
+    } catch (error: any) {
+      console.error('Error archiving group:', error);
+      toast.error(`Không thể lưu trữ: ${error.message}`);
     }
+  };
+
+  const handleActivate = async (id: string) => {
+    try {
+      await userGroupsApi.activate(id);
+      toast.success('Đã kích hoạt nhóm');
+      await loadGroups();
+    } catch (error: any) {
+      console.error('Error activating group:', error);
+      toast.error(`Không thể kích hoạt: ${error.message}`);
+    }
+  };
+
+  const getTypeColor = (type?: string) => {
+    // Common types with predefined colors
+    const colors: Record<string, string> = {
+      ORG_UNIT: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+      PROJECT: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+      PERMISSION: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+      CUSTOM: 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400',
+      DEPARTMENT: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+      TEAM: 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400',
+    };
+    
+    if (!type) return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-400';
+    
+    return colors[type] || 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400';
+  };
+
+  const getTypeIcon = (type?: string) => {
+    const icons: Record<string, any> = {
+      ORG_UNIT: Building2,
+      PROJECT: FolderTree,
+      PERMISSION: Shield,
+      CUSTOM: Users,
+      DEPARTMENT: Building2,
+      TEAM: Users,
+    };
+    
+    if (!type) return Users;
+    
+    return icons[type] || Users;
+  };
+
+  const countByStatus = (status: string) => {
+    return groups.filter(g => g.status === status).length;
+  };
+
+  const countByType = (type: string) => {
+    return groups.filter(g => g.group_type === type).length;
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header & Actions */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">
-            {t('userGroups.title') || 'User Groups'} ({filteredUserGroups.length})
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {t('userGroups.description') || 'Manage user groups and permissions'}
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Nhóm người dùng</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Quản lý nhóm và phân quyền người dùng
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('userGroups.add') || 'Add User Group'}
-        </Button>
-      </div>
-
-      {/* Search */}
-      <div className="flex gap-4">
-        <Input
-          placeholder={t('common.search') || 'Search user groups...'}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
-        />
-      </div>
-
-      {/* User Groups List */}
-      {filteredUserGroups.length === 0 ? (
-        <Card className="p-12 text-center">
-          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {searchQuery 
-              ? t('common.noResults') || 'No user groups found'
-              : t('userGroups.noUserGroups') || 'No user groups yet'}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {filteredUserGroups.map((group) => (
-            <Card
-              key={group._id}
-              className="p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex gap-4 flex-1">
-                  {/* Icon */}
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Users className="w-6 h-6 text-primary" />
-                  </div>
-
-                  {/* Group Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className="font-semibold truncate">{group.name}</h4>
-                      <code className="text-xs bg-muted px-2 py-0.5 rounded">
-                        {group.code}
-                      </code>
-                      <Badge variant="outline" className={getStatusBadgeColor(group.status)}>
-                        {group.status}
-                      </Badge>
-                    </div>
-
-                    {group.description && (
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {group.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {group.group_type && (
-                        <div className="flex items-center gap-1">
-                          <UserCheck className="w-4 h-4" />
-                          <span>{group.group_type}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <span>Order: {group.order || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(group)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(group)}
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="flex items-center gap-2">
+          <Button onClick={loadGroups} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Làm mới
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="w-4 h-4 mr-2" />
+            Tạo nhóm
+          </Button>
         </div>
-      )}
+      </div>
 
-      {/* Create/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              {editingGroup 
-                ? t('userGroups.edit') || 'Edit User Group'
-                : t('userGroups.add') || 'Add User Group'}
-            </DialogTitle>
-            <DialogDescription>
-              {t('userGroups.formDescription') || 'Fill in the user group details'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>{t('userGroups.code') || 'Code'} *</Label>
-                <Input
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                  placeholder="ADMIN"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('userGroups.status') || 'Status'}</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(v: any) => setFormData({ ...formData, status: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">ACTIVE</SelectItem>
-                    <SelectItem value="INACTIVE">INACTIVE</SelectItem>
-                    <SelectItem value="ARCHIVED">ARCHIVED</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-50 dark:bg-green-900/20">
+              <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
-
-            <div className="space-y-2">
-              <Label>{t('userGroups.name') || 'Name'} *</Label>
-              <Input
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Administrators"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('userGroups.groupType') || 'Group Type'}</Label>
-              <Input
-                value={formData.group_type}
-                onChange={(e) => setFormData({ ...formData, group_type: e.target.value })}
-                placeholder="ROLE, PERMISSION, CUSTOM"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('userGroups.description') || 'Description'}</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="User group description..."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t('userGroups.order') || 'Display Order'}</Label>
-              <Input
-                type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
-              />
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {countByStatus('ACTIVE')}
+              </p>
             </div>
           </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-gray-50 dark:bg-gray-900/20">
+              <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Inactive</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {countByStatus('INACTIVE')}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20">
+              <Archive className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Archived</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {countByStatus('ARCHIVED')}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
+              <Filter className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Types</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {availableTypes.length}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDialogOpen(false)}
-              disabled={saving}
-            >
-              {t('common.cancel') || 'Cancel'}
-            </Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {t('common.saving') || 'Saving...'}
-                </>
-              ) : (
-                t('common.save') || 'Save'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Tìm kiếm nhóm..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Tất cả loại</option>
+            {availableTypes.map(type => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+      </Card>
+
+      {/* Groups Table */}
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tên nhóm</TableHead>
+              <TableHead>Code</TableHead>
+              <TableHead>Loại</TableHead>
+              <TableHead>Mô tả</TableHead>
+              <TableHead>Thành viên</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Hành động</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400">
+                  {searchQuery || typeFilter !== 'all' || statusFilter !== 'all' 
+                    ? 'Không tìm thấy nhóm nào phù hợp'
+                    : 'Chưa có nhóm nào'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredGroups.map((group) => {
+                const TypeIcon = getTypeIcon(group.group_type);
+                return (
+                  <TableRow key={group._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${getTypeColor(group.group_type).split(' ')[0]}`}>
+                          <TypeIcon className={`w-4 h-4 ${getTypeColor(group.group_type).split(' ')[1]}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-white">{group.name}</p>
+                          {group.is_system && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">System</span>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {group.code && (
+                        <span className="font-mono text-sm text-gray-600 dark:text-gray-400">{group.code}</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getTypeColor(group.group_type)}>
+                        {group.group_type || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                        {group.description || '-'}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                        <UserCog className="w-4 h-4" />
+                        {group.member_count || 0}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(group.status)}>
+                        {group.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(group)}
+                          title="Chỉnh sửa"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        {group.status === 'ACTIVE' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleArchive(group._id)}
+                            title="Lưu trữ"
+                          >
+                            <Archive className="w-4 h-4 text-orange-600" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleActivate(group._id)}
+                            title="Kích hoạt"
+                          >
+                            <ArchiveRestore className="w-4 h-4 text-green-600" />
+                          </Button>
+                        )}
+                        {!group.is_system && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(group._id)}
+                            className="text-red-600 hover:text-red-700 dark:text-red-400"
+                            title="Xóa"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+
+      {/* Create/Edit Dialog */}
+      {showDialog && (
+        <UserGroupDialog
+          group={editingGroup}
+          tenantId={tenantId}
+          availableTypes={availableTypes}
+          onClose={() => {
+            setShowDialog(false);
+            setEditingGroup(null);
+          }}
+          onSuccess={() => {
+            setShowDialog(false);
+            setEditingGroup(null);
+            loadGroups();
+          }}
+        />
+      )}
     </div>
   );
 }
+
+// ==================== USER GROUP DIALOG ====================
+
+interface UserGroupDialogProps {
+  group?: UserGroupWithMembers | null;
+  tenantId: string;
+  availableTypes: string[];
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function UserGroupDialog({
+  group,
+  tenantId,
+  availableTypes,
+  onClose,
+  onSuccess,
+}: UserGroupDialogProps) {
+  const [formData, setFormData] = useState({
+    code: group?.code || '',
+    name: group?.name || '',
+    description: group?.description || '',
+    group_type: group?.group_type || '',
+    status: group?.status || 'ACTIVE',
+    order: group?.order?.toString() || '0',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.code.trim() || !formData.name.trim()) {
+      setError('Mã code và tên nhóm là bắt buộc');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      if (group) {
+        // Update existing
+        await userGroupsApi.update(group._id, {
+          code: formData.code,
+          name: formData.name,
+          description: formData.description || undefined,
+          group_type: formData.group_type || undefined,
+          status: formData.status as any,
+          order: parseInt(formData.order) || 0,
+        });
+        toast.success('Đã cập nhật nhóm');
+      } else {
+        // Create new
+        await userGroupsApi.create({
+          tenant_id: tenantId,
+          code: formData.code,
+          name: formData.name,
+          description: formData.description || undefined,
+          group_type: formData.group_type || undefined,
+          status: formData.status as any,
+          order: parseInt(formData.order) || 0,
+        });
+        toast.success('Đã tạo nhóm mới');
+      }
+
+      onSuccess();
+    } catch (error: any) {
+      console.error('Error saving group:', error);
+      setError(error.message || 'Không thể lưu nhóm');
+      toast.error(error.message || 'Không thể lưu nhóm');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            {group ? 'Chỉnh sửa nhóm' : 'Tạo nhóm mới'}
+          </h3>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Mã code <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+              placeholder="VD: dev-team"
+              required
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Tên nhóm <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="VD: Development Team"
+              required
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loại nhóm</label>
+            <input
+              type="text"
+              value={formData.group_type}
+              onChange={(e) => setFormData({ ...formData, group_type: e.target.value })}
+              placeholder="VD: PROJECT, ORG_UNIT, PERMISSION"
+              list="group-types"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            />
+            {availableTypes.length > 0 && (
+              <datalist id="group-types">
+                {availableTypes.map(type => (
+                  <option key={type} value={type} />
+                ))}
+              </datalist>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Có thể tự nhập hoặc chọn từ danh sách có sẵn
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mô tả</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Mô tả nhóm..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+              <option value="ARCHIVED">Archived</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thứ tự</label>
+            <input
+              type="number"
+              value={formData.order}
+              onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+              placeholder="0"
+              min="0"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          {/* Footer */}
+          <div className="flex gap-2 justify-end pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? 'Đang lưu...' : group ? 'Cập nhật' : 'Tạo mới'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default TenantUserGroupsTab;

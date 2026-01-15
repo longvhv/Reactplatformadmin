@@ -4,42 +4,30 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { FolderTree, Layers, MapPin } from "lucide-react";
 
 /**
- * Lazy load System Category pages
+ * Lazy-load System Category Pages
  */
 const SystemCategoriesPage = lazy(() => 
   import("../../pages/SystemCategoriesPage")
 );
 
 const AddSystemCategoryPage = lazy(() => 
-  import("../../pages/AddSystemCategoryPage").then(module => ({ default: module.AddSystemCategoryPage }))
+  import("../../pages/AddSystemCategoryPage")
 );
 
 const EditSystemCategoryPage = lazy(() => 
-  import("../../pages/EditSystemCategoryPage").then(module => ({ default: module.EditSystemCategoryPage }))
-);
-
-const AppComponentsPage = lazy(() => 
-  import("../../pages/AppComponentsPage").then(module => ({ default: module.AppComponentsPage }))
-);
-
-const AddAppComponentPage = lazy(() => 
-  import("../../pages/AddAppComponentPage").then(module => ({ default: module.AddAppComponentPage }))
-);
-
-const EditAppComponentPage = lazy(() => 
-  import("../../pages/EditAppComponentPage").then(module => ({ default: module.EditAppComponentPage }))
+  import("../../pages/EditSystemCategoryPage")
 );
 
 const RegionsPage = lazy(() => 
-  import("../../pages/RegionsPage").then(module => ({ default: module.RegionsPage }))
+  import("../../pages/RegionsPage")
 );
 
 const AddRegionPage = lazy(() => 
-  import("../../pages/AddRegionPage").then(module => ({ default: module.AddRegionPage }))
+  import("../../pages/AddRegionPage")
 );
 
 const EditRegionPage = lazy(() => 
-  import("../../pages/EditRegionPage").then(module => ({ default: module.EditRegionPage }))
+  import("../../pages/EditRegionPage")
 );
 
 /**
@@ -48,7 +36,7 @@ const EditRegionPage = lazy(() =>
 export const SystemCategoryModule: ModuleDefinition = {
   id: "system-categories",
   name: "Danh mục hệ thống",
-  description: "Quản lý danh mục, components và regions",
+  description: "Quản lý danh mục và regions",
   icon: <FolderTree className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
@@ -79,33 +67,6 @@ export const SystemCategoryModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "Edit System Category",
-    },
-    {
-      path: "/core/app-components",
-      element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải components..." />}>
-          <AppComponentsPage />
-        </Suspense>
-      ),
-      title: "App Components",
-    },
-    {
-      path: "/core/app-components/add",
-      element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
-          <AddAppComponentPage />
-        </Suspense>
-      ),
-      title: "Add App Component",
-    },
-    {
-      path: "/core/app-components/edit/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
-          <EditAppComponentPage />
-        </Suspense>
-      ),
-      title: "Edit App Component",
     },
     {
       path: "/core/regions",

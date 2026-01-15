@@ -4,13 +4,13 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
-import { ProductForm } from '../components/products/ProductForm';
 import { Button } from '../components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
+import { ProductForm } from '../components/products/ProductForm';
 import { toast } from 'sonner@2.0.3';
 
-export function AddProductPage() {
+export default function AddProductPage() {
   const navigate = useNavigate();
 
   const handleSubmit = async (data: Partial<SaaSProduct>) => {

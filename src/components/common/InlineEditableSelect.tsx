@@ -208,7 +208,7 @@ export function InlineEditableSelect({
               </div>
             ) : (
               <button
-                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-[#6366f1] hover:bg-[#6366f1]/10 transition-colors"
+                className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-primary hover:bg-primary/10 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   startAdd();

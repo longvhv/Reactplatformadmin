@@ -14,7 +14,7 @@ export function UserBulkActions({ selectedCount, onExport, onDelete }: UserBulkA
   if (selectedCount === 0) return null;
 
   return (
-    <div className="flex items-center gap-4 p-3 bg-[#6366f1]/5 border border-[#6366f1]/20 rounded-lg">
+    <div className="flex items-center gap-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
       <span className="text-sm font-medium">
         {selectedCount} {t('users.selectedUsers')}
       </span>
