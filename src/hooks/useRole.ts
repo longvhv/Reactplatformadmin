@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import type { Role } from './useRoles';
+import { Role } from '../api/rolesApi';
 
 export function useRole(id?: string) {
   const [role, setRole] = useState<Role | null>(null);

@@ -166,6 +166,19 @@ export function LineItemsEditor({ items, onChange, disabled, onValidationChange 
     onChange(newItems);
   };
 
+  // Helper function to update multiple fields at once
+  const updateItemMultiple = (index: number, updates: Partial<LineItem>) => {
+    const newItems = [...items];
+    newItems[index] = {
+      ...newItems[index],
+      ...updates,
+      // Handle number conversions
+      ...(updates.price !== undefined ? { price: Number(updates.price) } : {}),
+      ...(updates.quantity !== undefined ? { quantity: Number(updates.quantity) } : {}),
+    };
+    onChange(newItems);
+  };
+
   const updateMetadata = (index: number, key: string, value: string) => {
     const newItems = [...items];
     newItems[index] = {
@@ -455,18 +468,22 @@ export function LineItemsEditor({ items, onChange, disabled, onValidationChange 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-lg font-semibold">Danh sách sản phẩm, dịch vụ</h3>
-          <Badge 
-            variant="outline" 
-            className={
-              orderType === 'SUBSCRIPTION' ? 'bg-blue-100 text-blue-800' :
-              orderType === 'ONE_TIME' ? 'bg-purple-100 text-purple-800' :
-              'bg-indigo-100 text-indigo-800'
-            }
-          >
-            {orderType === 'SUBSCRIPTION' ? 'Gói cước' : 
-             orderType === 'ONE_TIME' ? 'Mua lẻ' : 
-             ''}
-          </Badge>
+          {orderType && (
+            <Badge 
+              variant="outline" 
+              className={
+                orderType === 'SUBSCRIPTION' ? 'bg-blue-100 text-blue-800' :
+                orderType === 'ONE_TIME' ? 'bg-purple-100 text-purple-800' :
+                orderType === 'HYBRID' ? 'bg-indigo-100 text-indigo-800' :
+                'bg-gray-100 text-gray-800'
+              }
+            >
+              {orderType === 'SUBSCRIPTION' ? 'Gói cước' : 
+               orderType === 'ONE_TIME' ? 'Mua lẻ' : 
+               orderType === 'HYBRID' ? 'Hỗn hợp' :
+               ''}
+            </Badge>
+          )}
         </div>
         <div className="text-sm text-muted-foreground">
           Tổng: {items.length} items, {items.reduce((sum, item) => sum + item.quantity, 0)} đơn vị
@@ -510,10 +527,12 @@ export function LineItemsEditor({ items, onChange, disabled, onValidationChange 
                     onChange={(e) => {
                       console.log('🔍 DEBUG: Product type changed to:', e.target.value);
                       const newType = e.target.value as ProductType;
-                      updateItem(index, 'product_type', newType);
-                      // Reset name and ID when product type changes
-                      updateItem(index, 'name', '');
-                      updateItem(index, 'id', '');
+                      // Update all fields at once to avoid race condition
+                      updateItemMultiple(index, {
+                        product_type: newType,
+                        name: '',
+                        id: '',
+                      });
                     }}
                     required
                     disabled={disabled}
@@ -563,9 +582,12 @@ export function LineItemsEditor({ items, onChange, disabled, onValidationChange 
                               const selectedPkg = packages.find(pkg => pkg._id === e.target.value);
                               console.log('🔍 DEBUG: Found package:', selectedPkg);
                               if (selectedPkg) {
-                                updateItem(index, 'id', selectedPkg._id);
-                                updateItem(index, 'name', selectedPkg.name);
-                                updateItem(index, 'price', selectedPkg.base_price || 0);
+                                // Update all fields at once to avoid race condition
+                                updateItemMultiple(index, {
+                                  id: selectedPkg._id,
+                                  name: selectedPkg.name,
+                                  price: selectedPkg.base_price || 0,
+                                });
                               }
                             }}
                             disabled={disabled || loadingPackages}
@@ -612,9 +634,12 @@ export function LineItemsEditor({ items, onChange, disabled, onValidationChange 
                               console.log('🔍 DEBUG: Found product:', selectedProduct);
                               console.log('🔍 DEBUG: Filtered products count:', filteredProducts.length);
                               if (selectedProduct) {
-                                updateItem(index, 'id', selectedProduct._id);
-                                updateItem(index, 'name', selectedProduct.name);
-                                updateItem(index, 'price', selectedProduct.base_price || 0);
+                                // Update all fields at once to avoid race condition
+                                updateItemMultiple(index, {
+                                  id: selectedProduct._id,
+                                  name: selectedProduct.name,
+                                  price: selectedProduct.base_price || 0,
+                                });
                               }
                             }}
                             disabled={disabled || loadingProducts}

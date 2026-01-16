@@ -162,7 +162,7 @@ export default function WebhookDetailPage() {
               </div>
             </div>
             <Button
-              onClick={() => navigate(`/core/webhooks/edit/${webhook._id}`)}
+              onClick={() => navigate(`/core/webhooks/edit/${webhook._id}`, { replace: true })}
               className="bg-indigo-600 hover:bg-indigo-700"
             >
               <Edit className="w-4 h-4 mr-2" />

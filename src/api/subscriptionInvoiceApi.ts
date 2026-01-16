@@ -101,11 +101,13 @@ export const subscriptionInvoiceApi = {
 
   /**
    * Soft delete invoice
-   * TODO (Golang): Implement soft delete endpoint
+   * ✅ FIXED 2026-01-15: Adapter now handles soft delete automatically
    */
   softDelete: async (id: string, deletedBy: string): Promise<void> => {
-    // For now, use regular delete
-    // Later, Golang should handle soft delete with deleted_at
+    // Adapter với supportsSoftDelete=true sẽ tự động:
+    // UPDATE subscription_invoices 
+    // SET deleted_at = NOW(), updated_at = NOW()
+    // WHERE _id = id AND deleted_at IS NULL
     return invoiceApi.delete(id);
   },
 

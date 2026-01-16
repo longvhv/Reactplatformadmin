@@ -106,7 +106,7 @@ export default function EditOrderPage() {
       <OrderFormV2
         order={order}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/subscription-orders')}
+        onCancel={() => navigate('/core/subscription-orders', { replace: true })}
         loading={loading}
       />
     </FormPageLayout>

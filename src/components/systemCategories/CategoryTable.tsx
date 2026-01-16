@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { CategoryInstance, SystemCategoryType, CategoryStatusHelper } from '../../api/systemCategoryApi';
+import { CategoryInstance, SystemCategoryType, CategoryStatusHelper } from '../../api/systemCategoriesApi';
 import { Button } from '../ui/button';
 import { Edit2, Trash2, Power, PowerOff } from 'lucide-react';
 
@@ -166,8 +166,9 @@ export function CategoryTable({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => onDelete(category.id!)}
+                      onClick={() => onDelete(category.id || category._id!)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      disabled={!category.id && !category._id}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

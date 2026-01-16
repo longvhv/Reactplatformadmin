@@ -10,7 +10,7 @@ import {
   SystemCategoryType,
   CategoryInstance,
   CategoryStatusHelper,
-} from '../api/systemCategoryApi';
+} from '../api/systemCategoriesApi';
 import { Button } from '../components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';

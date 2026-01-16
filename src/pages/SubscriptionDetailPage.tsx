@@ -26,10 +26,12 @@ import {
   AlertTriangle,
   Shield,
   Code2,
+  Activity,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { subscriptionApi, TenantSubscription } from '../api/subscriptionApi';
 import { toast } from 'sonner@2.0.3';
+import { UsageEventsTab } from '../components/subscriptions/UsageEventsTab';
 
 export default function SubscriptionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +39,7 @@ export default function SubscriptionDetailPage() {
 
   const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'entitlements' | 'apps' | 'stats'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'entitlements' | 'apps' | 'stats' | 'usage'>('overview');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -157,6 +159,7 @@ export default function SubscriptionDetailPage() {
     { id: 'entitlements' as const, label: 'Quyền lợi', icon: Shield },
     { id: 'apps' as const, label: 'Ứng dụng', icon: Code2 },
     { id: 'stats' as const, label: 'Thống kê', icon: BarChart3 },
+    { id: 'usage' as const, label: 'Sử dụng', icon: Activity },
   ];
 
   const daysRemaining = getDaysRemaining(subscription.end_at);
@@ -838,6 +841,12 @@ export default function SubscriptionDetailPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'usage' && (
+            <div className="space-y-6">
+              <UsageEventsTab subscriptionId={subscription._id} />
             </div>
           )}
         </div>

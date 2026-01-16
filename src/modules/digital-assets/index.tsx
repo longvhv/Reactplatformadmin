@@ -28,7 +28,7 @@ export const DigitalAssetsModule: ModuleDefinition = {
   menuItems: [
     {
       id: "digital-assets",
-      label: "Tài Sản Số",
+      label: "navigation.digitalAssets",
       path: "/core/digital-assets",
       icon: <Shield className="w-5 h-5" />,
       order: 45,
@@ -43,7 +43,7 @@ export const DigitalAssetsModule: ModuleDefinition = {
           <DigitalAssetsPage />
         </Suspense>
       ),
-      title: "Tài Sản Số",
+      title: "navigation.digitalAssets",
     },
     {
       path: "/core/digital-assets/add",
@@ -52,7 +52,7 @@ export const DigitalAssetsModule: ModuleDefinition = {
           <AddDigitalAssetPage />
         </Suspense>
       ),
-      title: "Thêm Tài Sản Số",
+      title: "digitalAssets.add",
     },
     {
       path: "/core/digital-assets/edit/:id",
@@ -61,7 +61,7 @@ export const DigitalAssetsModule: ModuleDefinition = {
           <EditDigitalAssetPage />
         </Suspense>
       ),
-      title: "Chỉnh Sửa Tài Sản Số",
+      title: "digitalAssets.edit",
     },
     {
       path: "/core/digital-assets/:id",
@@ -70,7 +70,7 @@ export const DigitalAssetsModule: ModuleDefinition = {
           <DigitalAssetDetailPage />
         </Suspense>
       ),
-      title: "Chi Tiết Tài Sản Số",
+      title: "digitalAssets.details",
     },
   ],
 

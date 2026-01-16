@@ -1,9 +1,17 @@
 /**
  * Locations API Handler
  * 
+ * ✅ UPDATED 2026-01-15: Aligned with NEW database schema (18 fields)
+ * ⚠️ BREAKING CHANGES:
+ *   - type_id (UUID FK) replaces location_type (enum)
+ *   - address (jsonb) replaces separate address fields
+ *   - coordinates (POINT) replaces latitude/longitude
+ *   - Added: parent_id, path, radius_meters, timezone, is_headquarter
+ *   - Removed: phone, email, fax, manager_id, is_primary, is_warehouse, is_retail, 
+ *              area_sqm, capacity, opening_hours, description, order
+ * 
  * Complete CRUD operations for locations with Supabase integration
- * Aligned with go-framework database schema
- * Under 500 lines
+ * Under 500 lines - SonarQube compliant
  */
 
 import { Hono } from 'npm:hono';
@@ -16,104 +24,68 @@ const app = new Hono();
 // TYPES & INTERFACES
 // ============================================
 
-export interface Location {
-  _id: string;
-  tenant_id: string;
-  code: string;
-  name: string;
-  location_type: LocationType;
-  status: LocationStatus;
-  
-  // Address
-  address_line1?: string;
-  address_line2?: string;
+export type LocationStatus = 'ACTIVE' | 'INACTIVE' | 'CLOSED';
+
+export interface LocationAddress {
+  line1?: string;
+  line2?: string;
   city?: string;
-  state_province?: string;
+  state?: string;
   postal_code?: string;
   country?: string;
+  [key: string]: any;
+}
+
+export interface LocationCoordinates {
+  longitude: number;  // POINT format: (longitude, latitude)
+  latitude: number;
+}
+
+/**
+ * Location - 100% matches NEW database schema (18 fields)
+ */
+export interface Location {
+  // Identity & Structure (4)
+  _id: string;
+  tenant_id: string;
+  parent_id?: string;            // FK to locations (self-reference)
+  type_id: string;               // UUID FK to location_types
   
-  // Contact
-  phone?: string;
-  email?: string;
-  fax?: string;
+  // Basic Info (4)
+  name: string;                  // text not null
+  code?: string;                 // varchar(50)
+  path?: string;                 // Materialized path
+  status: LocationStatus;        // varchar(20)
   
-  // Geographic
-  latitude?: number;
-  longitude?: number;
-  timezone?: string;
+  // Geography & Timekeeping (5)
+  address: LocationAddress;      // jsonb default '{}'
+  coordinates?: LocationCoordinates;  // POINT
+  radius_meters?: number;        // int default 100
+  timezone: string;              // varchar(50) default 'UTC'
+  is_headquarter: boolean;       // boolean default false
   
-  // Business
-  manager_id?: string;
-  parent_location_id?: string;
-  is_primary: boolean;
-  is_warehouse: boolean;
-  is_retail: boolean;
+  // Dynamic Data (1)
+  metadata: Record<string, any>; // jsonb default '{}'
   
-  // Operational
-  area_sqm?: number;
-  capacity?: number;
-  opening_hours?: Record<string, string>;
-  
-  // Metadata
-  description?: string;
-  order?: number;
-  metadata?: Record<string, any>;
-  
-  // Audit
+  // Audit (4)
   created_at: string;
   updated_at: string;
   deleted_at?: string;
-  created_by?: string;
-  updated_by?: string;
-  deleted_by?: string;
   version: number;
 }
 
-export type LocationType = 
-  | 'OFFICE' 
-  | 'WAREHOUSE' 
-  | 'RETAIL' 
-  | 'FACTORY' 
-  | 'BRANCH' 
-  | 'HEADQUARTERS' 
-  | 'DATACENTER' 
-  | 'OTHER';
-
-export type LocationStatus = 
-  | 'ACTIVE' 
-  | 'INACTIVE' 
-  | 'CLOSED' 
-  | 'MAINTENANCE' 
-  | 'PLANNED';
-
 interface CreateLocationInput {
   tenant_id: string;
-  code: string;
+  parent_id?: string;
+  type_id: string;               // UUID FK!
   name: string;
-  location_type?: LocationType;
+  code?: string;
   status?: LocationStatus;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state_province?: string;
-  postal_code?: string;
-  country?: string;
-  phone?: string;
-  email?: string;
-  fax?: string;
-  latitude?: number;
-  longitude?: number;
+  address?: LocationAddress;
+  coordinates?: LocationCoordinates;
+  radius_meters?: number;
   timezone?: string;
-  manager_id?: string;
-  parent_location_id?: string;
-  is_primary?: boolean;
-  is_warehouse?: boolean;
-  is_retail?: boolean;
-  area_sqm?: number;
-  capacity?: number;
-  opening_hours?: Record<string, string>;
-  description?: string;
-  order?: number;
+  is_headquarter?: boolean;
   metadata?: Record<string, any>;
 }
 
@@ -135,31 +107,74 @@ const getSupabaseClient = () => {
 const validateLocationInput = (input: Partial<CreateLocationInput>): string[] => {
   const errors: string[] = [];
   
-  if ('code' in input && (!input.code || !/^[a-z0-9-]+$/i.test(input.code))) {
-    errors.push('code: Must contain only letters, numbers, and hyphens');
-  }
-  
   if ('name' in input && (!input.name || input.name.trim().length === 0)) {
     errors.push('name: Required field');
   }
   
-  if ('email' in input && input.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
-    errors.push('email: Invalid email format');
+  if ('code' in input && input.code && !/^[a-z0-9-]+$/i.test(input.code)) {
+    errors.push('code: Must contain only letters, numbers, and hyphens');
   }
   
-  if ('latitude' in input && input.latitude !== undefined) {
-    if (input.latitude < -90 || input.latitude > 90) {
-      errors.push('latitude: Must be between -90 and 90');
+  if ('status' in input && input.status) {
+    if (!['ACTIVE', 'INACTIVE', 'CLOSED'].includes(input.status)) {
+      errors.push('status: Must be ACTIVE, INACTIVE, or CLOSED');
     }
   }
   
-  if ('longitude' in input && input.longitude !== undefined) {
-    if (input.longitude < -180 || input.longitude > 180) {
-      errors.push('longitude: Must be between -180 and 180');
+  if ('radius_meters' in input && input.radius_meters !== undefined) {
+    if (input.radius_meters <= 0) {
+      errors.push('radius_meters: Must be greater than 0');
+    }
+  }
+  
+  if ('coordinates' in input && input.coordinates) {
+    const { latitude, longitude } = input.coordinates;
+    if (latitude < -90 || latitude > 90) {
+      errors.push('coordinates.latitude: Must be between -90 and 90');
+    }
+    if (longitude < -180 || longitude > 180) {
+      errors.push('coordinates.longitude: Must be between -180 and 180');
     }
   }
   
   return errors;
+};
+
+/**
+ * Convert LocationCoordinates to PostGIS POINT string
+ * Format: POINT(longitude latitude)
+ */
+const coordinatesToPoint = (coords: LocationCoordinates): string => {
+  return `POINT(${coords.longitude} ${coords.latitude})`;
+};
+
+/**
+ * Parse PostGIS POINT to LocationCoordinates
+ * Input: "(longitude,latitude)" or "POINT(longitude latitude)"
+ */
+const pointToCoordinates = (point: any): LocationCoordinates | undefined => {
+  if (!point) return undefined;
+  
+  // PostGIS returns as object with x, y
+  if (typeof point === 'object' && 'x' in point && 'y' in point) {
+    return {
+      longitude: point.x,
+      latitude: point.y
+    };
+  }
+  
+  // String format: "(x,y)" or "POINT(x y)"
+  if (typeof point === 'string') {
+    const matches = point.match(/\(([^,\s]+)[,\s]+([^)]+)\)/);
+    if (matches) {
+      return {
+        longitude: parseFloat(matches[1]),
+        latitude: parseFloat(matches[2])
+      };
+    }
+  }
+  
+  return undefined;
 };
 
 // ============================================
@@ -176,10 +191,10 @@ app.get('/locations', async (c: Context) => {
     
     // Query parameters
     const tenant_id = c.req.query('tenant_id');
-    const location_type = c.req.query('location_type');
+    const type_id = c.req.query('type_id');
+    const parent_id = c.req.query('parent_id');
     const status = c.req.query('status');
-    const country = c.req.query('country');
-    const is_primary = c.req.query('is_primary');
+    const is_headquarter = c.req.query('is_headquarter');
     const search = c.req.query('search');
     const limit = parseInt(c.req.query('limit') || '50');
     const offset = parseInt(c.req.query('offset') || '0');
@@ -188,17 +203,17 @@ app.get('/locations', async (c: Context) => {
       .from('locations')
       .select('*', { count: 'exact' })
       .is('deleted_at', null)
-      .order('order', { ascending: true })
+      .order('name', { ascending: true })
       .range(offset, offset + limit - 1);
     
     // Apply filters
     if (tenant_id) query = query.eq('tenant_id', tenant_id);
-    if (location_type) query = query.eq('location_type', location_type);
+    if (type_id) query = query.eq('type_id', type_id);
+    if (parent_id) query = query.eq('parent_id', parent_id);
     if (status) query = query.eq('status', status);
-    if (country) query = query.eq('country', country);
-    if (is_primary) query = query.eq('is_primary', is_primary === 'true');
+    if (is_headquarter) query = query.eq('is_headquarter', is_headquarter === 'true');
     if (search) {
-      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%,city.ilike.%${search}%`);
+      query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`);
     }
     
     const { data, error, count } = await query;
@@ -216,8 +231,14 @@ app.get('/locations', async (c: Context) => {
       return c.json({ error: error.message }, 500);
     }
     
+    // Convert coordinates from POINT to object
+    const locations = (data || []).map(loc => ({
+      ...loc,
+      coordinates: pointToCoordinates(loc.coordinates)
+    }));
+    
     return c.json({
-      data: data || [],
+      data: locations,
       pagination: {
         total: count || 0,
         limit,
@@ -255,7 +276,13 @@ app.get('/locations/:id', async (c: Context) => {
       return c.json({ error: error.message }, 500);
     }
     
-    return c.json({ data });
+    // Convert coordinates
+    const location = {
+      ...data,
+      coordinates: pointToCoordinates(data.coordinates)
+    };
+    
+    return c.json({ data: location });
   } catch (err) {
     console.error('Unexpected error in GET /locations/:id:', err);
     return c.json({ error: 'Internal server error' }, 500);
@@ -278,39 +305,28 @@ app.post('/locations', async (c: Context) => {
     
     const supabase = getSupabaseClient();
     
-    // Prepare insert data with UUID
-    const insertData = {
-      _id: crypto.randomUUID(), // Generate UUID for primary key
+    // Prepare insert data
+    const insertData: any = {
+      _id: crypto.randomUUID(),
       tenant_id: body.tenant_id,
-      code: body.code,
+      type_id: body.type_id,
+      parent_id: body.parent_id || null,
       name: body.name,
-      location_type: body.location_type || 'OFFICE',
+      code: body.code || null,
+      path: body.parent_id ? null : `/${crypto.randomUUID()}/`, // Will be calculated by trigger
       status: body.status || 'ACTIVE',
-      address_line1: body.address_line1,
-      address_line2: body.address_line2,
-      city: body.city,
-      state_province: body.state_province,
-      postal_code: body.postal_code,
-      country: body.country,
-      phone: body.phone,
-      email: body.email,
-      fax: body.fax,
-      latitude: body.latitude,
-      longitude: body.longitude,
-      timezone: body.timezone,
-      manager_id: body.manager_id,
-      parent_location_id: body.parent_location_id,
-      is_primary: body.is_primary || false,
-      is_warehouse: body.is_warehouse || false,
-      is_retail: body.is_retail || false,
-      area_sqm: body.area_sqm,
-      capacity: body.capacity,
-      opening_hours: body.opening_hours || {},
-      description: body.description,
-      order: body.order || 0,
+      address: body.address || {},
+      radius_meters: body.radius_meters || 100,
+      timezone: body.timezone || 'UTC',
+      is_headquarter: body.is_headquarter || false,
       metadata: body.metadata || {},
       version: 1,
     };
+    
+    // Handle coordinates (convert to POINT)
+    if (body.coordinates) {
+      insertData.coordinates = coordinatesToPoint(body.coordinates);
+    }
     
     const { data, error } = await supabase
       .from('locations')
@@ -329,12 +345,21 @@ app.post('/locations', async (c: Context) => {
       }
       console.error('Error creating location:', error);
       if (error.code === '23505') { // Unique violation
-        return c.json({ error: 'Location with this code already exists' }, 409);
+        return c.json({ error: 'Location with this code already exists for this tenant' }, 409);
+      }
+      if (error.code === '23503') { // FK violation
+        return c.json({ error: 'Invalid tenant_id, type_id, or parent_id' }, 400);
       }
       return c.json({ error: error.message, details: error }, 500);
     }
     
-    return c.json({ data }, 201);
+    // Convert coordinates
+    const location = {
+      ...data,
+      coordinates: pointToCoordinates(data.coordinates)
+    };
+    
+    return c.json({ data: location }, 201);
   } catch (err) {
     console.error('Unexpected error in POST /locations:', err);
     return c.json({ error: 'Internal server error', details: String(err) }, 500);
@@ -384,10 +409,15 @@ app.patch('/locations/:id', async (c: Context) => {
     
     // Prepare update data
     const { version, ...updateFields } = body;
-    const updateData = {
+    const updateData: any = {
       ...updateFields,
       version: version + 1,
     };
+    
+    // Handle coordinates (convert to POINT)
+    if (updateFields.coordinates) {
+      updateData.coordinates = coordinatesToPoint(updateFields.coordinates);
+    }
     
     const { data, error } = await supabase
       .from('locations')
@@ -400,12 +430,21 @@ app.patch('/locations/:id', async (c: Context) => {
     if (error) {
       console.error('Error updating location:', error);
       if (error.code === '23505') {
-        return c.json({ error: 'Location with this code already exists' }, 409);
+        return c.json({ error: 'Location with this code already exists for this tenant' }, 409);
+      }
+      if (error.code === '23503') {
+        return c.json({ error: 'Invalid type_id or parent_id' }, 400);
       }
       return c.json({ error: error.message }, 500);
     }
     
-    return c.json({ data });
+    // Convert coordinates
+    const location = {
+      ...data,
+      coordinates: pointToCoordinates(data.coordinates)
+    };
+    
+    return c.json({ data: location });
   } catch (err) {
     console.error('Unexpected error in PATCH /locations/:id:', err);
     return c.json({ error: 'Internal server error' }, 500);
@@ -420,6 +459,25 @@ app.delete('/locations/:id', async (c: Context) => {
   try {
     const id = c.req.param('id');
     const supabase = getSupabaseClient();
+    
+    // Check for children
+    const { data: children, error: childError } = await supabase
+      .from('locations')
+      .select('_id')
+      .eq('parent_id', id)
+      .is('deleted_at', null);
+    
+    if (childError) {
+      console.error('Error checking children:', childError);
+      return c.json({ error: 'Failed to check for child locations' }, 500);
+    }
+    
+    if (children && children.length > 0) {
+      return c.json({ 
+        error: 'Cannot delete location with children. Please delete or move child locations first.',
+        children_count: children.length
+      }, 400);
+    }
     
     // Soft delete
     const { data, error } = await supabase

@@ -2,6 +2,7 @@
  * Applications Page
  * Manage third-party applications
  * ✅ UPDATED 2026-01-15: Unified statistics design
+ * ✅ FIXED 2026-01-15: Use is_active boolean instead of status string
  */
 
 import { useState, useEffect } from 'react';
@@ -61,18 +62,18 @@ export function ApplicationsPage() {
       if (!matches) return false;
     }
 
-    // Active filter - map to status field
-    if (activeFilter === 'active' && app.status !== 'ACTIVE') return false;
-    if (activeFilter === 'inactive' && app.status === 'ACTIVE') return false;
+    // Active filter - use is_active boolean field
+    if (activeFilter === 'active' && !app.is_active) return false;
+    if (activeFilter === 'inactive' && app.is_active) return false;
 
     return true;
   });
 
-  // Stats - use status field
+  // Stats - use is_active boolean field
   const stats = {
     total: applications.length,
-    active: applications.filter(a => a.status === 'ACTIVE').length,
-    inactive: applications.filter(a => a.status !== 'ACTIVE').length,
+    active: applications.filter(a => a.is_active).length,
+    inactive: applications.filter(a => !a.is_active).length,
   };
 
   const handleDelete = async (id: string) => {
@@ -80,16 +81,23 @@ export function ApplicationsPage() {
     try {
       await applicationsApi.delete(id);
       setApplications(applications.filter(app => app._id !== id));
+      toast.success('Đã xóa ứng dụng');
     } catch (err) {
       toast.error('Failed to delete application');
     }
   };
 
-  const handleToggleActive = async (id: string, currentStatus: string) => {
+  const handleToggleActive = async (id: string, currentIsActive: boolean) => {
     try {
-      const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-      const updatedApp = await applicationsApi.update(id, { status: newStatus });
+      const app = applications.find(a => a._id === id);
+      if (!app) return;
+
+      const updatedApp = await applicationsApi.update(id, { 
+        is_active: !currentIsActive,
+        version: app.version,
+      });
       setApplications(applications.map(app => app._id === id ? updatedApp : app));
+      toast.success(`Đã ${updatedApp.is_active ? 'kích hoạt' : 'vô hiệu hóa'} ứng dụng`);
     } catch (err) {
       toast.error('Failed to update status');
     }
@@ -307,13 +315,9 @@ export function ApplicationsPage() {
                               <code className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                                 {app.code}
                               </code>
-                              {app.status === 'ACTIVE' ? (
+                              {app.is_active ? (
                                 <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                   Active
-                                </span>
-                              ) : app.status === 'DEPRECATED' ? (
-                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                  Deprecated
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -352,7 +356,7 @@ export function ApplicationsPage() {
                       
                       <DropdownMenuContent align="end" className="w-48">
                         <DropdownMenuItem
-                          onClick={() => navigate(`/core/applications/${app._id}/edit`)}
+                          onClick={() => navigate(`/core/applications/${app._id}/edit`, { replace: true })}
                         >
                           <Edit className="w-4 h-4 mr-2" />
                           Chỉnh sửa
@@ -364,9 +368,9 @@ export function ApplicationsPage() {
                           Cài đặt
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => handleToggleActive(app._id, app.status)}
+                          onClick={() => handleToggleActive(app._id, app.is_active)}
                         >
-                          {app.status === 'ACTIVE' ? (
+                          {app.is_active ? (
                             <>
                               <PowerOff className="w-4 h-4 mr-2" />
                               Deactivate

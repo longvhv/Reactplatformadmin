@@ -34,12 +34,12 @@ export default function NotificationTemplatesPage() {
     if (templates.length > 0) {
       const calculatedStats = {
         total: templates.length,
-        active: templates.filter(t => t.is_active).length,
-        inactive: templates.filter(t => !t.is_active).length,
-        email: templates.filter(t => t.channel === 'EMAIL').length,
-        sms: templates.filter(t => t.channel === 'SMS').length,
-        push: templates.filter(t => t.channel === 'PUSH').length,
-        in_app: templates.filter(t => t.channel === 'IN_APP').length,
+        active: templates.filter(t => t.status === 'active').length,
+        inactive: templates.filter(t => t.status !== 'active').length,
+        email: templates.filter(t => t.notification_type === 'email').length,
+        sms: templates.filter(t => t.notification_type === 'sms').length,
+        push: templates.filter(t => t.notification_type === 'push').length,
+        in_app: templates.filter(t => t.notification_type === 'in-app').length,
       };
       setStats(calculatedStats);
     } else {
@@ -120,8 +120,9 @@ export default function NotificationTemplatesPage() {
 
   const handleToggleStatus = async (template: NotificationTemplate) => {
     try {
+      const newStatus = template.status === 'active' ? 'inactive' : 'active';
       await notificationTemplateApi.update(template._id, {
-        is_active: !template.is_active,
+        status: newStatus,
         version: template.version
       });
       toast.success(t('notificationTemplates.statusUpdated'));
@@ -135,11 +136,15 @@ export default function NotificationTemplatesPage() {
     try {
       const duplicateData = {
         tenant_id: template.tenant_id,
-        code: `${template.code}_COPY_${Date.now()}`,
-        name: `${template.name} (Copy)`,
-        channel: template.channel,
+        template_code: `${template.template_code}_COPY_${Date.now()}`,
+        template_name: `${template.template_name} (Copy)`,
+        notification_type: template.notification_type,
         subject: template.subject,
-        body: template.body,
+        body_text: template.body_text,
+        body_html: template.body_html,
+        category: template.category,
+        priority: template.priority,
+        language_code: template.language_code,
         metadata: template.metadata,
       };
       await notificationTemplateApi.create(duplicateData);

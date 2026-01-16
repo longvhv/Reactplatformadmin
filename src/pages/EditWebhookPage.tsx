@@ -33,7 +33,7 @@ export default function EditWebhookPage() {
       setWebhook(data);
     } catch (error: any) {
       toast.error('Không thể tải webhook: ' + error.message);
-      navigate('/core/webhooks');
+      navigate('/core/webhooks', { replace: true });
     } finally {
       setLoading(false);
     }
@@ -44,7 +44,7 @@ export default function EditWebhookPage() {
       setIsSubmitting(true);
       const updated = await webhooksApi.update(id!, data);
       toast.success('Cập nhật webhook thành công!');
-      navigate(`/core/webhooks/${updated._id}`);
+      navigate(`/core/webhooks/${updated._id}`, { replace: true });
     } catch (error: any) {
       toast.error('Không thể cập nhật webhook: ' + error.message);
       throw error;

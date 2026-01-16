@@ -1,77 +1,195 @@
+-- Migration: Create system_jobs table
+-- Created: 2026-01-15
+-- Description: Create table for managing system jobs and automated tasks
+
 -- Create system_jobs table
-CREATE TABLE IF NOT EXISTS system_jobs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  job_name VARCHAR(255) NOT NULL,
-  job_type VARCHAR(100) NOT NULL,
-  description TEXT,
-  status VARCHAR(50) NOT NULL DEFAULT 'pending',
-  priority VARCHAR(20) NOT NULL DEFAULT 'normal',
-  schedule_type VARCHAR(50),
-  cron_expression VARCHAR(100),
-  last_run_at TIMESTAMPTZ,
-  next_run_at TIMESTAMPTZ,
-  last_run_duration INTEGER,
-  last_run_status VARCHAR(50),
-  last_run_error TEXT,
-  run_count INTEGER DEFAULT 0,
-  success_count INTEGER DEFAULT 0,
-  failure_count INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  created_by VARCHAR(100),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE TABLE IF NOT EXISTS public.system_jobs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  job_name character varying(255) NOT NULL,
+  job_type character varying(100) NOT NULL,
+  description text NULL,
+  status character varying(50) NOT NULL DEFAULT 'pending'::character varying,
+  priority character varying(20) NOT NULL DEFAULT 'normal'::character varying,
+  schedule_type character varying(50) NULL,
+  cron_expression character varying(100) NULL,
+  last_run_at timestamp with time zone NULL,
+  next_run_at timestamp with time zone NULL,
+  last_run_duration integer NULL,
+  last_run_status character varying(50) NULL,
+  last_run_error text NULL,
+  run_count integer NULL DEFAULT 0,
+  success_count integer NULL DEFAULT 0,
+  failure_count integer NULL DEFAULT 0,
+  is_active boolean NULL DEFAULT true,
+  created_by character varying(100) NULL,
+  created_at timestamp with time zone NULL DEFAULT now(),
+  updated_at timestamp with time zone NULL DEFAULT now(),
+  CONSTRAINT system_jobs_pkey PRIMARY KEY (id)
+) TABLESPACE pg_default;
 
--- Create index for better query performance
-CREATE INDEX IF NOT EXISTS idx_system_jobs_status ON system_jobs(status);
-CREATE INDEX IF NOT EXISTS idx_system_jobs_type ON system_jobs(job_type);
-CREATE INDEX IF NOT EXISTS idx_system_jobs_active ON system_jobs(is_active);
-CREATE INDEX IF NOT EXISTS idx_system_jobs_next_run ON system_jobs(next_run_at);
+-- Add check constraints
+ALTER TABLE public.system_jobs
+ADD CONSTRAINT system_jobs_status_check 
+CHECK (status IN ('pending', 'running', 'completed', 'failed', 'paused'));
 
--- Create updated_at trigger
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+ALTER TABLE public.system_jobs
+ADD CONSTRAINT system_jobs_priority_check 
+CHECK (priority IN ('low', 'normal', 'high', 'critical'));
+
+ALTER TABLE public.system_jobs
+ADD CONSTRAINT system_jobs_schedule_type_check 
+CHECK (schedule_type IS NULL OR schedule_type IN ('manual', 'scheduled', 'triggered'));
+
+ALTER TABLE public.system_jobs
+ADD CONSTRAINT system_jobs_counters_check 
+CHECK (run_count >= 0 AND success_count >= 0 AND failure_count >= 0);
+
+-- Create indexes for performance
+CREATE INDEX IF NOT EXISTS idx_system_jobs_status 
+ON public.system_jobs(status) 
+WHERE is_active = true;
+
+CREATE INDEX IF NOT EXISTS idx_system_jobs_priority 
+ON public.system_jobs(priority) 
+WHERE is_active = true;
+
+CREATE INDEX IF NOT EXISTS idx_system_jobs_job_type 
+ON public.system_jobs(job_type);
+
+CREATE INDEX IF NOT EXISTS idx_system_jobs_next_run_at 
+ON public.system_jobs(next_run_at) 
+WHERE is_active = true AND status != 'running';
+
+CREATE INDEX IF NOT EXISTS idx_system_jobs_active_status 
+ON public.system_jobs(is_active, status, next_run_at);
+
+-- Create function to auto-update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_system_jobs_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.updated_at = now();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_system_jobs_updated_at
-  BEFORE UPDATE ON system_jobs
+-- Create trigger for auto-updating updated_at
+DROP TRIGGER IF EXISTS trigger_update_system_jobs_updated_at ON public.system_jobs;
+CREATE TRIGGER trigger_update_system_jobs_updated_at
+  BEFORE UPDATE ON public.system_jobs
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+  EXECUTE FUNCTION update_system_jobs_updated_at();
 
--- Insert demo data
-INSERT INTO system_jobs (job_name, job_type, description, status, priority, schedule_type, cron_expression, last_run_at, next_run_at, last_run_duration, last_run_status, run_count, success_count, failure_count, is_active, created_by) VALUES
-('Backup Database', 'backup', 'Thực hiện sao lưu toàn bộ cơ sở dữ liệu', 'running', 'high', 'scheduled', '0 2 * * *', NOW() - INTERVAL '2 hours', NOW() + INTERVAL '22 hours', 180, 'success', 45, 44, 1, true, 'system'),
-('Clean Temp Files', 'cleanup', 'Xóa các file tạm thời cũ hơn 7 ngày', 'completed', 'normal', 'scheduled', '0 3 * * 0', NOW() - INTERVAL '1 day', NOW() + INTERVAL '6 days', 45, 'success', 12, 12, 0, true, 'system'),
-('Generate Reports', 'report', 'Tạo báo cáo tổng hợp hàng tháng', 'pending', 'normal', 'scheduled', '0 0 1 * *', NOW() - INTERVAL '25 days', NOW() + INTERVAL '5 days', 120, 'success', 3, 3, 0, true, 'admin'),
-('Sync User Data', 'sync', 'Đồng bộ dữ liệu người dùng từ hệ thống khác', 'failed', 'high', 'scheduled', '*/15 * * * *', NOW() - INTERVAL '10 minutes', NOW() + INTERVAL '5 minutes', 30, 'failed', 1440, 1420, 20, true, 'system'),
-('Send Email Notifications', 'notification', 'Gửi thông báo email cho người dùng', 'running', 'high', 'scheduled', '*/5 * * * *', NOW() - INTERVAL '3 minutes', NOW() + INTERVAL '2 minutes', 15, 'success', 2880, 2850, 30, true, 'system'),
-('Archive Old Data', 'archive', 'Lưu trữ dữ liệu cũ hơn 1 năm', 'completed', 'low', 'scheduled', '0 4 1 * *', NOW() - INTERVAL '15 days', NOW() + INTERVAL '15 days', 300, 'success', 6, 6, 0, true, 'admin'),
-('Health Check', 'monitoring', 'Kiểm tra sức khỏe các dịch vụ hệ thống', 'running', 'critical', 'scheduled', '*/1 * * * *', NOW() - INTERVAL '30 seconds', NOW() + INTERVAL '30 seconds', 5, 'success', 43200, 43150, 50, true, 'system'),
-('Update Search Index', 'indexing', 'Cập nhật chỉ mục tìm kiếm', 'pending', 'normal', 'scheduled', '0 */6 * * *', NOW() - INTERVAL '3 hours', NOW() + INTERVAL '3 hours', 90, 'success', 120, 118, 2, true, 'system'),
-('Process Payment Queue', 'payment', 'Xử lý hàng đợi thanh toán', 'paused', 'high', 'scheduled', '*/10 * * * *', NOW() - INTERVAL '2 hours', NULL, 20, 'success', 144, 142, 2, false, 'admin'),
-('Generate Invoices', 'billing', 'Tạo hóa đơn tự động cho khách hàng', 'completed', 'high', 'scheduled', '0 0 * * *', NOW() - INTERVAL '5 hours', NOW() + INTERVAL '19 hours', 240, 'success', 30, 30, 0, true, 'system'),
-('Security Scan', 'security', 'Quét bảo mật hệ thống', 'running', 'critical', 'scheduled', '0 1 * * *', NOW() - INTERVAL '30 minutes', NOW() + INTERVAL '23.5 hours', 180, 'success', 90, 89, 1, true, 'security-team'),
-('Cache Warmup', 'optimization', 'Làm nóng cache cho hiệu suất tốt hơn', 'completed', 'normal', 'manual', NULL, NOW() - INTERVAL '1 hour', NULL, 60, 'success', 5, 5, 0, true, 'admin'),
-('Log Rotation', 'maintenance', 'Xoay vòng và nén file log', 'pending', 'low', 'scheduled', '0 0 * * 0', NOW() - INTERVAL '6 days', NOW() + INTERVAL '1 day', 30, 'success', 52, 52, 0, true, 'system'),
-('Data Validation', 'validation', 'Kiểm tra tính toàn vẹn dữ liệu', 'failed', 'normal', 'scheduled', '0 6 * * *', NOW() - INTERVAL '6 hours', NOW() + INTERVAL '18 hours', 150, 'failed', 180, 175, 5, true, 'system'),
-('API Rate Limit Reset', 'api', 'Reset bộ đếm giới hạn tốc độ API', 'running', 'normal', 'scheduled', '0 * * * *', NOW() - INTERVAL '15 minutes', NOW() + INTERVAL '45 minutes', 2, 'success', 720, 720, 0, true, 'system');
+-- Enable Row Level Security
+ALTER TABLE public.system_jobs ENABLE ROW LEVEL SECURITY;
 
--- Grant permissions (if using RLS)
-ALTER TABLE system_jobs ENABLE ROW LEVEL SECURITY;
+-- RLS Policy: Allow authenticated users to read all jobs
+CREATE POLICY "Allow authenticated users to read jobs"
+ON public.system_jobs
+FOR SELECT
+TO authenticated
+USING (true);
 
--- Policy for authenticated users to read
-CREATE POLICY "Allow authenticated users to read system_jobs"
-  ON system_jobs FOR SELECT
-  TO authenticated
-  USING (true);
+-- RLS Policy: Allow admins to manage jobs
+CREATE POLICY "Allow admins to manage jobs"
+ON public.system_jobs
+FOR ALL
+TO authenticated
+USING (
+  (current_setting('request.jwt.claims', true)::json->>'role')::text = 'admin'
+);
 
--- Policy for service role to do everything
-CREATE POLICY "Allow service role full access to system_jobs"
-  ON system_jobs FOR ALL
-  TO service_role
-  USING (true)
-  WITH CHECK (true);
+-- Add table and column comments
+COMMENT ON TABLE public.system_jobs IS 'System jobs for automated tasks and scheduling';
+COMMENT ON COLUMN public.system_jobs.id IS 'Unique identifier for the job';
+COMMENT ON COLUMN public.system_jobs.job_name IS 'Name of the job';
+COMMENT ON COLUMN public.system_jobs.job_type IS 'Type of job (backup, cleanup, report, etc.)';
+COMMENT ON COLUMN public.system_jobs.description IS 'Detailed description of the job';
+COMMENT ON COLUMN public.system_jobs.status IS 'Current status: pending, running, completed, failed, paused';
+COMMENT ON COLUMN public.system_jobs.priority IS 'Priority level: low, normal, high, critical';
+COMMENT ON COLUMN public.system_jobs.schedule_type IS 'Type of scheduling: manual, scheduled, triggered';
+COMMENT ON COLUMN public.system_jobs.cron_expression IS 'Cron expression for scheduled jobs (minute hour day month weekday)';
+COMMENT ON COLUMN public.system_jobs.last_run_at IS 'Timestamp of last execution';
+COMMENT ON COLUMN public.system_jobs.next_run_at IS 'Timestamp of next scheduled execution';
+COMMENT ON COLUMN public.system_jobs.last_run_duration IS 'Duration of last run in seconds';
+COMMENT ON COLUMN public.system_jobs.last_run_status IS 'Status of last execution';
+COMMENT ON COLUMN public.system_jobs.last_run_error IS 'Error message from last failed run';
+COMMENT ON COLUMN public.system_jobs.run_count IS 'Total number of times the job has been executed';
+COMMENT ON COLUMN public.system_jobs.success_count IS 'Number of successful executions';
+COMMENT ON COLUMN public.system_jobs.failure_count IS 'Number of failed executions';
+COMMENT ON COLUMN public.system_jobs.is_active IS 'Whether the job is active and can be scheduled';
+COMMENT ON COLUMN public.system_jobs.created_by IS 'User who created the job';
+COMMENT ON COLUMN public.system_jobs.created_at IS 'Timestamp when job was created';
+COMMENT ON COLUMN public.system_jobs.updated_at IS 'Timestamp when job was last updated';
+
+-- Insert sample data for testing
+INSERT INTO public.system_jobs (
+  job_name,
+  job_type,
+  description,
+  status,
+  priority,
+  schedule_type,
+  cron_expression,
+  next_run_at,
+  is_active
+) VALUES
+(
+  'Daily Database Backup',
+  'backup',
+  'Automated daily backup of production database at 2:00 AM',
+  'pending',
+  'high',
+  'scheduled',
+  '0 2 * * *',
+  (CURRENT_DATE + INTERVAL '1 day' + TIME '02:00:00')::timestamptz,
+  true
+),
+(
+  'Weekly Report Generation',
+  'report',
+  'Generate weekly analytics report every Monday at 9:00 AM',
+  'pending',
+  'normal',
+  'scheduled',
+  '0 9 * * 1',
+  (CURRENT_DATE + ((1 - EXTRACT(DOW FROM CURRENT_DATE)::integer + 7) % 7 + 1) + TIME '09:00:00')::timestamptz,
+  true
+),
+(
+  'Hourly Data Sync',
+  'sync',
+  'Synchronize data with external systems every hour',
+  'pending',
+  'normal',
+  'scheduled',
+  '0 * * * *',
+  (DATE_TRUNC('hour', NOW()) + INTERVAL '1 hour')::timestamptz,
+  true
+),
+(
+  'Monthly Cleanup',
+  'cleanup',
+  'Clean up old logs and temporary files on the first day of each month',
+  'pending',
+  'low',
+  'scheduled',
+  '0 3 1 * *',
+  (DATE_TRUNC('month', NOW()) + INTERVAL '1 month' + TIME '03:00:00')::timestamptz,
+  true
+),
+(
+  'Security Scan',
+  'security',
+  'Run security vulnerability scan',
+  'completed',
+  'critical',
+  'scheduled',
+  '0 0 * * 0',
+  (CURRENT_DATE + ((7 - EXTRACT(DOW FROM CURRENT_DATE)::integer) % 7 + 1) + TIME '00:00:00')::timestamptz,
+  true
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Grant permissions
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.system_jobs TO authenticated;
+GRANT USAGE ON SEQUENCE IF EXISTS system_jobs_id_seq TO authenticated;

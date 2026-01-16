@@ -35,7 +35,7 @@ export const SettingsModule: ModuleConfig = {
   menuItems: [
     {
       id: "settings",
-      label: "Cài Đặt",
+      label: "navigation.settings", // ✅ FIX: Use translation key instead of hardcoded text
       icon: <Settings className="w-5 h-5" />,
       path: "/core/settings",
       order: 100, // ✅ ADDED: Consistent ordering

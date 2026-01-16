@@ -23,14 +23,13 @@ app.get('/subscription-orders', async (c) => {
     
     const tenantId = url.searchParams.get('tenant_id');
     const status = url.searchParams.get('status');
-    const paymentStatus = url.searchParams.get('payment_status');
     const search = url.searchParams.get('search');
     
     let query = supabase
       .from('subscription_orders')
       .select('*', { count: 'exact' })
       .is('deleted_at', null)
-      .order('order_date', { ascending: false });
+      .order('created_at', { ascending: false });
     
     if (tenantId) {
       query = query.eq('tenant_id', tenantId);
@@ -38,11 +37,8 @@ app.get('/subscription-orders', async (c) => {
     if (status) {
       query = query.eq('status', status);
     }
-    if (paymentStatus) {
-      query = query.eq('payment_status', paymentStatus);
-    }
     if (search) {
-      query = query.or(`order_code.ilike.%${search}%,customer_name.ilike.%${search}%,customer_email.ilike.%${search}%`);
+      query = query.or(`order_number.ilike.%${search}%,billing_info->customer_name.ilike.%${search}%,billing_info->customer_email.ilike.%${search}%`);
     }
     
     const { data, error, count } = await query;
@@ -90,8 +86,8 @@ app.post('/subscription-orders', async (c) => {
     const supabase = getSupabaseClient();
     const body = await c.req.json();
     
-    if (!body.tenant_id || !body.product_id || !body.order_code) {
-      return c.json({ error: 'Missing required fields' }, 400);
+    if (!body.tenant_id || !body.order_number) {
+      return c.json({ error: 'Missing required fields: tenant_id, order_number' }, 400);
     }
     
     const orderData = {
@@ -185,7 +181,7 @@ app.get('/subscription-orders/stats/overview', async (c) => {
     
     let query = supabase
       .from('subscription_orders')
-      .select('status, payment_status, total_amount')
+      .select('status, type, total_amount')
       .is('deleted_at', null);
     
     if (tenantId) {
@@ -201,14 +197,21 @@ app.get('/subscription-orders/stats/overview', async (c) => {
     
     const stats = {
       total: orders.length,
-      active: orders.filter(o => o.status === 'active').length,
-      pending: orders.filter(o => o.status === 'pending').length,
-      cancelled: orders.filter(o => o.status === 'cancelled').length,
-      expired: orders.filter(o => o.status === 'expired').length,
-      suspended: orders.filter(o => o.status === 'suspended').length,
-      total_revenue: orders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
-      paid_count: orders.filter(o => o.payment_status === 'paid').length,
-      pending_payment_count: orders.filter(o => o.payment_status === 'pending').length,
+      draft: orders.filter(o => o.status === 'DRAFT').length,
+      pending: orders.filter(o => o.status === 'PENDING').length,
+      paid: orders.filter(o => o.status === 'PAID').length,
+      cancelled: orders.filter(o => o.status === 'CANCELLED').length,
+      failed: orders.filter(o => o.status === 'FAILED').length,
+      refunded: orders.filter(o => o.status === 'REFUNDED').length,
+      total_revenue: orders
+        .filter(o => o.status === 'PAID')
+        .reduce((sum, o) => sum + (o.total_amount || 0), 0),
+      // Stats by type
+      new_orders: orders.filter(o => o.type === 'NEW').length,
+      renewal_orders: orders.filter(o => o.type === 'RENEWAL').length,
+      upgrade_orders: orders.filter(o => o.type === 'UPGRADE').length,
+      downgrade_orders: orders.filter(o => o.type === 'DOWNGRADE').length,
+      addon_orders: orders.filter(o => o.type === 'ADD_ON').length,
     };
     
     return c.json({ data: stats, success: true });

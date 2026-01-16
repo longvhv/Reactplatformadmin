@@ -2,11 +2,28 @@
  * User Groups API Client
  * Uses Adapter pattern - Ready for Golang migration
  * 
- * ✅ CREATED 2026-01-14: 100% matches user_groups schema (16 fields)
- * ⚠️ SOFT DELETE: Has deleted_at, deleted_by fields
+ * ✅ ENHANCED 2026-01-16: 100% database alignment + Type helpers
+ * Database: user_groups (16 fields, soft delete, versioning, ordering)
  */
 
 import { createAdapter, BaseFilters } from './adapters';
+import { GroupMember } from '../types';
+
+// ==================== TYPE HELPERS ====================
+
+export const UserGroupStatusHelper = {
+  ACTIVE: 'ACTIVE' as UserGroupStatus,
+  INACTIVE: 'INACTIVE' as UserGroupStatus,
+  ARCHIVED: 'ARCHIVED' as UserGroupStatus,
+
+  isActive: (status: UserGroupStatus) => status === 'ACTIVE',
+  isInactive: (status: UserGroupStatus) => status === 'INACTIVE',
+  isArchived: (status: UserGroupStatus) => status === 'ARCHIVED',
+  isUsable: (status: UserGroupStatus) => status === 'ACTIVE',
+  isNotUsable: (status: UserGroupStatus) => status === 'INACTIVE' || status === 'ARCHIVED',
+  canBeActivated: (status: UserGroupStatus) => status === 'INACTIVE' || status === 'ARCHIVED',
+  canBeArchived: (status: UserGroupStatus) => status === 'ACTIVE' || status === 'INACTIVE',
+};
 
 // ==================== TYPES ====================
 
@@ -124,18 +141,6 @@ export interface UserGroupStats {
 }
 
 /**
- * Group member (for member management)
- */
-export interface GroupMember {
-  _id: string;
-  user_group_id: string;
-  tenant_member_id: string;
-  role?: string;                     // Role in this group
-  joined_at: string;
-  added_by?: string;
-}
-
-/**
  * Add members to group request
  */
 export interface AddMembersRequest {
@@ -148,7 +153,8 @@ export interface AddMembersRequest {
 
 const adapter = createAdapter<UserGroup, CreateUserGroupRequest, UpdateUserGroupRequest>(
   'user_groups',
-  '/user-groups'
+  '/user-groups',
+  true  // ✅ FIX: Enable soft delete filtering
 );
 
 // ==================== API CLIENT ====================

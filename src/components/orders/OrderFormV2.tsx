@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Order, CreateOrderRequest, LineItem, BillingInfo, determineOrderType } from '../../api/ordersApi';
+import { Order, CreateOrderRequest, LineItem, BillingInfo, OrderType } from '../../api/ordersApi';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -30,6 +30,7 @@ export function OrderFormV2({ order, onSubmit, onCancel, loading }: OrderFormV2P
     tenant_id: order?.tenant_id || '00000000-0000-0000-0000-000000000001',
     order_number: order?.order_number || '',
     po_number: order?.po_number || '',
+    type: order?.type || 'NEW' as OrderType,
     status: order?.status || 'DRAFT' as const,
     currency_code: order?.currency_code || 'VND',
     tax_amount: order?.tax_amount || 0,
@@ -118,18 +119,15 @@ export function OrderFormV2({ order, onSubmit, onCancel, loading }: OrderFormV2P
 
     // Check validation from LineItemsEditor
     if (!itemsValid) {
-      alert(`Có lỗi trong line items:\n${itemsErrors.join('\n')}`);
+      alert(`Có lỗi trong line items:\\n${itemsErrors.join('\\n')}`);
       return;
     }
-
-    // Determine order type based on items
-    const orderType = determineOrderType(items);
 
     const submitData: CreateOrderRequest = {
       tenant_id: formData.tenant_id,
       order_number: formData.order_number,
       po_number: formData.po_number || undefined,
-      type: orderType, // Auto-determined
+      type: formData.type,
       status: formData.status,
       currency_code: formData.currency_code,
       subtotal_amount: calculatedAmounts.subtotal_amount,
@@ -190,6 +188,25 @@ export function OrderFormV2({ order, onSubmit, onCancel, loading }: OrderFormV2P
                 className="mt-2"
                 disabled={loading}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="type">Loại đơn hàng *</Label>
+              <select
+                id="type"
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                className="w-full mt-2 px-3 py-2 border border-input rounded-lg bg-background"
+              >
+                <option value="NEW">Mới</option>
+                <option value="RENEWAL">Gia hạn</option>
+                <option value="UPGRADE">Nâng cấp</option>
+                <option value="DOWNGRADE">Hạ cấp</option>
+                <option value="ADD_ON">Thêm tính năng</option>
+              </select>
             </div>
 
             <div>

@@ -32,14 +32,18 @@ import { OrderDetailModal } from '../components/orders/OrderDetailModal';
 // Stats interface
 interface OrderStats {
   total: number;
+  draft: number;
   pending: number;
   paid: number;
   cancelled: number;
   failed: number;
+  refunded: number;
   totalRevenue: number;
-  subscriptionOrders: number;
-  oneTimeOrders: number;
-  hybridOrders: number;
+  newOrders: number;
+  renewalOrders: number;
+  upgradeOrders: number;
+  downgradeOrders: number;
+  addOnOrders: number;
 }
 
 export default function SubscriptionOrdersPage() {
@@ -116,16 +120,20 @@ export default function SubscriptionOrdersPage() {
   const calculateStats = () => {
     const stats: OrderStats = {
       total: orders.length,
+      draft: orders.filter(o => o.status === 'DRAFT').length,
       pending: orders.filter(o => o.status === 'PENDING').length,
       paid: orders.filter(o => o.status === 'PAID').length,
       cancelled: orders.filter(o => o.status === 'CANCELLED').length,
       failed: orders.filter(o => o.status === 'FAILED').length,
+      refunded: orders.filter(o => o.status === 'REFUNDED').length,
       totalRevenue: orders
         .filter(o => o.status === 'PAID')
         .reduce((sum, o) => sum + o.total_amount, 0),
-      subscriptionOrders: orders.filter(o => o.type === 'SUBSCRIPTION').length,
-      oneTimeOrders: orders.filter(o => o.type === 'ONE_TIME').length,
-      hybridOrders: orders.filter(o => o.type === 'HYBRID').length,
+      newOrders: orders.filter(o => o.type === 'NEW').length,
+      renewalOrders: orders.filter(o => o.type === 'RENEWAL').length,
+      upgradeOrders: orders.filter(o => o.type === 'UPGRADE').length,
+      downgradeOrders: orders.filter(o => o.type === 'DOWNGRADE').length,
+      addOnOrders: orders.filter(o => o.type === 'ADD_ON').length,
     };
     setStats(stats);
   };

@@ -2,10 +2,11 @@
  * Product Form Component
  * Reusable form for create/edit product
  * Max 500 lines, clean code
+ * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
  */
 
 import React, { useState, useEffect } from 'react';
-import { SaaSProduct, BillingCycle, ProductStatus } from '../../api/saasProductApi';
+import { Product, CreateProductRequest, UpdateProductRequest } from '../../api/productsApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -13,9 +14,13 @@ import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
 import { X, AlertCircle, Plus, Trash2 } from 'lucide-react';
 
+type BillingCycle = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'LIFETIME';
+type ProductStatus = 'active' | 'inactive' | 'archived';
+
 interface ProductFormProps {
-  product?: SaaSProduct | null;
-  onSubmit: (data: Partial<SaaSProduct>) => Promise<void>;
+  product?: Product | null;
+  tenantId: string;  // ⭐ Required for multi-tenancy
+  onSubmit: (data: CreateProductRequest | UpdateProductRequest) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -35,7 +40,7 @@ const STATUSES: { value: ProductStatus; label: string }[] = [
   { value: 'archived', label: 'Lưu trữ' },
 ];
 
-export function ProductForm({ product, onSubmit, onCancel, loading }: ProductFormProps) {
+export function ProductForm({ product, tenantId, onSubmit, onCancel, loading }: ProductFormProps) {
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -149,12 +154,26 @@ export function ProductForm({ product, onSubmit, onCancel, loading }: ProductFor
         }
       });
 
-      await onSubmit({
-        ...formData,
-        features: featuresObj,
-        limits: limitsObj,
-        metadata: {},
-      });
+      // ✅ FIXED: Include tenant_id and proper types
+      const submitData = product 
+        ? {
+            // Update request
+            ...formData,
+            features: featuresObj,
+            limits: limitsObj,
+            metadata: {},
+            version: product.version, // ✅ Optimistic locking
+          } as UpdateProductRequest
+        : {
+            // Create request
+            tenant_id: tenantId, // ✅ Multi-tenancy
+            ...formData,
+            features: featuresObj,
+            limits: limitsObj,
+            metadata: {},
+          } as CreateProductRequest;
+
+      await onSubmit(submitData);
     } finally {
       setSubmitting(false);
     }

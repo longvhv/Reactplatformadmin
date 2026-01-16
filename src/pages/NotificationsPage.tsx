@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
-import { SystemAnnouncement } from '@/api/systemAnnouncementApi';
+import { SystemAnnouncement } from '@/api/systemAnnouncementsApi';
 import { toast } from 'sonner@2.0.3';
 
 export default function NotificationsPage() {
@@ -152,7 +152,7 @@ export default function NotificationsPage() {
               Quản lý thông báo hiển thị cho người dùng
             </p>
           </div>
-          <Button onClick={() => navigate('/core/system-announcements/new')}>
+          <Button onClick={() => navigate('/core/system-announcements/new', { replace: true })}>
             <Plus className="h-4 w-4 mr-2" />
             Tạo thông báo
           </Button>
@@ -314,7 +314,7 @@ export default function NotificationsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/core/system-announcements/edit/${announcement._id}`)}
+                        onClick={() => navigate(`/core/system-announcements/edit/${announcement._id}`, { replace: true })}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>

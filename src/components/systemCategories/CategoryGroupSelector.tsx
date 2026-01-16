@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { SystemCategoryGroup } from '../../api/systemCategoryApi';
+import { SystemCategoryGroup } from '../../api/systemCategoriesApi';
 import { Layers } from 'lucide-react';
 
 interface CategoryGroupSelectorProps {

@@ -1,19 +1,15 @@
 /**
  * useLocationTypes Hook
- * React hook for managing location types
- * 
- * ✅ CREATED 2026-01-14: Use new interface with 11 fields
+ * React hook for managing location types with optimistic locking
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   locationTypesApi,
   LocationType,
   LocationTypeFilters,
-  CreateLocationTypeRequest,
-  UpdateLocationTypeRequest,
-  LocationTypeStats,
-  ExtraFieldDefinition,
+  CreateLocationTypeData,
+  UpdateLocationTypeData,
 } from '../api/locationTypesApi';
 
 export function useLocationTypes(filters?: LocationTypeFilters) {
@@ -21,38 +17,38 @@ export function useLocationTypes(filters?: LocationTypeFilters) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize filters
-  const memoizedFilters = useMemo(() => filters, [
-    filters?.tenant_id,
-    filters?.code,
-    filters?.is_system,
-    filters?.is_active,
-    filters?.include_system,
-    filters?.search,
-    filters?.limit,
-    filters?.offset,
-  ]);
-
-  // Fetch location types
+  /**
+   * Fetch location types
+   */
   const fetchLocationTypes = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await locationTypesApi.getAll(memoizedFilters);
+      const data = await locationTypesApi.getAll(filters);
       setLocationTypes(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load location types');
+      const message = err instanceof Error ? err.message : 'Failed to load location types';
+      setError(message);
       console.error('Error fetching location types:', err);
     } finally {
       setLoading(false);
     }
-  }, [memoizedFilters]);
+  }, [filters]);
 
-  // Create location type
-  const createLocationType = async (data: CreateLocationTypeRequest): Promise<LocationType> => {
+  /**
+   * Initial load
+   */
+  useEffect(() => {
+    fetchLocationTypes();
+  }, [fetchLocationTypes]);
+
+  /**
+   * Create location type
+   */
+  const createLocationType = async (data: CreateLocationTypeData): Promise<LocationType> => {
     try {
       const created = await locationTypesApi.create(data);
-      await fetchLocationTypes();
+      await fetchLocationTypes(); // Refresh list
       return created;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create location type';
@@ -61,24 +57,38 @@ export function useLocationTypes(filters?: LocationTypeFilters) {
     }
   };
 
-  // Update location type
-  const updateLocationType = async (id: string, data: UpdateLocationTypeRequest): Promise<LocationType> => {
+  /**
+   * Update location type with optimistic locking
+   */
+  const updateLocationType = async (
+    id: string, 
+    data: UpdateLocationTypeData
+  ): Promise<LocationType> => {
     try {
       const updated = await locationTypesApi.update(id, data);
-      await fetchLocationTypes();
+      await fetchLocationTypes(); // Refresh list
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update location type';
-      setError(message);
+      
+      // Handle optimistic locking conflict
+      if (message.includes('version') || message.includes('conflict')) {
+        setError('This location type was modified by another user. Please refresh and try again.');
+      } else {
+        setError(message);
+      }
+      
       throw new Error(message);
     }
   };
 
-  // Delete location type
+  /**
+   * Delete location type
+   */
   const deleteLocationType = async (id: string): Promise<void> => {
     try {
       await locationTypesApi.delete(id);
-      await fetchLocationTypes();
+      await fetchLocationTypes(); // Refresh list
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete location type';
       setError(message);
@@ -86,109 +96,84 @@ export function useLocationTypes(filters?: LocationTypeFilters) {
     }
   };
 
-  // Activate/Deactivate
-  const activateLocationType = async (id: string): Promise<LocationType> => {
+  /**
+   * Toggle active status
+   */
+  const toggleActive = async (id: string, version: number): Promise<LocationType> => {
     try {
-      const activated = await locationTypesApi.activate(id);
-      await fetchLocationTypes();
-      return activated;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to activate location type';
-      setError(message);
-      throw new Error(message);
-    }
-  };
-
-  const deactivateLocationType = async (id: string): Promise<LocationType> => {
-    try {
-      const deactivated = await locationTypesApi.deactivate(id);
-      await fetchLocationTypes();
-      return deactivated;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to deactivate location type';
-      setError(message);
-      throw new Error(message);
-    }
-  };
-
-  // Extra field management
-  const addExtraField = async (id: string, field: ExtraFieldDefinition): Promise<LocationType> => {
-    try {
-      const updated = await locationTypesApi.addExtraField(id, field);
-      await fetchLocationTypes();
+      const updated = await locationTypesApi.toggleActive(id, version);
+      await fetchLocationTypes(); // Refresh list
       return updated;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to add extra field';
+      const message = err instanceof Error ? err.message : 'Failed to toggle active status';
       setError(message);
       throw new Error(message);
     }
   };
 
-  const removeExtraField = async (id: string, fieldName: string): Promise<LocationType> => {
+  /**
+   * Validate code uniqueness
+   */
+  const validateCode = async (
+    code: string, 
+    tenantId: string, 
+    excludeId?: string
+  ): Promise<boolean> => {
     try {
-      const updated = await locationTypesApi.removeExtraField(id, fieldName);
-      await fetchLocationTypes();
-      return updated;
+      return await locationTypesApi.validateCode(code, tenantId, excludeId);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to remove extra field';
-      setError(message);
-      throw new Error(message);
+      console.error('Error validating code:', err);
+      return false;
     }
   };
 
-  const updateExtraField = async (
-    id: string,
-    fieldName: string,
-    field: Partial<ExtraFieldDefinition>
-  ): Promise<LocationType> => {
-    try {
-      const updated = await locationTypesApi.updateExtraField(id, fieldName, field);
-      await fetchLocationTypes();
-      return updated;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update extra field';
-      setError(message);
-      throw new Error(message);
-    }
-  };
+  /**
+   * Get active location types only
+   */
+  const getActiveLocationTypes = useCallback((): LocationType[] => {
+    return locationTypes.filter(lt => lt.is_active);
+  }, [locationTypes]);
 
-  // Get stats
-  const getStats = async (): Promise<LocationTypeStats> => {
-    try {
-      return await locationTypesApi.getStats(memoizedFilters);
-    } catch (err) {
-      console.error('Error getting stats:', err);
-      return {
-        total: 0,
-        system_types: 0,
-        custom_types: 0,
-        active: 0,
-        inactive: 0,
-        with_extra_fields: 0,
-        by_tenant: {},
-      };
-    }
-  };
+  /**
+   * Get by tenant
+   */
+  const getByTenant = useCallback((tenantId: string, activeOnly: boolean = false): LocationType[] => {
+    return locationTypes.filter(lt => 
+      lt.tenant_id === tenantId && (!activeOnly || lt.is_active)
+    );
+  }, [locationTypes]);
 
-  // Initial load
-  useEffect(() => {
-    fetchLocationTypes();
-  }, [fetchLocationTypes]);
+  /**
+   * Get statistics
+   */
+  const getStats = useCallback(() => {
+    return {
+      total: locationTypes.length,
+      active: locationTypes.filter(lt => lt.is_active).length,
+      inactive: locationTypes.filter(lt => !lt.is_active).length,
+      system: locationTypes.filter(lt => lt.is_system).length,
+      custom: locationTypes.filter(lt => !lt.is_system).length,
+    };
+  }, [locationTypes]);
 
   return {
+    // State
     locationTypes,
     loading,
     error,
+
+    // Actions
     createLocationType,
     updateLocationType,
     deleteLocationType,
-    activateLocationType,
-    deactivateLocationType,
-    addExtraField,
-    removeExtraField,
-    updateExtraField,
-    getStats,
+    toggleActive,
+    validateCode,
     refresh: fetchLocationTypes,
+
+    // Utilities
+    getActiveLocationTypes,
+    getByTenant,
+    getStats,
   };
 }
 

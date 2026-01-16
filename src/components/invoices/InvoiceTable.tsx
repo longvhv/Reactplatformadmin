@@ -2,6 +2,7 @@
  * InvoiceTable Component
  * Displays invoices in a table format with full CRUD operations
  * ✅ Schema compatible: subscriptionInvoiceApi is alias to invoiceApi
+ * ✅ FIXED 2026-01-15: Use helper functions for payment status (derived field)
  */
 
 import React, { useState } from 'react';
@@ -14,6 +15,14 @@ import { SubscriptionInvoice } from '../../api/subscriptionInvoiceApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useLanguage } from '../../providers/LanguageProvider';
+import { 
+  getPaymentStatusBadge, 
+  getStatusBadge, 
+  getCustomerName, 
+  getCustomerEmail,
+  formatCurrency,
+  formatDate
+} from '../../utils/invoiceHelpers';
 
 interface InvoiceTableProps {
   invoices: SubscriptionInvoice[];
@@ -31,47 +40,6 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  const getStatusBadge = (status: SubscriptionInvoice['status']) => {
-    const statusConfig = {
-      DRAFT: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300', label: 'Draft' },
-      OPEN: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', label: 'Open' },
-      PAID: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', label: 'Paid' },
-      VOID: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', label: 'Void' },
-      UNCOLLECTIBLE: { color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400', label: 'Uncollectible' },
-    };
-    const config = statusConfig[status] || statusConfig.DRAFT;
-    return <Badge className={config.color}>{config.label}</Badge>;
-  };
-
-  const getPaymentStatusBadge = (status: SubscriptionInvoice['payment_status']) => {
-    const statusConfig = {
-      unpaid: { color: 'bg-red-100 text-red-800', label: t('invoices.paymentStatus.unpaid'), icon: XCircle },
-      paid: { color: 'bg-green-100 text-green-800', label: t('invoices.paymentStatus.paid'), icon: CheckCircle },
-      partially_paid: { color: 'bg-yellow-100 text-yellow-800', label: t('invoices.paymentStatus.partiallyPaid'), icon: AlertCircle },
-      refunded: { color: 'bg-purple-100 text-purple-800', label: t('invoices.paymentStatus.refunded'), icon: AlertCircle },
-      failed: { color: 'bg-red-100 text-red-800', label: t('invoices.paymentStatus.failed'), icon: XCircle },
-    };
-    const config = statusConfig[status] || statusConfig.unpaid; // ✅ Add fallback
-    const Icon = config.icon;
-    return (
-      <Badge className={`${config.color} flex items-center gap-1`}>
-        <Icon className="w-3 h-3" />
-        {config.label}
-      </Badge>
-    );
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('vi-VN');
-  };
-
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: currency || 'USD',
-    }).format(amount);
-  };
 
   const handleDelete = (id: string) => {
     if (deleteConfirmId === id) {
@@ -149,14 +117,16 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                         {invoice.invoice_number}
                       </button>
                       <div className="text-xs text-gray-500">
-                        {formatDate(invoice.invoice_date)}
+                        {/* ✅ FIX: invoice_date doesn't exist, use created_at */}
+                        {formatDate(invoice.created_at)}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <div className="text-sm text-gray-900">{invoice.customer_name}</div>
-                  <div className="text-xs text-gray-500">{invoice.customer_email}</div>
+                  {/* ✅ FIX: Use billing_info JSONB structure */}
+                  <div className="text-sm text-gray-900">{getCustomerName(invoice)}</div>
+                  <div className="text-xs text-gray-500">{getCustomerEmail(invoice)}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center text-sm text-gray-900">
@@ -165,9 +135,10 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                       <div className="text-xs text-gray-500">
                         {t('invoices.due')}: {formatDate(invoice.due_date)}
                       </div>
-                      {invoice.paid_date && (
+                      {/* ✅ FIX: paid_date → paid_at */}
+                      {invoice.paid_at && (
                         <div className="text-xs text-green-600">
-                          {t('invoices.paid')}: {formatDate(invoice.paid_date)}
+                          {t('invoices.paid')}: {formatDate(invoice.paid_at)}
                         </div>
                       )}
                     </div>
@@ -175,23 +146,37 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(invoice.total_amount, invoice.currency)}
+                    {/* ✅ FIX: currency → currency_code */}
+                    {formatCurrency(invoice.total_amount, invoice.currency_code)}
                   </div>
                   {invoice.amount_due > 0 && (
                     <div className="text-xs text-red-600">
-                      {t('invoices.due')}: {formatCurrency(invoice.amount_due, invoice.currency)}
+                      {/* ✅ FIX: currency → currency_code */}
+                      {t('invoices.due')}: {formatCurrency(invoice.amount_due, invoice.currency_code)}
                     </div>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {getStatusBadge(invoice.status)}
+                  {/* ✅ FIX: Use helper function, returns Badge component */}
+                  <Badge className={getStatusBadge(invoice.status).color}>
+                    {getStatusBadge(invoice.status).label}
+                  </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {getPaymentStatusBadge(invoice.payment_status)}
-                  {invoice.payment_method && (
+                  {/* ✅ FIX: payment_status is derived, use helper */}
+                  {(() => {
+                    const badge = getPaymentStatusBadge(invoice);
+                    return (
+                      <Badge className={badge.color}>
+                        {badge.label}
+                      </Badge>
+                    );
+                  })()}
+                  {/* ✅ FIX: payment_method in metadata JSONB */}
+                  {invoice.metadata?.payment_method && (
                     <div className="flex items-center text-xs text-gray-500 mt-1">
                       <CreditCard className="h-3 w-3 mr-1" />
-                      {invoice.payment_method}
+                      {invoice.metadata.payment_method}
                     </div>
                   )}
                 </td>
@@ -205,11 +190,12 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {invoice.status === 'draft' && onStatusChange && (
+                    {/* ✅ FIX: Status must be UPPERCASE */}
+                    {invoice.status === 'DRAFT' && onStatusChange && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => onStatusChange(invoice._id!, 'sent')}
+                        onClick={() => onStatusChange(invoice._id!, 'OPEN')}
                         title={t('invoices.sendInvoice')}
                       >
                         <Send className="h-4 w-4" />

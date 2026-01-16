@@ -8,7 +8,7 @@ import {
   systemAnnouncementApi, 
   SystemAnnouncement,
   SystemAnnouncementFilters 
-} from '../api/systemAnnouncementApi';
+} from '../api/systemAnnouncementsApi';
 
 interface UseAnnouncementsOptions {
   autoLoad?: boolean;

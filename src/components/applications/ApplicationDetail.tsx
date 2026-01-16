@@ -5,14 +5,33 @@
 
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router';
-import {
-  useApplicationWithCapabilities,
-  applicationsApi,
-  capabilitiesApi,
-  formatCapabilityType,
-  getCapabilityTypeIcon,
-  formatDefaultValue,
-} from '../../api/applicationsApi';
+import { applicationsApi } from '@/api/applicationsApi';
+import { appCapabilityApi } from '@/api/appCapabilityApi';
+import { useApplicationWithCapabilities } from '@/hooks/useApplicationWithCapabilities';
+
+// Helper functions for inline capability modal
+// Note: These are simplified versions for the inline modal
+// TODO: Refactor to use full appCapabilityApi types
+const formatCapabilityType = (type: string) => type;
+const getCapabilityTypeIcon = (type: string) => type === 'BOOLEAN' ? '🔘' : '🔢';
+const formatDefaultValue = (value: any, type: string) => {
+  if (type === 'BOOLEAN') return value ? 'true' : 'false';
+  return String(value);
+};
+
+// Simplified capability interface for inline modal
+// TODO: Migrate to full AppCapability interface
+interface SimpleCapability {
+  _id: string;
+  code: string;
+  name: string;
+  description?: string;
+  type: 'BOOLEAN' | 'NUMBER';
+  default_value: boolean | number;
+  is_active: boolean;
+  version: number;
+  deleted_at?: string | null;
+}
 
 export function ApplicationDetail() {
   const { code } = useParams<{ code: string }>();
@@ -55,7 +74,7 @@ export function ApplicationDetail() {
     }
 
     try {
-      await capabilitiesApi.delete(capabilityId);
+      await appCapabilityApi.delete(capabilityId);
       alert('Capability deleted successfully');
       refresh();
     } catch (error) {
@@ -65,7 +84,7 @@ export function ApplicationDetail() {
 
   const handleToggleCapability = async (capabilityId: string, currentStatus: boolean) => {
     try {
-      await capabilitiesApi.update(capabilityId, { is_active: !currentStatus });
+      await appCapabilityApi.update(capabilityId, { is_active: !currentStatus });
       alert('Capability status updated');
       refresh();
     } catch (error) {
@@ -433,7 +452,7 @@ function CreateCapabilityModal({
         }
       }
 
-      await capabilitiesApi.create(appCode, {
+      await appCapabilityApi.create(appCode, {
         code: formData.code,
         name: formData.name,
         type: formData.type,

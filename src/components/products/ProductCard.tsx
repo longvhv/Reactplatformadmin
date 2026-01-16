@@ -1,21 +1,22 @@
 /**
  * Product Card Component
  * Display product info in card format
+ * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
  */
 
 import React from 'react';
-import { SaaSProduct } from '../../api/saasProductApi';
+import { Product } from '../../api/productsApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit2, Trash2, Star, Copy, Eye } from 'lucide-react';
 
 interface ProductCardProps {
-  product: SaaSProduct;
-  onEdit?: (product: SaaSProduct) => void;
-  onDelete?: (product: SaaSProduct) => void;
-  onView?: (product: SaaSProduct) => void;
-  onDuplicate?: (product: SaaSProduct) => void;
-  onToggleFeatured?: (product: SaaSProduct) => void;
+  product: Product;
+  onEdit?: (product: Product) => void;
+  onDelete?: (product: Product) => void;
+  onView?: (product: Product) => void;
+  onDuplicate?: (product: Product) => void;
+  onToggleFeatured?: (product: Product) => void;
 }
 
 export function ProductCard({

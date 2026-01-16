@@ -67,6 +67,7 @@ export interface CreateDepartmentRequest {
 
 /**
  * Update Department Request
+ * ✅ IMPROVEMENT: Added version for optimistic locking
  */
 export interface UpdateDepartmentRequest {
   code?: string;
@@ -78,6 +79,7 @@ export interface UpdateDepartmentRequest {
   order?: number;
   metadata?: Record<string, any>;
   updated_by?: string;
+  version: number;  // ✅ REQUIRED for optimistic locking
 }
 
 /**
@@ -199,12 +201,20 @@ export const departmentsApi = {
   /**
    * DELETE /departments/:id (SOFT DELETE)
    * Sets deleted_at to current timestamp
+   * ✅ IMPROVEMENT: Now requires version
    */
-  delete: async (id: string, deleted_by?: string): Promise<void> => {
+  delete: async (id: string, deleted_by?: string, version?: number): Promise<void> => {
+    // Get current version if not provided
+    if (!version) {
+      const dept = await adapter.getById(id);
+      version = dept.version;
+    }
+    
     // Soft delete: set deleted_at
     await adapter.update(id, {
       deleted_at: new Date().toISOString(),
       deleted_by,
+      version,
     } as any);
   },
 
@@ -218,11 +228,19 @@ export const departmentsApi = {
 
   /**
    * Restore soft-deleted department
+   * ✅ IMPROVEMENT: Now requires version
    */
-  restore: async (id: string): Promise<Department> => {
+  restore: async (id: string, version?: number): Promise<Department> => {
+    // Get current version if not provided
+    if (!version) {
+      const dept = await adapter.getById(id);
+      version = dept.version;
+    }
+    
     return adapter.update(id, {
       deleted_at: undefined,
       deleted_by: undefined,
+      version,
     } as any);
   },
 

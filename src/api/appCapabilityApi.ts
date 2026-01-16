@@ -92,7 +92,8 @@ export interface CapabilityStatistics {
 
 const adapter = createAdapter<AppCapability, CreateCapabilityRequest, UpdateCapabilityRequest>(
   'app_capabilities',
-  '/app-capabilities'
+  '/app-capabilities',
+  true  // ✅ Enable soft delete support (Fixed 2026-01-15)
 );
 
 // ==================== API CLIENT ====================
@@ -231,6 +232,55 @@ export const appCapabilityApi = {
 
     return Promise.all(promises);
   },
+};
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Format capability type for display
+ */
+export const formatCapabilityType = (type: CapabilityType): string => {
+  return type === 'FEATURE' ? 'Feature' : 'Limit';
+};
+
+/**
+ * Get icon for capability type
+ */
+export const getCapabilityTypeIcon = (type: CapabilityType): string => {
+  return type === 'FEATURE' ? '✨' : '📊';
+};
+
+/**
+ * Format default value for display
+ */
+export const formatDefaultValue = (defaultValue: DefaultValue, type: CapabilityType): string => {
+  if (type === 'FEATURE') {
+    return defaultValue.enabled ? 'Enabled' : 'Disabled';
+  }
+  
+  if (defaultValue.value !== undefined) {
+    return defaultValue.unit 
+      ? `${defaultValue.value} ${defaultValue.unit}`
+      : String(defaultValue.value);
+  }
+  
+  return '-';
+};
+
+/**
+ * Get status badge color
+ */
+export const getCapabilityStatusColor = (status: CapabilityStatus): string => {
+  switch (status) {
+    case 'active':
+      return 'bg-green-100 text-green-800';
+    case 'inactive':
+      return 'bg-gray-100 text-gray-800';
+    case 'archived':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
 };
 
 export default appCapabilityApi;

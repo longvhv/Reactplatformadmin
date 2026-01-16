@@ -19,11 +19,14 @@ import {
   RefreshCw,
   Archive,
   ArchiveRestore,
+  Eye,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { departmentsApi, DepartmentTreeNode } from '../../api/departmentsApi';
+import { departmentsApi, DepartmentTreeNode, Department } from '../../api/departmentsApi';
+import { tenantMembersApi, TenantMember } from '../../api/tenantMembersApi';
+import { DepartmentDetailView } from '../departments/DepartmentDetailView';
 import { toast } from 'sonner@2.0.3';
 
 interface TenantDepartmentsTabProps {
@@ -37,6 +40,7 @@ export function TenantDepartmentsTab({ tenantId }: TenantDepartmentsTabProps) {
   const [editingDept, setEditingDept] = useState<DepartmentTreeNode | null>(null);
   const [parentDept, setParentDept] = useState<DepartmentTreeNode | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [selectedDept, setSelectedDept] = useState<Department | null>(null);
 
   useEffect(() => {
     loadDepartments();
@@ -262,6 +266,17 @@ export function TenantDepartmentsTab({ tenantId }: TenantDepartmentsTabProps) {
             >
               <Trash2 className="w-4 h-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedDept(dept);
+              }}
+              title="Xem chi tiết"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -392,6 +407,14 @@ export function TenantDepartmentsTab({ tenantId }: TenantDepartmentsTabProps) {
           }}
         />
       )}
+
+      {/* Department Detail View */}
+      {selectedDept && (
+        <DepartmentDetailView
+          department={selectedDept}
+          onClose={() => setSelectedDept(null)}
+        />
+      )}
     </div>
   );
 }
@@ -436,13 +459,14 @@ function DepartmentDialog({
       setSubmitting(true);
 
       if (department) {
-        // Update existing
+        // Update existing - ✅ Include version
         await departmentsApi.update(department._id, {
           code: formData.code,
           name: formData.name,
           description: formData.description || undefined,
           status: formData.status as any,
           order: parseInt(formData.order) || 0,
+          version: department.version,  // ✅ Required for optimistic locking
         });
         toast.success('Đã cập nhật phòng ban');
       } else {

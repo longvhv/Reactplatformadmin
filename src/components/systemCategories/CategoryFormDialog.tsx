@@ -3,13 +3,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import {
+import type {
   CategoryInstance,
   SystemCategoryType,
-  CategoryStatusHelper,
-  CategoryStatus,
   ExtraField,
-} from '../../api/systemCategoryApi';
+} from '../../api/systemCategoriesApi';
+import { CategoryStatusHelper } from '../../api/systemCategoriesApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -35,7 +34,7 @@ export function CategoryFormDialog({
     name: '',
     description: '',
     order: 0,
-    status: CategoryStatusHelper.ACTIVE as CategoryStatus,
+    status: CategoryStatusHelper.ACTIVE,
     is_editable: true,
     group_category_id: '', // For SystemCategoryType
     collection_name: 'system_categories', // For SystemCategoryType

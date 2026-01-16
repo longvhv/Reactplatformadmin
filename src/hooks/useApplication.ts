@@ -46,7 +46,7 @@ export function useApplication(id?: string) {
       console.log('🔍 [useApplication] Updating application:', application._id, data);
       const updated = await applicationsApi.update(application._id, {
         ...data,
-        version_number: application.version_number,
+        version: application.version,  // ✅ Use 'version' (number)
       });
       console.log('✅ [useApplication] Application updated:', updated);
       setApplication(updated);
@@ -76,17 +76,15 @@ export function useApplication(id?: string) {
   const toggleActive = async () => {
     if (!application) return;
     
-    const newStatus = application.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    
     try {
-      console.log('🔍 [useApplication] Toggling status:', application._id, newStatus);
+      console.log('🔍 [useApplication] Toggling is_active:', application._id, !application.is_active);
       const updated = await applicationsApi.update(application._id, {
-        status: newStatus,
-        version_number: application.version_number,
+        is_active: !application.is_active,  // ✅ Use 'is_active' boolean
+        version: application.version,       // ✅ Use 'version' (number)
       });
       console.log('✅ [useApplication] Status toggled:', updated);
       setApplication(updated);
-      toast.success(`Đã ${newStatus === 'ACTIVE' ? 'kích hoạt' : 'vô hiệu hóa'} ứng dụng`);
+      toast.success(`Đã ${updated.is_active ? 'kích hoạt' : 'vô hiệu hóa'} ứng dụng`);
     } catch (err: any) {
       console.error('❌ [useApplication] Error toggling status:', err);
       toast.error('Không thể thay đổi trạng thái ứng dụng');

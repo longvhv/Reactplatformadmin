@@ -1,6 +1,6 @@
 /**
  * Edit Product Page
- * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -8,14 +8,16 @@ import { useParams, useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Package } from 'lucide-react';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
-import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
+import { productsApi, Product, UpdateProductRequest } from '../api/productsApi';
 import { ProductForm } from '../components/products/ProductForm';
 import { toast } from 'sonner@2.0.3';
+
+const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<SaaSProduct | null>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function EditProductPage() {
   const loadProduct = async () => {
     try {
       setLoading(true);
-      const data = await saasProductApi.getById(id!);
+      const data = await productsApi.getById(id!);
       setProduct(data);
     } catch (error: any) {
       toast.error('Không thể tải thông tin sản phẩm: ' + error.message);
@@ -37,11 +39,11 @@ export default function EditProductPage() {
     }
   };
 
-  const handleSubmit = async (data: Partial<SaaSProduct>) => {
+  const handleSubmit = async (data: UpdateProductRequest) => {
     if (!product) return;
 
     try {
-      await saasProductApi.update(product._id!, data, product.version!);
+      await productsApi.update(product._id!, data);
       toast.success('Đã cập nhật sản phẩm');
       navigate('/core/products');
     } catch (error: any) {
@@ -85,6 +87,7 @@ export default function EditProductPage() {
     >
       <ProductForm
         product={product}
+        tenantId={DEMO_TENANT_ID}
         onSubmit={handleSubmit}
         onCancel={() => navigate('/core/products')}
       />

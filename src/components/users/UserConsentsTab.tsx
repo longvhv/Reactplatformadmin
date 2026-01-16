@@ -1,356 +1,780 @@
 /**
  * UserConsentsTab Component
- * Tab hiển thị các điều khoản user đã chấp nhận
+ * Manages legal consent tracking for GDPR/CCPA compliance
+ * Features: Consent lifecycle, withdrawal, expiry, renewal
  */
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  FileText,
-  Check,
-  X,
-  AlertCircle,
-  Calendar,
-  Globe,
-  RefreshCw,
+  Shield,
+  Plus,
   Trash2,
   Eye,
+  XCircle,
+  CheckCircle,
   Clock,
+  AlertTriangle,
+  RefreshCw,
+  Download,
+  Filter,
+  FileText,
+  Calendar,
+  Globe,
+  Smartphone,
+  Mail,
+  UserPlus,
+  User,
+  ShoppingCart,
+  Code,
 } from 'lucide-react';
-import { useUserConsents } from '../../hooks/useUserConsents';
-import { UserConsent } from '../../api/userConsentsApi';
+import {
+  userConsentsService,
+  UserConsent,
+  ConsentStatus,
+  DocumentType,
+  ConsentMethod,
+} from '../../services/userConsentsService';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 
 interface UserConsentsTabProps {
   userId: string;
 }
 
-export function UserConsentsTab({ userId }: UserConsentsTabProps) {
-  const { consents, loading, withdrawConsent, renewConsent, deleteConsent, getUserStats } = useUserConsents({
-    user_id: userId,
-  });
+export const UserConsentsTab: React.FC<UserConsentsTabProps> = ({ userId }) => {
+  const { t } = useTranslation();
+  const [consents, setConsents] = useState<UserConsent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedConsent, setSelectedConsent] = useState<UserConsent | null>(null);
+  const [filterStatus, setFilterStatus] = useState<ConsentStatus | 'ALL'>('ALL');
+  const [filterDocumentType, setFilterDocumentType] = useState<DocumentType | 'ALL'>('ALL');
 
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    withdrawn: 0,
-    requiresRenewal: 0,
-    expiringSoon: 0,
-  });
+  // Load consents
+  const loadConsents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await userConsentsService.getByUserId(userId);
+      setConsents(data);
+    } catch (err) {
+      setError(t('consents.fetchError'));
+      console.error('Error loading consents:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
-  const [renewingId, setRenewingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  // Load stats
   useEffect(() => {
-    const loadStats = async () => {
-      const userStats = await getUserStats(userId);
-      setStats(userStats);
-    };
-    loadStats();
-  }, [userId, consents, getUserStats]);
-
-  // Format date
-  const formatDate = (date?: string) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // Get type badge
-  const getTypeBadge = (type?: string) => {
-    if (!type) return null;
-    
-    const colors: Record<string, string> = {
-      terms_of_service: 'bg-blue-50 text-blue-700 border-blue-200',
-      privacy_policy: 'bg-purple-50 text-purple-700 border-purple-200',
-      cookie_policy: 'bg-orange-50 text-orange-700 border-orange-200',
-      gdpr: 'bg-green-50 text-green-700 border-green-200',
-      eula: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      sla: 'bg-pink-50 text-pink-700 border-pink-200',
-      dpa: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      other: 'bg-gray-50 text-gray-700 border-gray-200',
-    };
-
-    const labels: Record<string, string> = {
-      terms_of_service: 'ToS',
-      privacy_policy: 'Privacy',
-      cookie_policy: 'Cookie',
-      gdpr: 'GDPR',
-      eula: 'EULA',
-      sla: 'SLA',
-      dpa: 'DPA',
-      other: 'Other',
-    };
-
-    return (
-      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colors[type] || colors.other}`}>
-        {labels[type] || type}
-      </span>
-    );
-  };
-
-  // Get status badge
-  const getStatusBadge = (consent: UserConsent) => {
-    if (consent.withdrawn) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-          <X className="w-3 h-3" />
-          Withdrawn
-        </span>
-      );
+    if (userId) {
+      loadConsents();
     }
-
-    if (consent.expires_at && new Date(consent.expires_at) < new Date()) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-          <AlertCircle className="w-3 h-3" />
-          Expired
-        </span>
-      );
-    }
-
-    if (consent.consent_given) {
-      return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-          <Check className="w-3 h-3" />
-          Active
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-        Pending
-      </span>
-    );
-  };
-
-  // Check if expiring soon
-  const isExpiringSoon = (consent: UserConsent) => {
-    if (!consent.expires_at) return false;
-    const expiryDate = new Date(consent.expires_at);
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    return expiryDate > now && expiryDate < thirtyDaysFromNow;
-  };
+  }, [userId]);
 
   // Handle withdraw
-  const handleWithdraw = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn thu hồi sự chấp nhận này?')) return;
-
-    setWithdrawingId(id);
-    try {
-      await withdrawConsent(id, {
-        withdrawn_reason: 'User requested withdrawal',
-      });
-    } catch (err) {
-      console.error('Error withdrawing consent:', err);
-      alert('Failed to withdraw consent');
-    } finally {
-      setWithdrawingId(null);
-    }
+  const handleWithdraw = (consent: UserConsent) => {
+    setSelectedConsent(consent);
+    setShowWithdrawModal(true);
   };
 
   // Handle renew
   const handleRenew = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn gia hạn sự chấp nhận này?')) return;
+    if (!confirm(t('consents.confirmRenew'))) return;
 
-    setRenewingId(id);
     try {
-      await renewConsent(id);
+      await userConsentsService.renew(id);
+      await loadConsents();
     } catch (err) {
+      alert(t('consents.renewError'));
       console.error('Error renewing consent:', err);
-      alert('Failed to renew consent');
-    } finally {
-      setRenewingId(null);
     }
   };
 
   // Handle delete
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa bản ghi này?')) return;
+  const handleDelete = async (id: string, title: string) => {
+    if (!confirm(t('consents.confirmDelete', { title }))) return;
 
-    setDeletingId(id);
     try {
-      await deleteConsent(id);
+      await userConsentsService.delete(id);
+      await loadConsents();
     } catch (err) {
+      alert(t('consents.deleteError'));
       console.error('Error deleting consent:', err);
-      alert('Failed to delete consent');
-    } finally {
-      setDeletingId(null);
+    }
+  };
+
+  // Handle view details
+  const handleViewDetails = (consent: UserConsent) => {
+    setSelectedConsent(consent);
+    setShowDetailsModal(true);
+  };
+
+  // Handle export
+  const handleExport = async () => {
+    try {
+      const exportData = await userConsentsService.exportUserConsents(userId);
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `user-consents-${userId}-${new Date().toISOString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(t('consents.exportError'));
+      console.error('Error exporting consents:', err);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Đang tải...</p>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        {error}
+      </div>
+    );
+  }
+
+  // Filter consents
+  let filteredConsents = consents;
+  if (filterStatus !== 'ALL') {
+    filteredConsents = filteredConsents.filter(
+      c => userConsentsService.getConsentStatus(c) === filterStatus
+    );
+  }
+  if (filterDocumentType !== 'ALL') {
+    filteredConsents = filteredConsents.filter(c => c.document_type === filterDocumentType);
+  }
+
+  // Stats
+  const stats = {
+    total: consents.length,
+    active: consents.filter(c => userConsentsService.getConsentStatus(c) === 'active').length,
+    withdrawn: consents.filter(c => userConsentsService.getConsentStatus(c) === 'withdrawn').length,
+    expired: consents.filter(c => userConsentsService.getConsentStatus(c) === 'expired').length,
+    renewalRequired: consents.filter(c => userConsentsService.getConsentStatus(c) === 'renewal_required').length,
+  };
+
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {t('consents.title')}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {t('consents.subtitle')}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {t('consents.export')}
+          </Button>
+        </div>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <Shield className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <p className="font-medium text-blue-900">
+              {t('consents.gdprCompliance')}
+            </p>
+            <p className="text-sm text-blue-700 mt-1">
+              {t('consents.gdprDescription')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Stats */}
-      <div className="grid grid-cols-5 gap-4">
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Tổng số</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Đang hoạt động</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">{stats.active}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Đã thu hồi</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">{stats.withdrawn}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Cần gia hạn</p>
-          <p className="text-2xl font-bold text-orange-600 mt-1">{stats.requiresRenewal}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Sắp hết hạn</p>
-          <p className="text-2xl font-bold text-yellow-600 mt-1">{stats.expiringSoon}</p>
-        </div>
-      </div>
-
-      {/* Consents List */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        {consents.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">Người dùng chưa chấp nhận điều khoản nào</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tài liệu</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phiên bản</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày chấp nhận</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phương thức</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hết hạn</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {consents.map((consent) => (
-                  <tr
-                    key={consent._id}
-                    className={`hover:bg-gray-50 transition-colors ${
-                      consent.withdrawn ? 'bg-red-50' : isExpiringSoon(consent) ? 'bg-yellow-50' : ''
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900">
-                          {consent.legal_document?.title || consent.document_title}
-                        </span>
-                        {consent.legal_document?.slug && (
-                          <span className="text-xs text-gray-500">{consent.legal_document.slug}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {getTypeBadge(consent.legal_document?.type || consent.document_type)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-900">
-                        {consent.legal_document?.version || consent.document_version}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">{getStatusBadge(consent)}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-sm text-gray-900">
-                        <Calendar className="w-3 h-3 text-gray-400" />
-                        {formatDate(consent.consent_date)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-600 capitalize">
-                        {consent.consent_method || '-'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {consent.expires_at ? (
-                        <div className="flex items-center gap-1 text-sm text-gray-900">
-                          <Clock className="w-3 h-3 text-gray-400" />
-                          {formatDate(consent.expires_at)}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        {consent.withdrawn ? (
-                          <button
-                            onClick={() => handleRenew(consent._id)}
-                            disabled={renewingId === consent._id}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
-                            title="Renew"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleWithdraw(consent._id)}
-                            disabled={withdrawingId === consent._id}
-                            className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors disabled:opacity-50"
-                            title="Withdraw"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(consent._id)}
-                          disabled={deletingId === consent._id}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Additional Info */}
       {consents.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Thông tin về Consents:</p>
-              <ul className="list-disc list-inside space-y-1 text-blue-700">
-                <li>Các consents được snapshot tại thời điểm user chấp nhận</li>
-                <li>Withdrawn consents có thể được renew lại</li>
-                <li>Consents có thể có ngày hết hạn hoặc yêu cầu gia hạn định kỳ</li>
-                <li>Mỗi user chỉ có thể có 1 consent cho mỗi document</li>
-              </ul>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-100 rounded-lg p-2">
+                <Shield className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{t('consents.totalConsents')}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-green-100 rounded-lg p-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{t('consents.active')}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-red-100 rounded-lg p-2">
+                <XCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{t('consents.withdrawn')}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.withdrawn}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-gray-100 rounded-lg p-2">
+                <Calendar className="h-5 w-5 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{t('consents.expired')}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.expired}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-yellow-100 rounded-lg p-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{t('consents.renewalRequired')}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.renewalRequired}</p>
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Filters */}
+      {consents.length > 0 && (
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as ConsentStatus | 'ALL')}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="ALL">{t('consents.allStatuses')}</option>
+              <option value="active">{t('consents.active')}</option>
+              <option value="withdrawn">{t('consents.withdrawn')}</option>
+              <option value="expired">{t('consents.expired')}</option>
+              <option value="renewal_required">{t('consents.renewalRequired')}</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={filterDocumentType}
+              onChange={(e) => setFilterDocumentType(e.target.value as DocumentType | 'ALL')}
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="ALL">{t('consents.allDocumentTypes')}</option>
+              <option value="privacy_policy">{t('consents.privacyPolicy')}</option>
+              <option value="terms_of_service">{t('consents.termsOfService')}</option>
+              <option value="cookie_policy">{t('consents.cookiePolicy')}</option>
+              <option value="marketing">{t('consents.marketing')}</option>
+              <option value="data_processing">{t('consents.dataProcessing')}</option>
+              <option value="third_party_sharing">{t('consents.thirdPartySharing')}</option>
+              <option value="newsletter">{t('consents.newsletter')}</option>
+              <option value="other">{t('consents.other')}</option>
+            </select>
+          </div>
+
+          <span className="text-sm text-gray-500">
+            {filteredConsents.length} {t('consents.results')}
+          </span>
+        </div>
+      )}
+
+      {/* Consents Table */}
+      {filteredConsents.length > 0 ? (
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('consents.document')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('consents.type')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('consents.status')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('consents.consentDate')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('consents.expires')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('consents.method')}
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('common.actions')}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredConsents.map((consent) => {
+                  const status = userConsentsService.getConsentStatus(consent);
+                  const statusColor = userConsentsService.getStatusColor(status);
+                  const needsAttention = userConsentsService.needsAttention(consent);
+
+                  return (
+                    <tr 
+                      key={consent._id} 
+                      className={`hover:bg-gray-50 transition-colors ${
+                        needsAttention ? 'bg-yellow-50' : ''
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-gray-400" />
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {consent.document_title || 'Untitled Document'}
+                            </p>
+                            {consent.document_version && (
+                              <p className="text-xs text-gray-500">
+                                v{consent.document_version}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {userConsentsService.getDocumentTypeDisplay(consent.document_type)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge
+                          variant={
+                            statusColor === 'green' ? 'success' :
+                            statusColor === 'red' ? 'destructive' :
+                            statusColor === 'yellow' ? 'warning' :
+                            'secondary'
+                          }
+                          className="flex items-center gap-1 w-fit"
+                        >
+                          {status === 'active' && <CheckCircle className="h-3 w-3" />}
+                          {status === 'withdrawn' && <XCircle className="h-3 w-3" />}
+                          {status === 'expired' && <Calendar className="h-3 w-3" />}
+                          {status === 'renewal_required' && <AlertTriangle className="h-3 w-3" />}
+                          {userConsentsService.getStatusDisplay(status)}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        {userConsentsService.getTimeAgo(consent.consent_date)}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Clock className="h-3 w-3" />
+                          {userConsentsService.getTimeUntilExpiry(consent.expires_at)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <ConsentMethodIcon method={consent.consent_method} />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleViewDetails(consent)}
+                            className="text-indigo-600 hover:text-indigo-800"
+                            title={t('consents.viewDetails')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          {status === 'active' && !consent.withdrawn && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <button
+                                onClick={() => handleWithdraw(consent)}
+                                className="text-orange-600 hover:text-orange-800"
+                                title={t('consents.withdraw')}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                          {(status === 'expired' || status === 'renewal_required') && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <button
+                                onClick={() => handleRenew(consent._id)}
+                                className="text-blue-600 hover:text-blue-800"
+                                title={t('consents.renew')}
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                          {(status === 'withdrawn' || status === 'expired') && (
+                            <>
+                              <span className="text-gray-300">|</span>
+                              <button
+                                onClick={() => handleDelete(
+                                  consent._id, 
+                                  consent.document_title || 'document'
+                                )}
+                                className="text-red-600 hover:text-red-800"
+                                title={t('consents.delete')}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
+          <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500 mb-4">
+            {filterStatus === 'ALL' && filterDocumentType === 'ALL'
+              ? t('consents.noConsents')
+              : t('consents.noConsentsWithFilters')}
+          </p>
+        </div>
+      )}
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && selectedConsent && (
+        <WithdrawConsentModal
+          consent={selectedConsent}
+          onClose={() => {
+            setShowWithdrawModal(false);
+            setSelectedConsent(null);
+          }}
+          onSuccess={() => {
+            setShowWithdrawModal(false);
+            setSelectedConsent(null);
+            loadConsents();
+          }}
+        />
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedConsent && (
+        <ConsentDetailsModal
+          consent={selectedConsent}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedConsent(null);
+          }}
+        />
+      )}
     </div>
   );
+};
+
+// Consent Method Icon Component
+const ConsentMethodIcon: React.FC<{ method?: ConsentMethod }> = ({ method }) => {
+  const iconMap: Record<ConsentMethod, React.ReactNode> = {
+    web: <Globe className="h-4 w-4 text-blue-600" />,
+    mobile: <Smartphone className="h-4 w-4 text-purple-600" />,
+    api: <Code className="h-4 w-4 text-green-600" />,
+    email: <Mail className="h-4 w-4 text-orange-600" />,
+    signup: <UserPlus className="h-4 w-4 text-indigo-600" />,
+    profile: <User className="h-4 w-4 text-gray-600" />,
+    checkout: <ShoppingCart className="h-4 w-4 text-yellow-600" />,
+    other: <FileText className="h-4 w-4 text-gray-400" />,
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {method && iconMap[method]}
+      <span className="text-sm text-gray-600">
+        {userConsentsService.getConsentMethodDisplay(method)}
+      </span>
+    </div>
+  );
+};
+
+// Withdraw Consent Modal
+interface WithdrawConsentModalProps {
+  consent: UserConsent;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export default UserConsentsTab;
+const WithdrawConsentModal: React.FC<WithdrawConsentModalProps> = ({
+  consent,
+  onClose,
+  onSuccess,
+}) => {
+  const { t } = useTranslation();
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      setSubmitting(true);
+      await userConsentsService.withdraw(consent._id, { withdrawn_reason: reason });
+      onSuccess();
+    } catch (err) {
+      alert(t('consents.withdrawError'));
+      console.error('Error withdrawing consent:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {t('consents.withdrawConsent')}
+        </h3>
+
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+            <div>
+              <p className="font-medium text-yellow-900">
+                {t('consents.withdrawWarning')}
+              </p>
+              <p className="text-sm text-yellow-700 mt-1">
+                {t('consents.withdrawWarningMessage')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('consents.document')}
+            </label>
+            <p className="text-sm text-gray-900">
+              {consent.document_title || 'Untitled Document'}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('consents.withdrawReason')} ({t('common.optional')})
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder={t('consents.withdrawReasonPlaceholder')}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              {t('common.cancel')}
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={submitting} 
+              variant="destructive"
+              className="flex-1"
+            >
+              {submitting ? t('common.processing') : t('consents.withdraw')}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Consent Details Modal
+interface ConsentDetailsModalProps {
+  consent: UserConsent;
+  onClose: () => void;
+}
+
+const ConsentDetailsModal: React.FC<ConsentDetailsModalProps> = ({ 
+  consent, 
+  onClose 
+}) => {
+  const { t } = useTranslation();
+  const status = userConsentsService.getConsentStatus(consent);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">
+            {t('consents.consentDetails')}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XCircle className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {/* Document Info */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-gray-900">{t('consents.documentInformation')}</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.documentTitle')}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {consent.document_title || 'Untitled'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.documentType')}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {userConsentsService.getDocumentTypeDisplay(consent.document_type)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.documentVersion')}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {consent.document_version || 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.status')}</p>
+                <Badge
+                  variant={
+                    status === 'active' ? 'success' :
+                    status === 'withdrawn' ? 'destructive' :
+                    status === 'renewal_required' ? 'warning' :
+                    'secondary'
+                  }
+                >
+                  {userConsentsService.getStatusDisplay(status)}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Consent Details */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-gray-900">{t('consents.consentInformation')}</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.consentDate')}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {new Date(consent.consent_date).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.consentMethod')}</p>
+                <ConsentMethodIcon method={consent.consent_method} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.consentIP')}</p>
+                <p className="text-sm font-medium text-gray-900 font-mono">
+                  {consent.consent_ip || 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.expires')}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {consent.expires_at 
+                    ? new Date(consent.expires_at).toLocaleString() 
+                    : 'Never'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Withdrawal Info */}
+          {consent.withdrawn && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-red-900">{t('consents.withdrawalInformation')}</h4>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-red-600">{t('consents.withdrawnDate')}</p>
+                  <p className="text-sm font-medium text-red-900">
+                    {consent.withdrawn_date 
+                      ? new Date(consent.withdrawn_date).toLocaleString()
+                      : 'N/A'}
+                  </p>
+                </div>
+                {consent.withdrawn_reason && (
+                  <div>
+                    <p className="text-xs text-red-600">{t('consents.withdrawReason')}</p>
+                    <p className="text-sm text-red-900">{consent.withdrawn_reason}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Source Info */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-gray-900">{t('consents.sourceInformation')}</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-500">{t('consents.sourceApplication')}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {consent.source_application || 'N/A'}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500">{t('consents.sourcePage')}</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {consent.source_page || 'N/A'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* User Agent */}
+          {consent.consent_user_agent && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <p className="text-xs text-gray-500 mb-1">{t('consents.userAgent')}</p>
+              <p className="text-xs font-mono text-gray-900 break-all">
+                {consent.consent_user_agent}
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4 border-t border-gray-200">
+            <Button onClick={onClose} className="flex-1">
+              {t('common.close')}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

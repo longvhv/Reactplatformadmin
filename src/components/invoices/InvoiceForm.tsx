@@ -2,18 +2,17 @@
  * InvoiceForm Component
  * Form for creating and editing invoices with full validation
  * Follows DRY principle and SonarQube standards
+ * ✅ UPDATED 2026-01-15: Schema compliance fixes
+ *   - JSONB structure for billing_info
+ *   - billing_period fields instead of invoice_date
+ *   - metadata JSONB for notes, terms, payment info
+ *   - Correct field names (currency_code, items_snapshot, paid_at)
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Save, X, Plus, Trash2, Calculator } from 'lucide-react';
-import { 
-  SubscriptionInvoice, 
-  InvoiceLineItem, 
-  BillingAddress,
-  InvoiceStatus,
-  PaymentStatus 
-} from '../../api/subscriptionInvoiceApi';
+import { Invoice } from '../../api/invoiceApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -22,9 +21,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { useLanguage } from '../../providers/LanguageProvider';
 
+// ✅ Item structure for items_snapshot JSONB
+interface ItemSnapshot {
+  name: string;
+  qty: number;
+  price: number;
+  amount: number;
+  description?: string;
+}
+
+// ✅ Billing info structure for billing_info JSONB
+interface BillingInfo {
+  customer_name?: string;
+  customer_email?: string;
+  customer_phone?: string;
+  tax_id?: string;
+  address?: string;
+  company_name?: string;
+}
+
 interface InvoiceFormProps {
-  initialData?: SubscriptionInvoice;
-  onSubmit: (data: Omit<SubscriptionInvoice, '_id' | 'created_at' | 'updated_at' | 'version'>) => Promise<void>;
+  initialData?: Invoice;
+  onSubmit: (data: Omit<Invoice, '_id' | 'created_at' | 'updated_at' | 'version'>) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -41,33 +59,52 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   // Basic Information
   const [tenantId, setTenantId] = useState(initialData?.tenant_id || '00000000-0000-0000-0000-000000000001');
   const [invoiceNumber, setInvoiceNumber] = useState(initialData?.invoice_number || '');
-  const [invoiceDate, setInvoiceDate] = useState(
-    initialData?.invoice_date ? new Date(initialData.invoice_date).toISOString().split('T')[0] : 
-    new Date().toISOString().split('T')[0]
+  
+  // ✅ FIX: Replace invoice_date with billing_period
+  const [billingPeriodStart, setBillingPeriodStart] = useState(
+    initialData?.billing_period_start || new Date().toISOString()
   );
+  const [billingPeriodEnd, setBillingPeriodEnd] = useState(
+    initialData?.billing_period_end || (() => {
+      const end = new Date();
+      end.setMonth(end.getMonth() + 1);
+      return end.toISOString();
+    })()
+  );
+  
   const [dueDate, setDueDate] = useState(
     initialData?.due_date ? new Date(initialData.due_date).toISOString().split('T')[0] : 
     new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   );
-  const [currency, setCurrency] = useState(initialData?.currency || 'USD');
-  const [status, setStatus] = useState<InvoiceStatus>(initialData?.status || 'draft');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialData?.payment_status || 'unpaid');
+  
+  // ✅ FIX: currency → currency_code
+  const [currencyCode, setCurrencyCode] = useState(initialData?.currency_code || 'VND');
+  
+  // ✅ FIX: UPPERCASE status values
+  const [status, setStatus] = useState<Invoice['status']>(initialData?.status || 'DRAFT');
+  
+  // ❌ REMOVE: payment_status is derived, not stored in DB
 
-  // Customer Information
-  const [customerName, setCustomerName] = useState(initialData?.customer_name || '');
-  const [customerEmail, setCustomerEmail] = useState(initialData?.customer_email || '');
-  const [customerPhone, setCustomerPhone] = useState(initialData?.customer_phone || '');
+  // ✅ FIX: Consolidate into billing_info JSONB
+  const [billingInfo, setBillingInfo] = useState<BillingInfo>(
+    initialData?.billing_info || {
+      customer_name: '',
+      customer_email: '',
+      customer_phone: '',
+      tax_id: '',
+      address: '',
+      company_name: '',
+    }
+  );
 
-  // Billing Address
-  const [billingStreet, setBillingStreet] = useState(initialData?.billing_address?.street || '');
-  const [billingCity, setBillingCity] = useState(initialData?.billing_address?.city || '');
-  const [billingState, setBillingState] = useState(initialData?.billing_address?.state || '');
-  const [billingZip, setBillingZip] = useState(initialData?.billing_address?.zip || '');
-  const [billingCountry, setBillingCountry] = useState(initialData?.billing_address?.country || '');
+  // ✅ Helper for billing info updates
+  const handleBillingInfoChange = (field: keyof BillingInfo, value: string) => {
+    setBillingInfo(prev => ({ ...prev, [field]: value }));
+  };
 
-  // Line Items
-  const [lineItems, setLineItems] = useState<InvoiceLineItem[]>(
-    initialData?.line_items || [{ description: '', quantity: 1, unit_price: 0, amount: 0 }]
+  // ✅ FIX: line_items → items_snapshot (JSONB array)
+  const [itemsSnapshot, setItemsSnapshot] = useState<ItemSnapshot[]>(
+    initialData?.items_snapshot || [{ name: '', qty: 1, price: 0, amount: 0, description: '' }]
   );
 
   // Financial
@@ -76,70 +113,128 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
   const [discountAmount, setDiscountAmount] = useState(initialData?.discount_amount || 0);
   const [totalAmount, setTotalAmount] = useState(initialData?.total_amount || 0);
   const [amountPaid, setAmountPaid] = useState(initialData?.amount_paid || 0);
-  const [amountDue, setAmountDue] = useState(initialData?.amount_due || 0);
 
-  // Payment Information
-  const [paymentMethod, setPaymentMethod] = useState(initialData?.payment_method || '');
-  const [paymentReference, setPaymentReference] = useState(initialData?.payment_reference || '');
+  // ✅ FIX: Move to metadata JSONB
+  const [metadata, setMetadata] = useState<Record<string, any>>(
+    initialData?.metadata || {
+      notes: '',
+      terms: '',
+      payment_method: '',
+      payment_reference: '',
+    }
+  );
 
-  // Notes
-  const [notes, setNotes] = useState(initialData?.notes || '');
-  const [terms, setTerms] = useState(initialData?.terms || '');
+  const updateMetadata = (key: string, value: any) => {
+    setMetadata(prev => ({ ...prev, [key]: value }));
+  };
 
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Calculate totals when line items change
+  // Calculate totals when items change
   useEffect(() => {
-    const newSubtotal = lineItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const newSubtotal = itemsSnapshot.reduce((sum, item) => sum + (item.amount || 0), 0);
     setSubtotal(newSubtotal);
     
     const newTotal = newSubtotal + taxAmount - discountAmount;
     setTotalAmount(newTotal);
-    setAmountDue(newTotal - amountPaid);
-  }, [lineItems, taxAmount, discountAmount, amountPaid]);
+  }, [itemsSnapshot, taxAmount, discountAmount]);
 
-  // Update line item
-  const updateLineItem = (index: number, field: keyof InvoiceLineItem, value: any) => {
-    const updated = [...lineItems];
+  // Update item
+  const updateItem = (index: number, field: keyof ItemSnapshot, value: any) => {
+    const updated = [...itemsSnapshot];
     updated[index] = { ...updated[index], [field]: value };
     
-    if (field === 'quantity' || field === 'unit_price') {
-      updated[index].amount = updated[index].quantity * updated[index].unit_price;
+    if (field === 'qty' || field === 'price') {
+      updated[index].amount = updated[index].qty * updated[index].price;
     }
     
-    setLineItems(updated);
+    setItemsSnapshot(updated);
   };
 
-  const addLineItem = () => {
-    setLineItems([...lineItems, { description: '', quantity: 1, unit_price: 0, amount: 0 }]);
+  const addItem = () => {
+    setItemsSnapshot([...itemsSnapshot, { name: '', qty: 1, price: 0, amount: 0, description: '' }]);
   };
 
-  const removeLineItem = (index: number) => {
-    if (lineItems.length > 1) {
-      setLineItems(lineItems.filter((_, i) => i !== index));
+  const removeItem = (index: number) => {
+    if (itemsSnapshot.length > 1) {
+      setItemsSnapshot(itemsSnapshot.filter((_, i) => i !== index));
     }
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Invoice number
     if (!invoiceNumber.trim()) {
-      newErrors.invoice_number = t('invoices.errors.invoiceNumberRequired');
+      newErrors.invoice_number = 'Invoice number is required';
     }
-    if (!customerName.trim()) {
-      newErrors.customer_name = t('invoices.errors.customerNameRequired');
+    
+    // Billing period validation
+    if (!billingPeriodStart) {
+      newErrors.billing_period_start = 'Billing period start is required';
     }
-    if (!customerEmail.trim()) {
-      newErrors.customer_email = t('invoices.errors.customerEmailRequired');
-    } else if (!/\S+@\S+\.\S+/.test(customerEmail)) {
-      newErrors.customer_email = t('invoices.errors.invalidEmail');
+    if (!billingPeriodEnd) {
+      newErrors.billing_period_end = 'Billing period end is required';
     }
-    if (lineItems.some(item => !item.description.trim())) {
-      newErrors.line_items = t('invoices.errors.lineItemDescriptionRequired');
+    if (billingPeriodStart && billingPeriodEnd) {
+      const start = new Date(billingPeriodStart);
+      const end = new Date(billingPeriodEnd);
+      if (end <= start) {
+        newErrors.billing_period_end = 'Billing period end must be after start';
+      }
     }
+    
+    // Due date validation
+    if (!dueDate) {
+      newErrors.due_date = 'Due date is required';
+    }
+    
+    // Billing info validation
+    if (!billingInfo.customer_name && !billingInfo.customer_email) {
+      newErrors.billing_info = 'At least customer name or email is required';
+    }
+    if (billingInfo.customer_email && !/\S+@\S+\.\S+/.test(billingInfo.customer_email)) {
+      newErrors.billing_info = 'Invalid email format';
+    }
+    
+    // Items validation
+    if (!itemsSnapshot || itemsSnapshot.length === 0) {
+      newErrors.items_snapshot = 'At least one line item is required';
+    }
+    if (itemsSnapshot.some(item => !item.name || !item.name.trim())) {
+      newErrors.items_snapshot = 'All line items must have a name/description';
+    }
+    if (itemsSnapshot.some(item => item.qty <= 0)) {
+      newErrors.items_snapshot = 'All line items must have quantity > 0';
+    }
+    if (itemsSnapshot.some(item => item.price < 0)) {
+      newErrors.items_snapshot = 'Line item prices cannot be negative';
+    }
+    
+    // Amount validation
     if (totalAmount <= 0) {
-      newErrors.total_amount = t('invoices.errors.totalAmountMustBePositive');
+      newErrors.total_amount = 'Total amount must be greater than 0';
+    }
+    if (subtotal < 0) {
+      newErrors.subtotal = 'Subtotal cannot be negative';
+    }
+    if (taxAmount < 0) {
+      newErrors.tax_amount = 'Tax amount cannot be negative';
+    }
+    if (discountAmount < 0) {
+      newErrors.discount_amount = 'Discount amount cannot be negative';
+    }
+    if (amountPaid < 0) {
+      newErrors.amount_paid = 'Amount paid cannot be negative';
+    }
+    if (amountPaid > totalAmount) {
+      newErrors.amount_paid = 'Amount paid cannot exceed total amount';
+    }
+    
+    // Currency code validation (must be 3 chars)
+    if (!currencyCode || currencyCode.length !== 3) {
+      newErrors.currency_code = 'Currency code must be exactly 3 characters (e.g., VND, USD)';
     }
 
     setErrors(newErrors);
@@ -153,40 +248,40 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
       return;
     }
 
-    const billingAddress: BillingAddress = {
-      street: billingStreet,
-      city: billingCity,
-      state: billingState,
-      zip: billingZip,
-      country: billingCountry,
-    };
-
-    const formData: Omit<SubscriptionInvoice, '_id' | 'created_at' | 'updated_at' | 'version'> = {
+    // ✅ FIX: Use correct field names and structure
+    const formData: Omit<Invoice, '_id' | 'created_at' | 'updated_at' | 'version'> = {
       tenant_id: tenantId,
       invoice_number: invoiceNumber,
-      invoice_date: new Date(invoiceDate).toISOString(),
-      due_date: new Date(dueDate).toISOString(),
-      paid_date: initialData?.paid_date || null,
-      subtotal,
+      status: status,
+      currency_code: currencyCode,
+      
+      subtotal: subtotal,
       tax_amount: taxAmount,
       discount_amount: discountAmount,
       total_amount: totalAmount,
       amount_paid: amountPaid,
-      amount_due: amountDue,
-      currency,
-      status,
-      payment_status: paymentStatus,
-      payment_method: paymentMethod || undefined,
-      payment_reference: paymentReference || undefined,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      customer_phone: customerPhone || undefined,
-      billing_address: billingAddress,
-      line_items: lineItems,
-      notes: notes || undefined,
-      terms: terms || undefined,
+      amount_due: totalAmount - amountPaid,
+      
+      billing_info: billingInfo,
+      items_snapshot: itemsSnapshot,
+      
+      billing_period_start: billingPeriodStart,
+      billing_period_end: billingPeriodEnd,
+      due_date: new Date(dueDate).toISOString(),
+      paid_at: initialData?.paid_at || undefined,
+      
+      metadata: metadata,
+      
+      subscription_id: initialData?.subscription_id,
+      order_id: initialData?.order_id,
+      tax_breakdown: initialData?.tax_breakdown || [],
+      price_adjustments: initialData?.price_adjustments || [],
+      pdf_url: initialData?.pdf_url,
+      
       created_by: initialData?.created_by,
       updated_by: 'current-user',
+      deleted_at: initialData?.deleted_at,
+      deleted_by: initialData?.deleted_by,
     };
 
     await onSubmit(formData);
@@ -214,204 +309,207 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
           </div>
 
           <div>
-            <Label htmlFor="currency">{t('invoices.currency')}</Label>
-            <Select value={currency} onValueChange={setCurrency}>
+            <Label htmlFor="currency_code">{t('invoices.currency')}</Label>
+            <Select value={currencyCode} onValueChange={setCurrencyCode}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="VND">VND - Vietnamese Dong</SelectItem>
                 <SelectItem value="USD">USD - US Dollar</SelectItem>
                 <SelectItem value="EUR">EUR - Euro</SelectItem>
                 <SelectItem value="GBP">GBP - British Pound</SelectItem>
-                <SelectItem value="VND">VND - Vietnamese Dong</SelectItem>
                 <SelectItem value="JPY">JPY - Japanese Yen</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.currency_code && (
+              <p className="text-xs text-red-600 mt-1">{errors.currency_code}</p>
+            )}
+          </div>
+
+          <div>
+            <Label htmlFor="status">{t('common.status')}</Label>
+            <Select value={status} onValueChange={(v) => setStatus(v as Invoice['status'])}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="OPEN">Open</SelectItem>
+                <SelectItem value="PAID">Paid</SelectItem>
+                <SelectItem value="VOID">Void</SelectItem>
+                <SelectItem value="UNCOLLECTIBLE">Uncollectible</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div>
-            <Label htmlFor="invoice_date">{t('invoices.invoiceDate')}</Label>
-            <Input
-              id="invoice_date"
-              type="date"
-              value={invoiceDate}
-              onChange={(e) => setInvoiceDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="due_date">{t('invoices.dueDate')}</Label>
+            <Label htmlFor="due_date">{t('invoices.dueDate')} *</Label>
             <Input
               id="due_date"
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="status">{t('common.status')}</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as InvoiceStatus)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">{t('invoices.status.draft')}</SelectItem>
-                <SelectItem value="sent">{t('invoices.status.sent')}</SelectItem>
-                <SelectItem value="paid">{t('invoices.status.paid')}</SelectItem>
-                <SelectItem value="overdue">{t('invoices.status.overdue')}</SelectItem>
-                <SelectItem value="cancelled">{t('invoices.status.cancelled')}</SelectItem>
-                <SelectItem value="partially_paid">{t('invoices.status.partiallyPaid')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="payment_status">{t('invoices.paymentStatus.label')}</Label>
-            <Select value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as PaymentStatus)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unpaid">{t('invoices.paymentStatus.unpaid')}</SelectItem>
-                <SelectItem value="paid">{t('invoices.paymentStatus.paid')}</SelectItem>
-                <SelectItem value="partially_paid">{t('invoices.paymentStatus.partiallyPaid')}</SelectItem>
-                <SelectItem value="refunded">{t('invoices.paymentStatus.refunded')}</SelectItem>
-                <SelectItem value="failed">{t('invoices.paymentStatus.failed')}</SelectItem>
-              </SelectContent>
-            </Select>
+            {errors.due_date && (
+              <p className="text-xs text-red-600 mt-1">{errors.due_date}</p>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Customer Information */}
+      {/* Billing Period */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Billing Period *</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="billing_period_start">Period Start *</Label>
+            <Input
+              id="billing_period_start"
+              type="date"
+              value={billingPeriodStart.split('T')[0]}
+              onChange={(e) => setBillingPeriodStart(e.target.value + 'T00:00:00Z')}
+              required
+            />
+            {errors.billing_period_start && (
+              <p className="text-xs text-red-600 mt-1">{errors.billing_period_start}</p>
+            )}
+          </div>
+          
+          <div>
+            <Label htmlFor="billing_period_end">Period End *</Label>
+            <Input
+              id="billing_period_end"
+              type="date"
+              value={billingPeriodEnd.split('T')[0]}
+              onChange={(e) => setBillingPeriodEnd(e.target.value + 'T23:59:59Z')}
+              required
+            />
+            {errors.billing_period_end && (
+              <p className="text-xs text-red-600 mt-1">{errors.billing_period_end}</p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Customer Information (Billing Info JSONB) */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">{t('invoices.customerInfo')}</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="customer_name">{t('invoices.customerName')} *</Label>
-            <Input
-              id="customer_name"
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-            />
-            {errors.customer_name && (
-              <p className="text-xs text-red-600 mt-1">{errors.customer_name}</p>
-            )}
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="customer_name">Customer Name *</Label>
+              <Input
+                id="customer_name"
+                value={billingInfo.customer_name || ''}
+                onChange={(e) => handleBillingInfoChange('customer_name', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="customer_email">Customer Email *</Label>
+              <Input
+                id="customer_email"
+                type="email"
+                value={billingInfo.customer_email || ''}
+                onChange={(e) => handleBillingInfoChange('customer_email', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {errors.billing_info && (
+            <p className="text-xs text-red-600">{errors.billing_info}</p>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="customer_phone">Phone</Label>
+              <Input
+                id="customer_phone"
+                value={billingInfo.customer_phone || ''}
+                onChange={(e) => handleBillingInfoChange('customer_phone', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="tax_id">Tax ID</Label>
+              <Input
+                id="tax_id"
+                value={billingInfo.tax_id || ''}
+                onChange={(e) => handleBillingInfoChange('tax_id', e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
-            <Label htmlFor="customer_email">{t('invoices.customerEmail')} *</Label>
+            <Label htmlFor="company_name">Company Name</Label>
             <Input
-              id="customer_email"
-              type="email"
-              value={customerEmail}
-              onChange={(e) => setCustomerEmail(e.target.value)}
-            />
-            {errors.customer_email && (
-              <p className="text-xs text-red-600 mt-1">{errors.customer_email}</p>
-            )}
-          </div>
-
-          <div className="md:col-span-2">
-            <Label htmlFor="customer_phone">{t('invoices.customerPhone')}</Label>
-            <Input
-              id="customer_phone"
-              value={customerPhone}
-              onChange={(e) => setCustomerPhone(e.target.value)}
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <Label htmlFor="billing_street">{t('invoices.billingAddress')}</Label>
-            <Input
-              id="billing_street"
-              value={billingStreet}
-              onChange={(e) => setBillingStreet(e.target.value)}
-              placeholder={t('invoices.street')}
-            />
-          </div>
-
-          <div>
-            <Input
-              value={billingCity}
-              onChange={(e) => setBillingCity(e.target.value)}
-              placeholder={t('invoices.city')}
-            />
-          </div>
-
-          <div>
-            <Input
-              value={billingState}
-              onChange={(e) => setBillingState(e.target.value)}
-              placeholder={t('invoices.state')}
+              id="company_name"
+              value={billingInfo.company_name || ''}
+              onChange={(e) => handleBillingInfoChange('company_name', e.target.value)}
             />
           </div>
 
           <div>
-            <Input
-              value={billingZip}
-              onChange={(e) => setBillingZip(e.target.value)}
-              placeholder={t('invoices.zip')}
-            />
-          </div>
-
-          <div>
-            <Input
-              value={billingCountry}
-              onChange={(e) => setBillingCountry(e.target.value)}
-              placeholder={t('invoices.country')}
+            <Label htmlFor="address">Address</Label>
+            <Textarea
+              id="address"
+              value={billingInfo.address || ''}
+              onChange={(e) => handleBillingInfoChange('address', e.target.value)}
+              rows={3}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Line Items */}
+      {/* Line Items (items_snapshot JSONB) */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">{t('invoices.lineItems')}</CardTitle>
-          <Button type="button" size="sm" onClick={addLineItem} variant="outline">
+          <Button type="button" size="sm" onClick={addItem} variant="outline">
             <Plus className="h-4 w-4 mr-1" />
             {t('invoices.addItem')}
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          {lineItems.map((item, index) => (
+          {itemsSnapshot.map((item, index) => (
             <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded-lg">
               <div className="col-span-5">
-                <Label className="text-xs">{t('invoices.description')}</Label>
+                <Label className="text-xs">Item Name / Description</Label>
                 <Input
-                  value={item.description}
-                  onChange={(e) => updateLineItem(index, 'description', e.target.value)}
-                  placeholder={t('invoices.itemDescription')}
+                  value={item.name}
+                  onChange={(e) => updateItem(index, 'name', e.target.value)}
+                  placeholder="Item name"
                   className="text-sm"
                 />
               </div>
               <div className="col-span-2">
-                <Label className="text-xs">{t('invoices.quantity')}</Label>
+                <Label className="text-xs">Quantity</Label>
                 <Input
                   type="number"
                   min="1"
-                  value={item.quantity}
-                  onChange={(e) => updateLineItem(index, 'quantity', Number(e.target.value))}
+                  value={item.qty}
+                  onChange={(e) => updateItem(index, 'qty', Number(e.target.value))}
                   className="text-sm"
                 />
               </div>
               <div className="col-span-2">
-                <Label className="text-xs">{t('invoices.unitPrice')}</Label>
+                <Label className="text-xs">Unit Price</Label>
                 <Input
                   type="number"
                   min="0"
                   step="0.01"
-                  value={item.unit_price}
-                  onChange={(e) => updateLineItem(index, 'unit_price', Number(e.target.value))}
+                  value={item.price}
+                  onChange={(e) => updateItem(index, 'price', Number(e.target.value))}
                   className="text-sm"
                 />
               </div>
               <div className="col-span-2">
-                <Label className="text-xs">{t('invoices.amount')}</Label>
+                <Label className="text-xs">Amount</Label>
                 <Input
                   type="number"
                   value={item.amount.toFixed(2)}
@@ -424,8 +522,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  onClick={() => removeLineItem(index)}
-                  disabled={lineItems.length === 1}
+                  onClick={() => removeItem(index)}
+                  disabled={itemsSnapshot.length === 1}
                   className="text-red-600"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -433,8 +531,8 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
               </div>
             </div>
           ))}
-          {errors.line_items && (
-            <p className="text-xs text-red-600">{errors.line_items}</p>
+          {errors.items_snapshot && (
+            <p className="text-xs text-red-600">{errors.items_snapshot}</p>
           )}
 
           {/* Financial Summary */}
@@ -442,7 +540,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">{t('invoices.subtotal')}</span>
               <span className="text-sm font-medium">
-                {subtotal.toFixed(2)} {currency}
+                {subtotal.toFixed(2)} {currencyCode}
               </span>
             </div>
             
@@ -457,7 +555,7 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   onChange={(e) => setTaxAmount(Number(e.target.value))}
                   className="w-24 text-sm text-right"
                 />
-                <span className="text-sm">{currency}</span>
+                <span className="text-sm">{currencyCode}</span>
               </div>
             </div>
 
@@ -472,14 +570,14 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                   onChange={(e) => setDiscountAmount(Number(e.target.value))}
                   className="w-24 text-sm text-right"
                 />
-                <span className="text-sm">{currency}</span>
+                <span className="text-sm">{currencyCode}</span>
               </div>
             </div>
 
             <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
               <span className="text-base font-semibold text-gray-900">{t('invoices.totalAmount')}</span>
               <span className="text-lg font-bold text-indigo-600">
-                {totalAmount.toFixed(2)} {currency}
+                {totalAmount.toFixed(2)} {currencyCode}
               </span>
             </div>
 
@@ -488,73 +586,71 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">{t('invoices.amountPaid')}</span>
                   <span className="text-green-600 font-medium">
-                    {amountPaid.toFixed(2)} {currency}
+                    {amountPaid.toFixed(2)} {currencyCode}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-600">{t('invoices.amountDue')}</span>
                   <span className="text-red-600 font-medium">
-                    {amountDue.toFixed(2)} {currency}
+                    {(totalAmount - amountPaid).toFixed(2)} {currencyCode}
                   </span>
                 </div>
               </>
+            )}
+            
+            {errors.total_amount && (
+              <p className="text-xs text-red-600">{errors.total_amount}</p>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Payment Information */}
+      {/* Payment Information & Notes (metadata JSONB) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">{t('invoices.paymentInfo')}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="payment_method">{t('invoices.paymentMethod')}</Label>
-            <Input
-              id="payment_method"
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              placeholder="Credit Card, Bank Transfer, etc."
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="payment_reference">{t('invoices.paymentReference')}</Label>
-            <Input
-              id="payment_reference"
-              value={paymentReference}
-              onChange={(e) => setPaymentReference(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notes & Terms */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{t('invoices.notesAndTerms')}</CardTitle>
+          <CardTitle className="text-lg">Additional Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="payment_method">Payment Method</Label>
+              <Input
+                id="payment_method"
+                value={metadata.payment_method || ''}
+                onChange={(e) => updateMetadata('payment_method', e.target.value)}
+                placeholder="Credit Card, Bank Transfer, etc."
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="payment_reference">Payment Reference</Label>
+              <Input
+                id="payment_reference"
+                value={metadata.payment_reference || ''}
+                onChange={(e) => updateMetadata('payment_reference', e.target.value)}
+              />
+            </div>
+          </div>
+
           <div>
-            <Label htmlFor="notes">{t('invoices.notes')}</Label>
+            <Label htmlFor="notes">Notes</Label>
             <Textarea
               id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              value={metadata.notes || ''}
+              onChange={(e) => updateMetadata('notes', e.target.value)}
               rows={3}
-              placeholder={t('invoices.notesPlaceholder')}
+              placeholder="Internal notes about this invoice"
             />
           </div>
 
           <div>
-            <Label htmlFor="terms">{t('invoices.terms')}</Label>
+            <Label htmlFor="terms">Terms & Conditions</Label>
             <Textarea
               id="terms"
-              value={terms}
-              onChange={(e) => setTerms(e.target.value)}
+              value={metadata.terms || ''}
+              onChange={(e) => updateMetadata('terms', e.target.value)}
               rows={3}
-              placeholder={t('invoices.termsPlaceholder')}
+              placeholder="Payment terms and conditions"
             />
           </div>
         </CardContent>

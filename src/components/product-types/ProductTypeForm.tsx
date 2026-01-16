@@ -1,0 +1,296 @@
+/**
+ * ProductTypeForm Component
+ * Reusable form for Add/Edit Product Type pages
+ * ✅ CREATED 2026-01-15: Unified form design for product types
+ */
+
+import React, { useState, useEffect } from 'react';
+import { ProductType, CreateProductTypeRequest, UpdateProductTypeRequest } from '../../api/productTypesApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Package, AlertCircle, Info, CheckCircle } from 'lucide-react';
+
+interface ProductTypeFormProps {
+  productType?: ProductType | null;
+  onSubmit: (data: CreateProductTypeRequest | UpdateProductTypeRequest) => Promise<void>;
+  onCancel: () => void;
+  isLoading?: boolean;
+}
+
+export function ProductTypeForm({ 
+  productType, 
+  onSubmit, 
+  onCancel, 
+  isLoading = false 
+}: ProductTypeFormProps) {
+  const [formData, setFormData] = useState({
+    code: '',
+    name: '',
+    description: '',
+    is_active: true,
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (productType) {
+      setFormData({
+        code: productType.code || '',
+        name: productType.name || '',
+        description: productType.description || '',
+        is_active: productType.is_active !== undefined ? productType.is_active : true,
+      });
+    } else {
+      setFormData({
+        code: '',
+        name: '',
+        description: '',
+        is_active: true,
+      });
+    }
+  }, [productType]);
+
+  const validateCode = (code: string) => {
+    if (!code.trim()) {
+      return 'Mã loại sản phẩm là bắt buộc';
+    }
+    
+    if (code.length > 50) {
+      return 'Mã không được vượt quá 50 ký tự';
+    }
+    
+    if (!/^[A-Z0-9_]+$/.test(code)) {
+      return 'Mã chỉ được chứa chữ IN HOA, số và dấu gạch dưới (A-Z, 0-9, _)';
+    }
+    
+    return '';
+  };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate code (only for create)
+    if (!productType) {
+      const codeError = validateCode(formData.code);
+      if (codeError) {
+        newErrors.code = codeError;
+      }
+    }
+
+    // Validate name
+    if (!formData.name.trim()) {
+      newErrors.name = 'Tên loại sản phẩm là bắt buộc';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validate()) return;
+
+    setSubmitting(true);
+    try {
+      if (productType) {
+        // Update existing product type
+        const updateData: UpdateProductTypeRequest = {
+          name: formData.name,
+          description: formData.description || undefined,
+          is_active: formData.is_active,
+        };
+        await onSubmit(updateData);
+      } else {
+        // Create new product type
+        const createData: CreateProductTypeRequest = {
+          code: formData.code.toUpperCase(), // Ensure uppercase
+          name: formData.name,
+          description: formData.description || undefined,
+          is_active: formData.is_active,
+        };
+        await onSubmit(createData);
+      }
+    } catch (error: any) {
+      setErrors({ submit: error.message });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCodeChange = (value: string) => {
+    // Auto-convert to uppercase
+    const upperValue = value.toUpperCase();
+    setFormData({ ...formData, code: upperValue });
+    
+    // Clear error when typing
+    if (errors.code) {
+      setErrors({ ...errors, code: '' });
+    }
+  };
+
+  const isCodeValid = !productType && formData.code && !validateCode(formData.code);
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Error Banner */}
+      {errors.submit && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <div className="flex gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+            <div className="text-sm text-red-800 dark:text-red-300">
+              <p className="font-semibold">Lỗi</p>
+              <p>{errors.submit}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Basic Information */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+          <Package className="w-5 h-5 text-indigo-600" />
+          Thông tin loại sản phẩm
+        </h3>
+
+        <div className="space-y-4">
+          {/* Code (only for create) */}
+          {!productType && (
+            <div>
+              <Label htmlFor="code">
+                Mã loại sản phẩm <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="code"
+                type="text"
+                value={formData.code}
+                onChange={e => handleCodeChange(e.target.value)}
+                className={errors.code ? 'border-red-500' : isCodeValid ? 'border-green-500' : ''}
+                placeholder="VD: SAAS_BASIC, PHYS_HARDWARE"
+                disabled={isLoading || submitting}
+                maxLength={50}
+              />
+              {errors.code && (
+                <p className="text-sm text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {errors.code}
+                </p>
+              )}
+              {isCodeValid && (
+                <p className="text-sm text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-4 h-4" />
+                  Mã hợp lệ
+                </p>
+              )}
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <Info className="w-3 h-3 inline mr-1" />
+                Chỉ sử dụng chữ IN HOA (A-Z), số (0-9) và dấu gạch dưới (_)
+              </p>
+            </div>
+          )}
+
+          {/* Code Display (for edit) */}
+          {productType && (
+            <div>
+              <Label>Mã loại sản phẩm</Label>
+              <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md">
+                <code className="text-sm font-mono text-gray-900 dark:text-white">
+                  {productType.code}
+                </code>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <Info className="w-3 h-3 inline mr-1" />
+                Mã không thể thay đổi sau khi tạo
+              </p>
+            </div>
+          )}
+
+          {/* Name */}
+          <div>
+            <Label htmlFor="name">
+              Tên loại sản phẩm <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              className={errors.name ? 'border-red-500' : ''}
+              placeholder="VD: SaaS Basic, Phần cứng"
+              disabled={isLoading || submitting}
+            />
+            {errors.name && (
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.name}</p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <Label htmlFor="description">Mô tả</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Mô tả về loại sản phẩm này..."
+              rows={3}
+              disabled={isLoading || submitting}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Tùy chọn: Thêm mô tả chi tiết về loại sản phẩm
+            </p>
+          </div>
+
+          {/* Is Active */}
+          <div>
+            <label className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
+                className="mt-1"
+                disabled={isLoading || submitting}
+              />
+              <div className="flex-1">
+                <div className="font-medium text-sm text-gray-900 dark:text-white">
+                  Kích hoạt
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Loại sản phẩm này có thể được sử dụng trong hệ thống
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={submitting}
+        >
+          Hủy
+        </Button>
+        <Button
+          type="submit"
+          disabled={submitting || isLoading}
+          className="min-w-[120px]"
+        >
+          {submitting ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Đang lưu...
+            </>
+          ) : (
+            <>{productType ? 'Cập nhật' : 'Tạo mới'}</>
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+}

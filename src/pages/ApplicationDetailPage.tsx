@@ -3,6 +3,7 @@
  * Chi tiết application với sidebar navigation - Under 500 lines
  * ✅ UPDATED 2026-01-15: Now uses real Supabase data via applicationsApi
  * ✅ UPDATED 2026-01-15: Refactored to use flexbox layout (removed fixed positioning)
+ * ✅ FIXED 2026-01-15: Use is_active boolean instead of status string
  */
 
 import { useState, useEffect } from 'react';
@@ -97,7 +98,7 @@ export function ApplicationDetailPage() {
   };
 
   const handleToggleActive = async () => {
-    const isActive = application.status === 'ACTIVE';
+    const isActive = application.is_active;
     if (!confirm(`Bạn có chắc muốn ${isActive ? 'vô hiệu hóa' : 'kích hoạt'} ứng dụng này?`)) return;
     try {
       await toggleActive();
@@ -107,7 +108,7 @@ export function ApplicationDetailPage() {
     }
   };
 
-  const isActive = application.status === 'ACTIVE';
+  const isActive = application.is_active;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -174,7 +175,7 @@ export function ApplicationDetailPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/core/applications/${id}/edit`)}
+                onClick={() => navigate(`/core/applications/${id}/edit`, { replace: true })}
                 className="flex-1 gap-2"
               >
                 <Edit className="w-4 h-4" />

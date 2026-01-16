@@ -19,13 +19,21 @@ import {
   Trash2,
   Power,
   PowerOff,
+  Copy,
+  Users,
   Users,
   HardDrive,
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { getServicePackageById, ServicePackage } from '../api/servicePackages';
+import { 
+  getServicePackageById, 
+  updateServicePackage,
+  deleteServicePackage,
+  cloneServicePackage,
+  ServicePackage 
+} from '../api/servicePackages';
 import { subscriptionsApi } from '../api/subscriptionApi';
 import { toast } from 'sonner@2.0.3';
 
@@ -75,6 +83,61 @@ export default function ServicePackageDetailPage() {
       navigate('/core/service-packages');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!servicePackage) return;
+
+    const newStatus = servicePackage.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const action = newStatus === 'ACTIVE' ? 'kích hoạt' : 'vô hiệu hóa';
+    
+    if (!confirm(`Bạn có chắc muốn ${action} gói dịch vụ này?`)) return;
+
+    try {
+      await updateServicePackage(servicePackage._id, {
+        status: newStatus,
+        version: servicePackage.version,
+      });
+      toast.success(`Đã ${action} gói dịch vụ`);
+      await loadServicePackage();
+      setShowActions(false);
+    } catch (error: any) {
+      console.error('Error toggling status:', error);
+      toast.error('Không thể cập nhật trạng thái: ' + error.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!servicePackage) return;
+
+    if (!confirm(`Bạn có chắc muốn xóa gói dịch vụ "${servicePackage.name}"? Hành động này không thể hoàn tác.`)) {
+      return;
+    }
+
+    try {
+      await deleteServicePackage(servicePackage._id);
+      toast.success('Đã xóa gói dịch vụ');
+      navigate('/core/service-packages');
+    } catch (error: any) {
+      console.error('Error deleting service package:', error);
+      toast.error('Không thể xóa: ' + error.message);
+    }
+  };
+
+  const handleClone = async () => {
+    if (!servicePackage) return;
+
+    const newCode = prompt('Nhập mã gói mới:', `${servicePackage.code}_COPY`);
+    if (!newCode) return;
+
+    try {
+      const clonedPackage = await cloneServicePackage(servicePackage._id, newCode);
+      toast.success('Đã sao chép gói dịch vụ');
+      navigate(`/core/service-packages/${clonedPackage._id}`);
+    } catch (error: any) {
+      console.error('Error cloning service package:', error);
+      toast.error('Không thể sao chép: ' + error.message);
     }
   };
 
@@ -212,7 +275,7 @@ export default function ServicePackageDetailPage() {
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Chu kỳ:</span>
                 <span className="font-medium text-gray-900">
-                  {getBillingCycleLabel(servicePackage.billing_cycle)}
+                  {getBillingCycleLabel(servicePackage.billing_cycle || 'MONTHLY')}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -227,12 +290,12 @@ export default function ServicePackageDetailPage() {
                   {servicePackage.is_public ? 'Công khai' : 'Riêng tư'}
                 </span>
               </div>
-              {servicePackage.trial_days !== undefined && servicePackage.trial_days > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Dùng thử:</span>
-                  <span className="font-medium text-gray-900">
-                    {servicePackage.trial_days} ngày
-                  </span>
+              {servicePackage.features?.trial_days !== undefined && servicePackage.features.trial_days > 0 && (
+                <div>
+                  <label className="text-sm text-gray-500">Thời gian dùng thử</label>
+                  <p className="text-gray-900 mt-1">
+                    {servicePackage.features.trial_days} ngày miễn phí
+                  </p>
                 </div>
               )}
             </div>
@@ -326,10 +389,7 @@ export default function ServicePackageDetailPage() {
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
                     <div className="py-1">
                       <button
-                        onClick={() => {
-                          setShowActions(false);
-                          // Handle toggle active
-                        }}
+                        onClick={handleToggleActive}
                         className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                       >
                         {servicePackage.status === 'ACTIVE' ? (
@@ -345,14 +405,28 @@ export default function ServicePackageDetailPage() {
                         )}
                       </button>
                       <button
-                        onClick={() => {
-                          setShowActions(false);
-                          // Handle delete
-                        }}
+                        onClick={handleDelete}
                         className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                       >
                         <Trash2 className="w-4 h-4" />
                         Xóa
+                      </button>
+                      <button
+                        onClick={handleClone}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Sao chép
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowActions(false);
+                          // Handle users
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <Users className="w-4 h-4" />
+                        Người dùng
                       </button>
                     </div>
                   </div>
@@ -398,7 +472,7 @@ export default function ServicePackageDetailPage() {
                   <div>
                     <label className="text-sm text-gray-500">Chu kỳ thanh toán</label>
                     <p className="text-gray-900 mt-1">
-                      {getBillingCycleLabel(servicePackage.billing_cycle)}
+                      {getBillingCycleLabel(servicePackage.billing_cycle || 'MONTHLY')}
                     </p>
                   </div>
                   {servicePackage.trial_days !== undefined && servicePackage.trial_days > 0 && (
@@ -449,28 +523,28 @@ export default function ServicePackageDetailPage() {
               </div>
 
               {/* Resource Limits */}
-              {(servicePackage.max_users !== null || servicePackage.max_storage !== null) && (
+              {(servicePackage.features?.max_users !== null || servicePackage.features?.max_storage !== null) && (
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                   <h2 className="text-lg font-semibold mb-4">Giới hạn tài nguyên</h2>
                   <div className="grid grid-cols-2 gap-6">
-                    {servicePackage.max_users !== null && (
+                    {servicePackage.features?.max_users !== null && servicePackage.features?.max_users !== undefined && (
                       <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg">
                         <Users className="w-8 h-8 text-blue-600" />
                         <div>
                           <p className="text-sm text-blue-600">Số người dùng tối đa</p>
                           <p className="text-2xl font-bold text-blue-900 mt-1">
-                            {servicePackage.max_users === -1 ? 'Không giới hạn' : servicePackage.max_users.toLocaleString()}
+                            {servicePackage.features.max_users === -1 ? 'Không giới hạn' : servicePackage.features.max_users.toLocaleString()}
                           </p>
                         </div>
                       </div>
                     )}
-                    {servicePackage.max_storage !== null && (
+                    {servicePackage.features?.max_storage !== null && servicePackage.features?.max_storage !== undefined && (
                       <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg">
                         <HardDrive className="w-8 h-8 text-purple-600" />
                         <div>
                           <p className="text-sm text-purple-600">Dung lượng tối đa</p>
                           <p className="text-2xl font-bold text-purple-900 mt-1">
-                            {servicePackage.max_storage === -1 ? 'Không giới hạn' : `${(servicePackage.max_storage / 1024).toFixed(2)} GB`}
+                            {servicePackage.features.max_storage === -1 ? 'Không giới hạn' : `${(servicePackage.features.max_storage / 1024).toFixed(2)} GB`}
                           </p>
                         </div>
                       </div>

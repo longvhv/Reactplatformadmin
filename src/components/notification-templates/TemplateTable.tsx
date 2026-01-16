@@ -46,6 +46,11 @@ export function TemplateTable({
     });
   };
 
+  const getChannelBadgeStyle = (type: string) => {
+    const typeKey = type?.toLowerCase() || 'email';
+    return TYPE_BADGE_STYLES[typeKey] || TYPE_BADGE_STYLES.email;
+  };
+
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200">
@@ -77,19 +82,14 @@ export function TemplateTable({
               <td className="px-4 py-3">
                 <div>
                   <div className="text-sm font-medium text-gray-900">
-                    {template.name}
+                    {template.template_name}
                   </div>
-                  <div className="text-xs text-gray-500 font-mono">{template.code}</div>
+                  <div className="text-xs text-gray-500 font-mono">{template.template_code}</div>
                 </div>
               </td>
               <td className="px-4 py-3">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                  template.channel === 'EMAIL' ? 'bg-blue-100 text-blue-700 border-blue-300' :
-                  template.channel === 'SMS' ? 'bg-green-100 text-green-700 border-green-300' :
-                  template.channel === 'PUSH' ? 'bg-purple-100 text-purple-700 border-purple-300' :
-                  'bg-orange-100 text-orange-700 border-orange-300'
-                }`}>
-                  {template.channel}
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getChannelBadgeStyle(template.notification_type)}`}>
+                  {template.notification_type?.toUpperCase() || 'EMAIL'}
                 </span>
               </td>
               <td className="px-4 py-3">
@@ -99,12 +99,12 @@ export function TemplateTable({
                 <button
                   onClick={() => onToggleStatus(template)}
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    template.is_active
+                    template.status === 'active'
                       ? 'bg-green-100 text-green-700'
                       : 'bg-gray-100 text-gray-700'
                   }`}
                 >
-                  {template.is_active ? 'Active' : 'Inactive'}
+                  {template.status === 'active' ? 'Active' : template.status || 'Inactive'}
                 </button>
               </td>
               <td className="px-4 py-3 text-sm text-gray-500">

@@ -288,7 +288,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     key={route.path}
                     route={route}
                     icon={route.icon}
-                    name={route.name}
+                    name={t(route.label)}
                     isPinned={true}
                     onTogglePin={() => togglePinRoute(route.path)}
                   />

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { AlertCircle } from 'lucide-react';
-import { systemCategoryApi, SystemCategory, CategoryStatusHelper, CategoryStatus } from '@/api/systemCategoryApi';
+import { systemCategoryApi, SystemCategory, CategoryStatusHelper, CategoryStatus } from '@/api/systemCategoriesApi';
 
 interface SystemCategoryFormProps {
   category?: SystemCategory;

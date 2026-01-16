@@ -60,19 +60,19 @@ export const DevDocsModule: ModuleDefinition = {
       children: [
         {
           id: "dev-overview",
-          label: "Overview",
+          label: "navigation.overview",
           icon: <FileText className="w-4 h-4" />,
           path: "/core/dev-docs",
         },
         {
           id: "api-docs",
-          label: "API Docs",
+          label: "api.title",
           icon: <Code2 className="w-4 h-4" />,
           path: "/core/api-docs",
         },
         {
           id: "database-docs",
-          label: "Database",
+          label: "database.title",
           icon: <Database className="w-4 h-4" />,
           path: "/core/database-docs",
         },

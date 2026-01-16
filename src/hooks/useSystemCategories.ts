@@ -10,7 +10,7 @@ import {
   SystemCategoryType,
   CategoryInstance,
   SystemCategory,
-} from '../api/systemCategoryApi';
+} from '../api/systemCategoriesApi';
 import { systemCategoriesSeed } from '../data/system-categories-seed';
 
 const STORAGE_KEY = 'system_categories_data';
@@ -272,9 +272,9 @@ export function useSystemCategories() {
       // Try API first
       const updated = await systemCategoryApi.update(id, data);
       
-      // Update local state
+      // Update local state - match by both id and _id
       const newCategories = allCategories.map(cat =>
-        cat.id === id ? { ...cat, ...updated } : cat
+        (cat.id === id || cat._id === id) ? { ...cat, ...updated } : cat
       );
       setAllCategories(newCategories);
       updateGroups(newCategories);
@@ -284,9 +284,9 @@ export function useSystemCategories() {
     } catch (apiError) {
       console.warn('API update failed, updating locally:', apiError);
       
-      // Fallback: update locally
+      // Fallback: update locally - match by both id and _id
       const newCategories = allCategories.map(cat =>
-        cat.id === id
+        (cat.id === id || cat._id === id)
           ? { ...cat, ...data, updated_at: new Date().toISOString() }
           : cat
       );
@@ -294,7 +294,7 @@ export function useSystemCategories() {
       updateGroups(newCategories);
       saveToCache(newCategories);
       
-      const updated = newCategories.find(cat => cat.id === id);
+      const updated = newCategories.find(cat => cat.id === id || cat._id === id);
       if (!updated) throw new Error('Category not found');
       return updated;
     }
@@ -303,19 +303,19 @@ export function useSystemCategories() {
   // Delete a category
   const deleteCategory = async (id: string): Promise<void> => {
     try {
-      // Try API first
-      await systemCategoryApi.hardDelete(id);
+      // Try API first - Use adapter.delete() which performs hard delete when supportsSoftDelete=false
+      await systemCategoryApi.delete(id);
       
-      // Update local state
-      const newCategories = allCategories.filter(cat => cat.id !== id);
+      // Update local state - match by both id and _id
+      const newCategories = allCategories.filter(cat => cat.id !== id && cat._id !== id);
       setAllCategories(newCategories);
       updateGroups(newCategories);
       saveToCache(newCategories);
     } catch (apiError) {
       console.warn('API delete failed, deleting locally:', apiError);
       
-      // Fallback: delete locally
-      const newCategories = allCategories.filter(cat => cat.id !== id);
+      // Fallback: delete locally - match by both id and _id
+      const newCategories = allCategories.filter(cat => cat.id !== id && cat._id !== id);
       setAllCategories(newCategories);
       updateGroups(newCategories);
       saveToCache(newCategories);

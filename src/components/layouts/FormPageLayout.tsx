@@ -80,7 +80,7 @@ export function FormPageLayout({
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => navigate(backPath)}
+          onClick={() => navigate(backPath, { replace: true })}
           className="mb-6 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

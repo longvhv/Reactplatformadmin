@@ -1,22 +1,23 @@
 /**
  * Product Table Component
  * Display products in table format with actions
+ * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
  */
 
 import React from 'react';
-import { SaaSProduct } from '../../api/saasProductApi';
+import { Product } from '../../api/productsApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Edit2, Trash2, Star, Copy } from 'lucide-react';
 import { useLanguage } from '../../providers/LanguageProvider';
 
 interface ProductTableProps {
-  products: SaaSProduct[];
-  onEdit?: (product: SaaSProduct) => void;
-  onDelete?: (product: SaaSProduct) => void;
-  onView?: (product: SaaSProduct) => void;
-  onDuplicate?: (product: SaaSProduct) => void;
-  onToggleFeatured?: (product: SaaSProduct) => void;
+  products: Product[];
+  onEdit?: (product: Product) => void;
+  onDelete?: (product: Product) => void;
+  onView?: (product: Product) => void;
+  onDuplicate?: (product: Product) => void;
+  onToggleFeatured?: (product: Product) => void;
   loading?: boolean;
 }
 

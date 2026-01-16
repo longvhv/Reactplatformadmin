@@ -40,7 +40,7 @@ import {
   UpcomingEvents,
   SystemHealth,
 } from "../../components/dashboard/Widgets";
-import { dashboardApi, DashboardOverview } from "../../api/dashboardApi";
+import { dashboardService, DashboardOverview } from "../../services/dashboardService";
 import { toast } from "sonner";
 
 // Memoized StatsCard component
@@ -216,24 +216,40 @@ export function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      // Mock data instead of API call
-      const mockData: DashboardOverview = {
-        total_users: 45231,
-        users_growth_percent: 18.2,
-        active_subscriptions: 1832,
-        expiring_subscriptions: 12,
-        monthly_revenue: 234500000,
-        revenue_growth_percent: 8.3,
-        active_webhooks: 145,
-        unhealthy_webhooks: 3,
-      };
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setOverview(mockData);
+      // ✅ Load REAL data from Supabase
+      const data = await dashboardService.getOverview();
+      setOverview(data);
     } catch (error: any) {
       toast.error('Không thể tải dữ liệu dashboard: ' + error.message);
       console.error('Dashboard error:', error);
+      
+      // Fallback to mock data on error
+      const mockData: DashboardOverview = {
+        total_users: 0,
+        total_tenants: 0,
+        users_growth_percent: 0,
+        tenants_growth_percent: 0,
+        active_subscriptions: 0,
+        expiring_subscriptions: 0,
+        total_subscription_orders: 0,
+        monthly_revenue: 0,
+        total_revenue: 0,
+        revenue_growth_percent: 0,
+        pending_invoice_count: 0,
+        active_webhooks: 0,
+        unhealthy_webhooks: 0,
+        total_webhook_deliveries: 0,
+        api_calls_today: 0,
+        api_calls_month: 0,
+        api_errors_today: 0,
+        traffic_today: 0,
+        traffic_month: 0,
+        unique_visitors_today: 0,
+        total_jobs: 0,
+        active_jobs: 0,
+        failed_jobs: 0,
+      };
+      setOverview(mockData);
     } finally {
       setLoading(false);
     }

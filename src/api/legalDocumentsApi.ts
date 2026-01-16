@@ -32,10 +32,15 @@ export interface LegalDocument {
   language?: string;
   view_count?: number;
   accept_count?: number;
-  published_by?: string;
-  published_at?: string;
-  archived_by?: string;
-  archived_at?: string;
+  
+  // ✅ FIXED 2026-01-15: Audit fields compliance
+  created_by?: string;            // FK to users(_id)
+  updated_by?: string;            // FK to users(_id)
+  
+  // ✅ FIXED 2026-01-15: Publishing tracking (moved from metadata)
+  published_by?: string;          // FK to users(_id)
+  published_at?: string;          // TIMESTAMPTZ
+  
   metadata?: Record<string, any>;
   created_at: string;
   updated_at: string;
@@ -56,6 +61,9 @@ export interface CreateLegalDocumentData {
   language?: string;
   is_active?: boolean;
   metadata?: Record<string, any>;
+  
+  // ✅ FIXED 2026-01-15: Audit compliance
+  created_by?: string;            // User who creates the document
 }
 
 export interface UpdateLegalDocumentData {
@@ -72,6 +80,11 @@ export interface UpdateLegalDocumentData {
   language?: string;
   metadata?: Record<string, any>;
   version_number?: number;
+  
+  // ✅ FIXED 2026-01-15: Audit and publishing compliance
+  updated_by?: string;            // User who updates the document
+  published_by?: string;          // User who publishes (moved from metadata)
+  published_at?: string;          // Publish timestamp (moved from metadata)
 }
 
 export interface LegalDocumentFilters extends BaseFilters {
@@ -117,23 +130,31 @@ export const legalDocumentsApi = {
   /**
    * POST /legal-documents/:id/publish
    * Publish a document (change status to published)
+   * ✅ FIXED 2026-01-15: Use dedicated columns instead of metadata
    */
   publish: async (id: string, publishedBy: string): Promise<LegalDocument> => {
     return adapter.update(id, {
       status: 'published',
-      metadata: { published_by: publishedBy, published_at: new Date().toISOString() },
+      published_by: publishedBy,              // ✅ Dedicated column (not metadata)
+      published_at: new Date().toISOString(), // ✅ Dedicated column (not metadata)
     });
   },
   
   /**
    * POST /legal-documents/:id/archive
    * Archive a document (change status to archived)
+   * ⚠️ NOTE: archived_by/archived_at stored in metadata until DB schema adds dedicated columns
    */
   archive: async (id: string, archivedBy: string): Promise<LegalDocument> => {
     return adapter.update(id, {
       status: 'archived',
       is_active: false,
-      metadata: { archived_by: archivedBy, archived_at: new Date().toISOString() },
+      // ⚠️ Using metadata because archived_by/archived_at columns don't exist in DB yet
+      // TODO: When DB adds these columns, move to dedicated fields like published_by/published_at
+      metadata: { 
+        archived_by: archivedBy, 
+        archived_at: new Date().toISOString() 
+      },
     });
   },
   

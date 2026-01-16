@@ -1,19 +1,22 @@
 /**
  * System Announcement Form Component
  * Form for creating and editing system announcements
- * Matches API schema: priority (INFO|WARNING|CRITICAL), status (ACTIVE|INACTIVE)
+ * Matches database schema: type, priority (low/normal/high/critical), status (draft/active/expired/archived)
  */
 
 import React, { useState, useEffect } from 'react';
 import { 
   SystemAnnouncement, 
   CreateSystemAnnouncementRequest,
-  UpdateSystemAnnouncementRequest 
-} from '../../api/systemAnnouncementApi';
+  UpdateSystemAnnouncementRequest,
+  AnnouncementType,
+  AnnouncementPriority,
+  AnnouncementStatus
+} from '../../api/systemAnnouncementsApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useLanguage } from '../../providers/LanguageProvider';
-import { AlertCircle, Info, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Info, AlertTriangle, CheckCircle, Wrench } from 'lucide-react';
 
 interface AnnouncementFormProps {
   announcement?: SystemAnnouncement;
@@ -27,12 +30,21 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
   const isEdit = !!announcement;
 
   const [formData, setFormData] = useState({
+    tenant_id: announcement?.tenant_id || '00000000-0000-0000-0000-000000000001', // Default tenant
     title: announcement?.title || '',
     content: announcement?.content || '',
-    priority: announcement?.priority || 'INFO' as 'INFO' | 'WARNING' | 'CRITICAL',
-    status: announcement?.status || 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+    type: (announcement?.type || 'info') as AnnouncementType,
+    priority: (announcement?.priority || 'normal') as AnnouncementPriority,
+    status: (announcement?.status || 'draft') as AnnouncementStatus,
+    category: announcement?.category || '',
+    is_published: announcement?.is_published ?? false,
+    is_pinned: announcement?.is_pinned ?? false,
     start_date: announcement?.start_date ? announcement.start_date.slice(0, 16) : '',
     end_date: announcement?.end_date ? announcement.end_date.slice(0, 16) : '',
+    icon: announcement?.icon || '',
+    color: announcement?.color || '',
+    link_url: announcement?.link_url || '',
+    link_text: announcement?.link_text || '',
     metadata: announcement?.metadata || {},
   });
 
@@ -44,13 +56,13 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
     if (!formData.title.trim()) {
       newErrors.title = 'Tiêu đề không được để trống';
     }
+    
+    if (formData.title.length > 500) {
+      newErrors.title = 'Tiêu đề không được vượt quá 500 ký tự';
+    }
 
     if (!formData.content.trim()) {
       newErrors.content = 'Nội dung không được để trống';
-    }
-
-    if (!formData.start_date) {
-      newErrors.start_date = 'Ngày bắt đầu không được để trống';
     }
 
     // If end_date is provided, it must be after start_date
@@ -58,6 +70,11 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
       if (new Date(formData.end_date) <= new Date(formData.start_date)) {
         newErrors.end_date = 'Ngày kết thúc phải sau ngày bắt đầu';
       }
+    }
+    
+    // Validate link_url if provided
+    if (formData.link_url && formData.link_url.length > 500) {
+      newErrors.link_url = 'Link URL không được vượt quá 500 ký tự';
     }
 
     setErrors(newErrors);
@@ -72,21 +89,42 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
     }
 
     const submitData: any = {
+      tenant_id: formData.tenant_id,
       title: formData.title.trim(),
       content: formData.content.trim(),
+      type: formData.type,
       priority: formData.priority,
-      start_date: new Date(formData.start_date).toISOString(),
+      status: formData.status,
+      is_published: formData.is_published,
+      is_pinned: formData.is_pinned,
       metadata: formData.metadata,
     };
 
     // Add optional fields
+    if (formData.category.trim()) {
+      submitData.category = formData.category.trim();
+    }
+    if (formData.start_date) {
+      submitData.start_date = new Date(formData.start_date).toISOString();
+    }
     if (formData.end_date) {
       submitData.end_date = new Date(formData.end_date).toISOString();
     }
+    if (formData.icon.trim()) {
+      submitData.icon = formData.icon.trim();
+    }
+    if (formData.color.trim()) {
+      submitData.color = formData.color.trim();
+    }
+    if (formData.link_url.trim()) {
+      submitData.link_url = formData.link_url.trim();
+    }
+    if (formData.link_text.trim()) {
+      submitData.link_text = formData.link_text.trim();
+    }
 
-    // For edit, include status and version
+    // For edit, include version
     if (isEdit && announcement) {
-      submitData.status = formData.status;
       submitData.version = announcement.version;
     }
 
@@ -101,21 +139,38 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
     }
   };
 
-  const getPriorityInfo = (priority: string) => {
-    switch (priority) {
-      case 'INFO':
+  const getTypeInfo = (type: AnnouncementType) => {
+    switch (type) {
+      case 'info':
         return { icon: Info, color: 'text-blue-600', bg: 'bg-blue-50', desc: 'Thông tin chung' };
-      case 'WARNING':
+      case 'warning':
         return { icon: AlertTriangle, color: 'text-yellow-600', bg: 'bg-yellow-50', desc: 'Cảnh báo quan trọng' };
-      case 'CRITICAL':
-        return { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', desc: 'Khẩn cấp - Ưu tiên cao nhất' };
+      case 'error':
+        return { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', desc: 'Lỗi hệ thống' };
+      case 'success':
+        return { icon: CheckCircle, color: 'text-green-600', bg: 'bg-green-50', desc: 'Thành công' };
+      case 'maintenance':
+        return { icon: Wrench, color: 'text-purple-600', bg: 'bg-purple-50', desc: 'Bảo trì hệ thống' };
       default:
         return { icon: Info, color: 'text-gray-600', bg: 'bg-gray-50', desc: '' };
     }
   };
 
-  const priorityInfo = getPriorityInfo(formData.priority);
-  const PriorityIcon = priorityInfo.icon;
+  const getPriorityBadge = (priority: AnnouncementPriority) => {
+    switch (priority) {
+      case 'critical':
+        return { label: 'Khẩn cấp', color: 'bg-red-100 text-red-800 border-red-300' };
+      case 'high':
+        return { label: 'Cao', color: 'bg-orange-100 text-orange-800 border-orange-300' };
+      case 'normal':
+        return { label: 'Bình thường', color: 'bg-blue-100 text-blue-800 border-blue-300' };
+      case 'low':
+        return { label: 'Thấp', color: 'bg-gray-100 text-gray-800 border-gray-300' };
+    }
+  };
+
+  const typeInfo = getTypeInfo(formData.type);
+  const TypeIcon = typeInfo.icon;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -129,11 +184,15 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
             value={formData.title}
             onChange={(e) => handleChange('title', e.target.value)}
             placeholder="Ví dụ: Bảo trì hệ thống định kỳ"
+            maxLength={500}
             className={errors.title ? 'border-red-500' : ''}
           />
           {errors.title && (
             <p className="mt-1 text-sm text-red-600">{errors.title}</p>
           )}
+          <p className="mt-1 text-xs text-gray-500">
+            {formData.title.length}/500 ký tự
+          </p>
         </div>
 
         {/* Content */}
@@ -158,97 +217,126 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
           </p>
         </div>
 
-        {/* Priority */}
+        {/* Type & Priority */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Loại thông báo <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => handleChange('type', e.target.value as AnnouncementType)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="info">Info - Thông tin</option>
+              <option value="warning">Warning - Cảnh báo</option>
+              <option value="error">Error - Lỗi</option>
+              <option value="success">Success - Thành công</option>
+              <option value="maintenance">Maintenance - Bảo trì</option>
+            </select>
+          </div>
+
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Mức độ ưu tiên <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.priority}
+              onChange={(e) => handleChange('priority', e.target.value as AnnouncementPriority)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="low">Low - Thấp</option>
+              <option value="normal">Normal - Bình thường</option>
+              <option value="high">High - Cao</option>
+              <option value="critical">Critical - Khẩn cấp</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Category */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mức độ ưu tiên <span className="text-red-500">*</span>
+            Danh mục <span className="text-gray-400">(Tùy chọn)</span>
           </label>
-          <div className="grid grid-cols-3 gap-3">
-            {(['INFO', 'WARNING', 'CRITICAL'] as const).map((priority) => {
-              const info = getPriorityInfo(priority);
-              const Icon = info.icon;
-              const isSelected = formData.priority === priority;
+          <Input
+            value={formData.category}
+            onChange={(e) => handleChange('category', e.target.value)}
+            placeholder="Ví dụ: system, maintenance, security, feature..."
+            maxLength={100}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Danh mục giúp phân loại thông báo (system, maintenance, security, feature...)
+          </p>
+        </div>
+
+        {/* Status */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Trạng thái <span className="text-red-500">*</span>
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            {(['draft', 'active', 'expired', 'archived'] as const).map((status) => {
+              const isSelected = formData.status === status;
+              const colors = {
+                draft: 'border-gray-400 bg-gray-50 text-gray-700',
+                active: 'border-green-500 bg-green-50 text-green-700',
+                expired: 'border-orange-500 bg-orange-50 text-orange-700',
+                archived: 'border-blue-500 bg-blue-50 text-blue-700',
+              };
               
               return (
                 <button
-                  key={priority}
+                  key={status}
                   type="button"
-                  onClick={() => handleChange('priority', priority)}
-                  className={`p-4 rounded-lg border-2 transition-all ${
+                  onClick={() => handleChange('status', status)}
+                  className={`p-3 rounded-lg border-2 transition-all text-center ${
                     isSelected
-                      ? `border-indigo-500 ${info.bg}`
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? colors[status]
+                      : 'border-gray-200 hover:border-gray-300 text-gray-600'
                   }`}
                 >
-                  <div className="flex items-center justify-center mb-2">
-                    <Icon className={`w-6 h-6 ${isSelected ? info.color : 'text-gray-400'}`} />
-                  </div>
-                  <div className="text-center">
-                    <div className={`text-sm font-medium ${isSelected ? 'text-gray-900' : 'text-gray-600'}`}>
-                      {priority}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {info.desc}
-                    </div>
-                  </div>
+                  <div className="text-sm font-medium capitalize">{status}</div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Status (only for edit) */}
-        {isEdit && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Trạng thái
+        {/* Publishing & Pinning Options */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_published"
+              checked={formData.is_published}
+              onChange={(e) => handleChange('is_published', e.target.checked)}
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <label htmlFor="is_published" className="text-sm font-medium text-gray-700">
+              Đã xuất bản
             </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => handleChange('status', 'ACTIVE')}
-                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
-                  formData.status === 'ACTIVE'
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`text-sm font-medium ${
-                  formData.status === 'ACTIVE' ? 'text-green-700' : 'text-gray-600'
-                }`}>
-                  ACTIVE - Đang hoạt động
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Thông báo hiển thị cho người dùng
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleChange('status', 'INACTIVE')}
-                className={`flex-1 p-3 rounded-lg border-2 transition-all ${
-                  formData.status === 'INACTIVE'
-                    ? 'border-gray-500 bg-gray-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className={`text-sm font-medium ${
-                  formData.status === 'INACTIVE' ? 'text-gray-700' : 'text-gray-600'
-                }`}>
-                  INACTIVE - Tạm ngưng
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Thông báo không hiển thị
-                </div>
-              </button>
-            </div>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="is_pinned"
+              checked={formData.is_pinned}
+              onChange={(e) => handleChange('is_pinned', e.target.checked)}
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+            />
+            <label htmlFor="is_pinned" className="text-sm font-medium text-gray-700">
+              Ghim lên đầu
+            </label>
+          </div>
+        </div>
 
         {/* Dates */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Ngày bắt đầu <span className="text-red-500">*</span>
+              Ngày bắt đầu <span className="text-gray-400">(Tùy chọn)</span>
             </label>
             <Input
               type="datetime-local"
@@ -279,17 +367,78 @@ export function AnnouncementForm({ announcement, onSubmit, onCancel, loading }: 
           </div>
         </div>
 
+        {/* Link (Optional) */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Link URL <span className="text-gray-400">(Tùy chọn)</span>
+            </label>
+            <Input
+              type="url"
+              value={formData.link_url}
+              onChange={(e) => handleChange('link_url', e.target.value)}
+              placeholder="https://example.com"
+              maxLength={500}
+              className={errors.link_url ? 'border-red-500' : ''}
+            />
+            {errors.link_url && (
+              <p className="mt-1 text-sm text-red-600">{errors.link_url}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Link Text <span className="text-gray-400">(Tùy chọn)</span>
+            </label>
+            <Input
+              value={formData.link_text}
+              onChange={(e) => handleChange('link_text', e.target.value)}
+              placeholder="Xem thêm"
+              maxLength={200}
+            />
+          </div>
+        </div>
+
+        {/* Icon & Color (Optional) */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Icon <span className="text-gray-400">(Tùy chọn)</span>
+            </label>
+            <Input
+              value={formData.icon}
+              onChange={(e) => handleChange('icon', e.target.value)}
+              placeholder="alert-circle, info, bell..."
+              maxLength={100}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Tên icon từ Lucide icons
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Màu sắc <span className="text-gray-400">(Tùy chọn)</span>
+            </label>
+            <Input
+              type="color"
+              value={formData.color || '#6366f1'}
+              onChange={(e) => handleChange('color', e.target.value)}
+              className="h-10"
+            />
+          </div>
+        </div>
+
         {/* Info Box */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className={`${typeInfo.bg} border border-${typeInfo.color.replace('text-', '')} rounded-lg p-4`}>
           <div className="flex gap-3">
-            <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Lưu ý khi tạo thông báo:</p>
-              <ul className="list-disc list-inside space-y-1 text-blue-700">
-                <li>Thông báo mới mặc định có trạng thái ACTIVE</li>
-                <li>Thông báo CRITICAL sẽ hiển thị nổi bật nhất</li>
-                <li>Thông báo sẽ tự động ẩn sau ngày kết thúc (nếu có)</li>
-              </ul>
+            <TypeIcon className={`w-5 h-5 ${typeInfo.color} flex-shrink-0 mt-0.5`} />
+            <div className="text-sm">
+              <p className="font-medium mb-1">Xem trước thông báo ({formData.type} - {getPriorityBadge(formData.priority).label})</p>
+              <p className="text-gray-700">
+                <strong>{formData.title || 'Tiêu đề thông báo'}</strong>
+              </p>
+              <p className="text-gray-600 mt-1">
+                {formData.content || 'Nội dung thông báo sẽ hiển thị ở đây...'}
+              </p>
             </div>
           </div>
         </div>

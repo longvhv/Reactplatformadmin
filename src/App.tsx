@@ -3,6 +3,31 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "./providers/ThemeProvider";
 import { LanguageProvider } from "./providers/LanguageProvider";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Suspense } from 'react';
+import { LoadingFallback } from './components/LoadingFallback';
+import { BundleAnalyzer } from './components/BundleAnalyzer';
+
+// ✅ PERFORMANCE: Configure TanStack Query for optimal caching
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Stale time: Data considered fresh for 5 minutes
+      staleTime: 5 * 60 * 1000,
+      // Cache time: Keep unused data in cache for 10 minutes
+      gcTime: 10 * 60 * 1000,
+      // Retry failed requests only once
+      retry: 1,
+      // Don't refetch on window focus (too aggressive)
+      refetchOnWindowFocus: false,
+      // Refetch on reconnect
+      refetchOnReconnect: true,
+      // Refetch on mount only if data is stale
+      refetchOnMount: true,
+    },
+  },
+});
 
 // Import layout
 import { AppLayout } from "./components/layout/AppLayout";
@@ -153,7 +178,15 @@ export default function App() {
       <LanguageProvider>
         <ThemeProvider>
           <BrowserRouter>
-            <AppContent />
+            <QueryClientProvider client={queryClient}>
+              <Suspense fallback={<LoadingFallback />}>
+                <AppContent />
+              </Suspense>
+              {/* React Query Devtools - Development only */}
+              {process.env.NODE_ENV === "development" && <ReactQueryDevtools />}
+              {/* Bundle Analyzer - Development only */}
+              {process.env.NODE_ENV === "development" && <BundleAnalyzer />}
+            </QueryClientProvider>
           </BrowserRouter>
         </ThemeProvider>
       </LanguageProvider>

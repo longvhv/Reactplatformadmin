@@ -1,25 +1,24 @@
 /**
  * Add Product Page
- * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
  */
 
 import React from 'react';
 import { useNavigate } from 'react-router';
 import { Package } from 'lucide-react';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
-import { saasProductApi, SaaSProduct } from '../api/saasProductApi';
+import { productsApi, CreateProductRequest } from '../api/productsApi';
 import { ProductForm } from '../components/products/ProductForm';
 import { toast } from 'sonner@2.0.3';
+
+const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function AddProductPage() {
   const navigate = useNavigate();
 
-  const handleSubmit = async (data: Partial<SaaSProduct>) => {
+  const handleSubmit = async (data: CreateProductRequest) => {
     try {
-      await saasProductApi.create({
-        ...data,
-        tenant_id: '00000000-0000-0000-0000-000000000001', // Demo tenant
-      } as any);
+      await productsApi.create(data);
 
       toast.success('Đã tạo sản phẩm mới');
       navigate('/core/products');
@@ -39,6 +38,7 @@ export default function AddProductPage() {
       backLabel="Quay lại danh sách"
     >
       <ProductForm
+        tenantId={DEMO_TENANT_ID}
         onSubmit={handleSubmit}
         onCancel={() => navigate('/core/products')}
       />

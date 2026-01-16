@@ -147,7 +147,7 @@ export function AuthLogsTable({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Tổng số</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_logs}</p>
               </div>
               <Shield className="w-8 h-8 text-gray-400" />
             </div>
@@ -156,7 +156,7 @@ export function AuthLogsTable({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-700">Thành công</p>
-                <p className="text-2xl font-bold text-green-900">{stats.successful}</p>
+                <p className="text-2xl font-bold text-green-900">{stats.successful_logins}</p>
               </div>
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
@@ -165,7 +165,7 @@ export function AuthLogsTable({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-red-700">Thất bại</p>
-                <p className="text-2xl font-bold text-red-900">{stats.failed}</p>
+                <p className="text-2xl font-bold text-red-900">{stats.failed_logins}</p>
               </div>
               <XCircle className="w-8 h-8 text-red-600" />
             </div>
@@ -174,7 +174,7 @@ export function AuthLogsTable({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-orange-700">Bị chặn</p>
-                <p className="text-2xl font-bold text-orange-900">{stats.blocked}</p>
+                <p className="text-2xl font-bold text-orange-900">{stats.blocked_attempts}</p>
               </div>
               <AlertTriangle className="w-8 h-8 text-orange-600" />
             </div>

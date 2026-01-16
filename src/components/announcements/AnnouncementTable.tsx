@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { SystemAnnouncement } from '../../api/systemAnnouncementApi';
+import { SystemAnnouncement } from '../../api/systemAnnouncementsApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit, Trash2, Pin, Eye, EyeOff } from 'lucide-react';

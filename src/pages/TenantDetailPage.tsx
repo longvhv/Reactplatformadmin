@@ -28,7 +28,10 @@ import {
   Share2,
   Key,
   GitBranch,
-  Link2
+  Link2,
+  Globe,
+  Mail,
+  Package
 } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
@@ -48,6 +51,13 @@ import { TenantLocationsTab } from '@/components/tenants/TenantLocationsTab';
 import { TenantSSOConfigsTab } from '@/components/tenants/TenantSSOConfigsTab';
 import { TenantActivity } from '@/components/tenants/TenantActivity';
 import { TenantStats } from '@/components/tenants/TenantStats';
+import { RevenueStatistics } from '@/components/tenant/RevenueStatistics';
+import { TenantDomainsTab } from '@/components/tenants/TenantDomainsTab';
+import { TenantApiKeysTab } from '@/components/tenants/TenantApiKeysTab';
+import { TenantServiceAccountsTab } from '@/components/tenants/TenantServiceAccountsTab';
+import { TenantInvitationsTab } from '@/components/tenants/TenantInvitationsTab';
+import { TenantApplicationsTab } from '@/components/tenants/TenantApplicationsTab';
+import { TenantApiUsageTab } from '@/components/tenants/TenantApiUsageTab';
 import type { TenantStatus } from '@/data/tenants';
 import { 
   tenantStatusColors, 
@@ -70,7 +80,14 @@ type TabType =
   | 'locations'
   | 'sso-configs'
   | 'activity'
-  | 'stats';
+  | 'stats'
+  | 'revenue'
+  | 'domains'
+  | 'api-keys'
+  | 'service-accounts'
+  | 'invitations'
+  | 'applications'
+  | 'api-usage';
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -140,6 +157,7 @@ export function TenantDetailPage() {
         { id: 'overview', label: 'Tổng quan', icon: Building2, badge: null },
         { id: 'activity', label: 'Hoạt động', icon: History, badge: null },
         { id: 'stats', label: 'Thống kê', icon: BarChart3, badge: null },
+        { id: 'revenue', label: 'Thống kê doanh thu', icon: CreditCard, badge: null },
       ]
     },
     {
@@ -163,6 +181,12 @@ export function TenantDetailPage() {
         { id: 'rate-limits', label: 'Rate Limits', icon: Gauge, badge: null },
         { id: 'webhooks', label: 'Webhooks', icon: Webhook, badge: null },
         { id: 'sso-configs', label: 'SSO Configs', icon: Key, badge: null },
+        { id: 'domains', label: 'Domains', icon: Globe, badge: null },
+        { id: 'api-keys', label: 'API Keys', icon: GitBranch, badge: null },
+        { id: 'service-accounts', label: 'Service Accounts', icon: UserCog, badge: null },
+        { id: 'invitations', label: 'Invitations', icon: Mail, badge: null },
+        { id: 'applications', label: 'Applications', icon: Package, badge: null },
+        { id: 'api-usage', label: 'API Usage', icon: Link2, badge: null },
       ]
     },
   ];
@@ -216,6 +240,20 @@ export function TenantDetailPage() {
         return <TenantActivity tenantId={tenant._id} />;
       case 'stats':
         return <TenantStats tenantId={tenant._id} />;
+      case 'revenue':
+        return <RevenueStatistics tenantId={tenant._id} />;
+      case 'domains':
+        return <TenantDomainsTab tenantId={tenant._id} />;
+      case 'api-keys':
+        return <TenantApiKeysTab tenantId={tenant._id} />;
+      case 'service-accounts':
+        return <TenantServiceAccountsTab tenantId={tenant._id} />;
+      case 'invitations':
+        return <TenantInvitationsTab tenantId={tenant._id} />;
+      case 'applications':
+        return <TenantApplicationsTab tenantId={tenant._id} />;
+      case 'api-usage':
+        return <TenantApiUsageTab tenantId={tenant._id} />;
       default:
         return <TenantDetailView tenant={tenant} />;
     }

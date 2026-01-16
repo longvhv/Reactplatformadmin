@@ -1,4 +1,12 @@
 /** @type {import('next').NextConfig} */
+
+// ✅ BUNDLE ANALYZER - Enable with ANALYZE=true npm run build
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
   reactStrictMode: true,
   
@@ -80,14 +88,78 @@ const nextConfig = {
         tls: false,
       };
     }
+    
+    // ✅ OPTIMIZE BUNDLE SPLITTING
+    config.optimization = {
+      ...config.optimization,
+      splitChunks: {
+        chunks: 'all',
+        cacheGroups: {
+          // Vendor chunk for node_modules
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendor',
+            priority: 10,
+            reuseExistingChunk: true,
+          },
+          // Separate chunk for Radix UI components
+          radixui: {
+            test: /[\\/]node_modules[\\/]@radix-ui[\\/]/,
+            name: 'radixui',
+            priority: 20,
+            reuseExistingChunk: true,
+          },
+          // Separate chunk for React Query
+          query: {
+            test: /[\\/]node_modules[\\/]@tanstack[\\/]react-query[\\/]/,
+            name: 'react-query',
+            priority: 20,
+            reuseExistingChunk: true,
+          },
+          // Separate chunk for charts
+          charts: {
+            test: /[\\/]node_modules[\\/](recharts|d3-)[\\/]/,
+            name: 'charts',
+            priority: 20,
+            reuseExistingChunk: true,
+          },
+          // Common chunk for shared code
+          common: {
+            minChunks: 2,
+            priority: 5,
+            reuseExistingChunk: true,
+            name: 'common',
+          },
+        },
+      },
+    };
+    
     return config;
   },
 
   // Experimental features
   experimental: {
     optimizeCss: true,
-    optimizePackageImports: ['lucide-react', 'recharts'],
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-tooltip',
+    ],
   },
+  
+  // ✅ PRODUCTION OPTIMIZATIONS
+  productionBrowserSourceMaps: false, // Disable source maps in production
+  compress: true, // Enable gzip compression
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

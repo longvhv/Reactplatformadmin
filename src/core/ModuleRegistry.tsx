@@ -11,6 +11,7 @@ export interface MenuItem {
   children?: MenuItem[];
   badge?: string | number;
   disabled?: boolean;
+  order?: number; // ✅ FIX: Add order field for sorting
 }
 
 /**
@@ -24,6 +25,7 @@ export interface ModuleDefinition {
   routes: RouteDefinition[];
   menuItems?: MenuItem[]; // New: nested menu structure
   showInSidebar?: boolean; // New: control sidebar visibility
+  order?: number; // ✅ FIX: Add order field for module sorting
   reducer?: any; // Redux reducer (nếu có)
   enabled?: boolean;
 }

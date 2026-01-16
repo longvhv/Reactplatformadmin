@@ -7,9 +7,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Bell } from 'lucide-react';
-import { FormPageLayout } from '../components/layouts/FormPageLayout';
+import { FormPageLayout } from '../components/layout/FormPageLayout';
 import { AnnouncementForm } from '../components/announcements/AnnouncementForm';
-import { systemAnnouncementApi, CreateSystemAnnouncementRequest } from '../api/systemAnnouncementApi';
+import { systemAnnouncementApi, CreateSystemAnnouncementRequest } from '../api/systemAnnouncementsApi';
 import { toast } from 'sonner@2.0.3';
 
 export default function AddNotificationPage() {
@@ -28,12 +28,12 @@ export default function AddNotificationPage() {
       
       // Show success toast
       toast.success('Tạo thông báo thành công!', {
-        description: `Thông báo "${data.title}" đã được tạo và đang hoạt động`,
+        description: `Thông báo \"${data.title}\" đã được tạo và đang hoạt động`,
         duration: 5000,
       });
       
       // Navigate back to list
-      navigate('/core/system-announcements');
+      navigate('/core/system-announcements', { replace: true });
       
     } catch (error: any) {
       console.error('❌ Error creating system announcement:', error);

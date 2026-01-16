@@ -1,11 +1,12 @@
 /**
  * Products List Page - Aligned with Database Schema
- * Display and manage all SaaS products (APP, DOMAIN, SSL, SERVICE)
+ * Display and manage all SaaS products
+ * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
  */
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { saasProductApi, SaaSProduct, ProductFilters, ProductType } from '../api/saasProductApi';
+import { productsApi, Product, ProductFilters } from '../api/productsApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { ProductTable } from '../components/products/ProductTable';
@@ -17,7 +18,7 @@ import { useLanguage } from '../providers/LanguageProvider';
 export default function ProductsPage() {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [products, setProducts] = useState<SaaSProduct[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +31,7 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await saasProductApi.getAll(filters);
+      const data = await productsApi.getAll(filters);
       setProducts(data);
     } catch (error: any) {
       toast.error(t('products.loadError', { error: error.message }));
@@ -48,11 +49,11 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (product: SaaSProduct) => {
+  const handleDelete = async (product: Product) => {
     if (!confirm(t('products.confirmDeleteTitle', { name: product.name }))) return;
 
     try {
-      await saasProductApi.softDelete(product._id!);
+      await productsApi.delete(product._id!);
       toast.success(t('products.deleteSuccess'));
       loadProducts();
     } catch (error: any) {
@@ -60,7 +61,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleViewDetails = (product: SaaSProduct) => {
+  const handleViewDetails = (product: Product) => {
     console.log('[ProductsPage] Navigate to product:', product._id, product);
     if (!product._id) {
       toast.error('ID sản phẩm không hợp lệ');
@@ -127,7 +128,7 @@ export default function ProductsPage() {
             onChange={(e) =>
               setFilters({
                 ...filters,
-                product_type: e.target.value ? (e.target.value as ProductType) : undefined,
+                product_type: e.target.value ? e.target.value : undefined,
               })
             }
             className="px-3 py-2 border border-border rounded-md bg-card text-foreground"

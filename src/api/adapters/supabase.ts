@@ -31,20 +31,27 @@ export class SupabaseAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, 
    * Map database row to API response format
    */
   protected mapFromDb(row: any): any {
-    if (!this.fieldMapping || !row) return row;
+    if (!row) return row;
 
     const mapped: any = { ...row };
     
-    // Map fields from DB names to API names
-    Object.entries(this.fieldMapping).forEach(([apiField, dbField]) => {
-      if (row[dbField] !== undefined) {
-        mapped[apiField] = row[dbField];
-        // Optionally remove the original DB field if different
-        if (apiField !== dbField) {
-          delete mapped[dbField];
+    // Always map _id to id for convenience
+    if (row._id !== undefined) {
+      mapped.id = row._id;
+    }
+    
+    // Apply custom field mapping if provided
+    if (this.fieldMapping) {
+      Object.entries(this.fieldMapping).forEach(([apiField, dbField]) => {
+        if (row[dbField] !== undefined) {
+          mapped[apiField] = row[dbField];
+          // Optionally remove the original DB field if different
+          if (apiField !== dbField) {
+            delete mapped[dbField];
+          }
         }
-      }
-    });
+      });
+    }
 
     return mapped;
   }

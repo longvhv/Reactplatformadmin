@@ -4,11 +4,10 @@
  * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
-import { useState, useEffect } from 'react';
+import { Edit } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router';
-import { Folder, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../providers/LanguageProvider';
-import { systemCategoryApi, SystemCategory } from '../api/systemCategoryApi';
+import { systemCategoryApi, SystemCategory } from '../api/systemCategoriesApi';
 import { EnhancedSystemCategoryForm } from '../components/systemCategories/EnhancedSystemCategoryForm';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { toast } from 'sonner@2.0.3';
@@ -84,7 +83,7 @@ export function EditSystemCategoryPage() {
       mode="edit"
       title={t('systemCategories.editCategory')}
       description={t('systemCategories.editCategoryDescription')}
-      icon={Folder}
+      icon={Edit}
       backPath="/core/system-categories"
       backLabel={t('common.backToList')}
     >

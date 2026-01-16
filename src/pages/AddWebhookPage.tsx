@@ -21,7 +21,7 @@ export default function AddWebhookPage() {
       setIsLoading(true);
       const webhook = await webhooksApi.create(data);
       toast.success('Tạo webhook thành công!');
-      navigate(`/core/webhooks/${webhook._id}`);
+      navigate(`/core/webhooks/${webhook._id}`, { replace: true });
     } catch (error: any) {
       toast.error('Không thể tạo webhook: ' + error.message);
       throw error;

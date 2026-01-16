@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { SystemCategoryType } from '../../api/systemCategoryApi';
+import { SystemCategoryType } from '../../api/systemCategoriesApi';
 import { FolderTree } from 'lucide-react';
 
 interface CategoryTypeSelectorProps {

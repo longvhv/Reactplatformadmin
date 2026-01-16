@@ -2,12 +2,54 @@
  * User Delegations API Client
  * Uses Adapter pattern - Ready for Golang migration
  * 
- * ✅ REWRITTEN 2026-01-14: 100% matches user_delegations schema (21 fields)
- * ⚠️ CRITICAL FIX: scope is string (varchar 100), NOT string[]
- * ⚠️ CRITICAL FIX: status field (5 values), NOT is_active
+ * ✅ ENHANCED 2026-01-16: 100% database alignment + Type helpers
+ * Database: user_delegations (20 fields, delegation lifecycle, revocation tracking)
  */
 
 import { createAdapter, BaseFilters } from './adapters';
+
+// ==================== TYPE HELPERS ====================
+
+export const DelegationScopeHelper = {
+  ADMIN: 'admin' as DelegationScope,
+  MANAGER: 'manager' as DelegationScope,
+  EDITOR: 'editor' as DelegationScope,
+  VIEWER: 'viewer' as DelegationScope,
+  APPROVER: 'approver' as DelegationScope,
+  REVIEWER: 'reviewer' as DelegationScope,
+  AUDITOR: 'auditor' as DelegationScope,
+  CUSTOM: 'custom' as DelegationScope,
+
+  isAdmin: (scope: DelegationScope) => scope === 'admin',
+  isManager: (scope: DelegationScope) => scope === 'manager',
+  isEditor: (scope: DelegationScope) => scope === 'editor',
+  isViewer: (scope: DelegationScope) => scope === 'viewer',
+  isApprover: (scope: DelegationScope) => scope === 'approver',
+  isReviewer: (scope: DelegationScope) => scope === 'reviewer',
+  isAuditor: (scope: DelegationScope) => scope === 'auditor',
+  isCustom: (scope: DelegationScope) => scope === 'custom',
+  hasWriteAccess: (scope: DelegationScope) => scope === 'admin' || scope === 'manager' || scope === 'editor',
+  hasReadOnlyAccess: (scope: DelegationScope) => scope === 'viewer' || scope === 'reviewer' || scope === 'auditor',
+  hasApprovalAccess: (scope: DelegationScope) => scope === 'approver' || scope === 'reviewer',
+};
+
+export const DelegationStatusHelper = {
+  PENDING: 'pending' as DelegationStatus,
+  ACTIVE: 'active' as DelegationStatus,
+  EXPIRED: 'expired' as DelegationStatus,
+  REVOKED: 'revoked' as DelegationStatus,
+  SUSPENDED: 'suspended' as DelegationStatus,
+
+  isPending: (status: DelegationStatus) => status === 'pending',
+  isActive: (status: DelegationStatus) => status === 'active',
+  isExpired: (status: DelegationStatus) => status === 'expired',
+  isRevoked: (status: DelegationStatus) => status === 'revoked',
+  isSuspended: (status: DelegationStatus) => status === 'suspended',
+  isUsable: (status: DelegationStatus) => status === 'active' || status === 'pending',
+  isTerminated: (status: DelegationStatus) => status === 'expired' || status === 'revoked' || status === 'suspended',
+  canBeRevoked: (status: DelegationStatus) => status === 'active' || status === 'pending',
+  canBeResumed: (status: DelegationStatus) => status === 'suspended',
+};
 
 // ==================== TYPES ====================
 
@@ -35,43 +77,42 @@ export type DelegationStatus =
   | 'suspended';
 
 /**
- * UserDelegation - 100% matches user_delegations table (21 fields)
+ * UserDelegation - 100% matches user_delegations table (20 fields)
  */
 export interface UserDelegation {
-  // Identity (1)
+  // I. IDENTITY (1)
   _id: string;
   
-  // Relationships (3)
+  // II. RELATIONSHIPS (3)
   delegator_id: string;              // Who delegates (FK to users)
   delegate_id: string;               // Who receives delegation (FK to users)
-  tenant_id?: string;                // Optional tenant context
+  tenant_id?: string;                // Optional tenant context (FK to tenants)
   
-  // Delegation Details (4)
-  scope?: DelegationScope;           // ⚠️ varchar(100) - SINGLE VALUE, NOT array!
-  permissions?: string[];            // ⚠️ jsonb default '[]' - Array of permission strings
+  // III. DELEGATION DETAILS (4)
+  scope?: DelegationScope;           // varchar(100) - SINGLE VALUE, NOT array!
+  permissions?: string[];            // jsonb default '[]' - Array of permission strings
   reason?: string;                   // text - Why delegation created
   notes?: string;                    // text - Additional notes
   
-  // Time Period (2)
+  // IV. TIME PERIOD (2)
   start_date: string;                // timestamptz not null, default now()
   end_date?: string;                 // timestamptz nullable
   
-  // Status & Lifecycle (5)
-  status?: DelegationStatus;         // ⚠️ varchar(20) default 'active' - NOT is_active!
+  // V. STATUS & LIFECYCLE (5)
+  status?: DelegationStatus;         // varchar(20) default 'active'
   activated_at?: string;             // timestamptz - When activated
   revoked_at?: string;               // timestamptz - When revoked
-  revoked_by?: string;               // uuid - Who revoked
+  revoked_by?: string;               // uuid - Who revoked (FK to users)
   revoked_reason?: string;           // text - Why revoked
   
-  // Configuration (2)
+  // VI. CONFIGURATION (2)
   auto_expire?: boolean;             // boolean default true - Auto expire at end_date
   notified_before_expiry?: boolean;  // boolean default false - Email notification sent
   
-  // Metadata & Audit (4)
+  // VII. METADATA & AUDIT (3)
   metadata?: Record<string, any>;    // jsonb default '{}'
   created_at: string;                // timestamptz not null
   updated_at?: string;               // timestamptz not null
-  version: number;                   // bigint not null default 1
 }
 
 /**

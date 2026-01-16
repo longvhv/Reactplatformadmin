@@ -1,10 +1,95 @@
 /**
  * User Devices API Client
- * ✅ FIXED 2026-01-14: Schema now matches 100% with database (27 fields)
+ * Uses Adapter pattern - Ready for Golang migration
+ * 
+ * ✅ ENHANCED 2026-01-16: 100% database alignment + Type helpers
+ * Database: user_devices (27 fields, device tracking, security features)
  */
 import { createAdapter, BaseFilters } from './adapters';
 
-// ===== ENUMS - Match database CHECK constraints =====
+// ==================== TYPE HELPERS ====================
+
+export const DeviceTypeHelper = {
+  DESKTOP: 'desktop' as DeviceType,
+  MOBILE: 'mobile' as DeviceType,
+  TABLET: 'tablet' as DeviceType,
+  WATCH: 'watch' as DeviceType,
+  TV: 'tv' as DeviceType,
+  OTHER: 'other' as DeviceType,
+
+  isDesktop: (type: DeviceType) => type === 'desktop',
+  isMobile: (type: DeviceType) => type === 'mobile',
+  isTablet: (type: DeviceType) => type === 'tablet',
+  isWatch: (type: DeviceType) => type === 'watch',
+  isTV: (type: DeviceType) => type === 'tv',
+  isOther: (type: DeviceType) => type === 'other',
+  isMobileDevice: (type: DeviceType) => type === 'mobile' || type === 'tablet' || type === 'watch',
+  isLargeScreen: (type: DeviceType) => type === 'desktop' || type === 'tablet' || type === 'tv',
+  isSmallScreen: (type: DeviceType) => type === 'mobile' || type === 'watch',
+};
+
+export const DeviceBrowserHelper = {
+  CHROME: 'chrome' as DeviceBrowser,
+  FIREFOX: 'firefox' as DeviceBrowser,
+  SAFARI: 'safari' as DeviceBrowser,
+  EDGE: 'edge' as DeviceBrowser,
+  OPERA: 'opera' as DeviceBrowser,
+  BRAVE: 'brave' as DeviceBrowser,
+  SAMSUNG: 'samsung' as DeviceBrowser,
+  OTHER: 'other' as DeviceBrowser,
+
+  isChrome: (browser: DeviceBrowser) => browser === 'chrome',
+  isFirefox: (browser: DeviceBrowser) => browser === 'firefox',
+  isSafari: (browser: DeviceBrowser) => browser === 'safari',
+  isEdge: (browser: DeviceBrowser) => browser === 'edge',
+  isOpera: (browser: DeviceBrowser) => browser === 'opera',
+  isBrave: (browser: DeviceBrowser) => browser === 'brave',
+  isSamsung: (browser: DeviceBrowser) => browser === 'samsung',
+  isOther: (browser: DeviceBrowser) => browser === 'other',
+  isChromiumBased: (browser: DeviceBrowser) => browser === 'chrome' || browser === 'edge' || browser === 'opera' || browser === 'brave',
+  supportsWebPush: (browser: DeviceBrowser) => browser === 'chrome' || browser === 'firefox' || browser === 'edge' || browser === 'opera' || browser === 'brave',
+};
+
+export const DeviceOSHelper = {
+  WINDOWS: 'windows' as DeviceOS,
+  MACOS: 'macos' as DeviceOS,
+  LINUX: 'linux' as DeviceOS,
+  IOS: 'ios' as DeviceOS,
+  ANDROID: 'android' as DeviceOS,
+  CHROMEOS: 'chromeos' as DeviceOS,
+  OTHER: 'other' as DeviceOS,
+
+  isWindows: (os: DeviceOS) => os === 'windows',
+  isMacOS: (os: DeviceOS) => os === 'macos',
+  isLinux: (os: DeviceOS) => os === 'linux',
+  isIOS: (os: DeviceOS) => os === 'ios',
+  isAndroid: (os: DeviceOS) => os === 'android',
+  isChromeOS: (os: DeviceOS) => os === 'chromeos',
+  isOther: (os: DeviceOS) => os === 'other',
+  isDesktopOS: (os: DeviceOS) => os === 'windows' || os === 'macos' || os === 'linux' || os === 'chromeos',
+  isMobileOS: (os: DeviceOS) => os === 'ios' || os === 'android',
+  isApple: (os: DeviceOS) => os === 'macos' || os === 'ios',
+  isUnix: (os: DeviceOS) => os === 'macos' || os === 'linux' || os === 'ios' || os === 'android',
+};
+
+export const DeviceStatusHelper = {
+  ACTIVE: 'active' as DeviceStatus,
+  INACTIVE: 'inactive' as DeviceStatus,
+  BLOCKED: 'blocked' as DeviceStatus,
+  REVOKED: 'revoked' as DeviceStatus,
+
+  isActive: (status: DeviceStatus) => status === 'active',
+  isInactive: (status: DeviceStatus) => status === 'inactive',
+  isBlocked: (status: DeviceStatus) => status === 'blocked',
+  isRevoked: (status: DeviceStatus) => status === 'revoked',
+  isUsable: (status: DeviceStatus) => status === 'active',
+  isTerminated: (status: DeviceStatus) => status === 'blocked' || status === 'revoked',
+  canBeActivated: (status: DeviceStatus) => status === 'inactive',
+  canBeBlocked: (status: DeviceStatus) => status === 'active' || status === 'inactive',
+  canBeRevoked: (status: DeviceStatus) => status !== 'revoked',
+};
+
+// ==================== ENUMS - Match database CHECK constraints ====================
 
 /**
  * Device Type Enum

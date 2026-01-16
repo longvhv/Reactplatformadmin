@@ -4,6 +4,7 @@
  * 
  * ✅ Production-ready with full validation
  * ✅ Connects to Supabase via applicationsApi
+ * ✅ FIXED 2026-01-15: Schema compliant - only use fields from database
  */
 
 import { useState, useEffect } from 'react';
@@ -22,18 +23,14 @@ export function ApplicationFormPage() {
   const { t } = useLanguage();
   const isEdit = id && id !== 'new';
 
-  // Form state
+  // Form state - Only schema-compliant fields
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     code: '',
     name: '',
     description: '',
-    app_type: 'WEB' as 'WEB' | 'MOBILE' | 'API' | 'SERVICE',
-    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE' | 'DEPRECATED',
-    version: '1.0.0',
-    is_public: false,
-    metadata: {} as Record<string, any>,
+    is_active: true,
   });
   const [versionNumber, setVersionNumber] = useState(1);
 
@@ -54,17 +51,13 @@ export function ApplicationFormPage() {
         code: app.code,
         name: app.name,
         description: app.description || '',
-        app_type: app.app_type,
-        status: app.status,
-        version: app.version,
-        is_public: app.is_public,
-        metadata: app.metadata || {},
+        is_active: app.is_active,
       });
-      setVersionNumber(app.version_number);
+      setVersionNumber(app.version);
     } catch (error: any) {
       console.error('Error loading application:', error);
       toast.error(error.message || 'Không thể tải thông tin ứng dụng');
-      navigate('/core/applications');
+      navigate('/core/applications', { replace: true });
     } finally {
       setLoading(false);
     }
@@ -82,8 +75,10 @@ export function ApplicationFormPage() {
       toast.error('Vui lòng nhập tên ứng dụng');
       return;
     }
-    if (!formData.version.trim()) {
-      toast.error('Vui lòng nhập phiên bản');
+
+    // Validate code format (UPPERCASE_SNAKE_CASE)
+    if (!/^[A-Z0-9_]+$/.test(formData.code)) {
+      toast.error('Mã ứng dụng phải là chữ hoa, số và gạch dưới (VD: TENANT_MGMT)');
       return;
     }
 
@@ -92,8 +87,10 @@ export function ApplicationFormPage() {
       if (isEdit && id) {
         // Update existing
         const updateData: UpdateApplicationRequest = {
-          ...formData,
-          version_number: versionNumber,
+          name: formData.name,
+          description: formData.description || undefined,
+          is_active: formData.is_active,
+          version: versionNumber,
         };
         await applicationsApi.update(id, updateData);
         toast.success('Cập nhật ứng dụng thành công');
@@ -102,17 +99,14 @@ export function ApplicationFormPage() {
         const createData: CreateApplicationRequest = {
           code: formData.code,
           name: formData.name,
-          description: formData.description,
-          app_type: formData.app_type,
-          version: formData.version,
-          is_public: formData.is_public,
-          metadata: formData.metadata,
+          description: formData.description || undefined,
+          is_active: formData.is_active,
         };
         await applicationsApi.create(createData);
         toast.success('Tạo ứng dụng mới thành công');
       }
       
-      navigate('/core/applications');
+      navigate('/core/applications', { replace: true });
     } catch (error: any) {
       console.error('Error saving application:', error);
       toast.error(error.message || 'Lỗi khi lưu ứng dụng');
@@ -218,105 +212,22 @@ export function ApplicationFormPage() {
                 />
               </div>
 
-              {/* App Type */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loại ứng dụng <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.app_type}
-                  onChange={(e) => handleInputChange('app_type', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  required
-                >
-                  <option value="WEB">Web Application</option>
-                  <option value="MOBILE">Mobile Application</option>
-                  <option value="API">API Service</option>
-                  <option value="SERVICE">Microservice</option>
-                </select>
-              </div>
-
-              {/* Status */}
-              {isEdit && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Trạng thái
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                    <option value="DEPRECATED">Deprecated</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Version */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phiên bản <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={formData.version}
-                  onChange={(e) => handleInputChange('version', e.target.value)}
-                  placeholder="VD: 1.0.0, 2.1.3"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Theo chuẩn Semantic Versioning (major.minor.patch)
-                </p>
-              </div>
-
-              {/* Is Public */}
+              {/* Is Active */}
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
-                  id="is_public"
-                  checked={formData.is_public}
-                  onChange={(e) => handleInputChange('is_public', e.target.checked)}
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => handleInputChange('is_active', e.target.checked)}
                   className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                 />
-                <label htmlFor="is_public" className="text-sm font-medium text-gray-700">
-                  Ứng dụng công khai
+                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                  Kích hoạt ứng dụng
                 </label>
               </div>
               <p className="text-xs text-gray-500 -mt-4 ml-7">
-                Cho phép truy cập công khai không cần xác thực
+                Ứng dụng chỉ hoạt động khi được kích hoạt
               </p>
-            </CardContent>
-          </Card>
-
-          {/* Metadata (Optional - Advanced) */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Metadata (Tùy chọn)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  JSON Metadata
-                </label>
-                <textarea
-                  value={JSON.stringify(formData.metadata, null, 2)}
-                  onChange={(e) => {
-                    try {
-                      const parsed = JSON.parse(e.target.value);
-                      handleInputChange('metadata', parsed);
-                    } catch {
-                      // Invalid JSON, ignore
-                    }
-                  }}
-                  placeholder='{"key": "value"}'
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Dữ liệu bổ sung dạng JSON (tùy chọn)
-                </p>
-              </div>
             </CardContent>
           </Card>
 

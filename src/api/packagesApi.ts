@@ -10,6 +10,7 @@ import { ServicePackagesAdapter } from './adapters/servicePackagesAdapter';
 
 export interface Package {
   _id: string;
+  tenant_id: string;
   saas_product_id: string;
   // Joined product info
   product_name?: string;
@@ -23,16 +24,19 @@ export interface Package {
   price_amount: number;
   currency_code: string;
   billing_cycle?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'LIFETIME' | 'ONE_TIME' | 'CUSTOM';
-  trial_days?: number;
   
   // Configuration
   entitlements_config: Record<string, any>;
-  features?: Record<string, any>;
-  metadata?: Record<string, any>;
   
-  // Resource limits
-  max_users?: number | null;
-  max_storage?: number | null;
+  // Features & Limits (maps to limits_config in DB)
+  features?: {
+    trial_days?: number;
+    max_users?: number | null;
+    max_storage?: number | null;
+    [key: string]: any; // Allow additional limits
+  };
+  
+  metadata?: Record<string, any>;
   
   // Display & Status
   status: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
@@ -50,14 +54,23 @@ export interface Package {
 }
 
 export interface CreatePackageRequest {
+  tenant_id: string;
   saas_product_id: string;
   code: string;
   name: string;
   description?: string;
   price_amount: number;
   currency_code?: string;
+  billing_cycle?: 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'ONE_TIME' | 'CUSTOM';
   entitlements_config?: Record<string, any>;
+  features?: {
+    trial_days?: number;
+    max_users?: number | null;
+    max_storage?: number | null;
+    [key: string]: any;
+  };
   is_public?: boolean;
+  display_order?: number;
 }
 
 export interface UpdatePackageRequest {
@@ -66,13 +79,22 @@ export interface UpdatePackageRequest {
   description?: string;
   price_amount?: number;
   currency_code?: string;
+  billing_cycle?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'LIFETIME' | 'ONE_TIME' | 'CUSTOM';
   entitlements_config?: Record<string, any>;
+  features?: {
+    trial_days?: number;
+    max_users?: number | null;
+    max_storage?: number | null;
+    [key: string]: any;
+  };
   status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
   is_public?: boolean;
+  display_order?: number;
   version: number;
 }
 
 export interface PackageFilters extends BaseFilters {
+  tenant_id?: string;
   saas_product_id?: string;
   status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
   is_public?: boolean;

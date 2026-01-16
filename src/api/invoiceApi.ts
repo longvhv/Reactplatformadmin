@@ -204,7 +204,8 @@ export interface InvoiceFilters extends BaseFilters {
 
 const adapter = createAdapter<Invoice, CreateInvoiceRequest, UpdateInvoiceRequest>(
   'subscription_invoices',
-  '/invoices'
+  '/invoices',
+  true  // ✅ Enable soft delete support
 );
 
 // ==================== API CLIENT ====================

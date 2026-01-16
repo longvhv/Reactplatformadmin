@@ -131,7 +131,7 @@ export const reservedSlugsApi = {
     const normalizedData = {
       ...data,
       slug: data.slug.toLowerCase(),
-      items_snapshot: data.items_snapshot || null,  // Default to null if not provided
+      items_snapshot: data.items_snapshot || {},  // Default to {} to match database schema (NOT NULL default '{}')
     };
     
     console.log('📤 Creating reserved slug:', normalizedData);

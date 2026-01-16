@@ -1,10 +1,77 @@
 /**
  * Tenants API Client
  * Uses Adapter pattern - Ready for Golang migration
+ * 
+ * ✅ ENHANCED 2026-01-16: 100% database alignment + Type helpers
+ * Database: tenants (21 fields, hierarchical, soft delete, versioning)
  */
 
 import { createAdapter, BaseFilters } from './adapters';
-import type { Tenant, TenantStatus, TenantTier } from '@/data/tenants';
+import type { Tenant, TenantStatus, TenantTier, BillingType, DataRegion, ComplianceLevel } from '@/data/tenants';
+
+// ==================== TYPE HELPERS ====================
+
+export const TenantStatusHelper = {
+  TRIAL: 'TRIAL' as TenantStatus,
+  ACTIVE: 'ACTIVE' as TenantStatus,
+  SUSPENDED: 'SUSPENDED' as TenantStatus,
+  CANCELLED: 'CANCELLED' as TenantStatus,
+
+  isTrial: (status: TenantStatus) => status === 'TRIAL',
+  isActive: (status: TenantStatus) => status === 'ACTIVE',
+  isSuspended: (status: TenantStatus) => status === 'SUSPENDED',
+  isCancelled: (status: TenantStatus) => status === 'CANCELLED',
+  isUsable: (status: TenantStatus) => status === 'TRIAL' || status === 'ACTIVE',
+  isTerminated: (status: TenantStatus) => status === 'SUSPENDED' || status === 'CANCELLED',
+};
+
+export const TenantTierHelper = {
+  FREE: 'FREE' as TenantTier,
+  PRO: 'PRO' as TenantTier,
+  ENTERPRISE: 'ENTERPRISE' as TenantTier,
+  PARTNER_BASIC: 'PARTNER_BASIC' as TenantTier,
+  PARTNER_PREMIUM: 'PARTNER_PREMIUM' as TenantTier,
+  PARTNER_ELITE: 'PARTNER_ELITE' as TenantTier,
+  PROVIDER: 'PROVIDER' as TenantTier,
+
+  isFree: (tier: TenantTier) => tier === 'FREE',
+  isPro: (tier: TenantTier) => tier === 'PRO',
+  isEnterprise: (tier: TenantTier) => tier === 'ENTERPRISE',
+  isPartner: (tier: TenantTier) => tier === 'PARTNER_BASIC' || tier === 'PARTNER_PREMIUM' || tier === 'PARTNER_ELITE',
+  isProvider: (tier: TenantTier) => tier === 'PROVIDER',
+  isCustomer: (tier: TenantTier) => tier === 'FREE' || tier === 'PRO' || tier === 'ENTERPRISE',
+};
+
+export const BillingTypeHelper = {
+  PREPAID: 'PREPAID' as BillingType,
+  POSTPAID: 'POSTPAID' as BillingType,
+
+  isPrepaid: (type: BillingType) => type === 'PREPAID',
+  isPostpaid: (type: BillingType) => type === 'POSTPAID',
+};
+
+export const DataRegionHelper = {
+  AP_SOUTHEAST_1: 'ap-southeast-1' as DataRegion,
+  US_EAST_1: 'us-east-1' as DataRegion,
+  EU_CENTRAL_1: 'eu-central-1' as DataRegion,
+
+  isAsia: (region: DataRegion) => region === 'ap-southeast-1',
+  isUSA: (region: DataRegion) => region === 'us-east-1',
+  isEurope: (region: DataRegion) => region === 'eu-central-1',
+};
+
+export const ComplianceLevelHelper = {
+  STANDARD: 'STANDARD' as ComplianceLevel,
+  GDPR: 'GDPR' as ComplianceLevel,
+  HIPAA: 'HIPAA' as ComplianceLevel,
+  PCI_DSS: 'PCI-DSS' as ComplianceLevel,
+
+  isStandard: (level: ComplianceLevel) => level === 'STANDARD',
+  isGDPR: (level: ComplianceLevel) => level === 'GDPR',
+  isHIPAA: (level: ComplianceLevel) => level === 'HIPAA',
+  isPCIDSS: (level: ComplianceLevel) => level === 'PCI-DSS',
+  requiresHighCompliance: (level: ComplianceLevel) => level !== 'STANDARD',
+};
 
 // ==================== TYPES ====================
 

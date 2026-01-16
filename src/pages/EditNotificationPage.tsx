@@ -13,7 +13,7 @@ import {
   systemAnnouncementApi, 
   SystemAnnouncement,
   UpdateSystemAnnouncementRequest 
-} from '../api/systemAnnouncementApi';
+} from '../api/systemAnnouncementsApi';
 import { toast } from 'sonner@2.0.3';
 
 export default function EditNotificationPage() {
@@ -80,7 +80,7 @@ export default function EditNotificationPage() {
       });
       
       // Navigate back to list
-      navigate('/core/system-announcements');
+      navigate('/core/system-announcements', { replace: true });
       
     } catch (err: any) {
       console.error('❌ Error updating system announcement:', err);

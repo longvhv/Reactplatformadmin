@@ -47,6 +47,7 @@ import { UserSessionsTab } from '@/components/users/UserSessionsTab';
 import { UserDevicesTab } from '@/components/users/UserDevicesTab';
 import { UserSecurityTab } from '@/components/users/UserSecurityTab';
 import { UserOverviewTab } from '@/components/users/UserOverviewTab';
+import { UserConsentsTab } from '@/components/users/UserConsentsTab';
 
 interface UserDetail {
   _id: string;
@@ -73,7 +74,8 @@ type TabType =
   | 'sessions'
   | 'devices'
   | 'security'
-  | 'activity';
+  | 'activity'
+  | 'consents';
 
 function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -213,6 +215,7 @@ function UserDetailPage() {
     { id: 'devices', label: 'Thiết bị', icon: Smartphone, badge: null },
     { id: 'security', label: 'Bảo mật', icon: Shield, badge: null },
     { id: 'activity', label: 'Hoạt động', icon: History, badge: null },
+    { id: 'consents', label: 'Đồng ý', icon: Lock, badge: null },
   ];
 
   const renderTabContent = () => {
@@ -231,6 +234,8 @@ function UserDetailPage() {
         return <UserSecurityTab userId={user._id} user={user} />;
       case 'activity':
         return <UserActivityTab userId={user._id} />;
+      case 'consents':
+        return <UserConsentsTab userId={user._id} />;
       default:
         return <UserOverviewTab userId={user._id} user={user} />;
     }

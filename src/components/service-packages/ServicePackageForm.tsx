@@ -21,11 +21,14 @@ interface ServicePackageFormProps {
 }
 
 const BILLING_CYCLES = [
+  { value: 'DAILY', label: 'Hàng ngày' },
+  { value: 'WEEKLY', label: 'Hàng tuần' },
   { value: 'MONTHLY', label: 'Hàng tháng' },
   { value: 'QUARTERLY', label: 'Hàng quý' },
   { value: 'YEARLY', label: 'Hàng năm' },
   { value: 'LIFETIME', label: 'Trọn đời' },
   { value: 'ONE_TIME', label: 'Một lần' },
+  { value: 'CUSTOM', label: 'Tùy chỉnh' },
 ];
 
 const STATUSES = [
@@ -36,6 +39,7 @@ const STATUSES = [
 
 export function ServicePackageForm({ package: pkg, onSubmit, onCancel, loading }: ServicePackageFormProps) {
   const [formData, setFormData] = useState({
+    tenant_id: '00000000-0000-0000-0000-000000000001', // Default tenant ID
     code: '',
     name: '',
     description: '',
@@ -57,6 +61,7 @@ export function ServicePackageForm({ package: pkg, onSubmit, onCancel, loading }
   useEffect(() => {
     if (pkg) {
       setFormData({
+        tenant_id: pkg.tenant_id,
         code: pkg.code,
         name: pkg.name,
         description: pkg.description || '',
@@ -64,12 +69,13 @@ export function ServicePackageForm({ package: pkg, onSubmit, onCancel, loading }
         price_amount: pkg.price_amount,
         currency_code: pkg.currency_code,
         billing_cycle: pkg.billing_cycle || 'MONTHLY',
-        trial_days: pkg.trial_days || 0,
+        // Extract from features object (limits_config in DB)
+        trial_days: pkg.features?.trial_days || 0,
         status: pkg.status,
         is_public: pkg.is_public,
         display_order: pkg.display_order || 0,
-        max_users: pkg.max_users,
-        max_storage: pkg.max_storage,
+        max_users: pkg.features?.max_users ?? null,
+        max_storage: pkg.features?.max_storage ?? null,
       });
     }
   }, [pkg]);
@@ -102,7 +108,29 @@ export function ServicePackageForm({ package: pkg, onSubmit, onCancel, loading }
 
     setSubmitting(true);
     try {
-      await onSubmit(formData);
+      // Transform data to pack limit fields into features object (maps to limits_config in DB)
+      const submitData = {
+        tenant_id: formData.tenant_id,
+        code: formData.code,
+        name: formData.name,
+        description: formData.description,
+        saas_product_id: formData.saas_product_id,
+        price_amount: formData.price_amount,
+        currency_code: formData.currency_code,
+        billing_cycle: formData.billing_cycle,
+        status: formData.status,
+        is_public: formData.is_public,
+        display_order: formData.display_order,
+        entitlements_config: {},
+        // Pack limit fields into features (maps to limits_config in DB)
+        features: {
+          trial_days: formData.trial_days || 0,
+          max_users: formData.max_users,
+          max_storage: formData.max_storage,
+        },
+      };
+      
+      await onSubmit(submitData);
     } catch (error) {
       console.error('Form submission error:', error);
     } finally {

@@ -28,7 +28,7 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
   menuItems: [
     {
       id: "service-deliveries",
-      label: "Dịch Vụ",
+      label: "navigation.serviceDeliveries",
       path: "/core/service-deliveries",
       icon: <Briefcase className="w-5 h-5" />,
       order: 46,
@@ -43,7 +43,7 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
           <ServiceDeliveriesPage />
         </Suspense>
       ),
-      title: "Dịch Vụ",
+      title: "navigation.serviceDeliveries",
     },
     {
       path: "/core/service-deliveries/add",
@@ -52,7 +52,7 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
           <AddServiceDeliveryPage />
         </Suspense>
       ),
-      title: "Thêm Dịch Vụ",
+      title: "serviceDeliveries.add",
     },
     {
       path: "/core/service-deliveries/edit/:id",
@@ -61,7 +61,7 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
           <EditServiceDeliveryPage />
         </Suspense>
       ),
-      title: "Chỉnh Sửa Dịch Vụ",
+      title: "serviceDeliveries.edit",
     },
     {
       path: "/core/service-deliveries/:id",
@@ -70,7 +70,7 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
           <ServiceDeliveryDetailPage />
         </Suspense>
       ),
-      title: "Chi Tiết Dịch Vụ",
+      title: "serviceDeliveries.details",
     },
   ],
 

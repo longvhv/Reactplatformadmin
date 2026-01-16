@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../providers/LanguageProvider';
-import { SystemCategory, systemCategoryApi, CategoryStatusHelper, CategoryStatus } from '../../api/systemCategoryApi';
+import { SystemCategory, systemCategoryApi, CategoryStatusHelper, CategoryStatus } from '../../api/systemCategoriesApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';

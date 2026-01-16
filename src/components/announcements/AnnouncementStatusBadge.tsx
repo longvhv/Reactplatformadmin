@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { AnnouncementStatus, AnnouncementType, AnnouncementPriority } from '../../api/systemAnnouncementApi';
+import { AnnouncementStatus, AnnouncementType, AnnouncementPriority } from '../../api/systemAnnouncementsApi';
 
 interface StatusBadgeProps {
   status: AnnouncementStatus;
