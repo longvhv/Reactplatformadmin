@@ -1,23 +1,17 @@
 /**
- * Subscription Invoices Module
- * Invoice Management with full CRUD operations
+ * Subscription Invoices Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/subscription-invoices
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { FileText } from 'lucide-react';
 
-// Lazy-loaded pages
 const SubscriptionInvoicesPage = lazy(() => import('../../pages/SubscriptionInvoicesPage'));
-const InvoiceDetailPage = lazy(() => import('../../pages/InvoiceDetailPage'));
-const AddInvoicePage = lazy(() => import('../../pages/AddInvoicePage'));
-const EditInvoicePage = lazy(() => import('../../pages/EditInvoicePage'));
 
-/**
- * Subscription Invoices Module Definition
- * Translation keys are resolved at runtime
- */
 export const SubscriptionInvoicesModule: ModuleDefinition = {
   id: "subscription-invoices",
   name: "Subscription Invoices",
@@ -30,7 +24,7 @@ export const SubscriptionInvoicesModule: ModuleDefinition = {
     {
       id: "subscription-invoices",
       label: "invoices.title", // Translation key
-      path: "/core/subscription-invoices",
+      path: "/commerce/subscription-invoices",
       icon: <FileText className="w-5 h-5" />,
       order: 46,
     },
@@ -38,40 +32,13 @@ export const SubscriptionInvoicesModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/subscription-invoices",
+      path: "/commerce/subscription-invoices",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <SubscriptionInvoicesPage />
         </Suspense>
       ),
       title: "invoices.title", // Translation key
-    },
-    {
-      path: "/core/subscription-invoices/add",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <AddInvoicePage />
-        </Suspense>
-      ),
-      title: "invoices.addInvoice", // Translation key
-    },
-    {
-      path: "/core/subscription-invoices/edit/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <EditInvoicePage />
-        </Suspense>
-      ),
-      title: "invoices.editInvoice", // Translation key
-    },
-    {
-      path: "/core/subscription-invoices/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <InvoiceDetailPage />
-        </Suspense>
-      ),
-      title: "invoices.viewDetails", // Translation key
     },
   ],
 

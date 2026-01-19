@@ -13,17 +13,19 @@ const SettingsPage = lazy(() => import("../../pages/SettingsPage"));
  * 
  * Module cài đặt ứng dụng
  * Metadata loaded immediately, component lazy loaded
+ * 
+ * 🌐 Path: /system/settings
  */
 export const SettingsModule: ModuleConfig = {
   id: "settings",
   name: "Hệ thống",
   icon: <Settings className="w-4 h-4" />,
   enabled: true,
-  showInSidebar: true, // ✅ CHANGED: Show in main sidebar
-  order: 100, // ✅ ADDED: Platform & Configuration group (80-99)
+  showInSidebar: true,
+  order: 100,
   routes: [
     {
-      path: "/core/settings",
+      path: "/system/settings",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải cài đặt..." />}>
           <SettingsPage />
@@ -35,10 +37,10 @@ export const SettingsModule: ModuleConfig = {
   menuItems: [
     {
       id: "settings",
-      label: "navigation.settings", // ✅ FIX: Use translation key instead of hardcoded text
+      label: "navigation.settings",
       icon: <Settings className="w-5 h-5" />,
-      path: "/core/settings",
-      order: 100, // ✅ ADDED: Consistent ordering
+      path: "/system/settings",
+      order: 100,
     } as any,
   ],
 };

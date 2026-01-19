@@ -1,30 +1,20 @@
 /**
- * Webhooks Module
- * Webhook Endpoints Management
+ * Webhooks Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /integrations/webhooks
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Webhook } from 'lucide-react';
 
-// Lazy-loaded pages
 const WebhooksPage = lazy(() => import('../../pages/WebhooksPage'));
 const AddWebhookPage = lazy(() => import('../../pages/AddWebhookPage'));
 const EditWebhookPage = lazy(() => import('../../pages/EditWebhookPage'));
 const WebhookDetailPage = lazy(() => import('../../pages/WebhookDetailPage'));
 
-/**
- * Webhooks Module Definition
- * 
- * Features:
- * - Global webhooks management
- * - Multi-tenant support
- * - Event subscriptions
- * - Stats tracking
- * 
- * Note: menuItems label and routes title use translation keys that will be resolved at runtime
- */
 export const WebhooksModule: ModuleDefinition = {
   id: "webhooks",
   name: "Webhooks",
@@ -37,7 +27,7 @@ export const WebhooksModule: ModuleDefinition = {
     {
       id: "webhooks",
       label: "navigation.webhooks",
-      path: "/core/webhooks",
+      path: "/integrations/webhooks",
       icon: <Webhook className="w-5 h-5" />,
       order: 48,
     },
@@ -45,7 +35,7 @@ export const WebhooksModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/webhooks",
+      path: "/integrations/webhooks",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <WebhooksPage />
@@ -54,7 +44,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Webhooks",
     },
     {
-      path: "/core/webhooks/new",
+      path: "/integrations/webhooks/add",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddWebhookPage />
@@ -63,7 +53,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Add Webhook",
     },
     {
-      path: "/core/webhooks/edit/:id",
+      path: "/integrations/webhooks/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditWebhookPage />
@@ -72,13 +62,13 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Edit Webhook",
     },
     {
-      path: "/core/webhooks/:id",
+      path: "/integrations/webhooks/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <WebhookDetailPage />
         </Suspense>
       ),
-      title: "Webhook Details",
+      title: "Webhook Detail",
     },
   ],
 };

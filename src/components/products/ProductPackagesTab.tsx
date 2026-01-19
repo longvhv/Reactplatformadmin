@@ -147,7 +147,7 @@ export function ProductPackagesTab({ productId }: ProductPackagesTabProps) {
                   </TableCell>
 
                   <TableCell className="text-right">
-                    <Link to={`/core/packages/${pkg._id}`}>
+                    <Link to={`/commerce/service-packages/${pkg._id}`}>
                       <Button variant="ghost" size="sm">
                         <ExternalLink className="w-4 h-4" />
                       </Button>

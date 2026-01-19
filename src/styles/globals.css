@@ -1,8 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Import Inter Font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* ===================================
+     TYPOGRAPHY SYSTEM - Inter Font
+     ================================== */
+  
+  /* Font Family */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-family-mono: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  
+  /* Font Sizes - Heading */
+  --font-size-h1: 2.5rem;      /* 40px - Page titles, hero sections */
+  --font-size-h2: 2rem;        /* 32px - Section titles */
+  --font-size-h3: 1.5rem;      /* 24px - Subsection headers */
+  --font-size-h4: 1.25rem;     /* 20px - Card titles */
+  --font-size-h5: 1.125rem;    /* 18px - Small headings */
+  --font-size-h6: 1rem;        /* 16px - Tiny headings */
+  
+  /* Font Sizes - Body */
+  --font-size-base: 0.875rem;  /* 14px - DEFAULT body text */
+  --font-size-sm: 0.8125rem;   /* 13px - Small text, captions */
+  --font-size-xs: 0.75rem;     /* 12px - Extra small, metadata */
+  --font-size-lg: 1rem;        /* 16px - Large text, emphasis */
+  
+  /* Font Weights */
+  --font-weight-light: 300;      /* Light text - rare usage */
+  --font-weight-normal: 400;     /* Body text - DEFAULT */
+  --font-weight-medium: 500;     /* Labels, buttons, UI elements */
+  --font-weight-semibold: 600;   /* Headings, emphasis */
+  --font-weight-bold: 700;       /* Strong emphasis, table headers */
+  --font-weight-extrabold: 800;  /* Display text, hero titles */
+  
+  /* Line Heights */
+  --line-height-tight: 1.2;      /* Headings, large text */
+  --line-height-normal: 1.5;     /* Body text, UI elements - DEFAULT */
+  --line-height-relaxed: 1.75;   /* Long-form content, paragraphs */
+  
+  /* Letter Spacing - Inter optimized */
+  --letter-spacing-tight: -0.025em;   /* Large headings (H1, H2) */
+  --letter-spacing-normal: -0.011em;  /* Body text - DEFAULT */
+  --letter-spacing-wide: 0.025em;     /* Uppercase labels, small caps */
+
+  /* ===================================
+     COLOR SYSTEM
+     ================================== */
+  
   /* Modern Color Palette - Inspired by Vercel/Linear */
   --font-size: 16px;
   --background: #fafafa;
@@ -12,8 +57,8 @@
   --popover: #ffffff;
   --popover-foreground: #09090b;
   
-  /* Primary - Indigo (Modern & Professional) */
-  --primary: #6366f1;
+  /* Primary - Blue #0066b3 (Modern & Professional) */
+  --primary: #0066b3;
   --primary-foreground: #ffffff;
   
   /* Secondary - Subtle Gray */
@@ -24,9 +69,9 @@
   --muted: #f4f4f5;
   --muted-foreground: #71717a;
   
-  /* Accent - Light indigo */
-  --accent: #eef2ff;
-  --accent-foreground: #4f46e5;
+  /* Accent - Light blue */
+  --accent: #e6f2ff;
+  --accent-foreground: #0052a3;
   
   /* Destructive - Soft red */
   --destructive: #ef4444;
@@ -45,18 +90,11 @@
   --input: #e4e4e7;
   --input-background: #ffffff;
   --switch-background: #d4d4d8;
-  --ring: #6366f1;
-  
-  /* Font weights */
-  --font-weight-light: 300;
-  --font-weight-normal: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+  --ring: #0066b3;
   
   /* Charts */
-  --chart-1: #6366f1;
-  --chart-2: #8b5cf6;
+  --chart-1: #0066b3;
+  --chart-2: #0099ff;
   --chart-3: #ec4899;
   --chart-4: #f59e0b;
   --chart-5: #10b981;
@@ -67,12 +105,12 @@
   /* Sidebar - Glassmorphism */
   --sidebar: rgba(255, 255, 255, 0.8);
   --sidebar-foreground: #09090b;
-  --sidebar-primary: #6366f1;
+  --sidebar-primary: #0066b3;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f4f4f5;
   --sidebar-accent-foreground: #18181b;
   --sidebar-border: rgba(228, 228, 231, 0.4);
-  --sidebar-ring: #6366f1;
+  --sidebar-ring: #0066b3;
 }
 
 .dark {
@@ -82,14 +120,14 @@
   --card-foreground: #fafafa;
   --popover: #18181b;
   --popover-foreground: #fafafa;
-  --primary: #818cf8;
+  --primary: #3399ff;
   --primary-foreground: #09090b;
   --secondary: #27272a;
   --secondary-foreground: #fafafa;
   --muted: #27272a;
   --muted-foreground: #a1a1aa;
   --accent: #27272a;
-  --accent-foreground: #818cf8;
+  --accent-foreground: #3399ff;
   --destructive: #f87171;
   --destructive-foreground: #09090b;
   --success: #34d399;
@@ -98,20 +136,20 @@
   --warning-foreground: #09090b;
   --border: #27272a;
   --input: #27272a;
-  --ring: #818cf8;
-  --chart-1: #818cf8;
-  --chart-2: #a78bfa;
+  --ring: #3399ff;
+  --chart-1: #3399ff;
+  --chart-2: #66b3ff;
   --chart-3: #f472b6;
   --chart-4: #fbbf24;
   --chart-5: #34d399;
   --sidebar: rgba(24, 24, 27, 0.8);
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #818cf8;
+  --sidebar-primary: #3399ff;
   --sidebar-primary-foreground: #09090b;
   --sidebar-accent: #27272a;
   --sidebar-accent-foreground: #fafafa;
   --sidebar-border: rgba(39, 39, 42, 0.4);
-  --sidebar-ring: #818cf8;
+  --sidebar-ring: #3399ff;
 }
 
 @theme inline {
@@ -159,85 +197,134 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ===================================
+   BASE LAYER - Typography Foundation
+   ================================== */
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
+  html {
+    font-size: 16px; /* Base 16px for rem calculations */
+  }
+
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-base); /* 14px default */
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.011em;
   }
-}
+  
+  /* Headings */
+  h1 {
+    font-size: var(--font-size-h1); /* 40px */
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
 
-/**
- * Modern Typography - Inter font system
- */
-@layer base {
-  :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
-    h1 {
-      font-size: 1.5rem;
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-      letter-spacing: -0.025em;
-    }
+  h2 {
+    font-size: var(--font-size-h2); /* 32px */
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
 
-    h2 {
-      font-size: 1.25rem;
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-      letter-spacing: -0.025em;
-    }
+  h3 {
+    font-size: var(--font-size-h3); /* 24px */
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+  }
 
-    h3 {
-      font-size: 1.125rem;
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-      letter-spacing: -0.02em;
-    }
+  h4 {
+    font-size: var(--font-size-h4); /* 20px */
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
 
-    h4 {
-      font-size: 1rem;
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-      letter-spacing: -0.015em;
-    }
+  h5 {
+    font-size: var(--font-size-h5); /* 18px */
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
 
-    p {
-      font-size: 1rem;
-      font-weight: var(--font-weight-normal);
-      line-height: 1.6;
-      letter-spacing: -0.011em;
-    }
+  h6 {
+    font-size: var(--font-size-h6); /* 16px */
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
 
-    label {
-      font-size: 1rem;
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-      letter-spacing: -0.011em;
-    }
+  /* Body text */
+  p {
+    font-size: var(--font-size-base); /* 14px */
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
 
-    button {
-      font-size: 1rem;
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-      letter-spacing: -0.011em;
-    }
+  /* Labels */
+  label {
+    font-size: var(--font-size-base); /* 14px */
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
 
-    input, textarea {
-      font-size: 1rem;
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-      letter-spacing: -0.011em;
+  /* Buttons */
+  button {
+    font-size: var(--font-size-base); /* 14px */
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  /* Inputs & Textarea */
+  input, 
+  textarea, 
+  select {
+    font-size: var(--font-size-base); /* 14px */
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+  
+  /* Mobile: Prevent zoom on focus */
+  @media (max-width: 768px) {
+    input, 
+    textarea, 
+    select {
+      font-size: 1rem; /* 16px on mobile to prevent zoom */
     }
   }
-}
 
-html {
-  font-size: var(--font-size);
+  /* Small text */
+  small {
+    font-size: var(--font-size-sm); /* 13px */
+    font-weight: var(--font-weight-normal);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  /* Code */
+  code {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+  }
+
+  /* Strong */
+  strong, 
+  b {
+    font-weight: var(--font-weight-semibold);
+  }
 }
 
 /* Smooth scrolling */
@@ -245,19 +332,134 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ===================================
+   UTILITY CLASSES
+   ================================== */
+
+/* Page title - 24px standard */
+.page-title {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Text sizes utilities */
+.text-xs { font-size: var(--font-size-xs); }
+.text-sm { font-size: var(--font-size-sm); }
+.text-base { font-size: var(--font-size-base); }
+.text-lg { font-size: var(--font-size-lg); }
+
+/* Font weights utilities */
+.font-light { font-weight: var(--font-weight-light); }
+.font-normal { font-weight: var(--font-weight-normal); }
+.font-medium { font-weight: var(--font-weight-medium); }
+.font-semibold { font-weight: var(--font-weight-semibold); }
+.font-bold { font-weight: var(--font-weight-bold); }
+.font-extrabold { font-weight: var(--font-weight-extrabold); }
+
+/* Letter spacing utilities */
+.tracking-tight { letter-spacing: var(--letter-spacing-tight); }
+.tracking-normal { letter-spacing: var(--letter-spacing-normal); }
+.tracking-wide { letter-spacing: var(--letter-spacing-wide); }
+
+/* Line height utilities */
+.leading-tight { line-height: var(--line-height-tight); }
+.leading-normal { line-height: var(--line-height-normal); }
+.leading-relaxed { line-height: var(--line-height-relaxed); }
+
+/* ===================================
+   PRIMARY COLOR UTILITIES - #0066b3
+   ================================== */
+
+/* Backgrounds */
+.bg-primary { background-color: var(--primary); }
+.bg-primary-foreground { background-color: var(--primary-foreground); }
+.bg-primary-50 { background-color: #e6f2ff; }
+.bg-primary-100 { background-color: #b3d9ff; }
+.bg-primary-500 { background-color: #3399ff; }
+.bg-primary-600 { background-color: #0066b3; }
+.bg-primary-700 { background-color: #005299; }
+.bg-primary-800 { background-color: #003d73; }
+.bg-primary-900 { background-color: #002952; }
+
+/* Text colors */
+.text-primary { color: var(--primary); }
+.text-primary-foreground { color: var(--primary-foreground); }
+.text-primary-50 { color: #e6f2ff; }
+.text-primary-100 { color: #b3d9ff; }
+.text-primary-400 { color: #66b3ff; }
+.text-primary-500 { color: #3399ff; }
+.text-primary-600 { color: #0066b3; }
+.text-primary-700 { color: #005299; }
+.text-primary-800 { color: #003d73; }
+.text-primary-900 { color: #002952; }
+
+/* Border colors */
+.border-primary { border-color: var(--primary); }
+.border-primary-200 { border-color: #99ccff; }
+.border-primary-300 { border-color: #66b3ff; }
+.border-primary-400 { border-color: #3399ff; }
+.border-primary-500 { border-color: #0080e6; }
+.border-primary-600 { border-color: #0066b3; }
+.border-primary-700 { border-color: #005299; }
+.border-primary-800 { border-color: #003d73; }
+
+/* Ring colors */
+.ring-primary { --tw-ring-color: var(--primary); }
+.ring-primary-500 { --tw-ring-color: #0080e6; }
+
+/* Focus ring */
+.focus\:ring-primary:focus { --tw-ring-color: var(--primary); }
+.focus\:border-primary:focus { border-color: var(--primary); }
+
+/* Hover states */
+.hover\:bg-primary:hover { background-color: var(--primary); }
+.hover\:bg-primary-700:hover { background-color: #005299; }
+.hover\:bg-primary-800:hover { background-color: #003d73; }
+.hover\:text-primary:hover { color: var(--primary); }
+.hover\:text-primary-700:hover { color: #005299; }
+.hover\:text-primary-800:hover { color: #003d73; }
+.hover\:text-primary-900:hover { color: #002952; }
+.hover\:border-primary:hover { border-color: var(--primary); }
+.hover\:border-primary-400:hover { border-color: #3399ff; }
+
+/* Fill colors (for SVG icons) */
+.fill-primary { fill: var(--primary); }
+.fill-primary-600 { fill: #0066b3; }
+
+/* Gradient backgrounds */
+.from-primary-500 { --tw-gradient-from: #3399ff; }
+.from-primary-600 { --tw-gradient-from: #0066b3; }
+.to-primary-500 { --tw-gradient-to: #3399ff; }
+.to-primary-600 { --tw-gradient-to: #0066b3; }
+.to-primary-700 { --tw-gradient-to: #005299; }
+
+/* Dark mode variants */
+.dark .dark\:bg-primary-900\/20 { background-color: rgba(0, 41, 82, 0.2); }
+.dark .dark\:bg-primary-900\/30 { background-color: rgba(0, 41, 82, 0.3); }
+.dark .dark\:bg-primary-950 { background-color: #001a33; }
+.dark .dark\:text-primary-300 { color: #99ccff; }
+.dark .dark\:text-primary-400 { color: #66b3ff; }
+.dark .dark\:border-primary-700 { border-color: #005299; }
+.dark .dark\:border-primary-800 { border-color: #003d73; }
+
+/* ===================================
+   PERFORMANCE OPTIMIZATIONS
+   ================================== */
+
 /* Performance optimization - use will-change cho animations */
 @media (prefers-reduced-motion: no-preference) {
-  .hover\:shadow-xl {
+  .hover\\:shadow-xl {
     will-change: box-shadow, transform;
   }
   
-  .hover\:scale-\[1\.02\],
-  .hover\:scale-105,
-  .hover\:scale-110 {
+  .hover\\:scale-\\[1\\.02\\],
+  .hover\\:scale-105,
+  .hover\\:scale-110 {
     will-change: transform;
   }
   
-  .group:hover .group-hover\:scale-110 {
+  .group:hover .group-hover\\:scale-110 {
     will-change: transform;
   }
 }
@@ -274,6 +476,10 @@ html {
   }
 }
 
+/* ===================================
+   ANIMATIONS
+   ================================== */
+
 /* Shake animation for notifications */
 @keyframes shake {
   0%, 100% { transform: rotate(0deg); }
@@ -285,7 +491,7 @@ html {
   animation: shake 0.5s ease-in-out;
 }
 
-.group:hover .group-hover\:animate-shake {
+.group:hover .group-hover\\:animate-shake {
   animation: shake 0.5s ease-in-out;
 }
 
@@ -298,6 +504,10 @@ html {
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
 }
+
+/* ===================================
+   SCROLLBAR STYLING
+   ================================== */
 
 /* Custom scrollbar - Modern & Minimal */
 ::-webkit-scrollbar {
@@ -337,32 +547,36 @@ html {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(0, 102, 179, 0.2);
   border-radius: 3px;
   transition: background 0.2s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(99, 102, 241, 0.4);
+  background: rgba(0, 102, 179, 0.4);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(129, 140, 248, 0.2);
+  background: rgba(51, 153, 255, 0.2);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(129, 140, 248, 0.4);
+  background: rgba(51, 153, 255, 0.4);
 }
 
 /* Firefox scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+  scrollbar-color: rgba(0, 102, 179, 0.2) transparent;
 }
 
 .dark .custom-scrollbar {
-  scrollbar-color: rgba(129, 140, 248, 0.2) transparent;
+  scrollbar-color: rgba(51, 153, 255, 0.2) transparent;
 }
+
+/* ===================================
+   VISUAL EFFECTS
+   ================================== */
 
 /* Ambient background gradient - Optimized */
 .ambient-gradient {
@@ -415,7 +629,7 @@ html {
 
 /* Animation utilities - Optimized */
 /* GPU acceleration for common transforms */
-.hover\:-translate-y-1,
+.hover\\:-translate-y-1,
 .animate-in {
   transform: translateZ(0);
 }

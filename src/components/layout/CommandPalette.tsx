@@ -32,8 +32,8 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
   const allCommands: Command[] = [
     {
       id: "dashboard",
-      title: t.navigation.dashboard,
-      subtitle: t.dashboard.overview,
+      title: t('navigation.dashboard'),
+      subtitle: t('dashboard.overview'),
       icon: Command,
       category: "Navigation",
       action: () => window.location.href = "/",
@@ -41,11 +41,11 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
     },
     {
       id: "settings",
-      title: t.navigation.settings,
-      subtitle: t.settings.general,
+      title: t('navigation.settings'),
+      subtitle: t('settings.general'),
       icon: Command,
       category: "Navigation",
-      action: () => window.location.href = "/settings",
+      action: () => window.location.href = "/system/settings",
       keywords: ["settings", "preferences", "config"],
     },
   ];
@@ -97,7 +97,7 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
     <div className="fixed inset-0 z-[100] animate-in fade-in-0 duration-200">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
 

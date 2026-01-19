@@ -1,11 +1,11 @@
 /**
  * Edit User Registration Page
- * Edit existing registration log entry
+ * Page for editing an existing user registration log
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from '../providers/LanguageProvider';
+import { useNavigate, useParams } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import {
   getUserRegistrationLogById,
@@ -42,12 +42,12 @@ export default function EditUserRegistrationPage() {
         setLog(data);
       } else {
         toast.error(t('userRegistration.notFound'));
-        navigate('/core/user-registration-telemetry');
+        navigate('/admin/registration-analytics');
       }
     } catch (error) {
       console.error('Error loading log:', error);
       toast.error(t('userRegistration.loadError'));
-      navigate('/core/user-registration-telemetry');
+      navigate('/admin/registration-analytics');
     } finally {
       setIsFetching(false);
     }
@@ -60,7 +60,7 @@ export default function EditUserRegistrationPage() {
       setIsLoading(true);
       await updateUserRegistrationLog(id, data);
       toast.success(t('userRegistration.updateSuccess'));
-      navigate('/core/user-registration-telemetry');
+      navigate('/admin/registration-analytics');
     } catch (error) {
       console.error('Error updating log:', error);
       toast.error(t('userRegistration.updateError'));
@@ -88,7 +88,7 @@ export default function EditUserRegistrationPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate('/core/user-registration-telemetry')}
+          onClick={() => navigate('/admin/registration-analytics')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           {t('common.back')}

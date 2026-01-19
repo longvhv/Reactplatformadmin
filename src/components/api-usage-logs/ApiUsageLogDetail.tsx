@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import { Clock, Server, Code, Activity, Database, Key, Calendar } from 'lucide-react';
 import { ApiUsageLog } from '../../services/apiUsageLogsService';
 

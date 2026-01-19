@@ -194,7 +194,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
               size="sm"
               variant="outline"
               className="flex-1"
-              onClick={() => navigate(`/core/subscription-invoices/${invoice._id}`)}
+              onClick={() => navigate(`/commerce/subscription-invoices/${invoice._id}`)}
             >
               <Eye className="h-4 w-4 mr-1" />
               {t('common.viewDetails')}
@@ -202,7 +202,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => navigate(`/core/subscription-invoices/edit/${invoice._id}`)}
+              onClick={() => navigate(`/commerce/subscription-invoices/edit/${invoice._id}`)}
             >
               <Pencil className="h-4 w-4" />
             </Button>

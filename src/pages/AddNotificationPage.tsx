@@ -33,7 +33,7 @@ export default function AddNotificationPage() {
       });
       
       // Navigate back to list
-      navigate('/core/system-announcements', { replace: true });
+      navigate('/platform/system-announcements', { replace: true });
       
     } catch (error: any) {
       console.error('❌ Error creating system announcement:', error);
@@ -51,16 +51,16 @@ export default function AddNotificationPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/system-announcements');
+    navigate('/platform/system-announcements');
   };
 
   return (
     <FormPageLayout
       mode="add"
-      title="Tạo thông báo hệ thống"
-      description="Tạo thông báo mới cho toàn hệ thống"
+      title="Thêm Thông Báo"
+      description="Tạo thông báo hệ thống mới"
       icon={Bell}
-      backPath="/core/system-announcements"
+      backPath="/platform/system-announcements"
       backLabel="Quay lại danh sách"
     >
       <AnnouncementForm

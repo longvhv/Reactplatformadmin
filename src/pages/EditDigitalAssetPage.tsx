@@ -43,7 +43,7 @@ export default function EditDigitalAssetPage() {
   useEffect(() => {
     if (!id) {
       toast.error('ID không hợp lệ');
-      navigate('/core/digital-assets');
+      navigate('/commerce/digital-assets');
       return;
     }
 
@@ -59,7 +59,7 @@ export default function EditDigitalAssetPage() {
       .catch(error => {
         console.error('Error loading asset:', error);
         toast.error('Không thể tải thông tin tài sản: ' + error.message);
-        navigate('/core/digital-assets');
+        navigate('/commerce/digital-assets');
       })
       .finally(() => setLoading(false));
   }, [id, navigate]);
@@ -99,7 +99,7 @@ export default function EditDigitalAssetPage() {
 
       await digitalAssetsApi.update(id, request);
       toast.success('Cập nhật tài sản số thành công!');
-      navigate(`/core/digital-assets/${id}`);
+      navigate(`/commerce/digital-assets/${id}`);
     } catch (error: any) {
       console.error('Error updating digital asset:', error);
       toast.error('Lỗi khi cập nhật: ' + error.message);
@@ -109,7 +109,7 @@ export default function EditDigitalAssetPage() {
   };
 
   const handleCancel = () => {
-    navigate(`/core/digital-assets/${id}`);
+    navigate(`/commerce/digital-assets/${id}`);
   };
 
   if (loading) {
@@ -117,8 +117,8 @@ export default function EditDigitalAssetPage() {
       <FormPageLayout
         title="Đang tải..."
         description="Vui lòng đợi"
-        icon={<Shield className="h-6 w-6" />}
-        backLink="/core/digital-assets"
+        icon={Shield}
+        backLink="/commerce/digital-assets"
       >
         <div className="text-center py-8">Đang tải dữ liệu...</div>
       </FormPageLayout>
@@ -134,7 +134,7 @@ export default function EditDigitalAssetPage() {
       title="Chỉnh Sửa Tài Sản Số"
       description={`Cập nhật thông tin: ${asset.name}`}
       icon={<Shield className="h-6 w-6" />}
-      backLink={`/core/digital-assets/${id}`}
+      backLink={`/commerce/digital-assets/${id}`}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Readonly Info */}

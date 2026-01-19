@@ -34,7 +34,7 @@ export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
         <Card 
           key={tenant._id} 
           className="group hover:shadow-lg transition-all cursor-pointer"
-          onClick={() => navigate(`/core/tenants/${tenant._id}`)}
+          onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
         >
           <CardHeader>
             <div className="flex items-start justify-between">
@@ -49,7 +49,7 @@ export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
                   className="h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/core/tenants/edit/${tenant._id}`);
+                    navigate(`/admin/tenants/${tenant._id}/edit`);
                   }}
                 >
                   <Edit className="w-4 h-4" />

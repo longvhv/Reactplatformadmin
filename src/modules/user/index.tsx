@@ -7,7 +7,9 @@ const UsersPage = lazy(() => import("../../pages/UsersPage"));
 const AddUserPage = lazy(() => import("../../pages/AddUserPage"));
 
 /**
- * Users Module  
+ * Users Module
+ * 
+ * 🌐 Path: /admin/users
  */
 export const UsersModule: ModuleDefinition = {
   id: "users",
@@ -19,7 +21,7 @@ export const UsersModule: ModuleDefinition = {
   order: 12, // QUẢN TRỊ & TRUY CẬP group
   routes: [
     {
-      path: "/core/users",
+      path: "/admin/users",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải người dùng..." />}>
           <UsersPage />
@@ -28,7 +30,7 @@ export const UsersModule: ModuleDefinition = {
       title: "Users",
     },
     {
-      path: "/core/users/new",
+      path: "/admin/users/create",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddUserPage />
@@ -42,7 +44,7 @@ export const UsersModule: ModuleDefinition = {
       id: "users",
       label: "navigation.users",
       icon: <Users className="w-5 h-5" />,
-      path: "/core/users",
+      path: "/admin/users",
     },
   ],
 };

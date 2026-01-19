@@ -1,6 +1,8 @@
 /**
  * Rate Limits Module
  * Rate Limiting Configuration Management
+ * 
+ * 🌐 Path: /platform/rate-limits
  */
 
 import { lazy, Suspense } from 'react';
@@ -35,7 +37,7 @@ export const RateLimitsModule: ModuleDefinition = {
     {
       id: "rate-limits",
       label: "navigation.rateLimits",
-      path: "/core/rate-limits",
+      path: "/platform/rate-limits",
       icon: <Zap className="w-5 h-5" />,
       order: 47,
     },
@@ -43,7 +45,7 @@ export const RateLimitsModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/rate-limits",
+      path: "/platform/rate-limits",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <RateLimitsPage />

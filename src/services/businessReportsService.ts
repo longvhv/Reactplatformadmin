@@ -2,6 +2,18 @@
  * SaaS Business Reports Service
  * Handles revenue statistics and business analytics
  * Ready for migration to Golang microservice backend
+ * 
+ * ⚠️ SCHEMA LOCATION: telemetry.saas_business_reports
+ * 
+ * This service queries business reports from the 'telemetry' schema using
+ * Supabase client's .schema() method for direct schema access.
+ * 
+ * Setup Required:
+ * 1. Run migration: /docs/migrations/037_saas_business_reports.sql
+ * 2. Migration creates telemetry.saas_business_reports table
+ * 3. GRANT permissions already in migration
+ * 
+ * See: /docs/bugfix/2026-01-16-telemetry-schema-access-fix.md
  */
 
 import { supabase } from '../utils/supabase/client';
@@ -51,12 +63,19 @@ class BusinessReportsService {
   private schema = 'telemetry';
 
   /**
+   * Get Supabase client configured for telemetry schema
+   */
+  private getClient() {
+    return supabase.schema(this.schema);
+  }
+
+  /**
    * Fetch all business reports with optional filters
    * Ready for: GET /api/v1/telemetry/business-reports
    */
   async getAll(filters?: BusinessReportFilters): Promise<BusinessReport[]> {
     try {
-      let query = supabase
+      let query = this.getClient()
         .from(this.table)
         .select('*')
         .order('report_date', { ascending: false });
@@ -81,13 +100,15 @@ class BusinessReportsService {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching business reports:', error);
+        console.error('❌ Error fetching business reports from telemetry.saas_business_reports:', error);
+        console.error('💡 Make sure you have run the migration: /docs/migrations/037_saas_business_reports.sql');
+        console.error('📖 See: /docs/bugfix/2026-01-16-telemetry-schema-access-fix.md');
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Error in getAll:', error);
+      console.error('❌ Error in businessReportsService.getAll:', error);
       throw error;
     }
   }
@@ -98,7 +119,7 @@ class BusinessReportsService {
    */
   async getById(id: string): Promise<BusinessReport | null> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.getClient()
         .from(this.table)
         .select('*')
         .eq('_id', id)
@@ -146,7 +167,7 @@ class BusinessReportsService {
         currency_code: report.currency_code || 'VND',
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await this.getClient()
         .from(this.table)
         .insert([reportData])
         .select()
@@ -170,7 +191,7 @@ class BusinessReportsService {
    */
   async update(id: string, report: Partial<BusinessReport>): Promise<BusinessReport> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await this.getClient()
         .from(this.table)
         .update(report)
         .eq('_id', id)
@@ -195,7 +216,7 @@ class BusinessReportsService {
    */
   async delete(id: string): Promise<void> {
     try {
-      const { error } = await supabase
+      const { error } = await this.getClient()
         .from(this.table)
         .delete()
         .eq('_id', id);

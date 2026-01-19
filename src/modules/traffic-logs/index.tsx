@@ -1,6 +1,8 @@
 /**
  * Traffic Logs Module
  * Module definition for traffic monitoring and analytics
+ * 
+ * 🌐 Path: /platform/traffic-logs
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -25,7 +27,7 @@ export const TrafficLogsModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/traffic-logs',
+      path: '/platform/traffic-logs',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <TrafficLogsPage />
@@ -34,7 +36,7 @@ export const TrafficLogsModule: ModuleDefinition = {
       title: 'trafficLogs.menu',
     },
     {
-      path: '/core/traffic-logs/analytics',
+      path: '/platform/traffic-logs/analytics',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <TrafficLogsAnalyticsPage />
@@ -43,7 +45,7 @@ export const TrafficLogsModule: ModuleDefinition = {
       title: 'trafficLogs.analytics',
     },
     {
-      path: '/core/traffic-logs/new',
+      path: '/platform/traffic-logs/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddTrafficLogPage />
@@ -52,7 +54,7 @@ export const TrafficLogsModule: ModuleDefinition = {
       title: 'trafficLogs.addLog',
     },
     {
-      path: '/core/traffic-logs/:id',
+      path: '/platform/traffic-logs/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <TrafficLogDetailPage />
@@ -67,7 +69,7 @@ export const TrafficLogsModule: ModuleDefinition = {
       id: 'traffic-logs',
       label: 'trafficLogs.menu',
       icon: <Activity className="h-5 w-5" />,
-      path: '/core/traffic-logs',
+      path: '/platform/traffic-logs',
       order: 1,
     },
   ],

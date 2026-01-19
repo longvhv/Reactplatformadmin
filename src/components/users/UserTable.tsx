@@ -6,8 +6,8 @@
 
 import { useNavigate } from 'react-router';
 import { 
-  Edit, Trash2, Eye, MoreVertical, 
-  CheckCircle, XCircle, Shield, Lock 
+  Edit, Trash2, MoreVertical, 
+  CheckCircle, Shield, Lock 
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import {
@@ -132,7 +132,17 @@ export function UserTable({
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => navigate(`/admin/users/${user._id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        navigate(`/admin/users/${user._id}`);
+                      }
+                    }}
+                  >
                     {user.avatar_url ? (
                       <img 
                         src={user.avatar_url} 
@@ -190,11 +200,7 @@ export function UserTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => navigate(`/core/users/${user._id}`)}>
-                        <Eye className="w-4 h-4 mr-2" />
-                        View
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate(`/core/users/${user._id}/edit`)}>
+                      <DropdownMenuItem onClick={() => navigate(`/admin/users/${user._id}/edit`)}>
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>

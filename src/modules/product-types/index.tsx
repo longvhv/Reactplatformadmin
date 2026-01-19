@@ -14,6 +14,8 @@ const EditProductTypePage = lazy(() => import("../../pages/EditProductTypePage")
 
 /**
  * Product Types Module
+ * 
+ * 🌐 Path: /commerce/product-types
  */
 export const ProductTypesModule: ModuleDefinition = {
   id: "product-types",
@@ -21,11 +23,11 @@ export const ProductTypesModule: ModuleDefinition = {
   description: "Quản lý loại sản phẩm",
   icon: <Package className="w-4 h-4" />,
   enabled: true,
-  showInSidebar: true,
-  order: 8, // SẢN PHẨM & DỊCH VỤ group (after Products)
+  showInSidebar: false,
+  order: 8,
   routes: [
     {
-      path: "/core/product-types",
+      path: "/commerce/product-types",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Loại sản phẩm..." />}>
           <ProductTypesPage />
@@ -34,7 +36,7 @@ export const ProductTypesModule: ModuleDefinition = {
       title: "Product Types",
     },
     {
-      path: "/core/product-types/new",
+      path: "/commerce/product-types/create",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddProductTypePage />
@@ -43,7 +45,7 @@ export const ProductTypesModule: ModuleDefinition = {
       title: "Add Product Type",
     },
     {
-      path: "/core/product-types/:id",
+      path: "/commerce/product-types/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải chi tiết..." />}>
           <ProductTypeDetailPage />
@@ -52,21 +54,13 @@ export const ProductTypesModule: ModuleDefinition = {
       title: "Product Type Detail",
     },
     {
-      path: "/core/product-types/:id/edit",
+      path: "/commerce/product-types/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditProductTypePage />
         </Suspense>
       ),
       title: "Edit Product Type",
-    },
-  ],
-  menuItems: [
-    {
-      id: "product-types",
-      label: "navigation.productTypes",
-      icon: <Package className="w-5 h-5" />,
-      path: "/core/product-types",
     },
   ],
 };

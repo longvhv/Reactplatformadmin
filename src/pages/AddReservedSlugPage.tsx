@@ -92,7 +92,7 @@ export default function AddReservedSlugPage() {
       setLoading(true);
       const created = await reservedSlugsApi.create(formData);
       toast.success(`Reserved slug "${created.slug}" created successfully`);
-      navigate(`/core/reserved-slugs/${created._id}`);
+      navigate(`/platform/reserved-slugs/${created._id}`);
     } catch (error: any) {
       console.error('Error creating slug:', error);
       
@@ -111,16 +111,10 @@ export default function AddReservedSlugPage() {
     <FormPageLayout
       mode="add"
       title="Add Reserved Slug"
-      description="Reserve a new slug/keyword for the system"
+      description="Create a new system-reserved slug"
       icon={Shield}
-      backPath="/core/reserved-slugs"
+      backPath="/platform/reserved-slugs"
       backLabel="Quay lại danh sách"
-      banner={{
-        type: 'warning',
-        icon: AlertTriangle,
-        title: 'Important',
-        message: 'Reserved slugs will prevent users from using these keywords in URLs, usernames, or other identifiers. Make sure to choose wisely as this affects the entire system.',
-      }}
     >
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -226,7 +220,7 @@ export default function AddReservedSlugPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/core/reserved-slugs')}
+            onClick={() => navigate('/platform/reserved-slugs')}
           >
             Cancel
           </Button>

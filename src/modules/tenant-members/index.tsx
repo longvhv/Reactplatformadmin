@@ -13,6 +13,8 @@ const TenantMembersPage = lazy(() =>
 /**
  * Tenant Members Module
  * Manages user-tenant relationships (employee profiles)
+ * 
+ * 🌐 Path: /admin/tenant-members
  */
 export const TenantMembersModule: ModuleDefinition = {
   id: "tenant-members",
@@ -23,21 +25,13 @@ export const TenantMembersModule: ModuleDefinition = {
   showInSidebar: false, // Hidden from sidebar - members shown in tenant/user details
   routes: [
     {
-      path: "/core/tenant-members",
+      path: "/admin/tenant-members",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải tenant members..." />}>
           <TenantMembersPage />
         </Suspense>
       ),
       title: "Tenant Members",
-    },
-  ],
-  menuItems: [
-    {
-      id: "tenant-members",
-      label: "navigation.tenantMembers",
-      icon: <Users className="w-5 h-5" />,
-      path: "/core/tenant-members",
     },
   ],
 };

@@ -115,7 +115,7 @@ export function SubscriptionOverviewTab({ subscriptionId, subscription: sub }: S
               Khách hàng
             </label>
             <Link
-              to={`/core/tenants/${sub.tenant_id}`}
+              to={`/admin/tenants/${sub.tenant_id}`}
               className="flex items-center gap-2 text-indigo-600 hover:underline"
             >
               <Building2 className="w-4 h-4" />
@@ -128,7 +128,7 @@ export function SubscriptionOverviewTab({ subscriptionId, subscription: sub }: S
               Gói dịch vụ
             </label>
             <Link
-              to={`/core/packages/${sub.package_id}`}
+              to={`/commerce/service-packages/${sub.package_id}`}
               className="flex items-center gap-2 text-indigo-600 hover:underline"
             >
               <Package className="w-4 h-4" />

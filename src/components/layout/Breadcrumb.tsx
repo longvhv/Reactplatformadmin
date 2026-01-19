@@ -1,60 +1,48 @@
 import { useLocation, Link } from "react-router";
 import { Home, ChevronRight } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";
+import { generateBreadcrumbs } from "../../lib/breadcrumb-simple";
 
 /**
- * Breadcrumb Navigation - Inspired by GitHub
+ * Breadcrumb Navigation - Simple 2-level structure
  * 
  * Features:
- * - Auto-generated from route
- * - Clickable path segments
- * - Home icon
- * - Smooth animations
+ * - Home > Current Page
+ * - Clean, simple navigation
+ * - i18n support
+ * - Always visible
  */
 export const Breadcrumb = () => {
   const location = useLocation();
-  const pathnames = location.pathname.split("/").filter(x => x);
-
-  if (pathnames.length === 0) {
-    return null;
-  }
-
-  const formatSegment = (segment: string) => {
-    return segment
-      .split("-")
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
   const { t } = useLanguage();
 
-  return (
-    <nav className="flex items-center gap-2 text-sm animate-in slide-in-from-left-2 duration-300">
-      <Link
-        to="/"
-        className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors duration-150 group"
-      >
-        <Home className="w-4 h-4 group-hover:scale-110 transition-transform duration-150" />
-        <span className="hidden sm:inline">{t.navigation.dashboard}</span>
-      </Link>
+  // Generate breadcrumbs from current path
+  const breadcrumbs = generateBreadcrumbs(location.pathname);
 
-      {pathnames.map((segment, index) => {
-        const isLast = index === pathnames.length - 1;
-        const to = `/${pathnames.slice(0, index + 1).join("/")}`;
+  return (
+    <nav className="flex items-center gap-2 text-sm mb-6">
+      {breadcrumbs.map((item, index) => {
+        const isLast = index === breadcrumbs.length - 1;
+        const isFirst = index === 0;
 
         return (
-          <div key={to} className="flex items-center gap-2">
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          <div key={item.path} className="flex items-center gap-2">
+            {index > 0 && (
+              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-600 flex-shrink-0" />
+            )}
+            
             {isLast ? (
-              <span className="font-medium text-foreground">
-                {formatSegment(segment)}
+              <span className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
+                {isFirst && <Home className="w-4 h-4" />}
+                {item.translationKey ? t(item.translationKey) : item.label}
               </span>
             ) : (
               <Link
-                to={to}
-                className="text-muted-foreground hover:text-foreground transition-colors duration-150 hover:underline"
+                to={item.path}
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors duration-150 flex items-center gap-1.5 hover:underline"
               >
-                {formatSegment(segment)}
+                {isFirst && <Home className="w-4 h-4" />}
+                {item.translationKey ? t(item.translationKey) : item.label}
               </Link>
             )}
           </div>

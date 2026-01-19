@@ -20,7 +20,7 @@ export default function AddProductTypePage() {
       setIsLoading(true);
       const created = await productTypesApi.create(data);
       toast.success(`Đã tạo loại sản phẩm: ${created.name}`);
-      navigate('/core/product-types');
+      navigate('/commerce/product-types');
     } catch (error: any) {
       console.error('Error creating product type:', error);
       toast.error('Không thể tạo loại sản phẩm: ' + error.message);
@@ -33,15 +33,15 @@ export default function AddProductTypePage() {
   return (
     <FormPageLayout
       mode="add"
-      title="Tạo loại sản phẩm mới"
-      description="Tạo loại sản phẩm mới trong hệ thống"
+      title="Thêm Loại Sản Phẩm"
+      description="Tạo loại sản phẩm mới"
       icon={Package}
-      backPath="/core/product-types"
+      backPath="/commerce/product-types"
       backLabel="Quay lại danh sách"
     >
       <ProductTypeForm
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/product-types')}
+        onCancel={() => navigate('/commerce/product-types')}
         isLoading={isLoading}
       />
     </FormPageLayout>

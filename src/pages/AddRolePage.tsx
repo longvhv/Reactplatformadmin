@@ -1,52 +1,48 @@
 /**
  * Add Role Page
- * ✅ IMPLEMENTED 2026-01-15: Full role creation with FormPageLayout
+ * Create new role
+ * ✅ Updated to use EnhancedRoleForm
  */
 
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 import { Shield } from 'lucide-react';
-import { FormPageLayout } from '../components/layouts/FormPageLayout';
-import { RoleForm } from '../components/roles/RoleForm';
-import { rolesApi, CreateRoleRequest } from '../api/rolesApi';
-import { toast } from 'sonner@2.0.3';
+import { rolesApi, CreateRoleRequest } from '@/api/rolesApi';
+import { EnhancedRoleForm } from '@/components/roles/EnhancedRoleForm';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { showToast } from '@/lib/toast';
 
 export default function AddRolePage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const tenantId = searchParams.get('tenant_id');
-  
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (data: CreateRoleRequest) => {
+  const handleSubmit = async (data: CreateRoleRequest | any) => {
+    setLoading(true);
     try {
-      setIsLoading(true);
-      const created = await rolesApi.create(data);
-      toast.success(`Đã tạo vai trò: ${created.name}`);
-      navigate('/core/roles');
+      await rolesApi.create(data);
+      showToast.success('Thành công', 'Đã tạo vai trò mới');
+      navigate('/admin/roles');
     } catch (error: any) {
       console.error('Error creating role:', error);
-      toast.error('Không thể tạo vai trò: ' + error.message);
-      throw error; // Re-throw to let form handle it
+      showToast.error('Lỗi', 'Không thể tạo vai trò: ' + error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <FormPageLayout
       mode="add"
-      title="Tạo vai trò mới"
-      description="Tạo vai trò với các quyền hạn cụ thể"
+      title="Thêm Vai Trò"
+      description="Tạo vai trò mới và phân quyền"
       icon={Shield}
-      backPath="/core/roles"
-      backLabel="Quay lại danh sách"
+      backPath="/admin/roles"
+      backLabel="Danh sách vai trò"
     >
-      <RoleForm
-        tenantId={tenantId}
-        onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/roles')}
-        isLoading={isLoading}
+      <EnhancedRoleForm 
+        onSubmit={handleSubmit} 
+        loading={loading}
+        onCancel={() => navigate('/admin/roles')}
       />
     </FormPageLayout>
   );

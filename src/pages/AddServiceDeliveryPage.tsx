@@ -14,7 +14,7 @@ import {
 } from '../api/serviceDeliveriesApi';
 import { tenantsApi, Tenant } from '../api/tenantsApi';
 import { ordersApi, SubscriptionOrder } from '../api/ordersApi';
-import { FormPageLayout } from '../components/layout/FormPageLayout';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -102,7 +102,7 @@ export default function AddServiceDeliveryPage() {
 
       const created = await serviceDeliveriesApi.create(request);
       toast.success('Tạo dịch vụ thành công!');
-      navigate(`/core/service-deliveries/${created._id}`);
+      navigate(`/commerce/service-deliveries/${created._id}`);
     } catch (error: any) {
       console.error('Error creating service delivery:', error);
       toast.error('Lỗi khi tạo dịch vụ: ' + error.message);
@@ -112,15 +112,15 @@ export default function AddServiceDeliveryPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/service-deliveries');
+    navigate('/commerce/service-deliveries');
   };
 
   return (
     <FormPageLayout
       title="Thêm Dịch Vụ"
-      description="Tạo mới dịch vụ (Consulting, Training, Support)"
-      icon={<Briefcase className="h-6 w-6" />}
-      backLink="/core/service-deliveries"
+      description="Tạo mới dịch vụ thực hiện"
+      icon={Briefcase}
+      backLink="/commerce/service-deliveries"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tenant & Order */}

@@ -176,7 +176,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   // Get stats
   const getStats = async () => {
     try {
-      return await tenantRateLimitsApi.getStats(filters);
+      return await tenantRateLimitsApi.getStatistics(filters?.tenant_id);
     } catch (err) {
       console.error('Error getting stats:', err);
       return {

@@ -1,6 +1,8 @@
 /**
  * System Announcements Module
  * Module definition for system-wide announcements management
+ * 
+ * 🌐 Path: /platform/system-announcements
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -25,7 +27,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/system-announcements',
+      path: '/platform/system-announcements',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <NotificationsPage />
@@ -34,7 +36,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       title: 'systemAnnouncements.menu',
     },
     {
-      path: '/core/system-announcements/new',
+      path: '/platform/system-announcements/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddNotificationPage />
@@ -43,7 +45,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       title: 'systemAnnouncements.add',
     },
     {
-      path: '/core/system-announcements/edit/:id',
+      path: '/platform/system-announcements/:id/edit',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditNotificationPage />
@@ -52,7 +54,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       title: 'systemAnnouncements.edit',
     },
     {
-      path: '/core/system-announcements/:id',
+      path: '/platform/system-announcements/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <NotificationDetailPage />
@@ -67,7 +69,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       id: 'system-announcements',
       label: 'systemAnnouncements.menu',
       icon: <Bell className="h-5 w-5" />,
-      path: '/core/system-announcements',
+      path: '/platform/system-announcements',
       order: 1,
     },
   ],

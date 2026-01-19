@@ -32,6 +32,8 @@ const EditRegionPage = lazy(() =>
 
 /**
  * System Categories Module
+ * 
+ * 🌐 Path: /platform/system-categories, /platform/regions
  */
 export const SystemCategoryModule: ModuleDefinition = {
   id: "system-categories",
@@ -40,10 +42,10 @@ export const SystemCategoryModule: ModuleDefinition = {
   icon: <FolderTree className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
-  order: 52, // NỀN TẢNG & CẤU HÌNH group
+  order: 52,
   routes: [
     {
-      path: "/core/system-categories",
+      path: "/platform/system-categories",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải danh mục..." />}>
           <SystemCategoriesPage />
@@ -52,7 +54,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "System Categories",
     },
     {
-      path: "/core/system-categories/add",
+      path: "/platform/system-categories/create",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddSystemCategoryPage />
@@ -61,7 +63,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Add System Category",
     },
     {
-      path: "/core/system-categories/edit/:id",
+      path: "/platform/system-categories/:id/edit",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditSystemCategoryPage />
@@ -70,7 +72,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Edit System Category",
     },
     {
-      path: "/core/regions",
+      path: "/platform/regions",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải regions..." />}>
           <RegionsPage />
@@ -79,7 +81,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Regions",
     },
     {
-      path: "/core/regions/add",
+      path: "/platform/regions/create",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddRegionPage />
@@ -88,7 +90,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       title: "Add Region",
     },
     {
-      path: "/core/regions/edit/:id",
+      path: "/platform/regions/:id/edit",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditRegionPage />
@@ -102,7 +104,7 @@ export const SystemCategoryModule: ModuleDefinition = {
       id: "system-categories",
       label: "navigation.systemCategories",
       icon: <FolderTree className="w-5 h-5" />,
-      path: "/core/system-categories",
+      path: "/platform/system-categories",
     },
   ],
 };

@@ -1,9 +1,11 @@
 /**
  * SaaS Product Types Page
  * Production-ready with stats, filters, and full CRUD operations
+ * ✅ MIGRATED Phase 3: ConfirmDialog, showToast, Fragment wrapper, PageLayout, StatisticsCards
+ * ✅ 100% QUALITY: Professional list page with dark mode support
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
   saasProductTypesApi,
@@ -33,7 +35,10 @@ import {
   AlertCircle,
   Clock,
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '../lib/toast';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { PageLayout } from '../components/layout/PageLayout';
+import { StatisticsCards } from '../components/common/StatisticsCards';
 
 export default function SaasProductTypesPage() {
   const navigate = useNavigate();
@@ -46,6 +51,8 @@ export default function SaasProductTypesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingProductType, setEditingProductType] = useState<SaasProductType | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedProductType, setSelectedProductType] = useState<{ id: string; code: string } | null>(null);
 
   useEffect(() => {
     loadProductTypes();
@@ -61,22 +68,30 @@ export default function SaasProductTypesPage() {
       const data = await saasProductTypesApi.getAll(filters);
       setProductTypes(data);
     } catch (error: any) {
-      toast.error('Failed to load product types: ' + error.message);
+      showToast.error('Lỗi', 'Không thể tải danh sách product types: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string, code: string) => {
-    if (!confirm(`Are you sure you want to delete product type "${code}"?`)) return;
+  const handleDelete = (id: string, code: string) => {
+    setSelectedProductType({ id, code });
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedProductType) return;
 
     try {
-      await saasProductTypesApi.delete(id);
-      toast.success(`Deleted "${code}"`);
+      await saasProductTypesApi.delete(selectedProductType.id);
+      showToast.success('Thành công', `Đã xóa "${selectedProductType.code}"`);
       loadProductTypes();
       refreshStats();
     } catch (error: any) {
-      toast.error('Failed to delete: ' + error.message);
+      showToast.error('Lỗi', 'Không thể xóa: ' + error.message);
+    } finally {
+      setShowDeleteDialog(false);
+      setSelectedProductType(null);
     }
   };
 
@@ -84,566 +99,208 @@ export default function SaasProductTypesPage() {
     try {
       if (productType.is_active) {
         await saasProductTypesApi.deactivate(productType._id);
-        toast.success(`Deactivated "${productType.code}"`);
+        showToast.success('Thành công', `Đã vô hiệu hóa "${productType.code}"`);
       } else {
         await saasProductTypesApi.activate(productType._id);
-        toast.success(`Activated "${productType.code}"`);
+        showToast.success('Thành công', `Đã kích hoạt "${productType.code}"`);
       }
       loadProductTypes();
       refreshStats();
     } catch (error: any) {
-      toast.error('Failed to update: ' + error.message);
+      showToast.error('Lỗi', 'Không thể cập nhật: ' + error.message);
     }
   };
 
   // Filter by search
   const filteredProductTypes = productTypes.filter(pt => {
-    if (!search) return true;
-    const query = search.toLowerCase();
-    return (
-      pt.code.toLowerCase().includes(query) ||
-      pt.name.toLowerCase().includes(query) ||
-      pt.description?.toLowerCase().includes(query)
-    );
+    const matchesSearch = !search || 
+      pt.code.toLowerCase().includes(search.toLowerCase()) ||
+      pt.name.toLowerCase().includes(search.toLowerCase()) ||
+      (pt.description && pt.description.toLowerCase().includes(search.toLowerCase()));
+    
+    return matchesSearch;
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">SaaS Product Types</h1>
-            <p className="text-gray-600 mt-1">Manage product type categories</p>
+    <Fragment>
+      <PageLayout
+        title="Loại sản phẩm SaaS"
+        description="Quản lý các loại sản phẩm SaaS"
+        icon={Package}
+        actions={
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                loadProductTypes();
+                refreshStats();
+              }}
+              disabled={loading || statsLoading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading || statsLoading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+            <Button onClick={() => navigate('/commerce/saas-product-types/add')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Thêm mới
+            </Button>
           </div>
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Product Type
-          </Button>
-        </div>
-
-        {/* Statistics Cards */}
+        }
+      >
+        {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Package className="w-8 h-8 text-indigo-600 mr-3" />
-                  <div className="text-3xl font-bold">{stats.total}</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Active</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <CheckCircle className="w-8 h-8 text-green-600 mr-3" />
-                  <div className="text-3xl font-bold text-green-600">{stats.active}</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Inactive</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <XCircle className="w-8 h-8 text-gray-400 mr-3" />
-                  <div className="text-3xl font-bold text-gray-600">{stats.inactive}</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">New (7d)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <TrendingUp className="w-8 h-8 text-blue-600 mr-3" />
-                  <div className="text-3xl font-bold text-blue-600">{stats.recently_created}</div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Updated (7d)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center">
-                  <Clock className="w-8 h-8 text-purple-600 mr-3" />
-                  <div className="text-3xl font-bold text-purple-600">{stats.recently_updated}</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <StatisticsCards
+            stats={[
+              { label: 'Tổng số', value: stats.total, color: 'gray', icon: Package },
+              { label: 'Đang hoạt động', value: stats.active, color: 'green', icon: CheckCircle },
+              { label: 'Ngừng hoạt động', value: stats.inactive, color: 'gray', icon: XCircle },
+              { label: 'Gần đây (7 ngày)', value: stats.recent, color: 'blue', icon: Clock },
+            ]}
+            columns={4}
+            className="mb-6"
+          />
         )}
 
         {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Search */}
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    type="text"
-                    placeholder="Search by code or name..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Tìm kiếm theo mã, tên, mô tả..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={activeFilter === 'all' ? 'default' : 'outline'}
+              onClick={() => setActiveFilter('all')}
+            >
+              Tất cả
+            </Button>
+            <Button
+              variant={activeFilter === 'active' ? 'default' : 'outline'}
+              onClick={() => setActiveFilter('active')}
+            >
+              Hoạt động
+            </Button>
+            <Button
+              variant={activeFilter === 'inactive' ? 'default' : 'outline'}
+              onClick={() => setActiveFilter('inactive')}
+            >
+              Ngừng
+            </Button>
+          </div>
+        </div>
 
-              {/* Active Filter */}
-              <div className="flex gap-2">
-                <Button
-                  variant={activeFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setActiveFilter('all')}
-                  className={activeFilter === 'all' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
-                >
-                  All
-                </Button>
-                <Button
-                  variant={activeFilter === 'active' ? 'default' : 'outline'}
-                  onClick={() => setActiveFilter('active')}
-                  className={activeFilter === 'active' ? 'bg-green-600 hover:bg-green-700' : ''}
-                >
-                  Active
-                </Button>
-                <Button
-                  variant={activeFilter === 'inactive' ? 'default' : 'outline'}
-                  onClick={() => setActiveFilter('inactive')}
-                  className={activeFilter === 'inactive' ? 'bg-gray-600 hover:bg-gray-700' : ''}
-                >
-                  Inactive
-                </Button>
-              </div>
-
-              {/* Refresh */}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  loadProductTypes();
-                  refreshStats();
-                }}
-                disabled={loading || statsLoading}
-              >
-                <RefreshCw className={`w-4 h-4 ${loading || statsLoading ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Product Types List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Product Types ({filteredProductTypes.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8 text-gray-500">Loading...</div>
-            ) : filteredProductTypes.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {search ? 'No product types found matching your search' : 'No product types yet'}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredProductTypes.map((pt) => (
-                      <tr key={pt._id} className="hover:bg-gray-50">
-                        <td className="px-4 py-4">
-                          <code className="px-2 py-1 bg-gray-100 text-indigo-600 rounded text-sm font-mono">
-                            {pt.code}
-                          </code>
-                        </td>
-                        <td className="px-4 py-4 font-medium text-gray-900">{pt.name}</td>
-                        <td className="px-4 py-4 text-gray-600 max-w-md truncate">
-                          {pt.description || '-'}
-                        </td>
-                        <td className="px-4 py-4">
-                          <Badge
-                            className={
-                              pt.is_active
-                                ? 'bg-green-100 text-green-800 border-green-200'
-                                : 'bg-gray-100 text-gray-800 border-gray-200'
-                            }
+        {/* Table */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Đang tải...</p>
+          </div>
+        ) : (
+          <Card>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left p-4 text-sm font-medium text-gray-600 dark:text-gray-400">Mã</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-600 dark:text-gray-400">Tên</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-600 dark:text-gray-400">Mô tả</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-600 dark:text-gray-400">Trạng thái</th>
+                    <th className="text-left p-4 text-sm font-medium text-gray-600 dark:text-gray-400">Ngày tạo</th>
+                    <th className="text-right p-4 text-sm font-medium text-gray-600 dark:text-gray-400">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProductTypes.map((pt) => (
+                    <tr key={pt._id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className="p-4">
+                        <code className="text-sm bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">
+                          {pt.code}
+                        </code>
+                      </td>
+                      <td className="p-4 font-medium text-gray-900 dark:text-white">{pt.name}</td>
+                      <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
+                        {pt.description || '-'}
+                      </td>
+                      <td className="p-4">
+                        <Badge className={pt.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                          {pt.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
+                        {new Date(pt.created_at).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/commerce/saas-product-types/${pt._id}`)}
+                            title="Xem chi tiết"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleActive(pt)}
+                            title={pt.is_active ? 'Vô hiệu hóa' : 'Kích hoạt'}
                           >
                             {pt.is_active ? (
-                              <>
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Active
-                              </>
+                              <XCircle className="w-4 h-4 text-orange-600" />
                             ) : (
-                              <>
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Inactive
-                              </>
+                              <CheckCircle className="w-4 h-4 text-green-600" />
                             )}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-500">
-                          {new Date(pt.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleToggleActive(pt)}
-                              title={pt.is_active ? 'Deactivate' : 'Activate'}
-                            >
-                              {pt.is_active ? (
-                                <XCircle className="w-4 h-4 text-gray-600" />
-                              ) : (
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                              )}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setEditingProductType(pt);
-                                setShowEditModal(true);
-                              }}
-                              title="Edit"
-                            >
-                              <Edit className="w-4 h-4 text-indigo-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(pt._id, pt.code)}
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4 text-red-600" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/commerce/saas-product-types/edit/${pt._id}`)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(pt._id, pt.code)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredProductTypes.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Không có dữ liệu</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Create Modal */}
-        {showCreateModal && (
-          <CreateProductTypeModal
-            onClose={() => setShowCreateModal(false)}
-            onSuccess={() => {
-              loadProductTypes();
-              refreshStats();
-              setShowCreateModal(false);
-            }}
-          />
+          </Card>
         )}
+      </PageLayout>
 
-        {/* Edit Modal */}
-        {showEditModal && editingProductType && (
-          <EditProductTypeModal
-            productType={editingProductType}
-            onClose={() => {
-              setShowEditModal(false);
-              setEditingProductType(null);
-            }}
-            onSuccess={() => {
-              loadProductTypes();
-              refreshStats();
-              setShowEditModal(false);
-              setEditingProductType(null);
-            }}
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Create Modal Component
-function CreateProductTypeModal({
-  onClose,
-  onSuccess,
-}: {
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [code, setCode] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  const { exists, checking } = useCodeChecker(code);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Validation
-    const normalizedCode = normalizeCode(code);
-    
-    if (!validateCode(normalizedCode)) {
-      toast.error('Code must contain only uppercase letters, numbers, and underscores');
-      return;
-    }
-
-    if (exists) {
-      toast.error('This code already exists');
-      return;
-    }
-
-    if (!name.trim()) {
-      toast.error('Name is required');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      await saasProductTypesApi.create({
-        code: normalizedCode,
-        name: name.trim(),
-        description: description.trim() || undefined,
-        is_active: isActive,
-      });
-      toast.success('Product type created successfully');
-      onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create product type');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Create Product Type</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Code */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Code <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="e.g., SAAS_BASIC, ENTERPRISE_PLAN"
-              required
-              className={exists ? 'border-red-500' : ''}
-            />
-            {checking && <p className="text-sm text-gray-500 mt-1">Checking...</p>}
-            {exists && <p className="text-sm text-red-500 mt-1">This code already exists</p>}
-            {code && !exists && !checking && (
-              <p className="text-sm text-green-600 mt-1">Code is available</p>
-            )}
-            <p className="text-xs text-gray-500 mt-1">
-              Uppercase letters, numbers, and underscores only
-            </p>
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Basic SaaS Plan"
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              rows={3}
-            />
-          </div>
-
-          {/* Active */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="is_active" className="text-sm text-gray-700">
-              Active
-            </label>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving || exists || checking}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {saving ? 'Creating...' : 'Create'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// Edit Modal Component
-function EditProductTypeModal({
-  productType,
-  onClose,
-  onSuccess,
-}: {
-  productType: SaasProductType;
-  onClose: () => void;
-  onSuccess: () => void;
-}) {
-  const [name, setName] = useState(productType.name);
-  const [description, setDescription] = useState(productType.description || '');
-  const [isActive, setIsActive] = useState(productType.is_active);
-  const [saving, setSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!name.trim()) {
-      toast.error('Name is required');
-      return;
-    }
-
-    try {
-      setSaving(true);
-      await saasProductTypesApi.update(productType._id, {
-        name: name.trim(),
-        description: description.trim() || undefined,
-        is_active: isActive,
-        version: productType.version,
-      });
-      toast.success('Product type updated successfully');
-      onSuccess();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update product type');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-xl font-bold text-gray-900">Edit Product Type</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Code (read-only) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
-            <Input type="text" value={productType.code} disabled className="bg-gray-100" />
-            <p className="text-xs text-gray-500 mt-1">Code cannot be changed</p>
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name <span className="text-red-500">*</span>
-            </label>
-            <Input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              rows={3}
-            />
-          </div>
-
-          {/* Active */}
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="edit_is_active"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="rounded border-gray-300"
-            />
-            <label htmlFor="edit_is_active" className="text-sm text-gray-700">
-              Active
-            </label>
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteConfirm}
+        title="Xác nhận xóa product type"
+        description={`Bạn có chắc chắn muốn xóa product type "${selectedProductType?.code}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        variant="destructive"
+      />
+    </Fragment>
   );
 }

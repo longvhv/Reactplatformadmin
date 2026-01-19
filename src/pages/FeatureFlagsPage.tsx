@@ -5,6 +5,8 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { 
   Plus, 
@@ -19,21 +21,19 @@ import {
   AlertCircle,
   TrendingUp,
   Activity,
-  BarChart3
+  BarChart3,
+  CheckCircle,
+  XCircle,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { FeatureFlag, FlagType, Environment } from '@/api/featureFlagsApi';
-import { toast } from 'sonner@2.0.3';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 export default function FeatureFlagsPage() {
   const navigate = useNavigate();
@@ -45,6 +45,7 @@ export default function FeatureFlagsPage() {
   const [environmentFilter, setEnvironmentFilter] = useState<'all' | Environment>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [flagToDelete, setFlagToDelete] = useState<FeatureFlag | null>(null);
 
   // Hooks
   const { flags, stats, loading, error, toggleFlag, deleteFlag, loadFlags } = useFeatureFlags({ autoLoad: true });
@@ -98,21 +99,22 @@ export default function FeatureFlagsPage() {
   const handleToggle = async (flag: FeatureFlag) => {
     try {
       await toggleFlag(flag.id);
-      toast.success(t('featureFlags.toggleSuccess'));
+      showToast.success('Cập nhật thành công', t('featureFlags.toggleSuccess'));
     } catch (err: any) {
-      toast.error(t('featureFlags.toggleError'), { description: err.message });
+      showToast.error('Lỗi', t('featureFlags.toggleError'));
     }
   };
 
-  const handleDelete = async (flag: FeatureFlag) => {
-    const confirmMessage = t('featureFlags.deleteConfirm', { name: flag.flag_name });
-    if (!confirm(confirmMessage)) return;
+  const handleConfirmDelete = async () => {
+    if (!flagToDelete) return;
     
     try {
-      await deleteFlag(flag.id);
-      toast.success(t('featureFlags.deleteSuccess'));
+      await deleteFlag(flagToDelete.id);
+      showToast.success('Xóa thành công', t('featureFlags.deleteSuccess'));
     } catch (err: any) {
-      toast.error(t('featureFlags.deleteError'), { description: err.message });
+      showToast.error('Lỗi', t('featureFlags.deleteError'));
+    } finally {
+      setFlagToDelete(null);
     }
   };
 
@@ -129,10 +131,10 @@ export default function FeatureFlagsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <Loader className="w-12 h-12 animate-spin text-indigo-600 mx-auto mb-4" />
-          <p className="text-gray-600">{t('common.loading')}</p>
+          <Loader className="w-12 h-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -140,82 +142,99 @@ export default function FeatureFlagsPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md">
+      <Card className="p-12">
+        <div className="text-center max-w-md mx-auto">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-900 mb-2">{t('common.error')}</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-2">{t('common.error')}</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
           <Button onClick={() => loadFlags()}>{t('common.retry')}</Button>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('featureFlags.title')}</h1>
-            <p className="text-gray-600 mt-1">{t('featureFlags.description')}</p>
-          </div>
-          <Button onClick={() => navigate('/core/feature-flags/new')} className="bg-indigo-600 hover:bg-indigo-700">
-            <Plus className="w-4 h-4 mr-2" />
+    <>
+      <PageLayout
+        icon={Flag}
+        title={t('featureFlags.title')}
+        description={t('featureFlags.description')}
+        actions={
+          <Button onClick={() => navigate('/platform/feature-flags/create')} size="sm" className="gap-2">
+            <Plus className="w-4 h-4" />
             {t('featureFlags.add')}
           </Button>
-        </div>
-      </div>
-
-      {/* Statistics Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{t('featureFlags.stats.total')}</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalFlags}</p>
+        }
+      >
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {t('featureFlags.stats.total')}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.totalFlags}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600">
+                  <Flag className="w-6 h-6" />
+                </div>
               </div>
-              <Flag className="w-8 h-8 text-indigo-600" />
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{t('featureFlags.stats.enabled')}</p>
-                <p className="text-2xl font-bold text-green-600">{stats.enabledFlags}</p>
+            </Card>
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {t('featureFlags.stats.enabled')}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.enabledFlags}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-600">
+                  <Power className="w-6 h-6" />
+                </div>
               </div>
-              <Power className="w-8 h-8 text-green-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{t('featureFlags.stats.production')}</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.productionFlags}</p>
+            </Card>
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {t('featureFlags.stats.production')}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stats.productionFlags}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600">
+                  <Activity className="w-6 h-6" />
+                </div>
               </div>
-              <Activity className="w-8 h-8 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">{t('featureFlags.stats.avgRollout')}</p>
-                <p className="text-2xl font-bold text-purple-600">{Math.round(stats.averageRollout)}%</p>
+            </Card>
+            <Card className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {t('featureFlags.stats.avgRollout')}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {Math.round(stats.averageRollout)}%
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-purple-100 dark:bg-purple-900/20 text-purple-600">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
               </div>
-              <TrendingUp className="w-8 h-8 text-purple-600" />
-            </div>
+            </Card>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow mb-6 border border-gray-200">
-        <div className="p-4">
-          <div className="flex items-center gap-4">
+        {/* Filters */}
+        <Card className="p-6">
+          <div className="flex items-center gap-4 mb-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -236,9 +255,9 @@ export default function FeatureFlagsPage() {
           </div>
 
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   {t('featureFlags.filterByType')}
                 </label>
                 <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
@@ -257,7 +276,7 @@ export default function FeatureFlagsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   {t('featureFlags.filterByEnvironment')}
                 </label>
                 <Select value={environmentFilter} onValueChange={(value) => setEnvironmentFilter(value as any)}>
@@ -275,7 +294,7 @@ export default function FeatureFlagsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 block">
                   {t('featureFlags.filterByStatus')}
                 </label>
                 <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
@@ -291,146 +310,158 @@ export default function FeatureFlagsPage() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </Card>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('featureFlags.flag')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('featureFlags.environment')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('featureFlags.type')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('featureFlags.rollout')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('featureFlags.status')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('featureFlags.updated')}
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  {t('common.actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredFlags.length === 0 ? (
+        {/* Table */}
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center">
-                    <Flag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">{t('featureFlags.noData')}</p>
-                  </td>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('featureFlags.flag')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('featureFlags.environment')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('featureFlags.type')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('featureFlags.rollout')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('featureFlags.status')}
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('featureFlags.updated')}
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {t('common.actions')}
+                  </th>
                 </tr>
-              ) : (
-                filteredFlags.map((flag) => (
-                  <tr key={flag.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-gray-900">{flag.flag_name}</p>
-                        <p className="text-sm text-gray-500 font-mono">{flag.flag_key}</p>
-                        {flag.description && (
-                          <p className="text-sm text-gray-600 mt-1">{flag.description}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className={getEnvironmentColor(flag.environment)}>
-                        {flag.environment}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge className={getFlagTypeColor(flag.flag_type)}>
-                        {flag.flag_type}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
-                          <div 
-                            className="bg-indigo-600 h-2 rounded-full transition-all"
-                            style={{ width: `${flag.percentage_rollout}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-600 w-12">{flag.percentage_rollout}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => handleToggle(flag)}
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                          flag.is_enabled
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                        }`}
-                      >
-                        {flag.is_enabled ? (
-                          <>
-                            <Power className="w-3 h-3" />
-                            {t('featureFlags.enabled')}
-                          </>
-                        ) : (
-                          <>
-                            <PowerOff className="w-3 h-3" />
-                            {t('featureFlags.disabled')}
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {formatDate(flag.updated_at)}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/core/feature-flags/${flag.id}`)}
-                          className="text-gray-600 hover:text-indigo-600"
-                        >
-                          <BarChart3 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/core/feature-flags/edit/${flag.id}`)}
-                          className="text-gray-600 hover:text-indigo-600"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(flag)}
-                          className="text-gray-600 hover:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredFlags.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <Flag className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500">{t('featureFlags.noData')}</p>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ) : (
+                  filteredFlags.map((flag) => (
+                    <tr key={flag.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">{flag.flag_name}</p>
+                          <p className="text-sm text-gray-500 font-mono">{flag.flag_key}</p>
+                          {flag.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{flag.description}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={getEnvironmentColor(flag.environment)}>
+                          {flag.environment}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={getFlagTypeColor(flag.flag_type)}>
+                          {flag.flag_type}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2 max-w-[100px]">
+                            <div 
+                              className="bg-indigo-600 h-2 rounded-full transition-all"
+                              style={{ width: `${flag.percentage_rollout}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400 w-12">{flag.percentage_rollout}%</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => handleToggle(flag)}
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                            flag.is_enabled
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          }`}
+                        >
+                          {flag.is_enabled ? (
+                            <>
+                              <Power className="w-3 h-3" />
+                              {t('featureFlags.enabled')}
+                            </>
+                          ) : (
+                            <>
+                              <PowerOff className="w-3 h-3" />
+                              {t('featureFlags.disabled')}
+                            </>
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {formatDate(flag.updated_at)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/platform/feature-flags/${flag.id}`)}
+                            className="text-gray-600 hover:text-indigo-600"
+                          >
+                            <BarChart3 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => navigate(`/platform/feature-flags/${flag.id}/edit`)}
+                            className="text-gray-600 hover:text-indigo-600"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setFlagToDelete(flag)}
+                            className="text-gray-600 hover:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <p className="text-sm text-gray-600">
-            {t('common.showing')} {filteredFlags.length} {t('common.of')} {flags.length} {t('featureFlags.flags')}
-          </p>
-        </div>
-      </div>
-    </div>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t('common.showing')} {filteredFlags.length} {t('common.of')} {flags.length} {t('featureFlags.flags')}
+            </p>
+          </div>
+        </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={!!flagToDelete}
+          onOpenChange={(open) => !open && setFlagToDelete(null)}
+          title={t('featureFlags.deleteTitle')}
+          description={t('featureFlags.deleteDescription')}
+          confirmLabel={t('featureFlags.delete')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={handleConfirmDelete}
+          variant="destructive"
+        />
+      </PageLayout>
+    </>
   );
 }

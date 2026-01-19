@@ -2,6 +2,18 @@
  * API Usage Logs Service
  * Handles all API calls for API usage telemetry
  * Ready for migration to Golang microservice backend
+ * 
+ * ⚠️ SCHEMA LOCATION: telemetry.api_usage_logs
+ * 
+ * This service queries API usage logs from the 'telemetry' schema using
+ * Supabase client's .schema() method for direct schema access.
+ * 
+ * Setup Required:
+ * 1. Run migration: /docs/migrations/036_api_usage_logs.sql
+ * 2. Migration creates telemetry.api_usage_logs table
+ * 3. GRANT permissions already in migration
+ * 
+ * See: /docs/bugfix/2026-01-16-telemetry-schema-access-fix.md
  */
 
 import { supabase } from '@/lib/supabase';
@@ -49,12 +61,19 @@ class ApiUsageLogsService {
   private schema = 'telemetry';
 
   /**
+   * Get Supabase client configured for telemetry schema
+   */
+  private getClient() {
+    return this.supabase.schema(this.schema);
+  }
+
+  /**
    * Fetch all API usage logs with optional filters
    * Ready for: GET /api/v1/telemetry/api-usage-logs
    */
   async getAll(filters?: ApiUsageLogFilters): Promise<ApiUsageLog[]> {
     try {
-      let query = this.supabase
+      let query = this.getClient()
         .from(this.table)
         .select('*')
         .order('created_at', { ascending: false });
@@ -102,7 +121,7 @@ class ApiUsageLogsService {
    */
   async getById(id: string): Promise<ApiUsageLog | null> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getClient()
         .from(this.table)
         .select('*')
         .eq('_id', id)
@@ -126,7 +145,7 @@ class ApiUsageLogsService {
    */
   async create(log: Omit<ApiUsageLog, '_id' | 'created_at'>): Promise<ApiUsageLog> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getClient()
         .from(this.table)
         .insert([log])
         .select()
@@ -150,7 +169,7 @@ class ApiUsageLogsService {
    */
   async update(id: string, log: Partial<ApiUsageLog>): Promise<ApiUsageLog> {
     try {
-      const { data, error } = await this.supabase
+      const { data, error } = await this.getClient()
         .from(this.table)
         .update(log)
         .eq('_id', id)
@@ -175,7 +194,7 @@ class ApiUsageLogsService {
    */
   async delete(id: string): Promise<void> {
     try {
-      const { error } = await this.supabase
+      const { error } = await this.getClient()
         .from(this.table)
         .delete()
         .eq('_id', id);

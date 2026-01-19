@@ -183,7 +183,7 @@ export function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => navigate(`/core/subscription-orders/${order._id}`)}
+          onClick={() => navigate(`/commerce/subscription-orders/${order._id}`)}
           className="hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-400"
         >
           <Eye className="h-4 w-4 mr-1" />

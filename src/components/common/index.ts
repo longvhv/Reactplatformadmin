@@ -8,3 +8,4 @@ export { LoadingSpinner } from './LoadingSpinner';
 export { ConfirmDialog } from './ConfirmDialog';
 export { DataTable } from './DataTable';
 export { LanguageSwitcher } from './LanguageSwitcher';
+export { PageHeader } from './PageHeader';

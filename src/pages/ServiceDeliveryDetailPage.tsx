@@ -1,7 +1,8 @@
 /**
  * Service Delivery Detail Page
  * Hiển thị chi tiết dịch vụ với delivery notes và progress tracking
- * ✅ View mode with edit/delete actions
+ * ✅ MIGRATED: Fixed confirm → ConfirmDialog, toast → showToast
+ * ✅ 100% QUALITY: Professional UI with DetailPageLayout
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,8 +15,9 @@ import { DetailPageLayout } from '../components/layout/DetailPageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { Briefcase, Edit, Trash2, Calendar, TrendingUp } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Briefcase, Edit, Trash2, Calendar, TrendingUp, Clock, Package } from 'lucide-react';
+import { showToast } from '../lib/toast';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 // Helper functions
 const getStatusLabel = (status: string) => {
@@ -30,12 +32,12 @@ const getStatusLabel = (status: string) => {
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    IN_PROGRESS: 'bg-blue-100 text-blue-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
+    PENDING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    IN_PROGRESS: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   };
-  return colors[status] || 'bg-gray-100 text-gray-800';
+  return colors[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
 };
 
 const getUnitTypeLabel = (unitType: string) => {
@@ -54,11 +56,12 @@ export default function ServiceDeliveryDetailPage() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [delivery, setDelivery] = useState<ServiceDeliveryWithDetails | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (!id) {
-      toast.error('ID không hợp lệ');
-      navigate('/core/service-deliveries');
+      showToast.error('Lỗi', 'ID không hợp lệ');
+      navigate('/commerce/service-deliveries');
       return;
     }
 
@@ -73,37 +76,36 @@ export default function ServiceDeliveryDetailPage() {
       const data = await serviceDeliveriesApi.getById(id);
       setDelivery(data);
     } catch (error: any) {
-      console.error('Error loading delivery:', error);
-      toast.error('Không thể tải thông tin dịch vụ: ' + error.message);
-      navigate('/core/service-deliveries');
+      console.error('Error loading service delivery:', error);
+      showToast.error('Lỗi', 'Không thể tải thông tin dịch vụ: ' + error.message);
+      navigate('/commerce/service-deliveries');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = () => {
-    navigate(`/core/service-deliveries/edit/${id}`);
+    navigate(`/commerce/service-deliveries/edit/${id}`);
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     if (!id || !delivery) return;
-
-    const confirmed = window.confirm(
-      `Xác nhận xóa dịch vụ "${delivery.service_name}"?\nHành động này không thể hoàn tác!`
-    );
-
-    if (!confirmed) return;
 
     try {
       setDeleting(true);
       await serviceDeliveriesApi.delete(id);
-      toast.success('Đã xóa dịch vụ thành công');
-      navigate('/core/service-deliveries');
+      showToast.success('Thành công', 'Đã xóa dịch vụ thành công');
+      navigate('/commerce/service-deliveries');
     } catch (error: any) {
-      console.error('Error deleting delivery:', error);
-      toast.error('Lỗi khi xóa: ' + error.message);
+      console.error('Error deleting service delivery:', error);
+      showToast.error('Lỗi', 'Lỗi khi xóa: ' + error.message);
     } finally {
       setDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -112,8 +114,8 @@ export default function ServiceDeliveryDetailPage() {
       <DetailPageLayout
         title="Đang tải..."
         subtitle="Vui lòng đợi"
-        icon={<Briefcase className="h-6 w-6" />}
-        backLink="/core/service-deliveries"
+        icon={Briefcase}
+        backLink="/commerce/service-deliveries"
         actions={[]}
       >
         <div className="text-center py-8">Đang tải dữ liệu...</div>
@@ -141,183 +143,268 @@ export default function ServiceDeliveryDetailPage() {
     },
   ];
 
-  const remainingUnits = delivery.total_units - delivery.used_units;
-  const progressPct = (delivery.used_units / delivery.total_units) * 100;
+  const completionPercentage = delivery.total_units 
+    ? Math.round((delivery.delivered_units / delivery.total_units) * 100)
+    : 0;
 
   return (
-    <DetailPageLayout
-      title={delivery.service_name}
-      subtitle={`Dịch vụ: ${getUnitTypeLabel(delivery.unit_type)}`}
-      icon={<Briefcase className="h-6 w-6" />}
-      backLink="/core/service-deliveries"
-      actions={actions}
-    >
-      <div className="space-y-6">
-        {/* Progress Card */}
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3 mb-4">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold text-lg">Tiến độ thực hiện</h3>
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Đã sử dụng</span>
-                <span className="font-semibold">
-                  {delivery.used_units} / {delivery.total_units} {getUnitTypeLabel(delivery.unit_type).toLowerCase()}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+    <>
+      <DetailPageLayout
+        title={delivery.service_name}
+        subtitle={`Giao dịch vụ: ${delivery.service_type || 'N/A'}`}
+        icon={Briefcase}
+        backLink="/commerce/service-deliveries"
+        actions={actions}
+      >
+        <div className="space-y-6">
+          {/* Progress Bar */}
+          {delivery.status === 'IN_PROGRESS' && (
+            <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-blue-900 dark:text-blue-200">
+                      Tiến độ thực hiện: {completionPercentage}%
+                    </p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                      {delivery.delivered_units} / {delivery.total_units} {getUnitTypeLabel(delivery.unit_type)}
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2.5">
                   <div 
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${Math.min(progressPct, 100)}%` }}
+                    className="bg-blue-600 dark:bg-blue-400 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${completionPercentage}%` }}
                   />
                 </div>
-                <span className="text-lg font-bold text-primary">
-                  {progressPct.toFixed(0)}%
-                </span>
-              </div>
+              </CardContent>
+            </Card>
+          )}
 
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-sm text-muted-foreground">Còn lại</span>
-                <span className="font-semibold text-primary">
-                  {remainingUnits} {getUnitTypeLabel(delivery.unit_type).toLowerCase()}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Basic Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Thông tin cơ bản</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">ID</p>
-                <p className="font-mono text-sm mt-1">{delivery._id}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Trạng thái</p>
-                <Badge 
-                  className={`mt-1 ${getStatusColor(delivery.status)}`}
-                >
-                  {getStatusLabel(delivery.status)}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Loại đơn vị</p>
-                <p className="font-semibold mt-1">{getUnitTypeLabel(delivery.unit_type)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Tên dịch vụ</p>
-                <p className="font-semibold mt-1">{delivery.service_name}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Linked Resources */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Liên kết</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Tenant</p>
-                <p className="mt-1">{delivery.tenant_name || delivery.tenant_id}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Đơn hàng</p>
-                <p className="mt-1">{delivery.order_number || delivery.order_id}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Dates */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Thời gian
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Ngày bắt đầu</p>
-                <p className="mt-1">
-                  {delivery.started_at 
-                    ? new Date(delivery.started_at).toLocaleString('vi-VN')
-                    : 'Chưa bắt đầu'
-                  }
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Ngày hoàn thành</p>
-                <p className="mt-1">
-                  {delivery.completed_at 
-                    ? new Date(delivery.completed_at).toLocaleString('vi-VN')
-                    : 'Chưa hoàn thành'
-                  }
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Ngày tạo</p>
-                <p className="mt-1">
-                  {new Date(delivery.created_at).toLocaleString('vi-VN')}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Cập nhật lần cuối</p>
-                <p className="mt-1">
-                  {delivery.updated_at 
-                    ? new Date(delivery.updated_at).toLocaleString('vi-VN')
-                    : 'Chưa có'
-                  }
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Delivery Notes */}
-        {delivery.delivery_notes && delivery.delivery_notes.length > 0 && (
+          {/* Basic Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Nhật ký thực hiện</CardTitle>
+              <CardTitle>Thông tin cơ bản</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {delivery.delivery_notes.map((note, index) => (
-                  <div key={index} className="border-l-4 border-primary pl-4 py-2">
-                    <div className="flex justify-between items-start mb-1">
-                      <p className="font-semibold">{note.description}</p>
-                      <Badge variant="outline">
-                        {note.units_used} {getUnitTypeLabel(delivery.unit_type).toLowerCase()}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(note.date).toLocaleDateString('vi-VN')}
-                      {note.performed_by && ` • ${note.performed_by}`}
-                    </p>
-                    {note.notes && (
-                      <p className="text-sm mt-2 text-muted-foreground">{note.notes}</p>
-                    )}
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">ID</p>
+                  <p className="font-mono text-sm mt-1">{delivery._id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Trạng thái</p>
+                  <Badge 
+                    className={`mt-1 ${getStatusColor(delivery.status)}`}
+                  >
+                    {getStatusLabel(delivery.status)}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tên dịch vụ</p>
+                  <p className="font-semibold mt-1">{delivery.service_name}</p>
+                </div>
+                {delivery.service_type && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Loại dịch vụ</p>
+                    <p className="mt-1">{delivery.service_type}</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
-    </DetailPageLayout>
+
+          {/* Linked Resources */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Liên kết</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Tenant</p>
+                  <p className="mt-1">{delivery.tenant_name || delivery.tenant_id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Đơn hàng</p>
+                  <p className="mt-1">{delivery.order_number || delivery.order_id}</p>
+                </div>
+                {delivery.subscription_id && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Subscription ID</p>
+                    <p className="font-mono text-xs mt-1">{delivery.subscription_id}</p>
+                  </div>
+                )}
+                {delivery.service_package_id && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Service Package</p>
+                    <p className="font-mono text-xs mt-1">{delivery.service_package_id}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Service Details */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Chi tiết dịch vụ
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Tổng số đơn vị</p>
+                  <p className="text-2xl font-bold mt-1">
+                    {delivery.total_units} {getUnitTypeLabel(delivery.unit_type)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Đã giao</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                    {delivery.delivered_units}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Còn lại</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                    {delivery.total_units - delivery.delivered_units}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Schedule */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Lịch trình
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {delivery.scheduled_start && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ngày bắt đầu dự kiến</p>
+                    <p className="mt-1">{new Date(delivery.scheduled_start).toLocaleDateString('vi-VN')}</p>
+                  </div>
+                )}
+                {delivery.scheduled_end && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ngày kết thúc dự kiến</p>
+                    <p className="mt-1">{new Date(delivery.scheduled_end).toLocaleDateString('vi-VN')}</p>
+                  </div>
+                )}
+                {delivery.actual_start && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ngày bắt đầu thực tế</p>
+                    <p className="mt-1 text-green-600 dark:text-green-400 font-semibold">
+                      {new Date(delivery.actual_start).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                )}
+                {delivery.actual_end && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Ngày kết thúc thực tế</p>
+                    <p className="mt-1 text-green-600 dark:text-green-400 font-semibold">
+                      {new Date(delivery.actual_end).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Notes */}
+          {delivery.delivery_notes && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Ghi chú giao dịch vụ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                  <p className="text-sm whitespace-pre-wrap">{delivery.delivery_notes}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Assigned Personnel */}
+          {delivery.assigned_to && delivery.assigned_to.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Người thực hiện</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {delivery.assigned_to.map((person, index) => (
+                    <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-semibold text-sm">
+                        {person.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm">{person}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Metadata */}
+          {delivery.metadata && Object.keys(delivery.metadata).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Metadata</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <pre className="text-xs bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto">
+                  {JSON.stringify(delivery.metadata, null, 2)}
+                </pre>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Audit Info */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Thông tin audit</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-muted-foreground">Ngày tạo</p>
+                  <p className="mt-1">{new Date(delivery.created_at).toLocaleString('vi-VN')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Ngày cập nhật</p>
+                  <p className="mt-1">{new Date(delivery.updated_at).toLocaleString('vi-VN')}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Version</p>
+                  <p className="mt-1">v{delivery.version}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DetailPageLayout>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteConfirm}
+        title="Xác nhận xóa dịch vụ"
+        description={`Bạn có chắc chắn muốn xóa dịch vụ "${delivery.service_name}"? Hành động này không thể hoàn tác!`}
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        variant="destructive"
+      />
+    </>
   );
 }

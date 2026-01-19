@@ -41,6 +41,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner@2.0.3';
+import { TenantApplicationModal } from './TenantApplicationModal';
 
 interface TenantApplicationsTabProps {
   tenantId: string;
@@ -56,6 +57,7 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
   });
   const [selectedApp, setSelectedApp] = useState<TenantApplication | null>(null);
   const [showActions, setShowActions] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadApplications();
@@ -160,12 +162,21 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
             variant="default"
             size="sm"
             className="gap-2"
+            onClick={() => setIsModalOpen(true)}
           >
             <Plus className="w-4 h-4" />
             Thêm ứng dụng
           </Button>
         </div>
       </div>
+
+      {/* Add Application Modal */}
+      <TenantApplicationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={loadApplications}
+        tenantId={tenantId}
+      />
 
       {/* Statistics Cards */}
       {statistics && (

@@ -1,19 +1,23 @@
 /**
  * Products List Page - Aligned with Database Schema
  * Display and manage all SaaS products
- * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
+ * ✅ MIGRATED Phase 3: ConfirmDialog, showToast, Fragment wrapper
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { productsApi, Product, ProductFilters } from '../api/productsApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Card } from '../components/ui/card';
 import { ProductTable } from '../components/products/ProductTable';
 import { ProductCard } from '../components/products/ProductCard';
-import { Plus, Search, Grid, List, Package } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { PageLayout } from '../components/layout/PageLayout';
+import { StatisticsCards } from '../components/common/StatisticsCards';
+import { Plus, Search, Grid, List, Package, CheckCircle, XCircle } from 'lucide-react';
+import { showToast } from '../lib/toast';
 import { useLanguage } from '../providers/LanguageProvider';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
@@ -23,6 +27,20 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<ProductFilters>({});
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     loadProducts();
@@ -34,7 +52,7 @@ export default function ProductsPage() {
       const data = await productsApi.getAll(filters);
       setProducts(data);
     } catch (error: any) {
-      toast.error(t('products.loadError', { error: error.message }));
+      showToast.error(t('products.loadError'), error.message);
     } finally {
       setLoading(false);
     }
@@ -49,25 +67,37 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (product: Product) => {
-    if (!confirm(t('products.confirmDeleteTitle', { name: product.name }))) return;
+  const handleEdit = (product: Product) => {
+    navigate(`/commerce/products/edit/${product._id}`);
+  };
 
-    try {
-      await productsApi.delete(product._id!);
-      toast.success(t('products.deleteSuccess'));
-      loadProducts();
-    } catch (error: any) {
-      toast.error(t('products.deleteError', { error: error.message }));
-    }
+  const handleDelete = async (product: Product) => {
+    setConfirmDialog({
+      open: true,
+      title: t('products.confirmDelete'),
+      description: t('products.confirmDeleteMessage', { name: product.name }),
+      onConfirm: async () => {
+        try {
+          await productsApi.delete(product._id!);
+          showToast.success(t('products.deleteSuccess'), 'Đã xóa sản phẩm');
+          loadProducts();
+        } catch (error: any) {
+          showToast.error(t('products.deleteError'), error.message);
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+      variant: 'destructive',
+    });
   };
 
   const handleViewDetails = (product: Product) => {
     console.log('[ProductsPage] Navigate to product:', product._id, product);
     if (!product._id) {
-      toast.error('ID sản phẩm không hợp lệ');
+      showToast.error('Lỗi', 'ID sản phẩm không hợp lệ');
       return;
     }
-    navigate(`/core/products/${product._id}`);
+    navigate(`/commerce/products/${product._id}`);
   };
 
   const filteredProducts = searchTerm
@@ -79,36 +109,61 @@ export default function ProductsPage() {
       )
     : products;
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-              <Package className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-foreground">
-              {t('products.title')}
-            </span>
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {filteredProducts.length} {t('products.products')}
-          </p>
-        </div>
-        <Button onClick={() => navigate('/core/products/add')} className="bg-primary hover:bg-primary/90">
-          <Plus className="w-4 h-4 mr-2" />
-          {t('products.addProduct')}
-        </Button>
-      </div>
+  const stats = [
+    {
+      label: t('common.total'),
+      value: products.length,
+      color: 'gray' as const,
+      icon: Package,
+    },
+    {
+      label: t('products.active'),
+      value: products.filter((p) => p.status === 'ACTIVE').length,
+      color: 'green' as const,
+      icon: CheckCircle,
+    },
+    {
+      label: t('products.inactive'),
+      value: products.filter((p) => p.status === 'INACTIVE').length,
+      color: 'red' as const,
+      icon: XCircle,
+    },
+  ];
 
-      {/* Filters & Search */}
-      <div className="bg-card rounded-lg border border-border p-4 mb-6">
-        <div className="flex gap-4 flex-wrap">
-          {/* Search */}
-          <div className="flex-1 min-w-[300px] flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+  if (loading) {
+    return (
+      <Fragment>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
+          </div>
+        </div>
+      </Fragment>
+    );
+  }
+
+  return (
+    <Fragment>
+      <PageLayout
+        icon={Package}
+        title={t('products.title')}
+        description={t('products.description')}
+        actions={
+          <Button onClick={() => navigate('/commerce/products/create')}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('products.addNew')}
+          </Button>
+        }
+      >
+        {/* Stats */}
+        <StatisticsCards stats={stats} />
+
+        {/* Search & View Toggle */}
+        <Card className="p-6 mb-6">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 placeholder={t('products.searchPlaceholder')}
                 value={searchTerm}
@@ -117,101 +172,60 @@ export default function ProductsPage() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" onClick={handleSearch}>
-              <Search className="w-4 h-4" />
-            </Button>
+
+            <div className="flex gap-2 border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+        </Card>
 
-          {/* Product Type Filter */}
-          <select
-            value={filters.product_type || ''}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                product_type: e.target.value ? e.target.value : undefined,
-              })
-            }
-            className="px-3 py-2 border border-border rounded-md bg-card text-foreground"
-          >
-            <option value="">{t('products.allTypes')}</option>
-            <option value="APP">APP</option>
-            <option value="DOMAIN">DOMAIN</option>
-            <option value="SSL">SSL</option>
-            <option value="SERVICE">SERVICE</option>
-          </select>
-
-          {/* Active/Inactive Filter */}
-          <select
-            value={filters.is_active === undefined ? '' : String(filters.is_active)}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                is_active: e.target.value ? e.target.value === 'true' : undefined,
-              })
-            }
-            className="px-3 py-2 border border-border rounded-md bg-card text-foreground"
-          >
-            <option value="">{t('products.allStatuses')}</option>
-            <option value="true">{t('products.active')}</option>
-            <option value="false">{t('products.inactive')}</option>
-          </select>
-
-          {/* View Mode Toggle */}
-          <div className="flex gap-1 border border-border rounded-md">
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-            >
-              <List className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="bg-card rounded-lg border border-border">
+        {/* Products List */}
         {viewMode === 'table' ? (
           <ProductTable
             products={filteredProducts}
-            onEdit={(product) => navigate(`/core/products/edit/${product._id}`)}
             onDelete={handleDelete}
-            onView={handleViewDetails}
-            loading={loading}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
           />
         ) : (
-          <div className="p-6">
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">{t('products.noProductsMessage')}</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product._id}
-                    product={product}
-                    onEdit={(p) => navigate(`/core/products/edit/${p._id}`)}
-                    onDelete={handleDelete}
-                    onView={handleViewDetails}
-                  />
-                ))}
-              </div>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                onDelete={handleDelete}
+                onViewDetails={handleViewDetails}
+                onEdit={handleEdit}
+              />
+            ))}
           </div>
         )}
-      </div>
-    </div>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          onConfirm={confirmDialog.onConfirm}
+          variant={confirmDialog.variant}
+          confirmLabel="Xác nhận"
+          cancelLabel="Hủy"
+        />
+      </PageLayout>
+    </Fragment>
   );
 }

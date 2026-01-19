@@ -12,6 +12,8 @@ const LegalDocumentsPage = lazy(() =>
 
 /**
  * Legal Documents Module
+ * 
+ * 🌐 Path: /platform/legal-documents
  */
 export const LegalDocumentsModule: ModuleDefinition = {
   id: "legal-documents",
@@ -22,7 +24,7 @@ export const LegalDocumentsModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: "/core/legal-documents",
+      path: "/platform/legal-documents",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Điều khoản sử dụng..." />}>
           <LegalDocumentsPage />
@@ -36,7 +38,7 @@ export const LegalDocumentsModule: ModuleDefinition = {
       id: "legal-documents",
       label: "navigation.legalDocuments",
       icon: <FileText className="w-5 h-5" />,
-      path: "/core/legal-documents",
+      path: "/platform/legal-documents",
     },
   ],
 };

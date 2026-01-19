@@ -2,7 +2,7 @@
  * Product Types API Client
  * Uses Adapter pattern - Ready for Golang migration
  * 
- * ✅ CREATED 2026-01-15: 100% matches saas_product_types schema (8 fields)
+ * ✅ UPDATED 2026-01-16: Changed table from product_types to saas_product_types
  */
 
 import { createAdapter, BaseFilters } from './adapters';
@@ -78,7 +78,7 @@ export interface ProductTypeStats {
 // ==================== ADAPTER ====================
 
 const adapter = createAdapter<ProductType, CreateProductTypeRequest, UpdateProductTypeRequest>(
-  'product_types',
+  'saas_product_types',  // ✅ FIXED: Changed from 'product_types' to 'saas_product_types'
   '/product-types'
 );
 

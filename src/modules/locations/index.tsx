@@ -1,7 +1,9 @@
 /**
  * Locations Module
  * Manages location data across the system
- * ✅ CREATED 2026-01-15: Complete module definition
+ * 
+ * 🌐 Path: /platform/locations
+ * ✅ UPDATED: Vietnamese paths
  */
 
 import { MapPin } from 'lucide-react';
@@ -13,24 +15,14 @@ export const LocationsModule: ModuleDefinition = {
   name: 'Locations',
   description: 'Manage locations and their hierarchies',
   icon: MapPin,
+  showInSidebar: false,
   category: 'Infrastructure',
   order: 55,
 
   routes: [
     {
-      path: '/core/locations',
+      path: '/platform/locations',
       element: <LocationsPage />,
-    },
-  ],
-
-  menuItems: [
-    {
-      id: 'locations',
-      label: 'locations.menu',
-      icon: MapPin,
-      path: '/core/locations',
-      category: 'Infrastructure',
-      order: 55,
     },
   ],
 };

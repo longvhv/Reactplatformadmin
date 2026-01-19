@@ -9,7 +9,8 @@
  * - Filter và search capabilities
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { useLanguage } from '../providers/LanguageProvider';
 import { Permission, PermissionNode, CreatePermissionRequest, UpdatePermissionRequest } from '../api/permissionsApi';
 import { usePermissions } from '../hooks/usePermissions';
@@ -17,8 +18,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Card } from '../components/ui/card';
-import { Plus, RefreshCw, Search, Shield, Folder, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Plus, RefreshCw, Search, Shield, Folder, ChevronRight, Lock, Unlock, Users, Key } from 'lucide-react';
+import { showToast } from '../lib/toast';
 import { PermissionFormDialog } from '../components/permissions/PermissionFormDialog';
 import { PermissionTreeItem } from '../components/permissions/PermissionTreeItem';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -67,7 +68,9 @@ export default function PermissionsPage() {
   const [appPermissions, setAppPermissions] = useState<Record<string, PermissionNode[]>>({});
 
   // Get unique apps from permissions
-  const apps = Array.from(new Set(permissions.map(p => p.app_code))).sort();
+  const apps = useMemo(() => 
+    Array.from(new Set(permissions.map(p => p.app_code))).sort(),
+  [permissions]);
 
   // Build tree when permissions change
   useEffect(() => {
@@ -140,12 +143,12 @@ export default function PermissionsPage() {
 
     try {
       await deletePermission(deletingPermission._id);
-      toast.success('Đã xóa permission thành công');
+      showToast.success('Thành công', 'Đã xóa permission thành công');
       setShowDeleteDialog(false);
       setDeletingPermission(null);
     } catch (error) {
       console.error('Error deleting permission:', error);
-      toast.error(
+      showToast.error('Lỗi',
         error instanceof Error 
           ? error.message 
           : 'Không thể xóa permission'
@@ -158,17 +161,17 @@ export default function PermissionsPage() {
     try {
       if (editingPermission) {
         await updatePermission(editingPermission._id, data as UpdatePermissionRequest);
-        toast.success('Đã cập nhật permission thành công');
+        showToast.success('Thành công', 'Đã cập nhật permission thành công');
       } else {
         await createPermission(data as CreatePermissionRequest);
-        toast.success('Đã tạo permission mới thành công');
+        showToast.success('Thành công', 'Đã tạo permission mới thành công');
       }
       setShowFormDialog(false);
       setEditingPermission(null);
       setParentCode(null);
     } catch (error) {
       console.error('Error submitting form:', error);
-      toast.error(
+      showToast.error('Lỗi',
         error instanceof Error 
           ? error.message 
           : 'Không thể lưu permission'
@@ -203,7 +206,7 @@ export default function PermissionsPage() {
     .map(p => ({ code: p.code, name: p.name }));
 
   // Calculate stats
-  const stats = {
+  const statsData = {
     total: permissions.length,
     groups: permissions.filter(p => p.is_group).length,
     permissions: permissions.filter(p => !p.is_group).length,
@@ -213,98 +216,65 @@ export default function PermissionsPage() {
     }, {} as Record<string, number>),
   };
 
+  const statCards = [
+    { label: 'Tổng số permissions', value: statsData.total, color: 'indigo' as const, icon: Shield },
+    { label: 'Nhóm phân quyền', value: statsData.groups, color: 'yellow' as const, icon: Folder },
+    { label: 'Quyền riêng lẻ', value: statsData.permissions, color: 'green' as const, icon: Shield },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Quản lý Phân quyền
-                  </h1>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Định nghĩa và quản lý các quyền trong hệ thống
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refresh}
-                disabled={loading}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Làm mới
-              </Button>
-
-              <Button
-                onClick={() => handleCreate()}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Thêm Permission
-              </Button>
-            </div>
+    <>
+      <PageLayout
+        icon={Shield}
+        title="Quản lý Phân quyền"
+        description="Định nghĩa và quản lý các quyền trong hệ thống"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleCreate()}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Thêm Permission
+            </Button>
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Tổng số permissions</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {stats.total}
+        }
+      >
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {statCards.map((stat) => (
+            <Card key={stat.label} className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stat.value}
                   </p>
                 </div>
-                <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
-                  <Shield className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                <div className={`p-3 rounded-lg ${
+                  stat.color === 'indigo' ? 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600' :
+                  stat.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
+                  'bg-green-100 dark:bg-green-900/20 text-green-600'
+                }`}>
+                  <stat.icon className="w-6 h-6" />
                 </div>
               </div>
             </Card>
-
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Nhóm phân quyền</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {stats.groups}
-                  </p>
-                </div>
-                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                  <Folder className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Quyền riêng lẻ</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
-                    {stats.permissions}
-                  </p>
-                </div>
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                  <Shield className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-              </div>
-            </Card>
-          </div>
+          ))}
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Main Content Card */}
         <Card className="p-6">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -328,7 +298,7 @@ export default function PermissionsPage() {
                 <SelectItem value="all">Tất cả ứng dụng</SelectItem>
                 {apps.map((app) => (
                   <SelectItem key={app} value={app}>
-                    {app} ({stats.byApp[app]})
+                    {app} ({statsData.byApp[app]})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -356,7 +326,7 @@ export default function PermissionsPage() {
                             {app}
                           </h3>
                           <Badge variant="secondary">
-                            {stats.byApp[app]} permissions
+                            {statsData.byApp[app]} permissions
                           </Badge>
                         </div>
                       </div>
@@ -481,9 +451,9 @@ export default function PermissionsPage() {
             </TabsContent>
           </Tabs>
         </Card>
-      </div>
+      </PageLayout>
 
-      {/* Form Dialog */}
+      {/* Form Dialog - Outside PageLayout */}
       <PermissionFormDialog
         open={showFormDialog}
         onOpenChange={setShowFormDialog}
@@ -494,7 +464,7 @@ export default function PermissionsPage() {
         onSubmit={handleFormSubmit}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog - Outside PageLayout */}
       <ConfirmDialog
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
@@ -508,6 +478,6 @@ export default function PermissionsPage() {
         confirmText="Xóa"
         cancelText="Hủy"
       />
-    </div>
+    </>
   );
 }

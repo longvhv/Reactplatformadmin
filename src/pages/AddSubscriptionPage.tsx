@@ -2,6 +2,7 @@
  * Add Subscription Page
  * Form to create new tenant subscription
  * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * ✅ UPDATED 2026-01-17: Vietnamese paths
  */
 
 import { useState } from 'react';
@@ -12,9 +13,9 @@ import { SubscriptionForm } from '../components/subscriptions/SubscriptionForm';
 import { useLanguage } from '../providers/LanguageProvider';
 import { toast } from 'sonner@2.0.3';
 import {
-  createTenantSubscription,
+  tenantSubscriptionsApi,
   type TenantSubscription,
-} from '../api/tenantSubscriptionApi';
+} from '../api/tenantSubscriptionsApi';
 
 export default function AddSubscriptionPage() {
   const navigate = useNavigate();
@@ -32,10 +33,10 @@ export default function AddSubscriptionPage() {
       }
 
       // Create subscription
-      await createTenantSubscription(data as any);
+      await tenantSubscriptionsApi.create(data as any);
       
       toast.success('Tạo subscription thành công!');
-      navigate('/core/tenant-subscriptions');
+      navigate('/commerce/tenant-subscriptions');
       
     } catch (error: any) {
       console.error('Error creating subscription:', error);
@@ -47,7 +48,7 @@ export default function AddSubscriptionPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/tenant-subscriptions');
+    navigate('/commerce/tenant-subscriptions');
   };
 
   return (
@@ -56,7 +57,7 @@ export default function AddSubscriptionPage() {
       title="Tạo Subscription Mới"
       description="Tạo subscription cho tenant"
       icon={Calendar}
-      backPath="/core/tenant-subscriptions"
+      backPath="/commerce/tenant-subscriptions"
       backLabel="Quay lại danh sách"
     >
       <SubscriptionForm

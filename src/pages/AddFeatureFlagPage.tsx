@@ -23,16 +23,13 @@ export default function AddFeatureFlagPage() {
     try {
       console.log('📝 Creating feature flag:', data);
       
-      const response = await featureFlagsApi.create(data);
+      const response = await createFeatureFlag(data);
       
       console.log('✅ Feature flag created:', response);
       
-      toast.success(t('featureFlags.createSuccess'), {
-        description: t('featureFlags.createSuccessDesc', { name: data.flag_name }),
-        duration: 5000,
-      });
+      toast.success(t('featureFlags.createSuccess'));
       
-      navigate('/core/feature-flags');
+      navigate('/platform/feature-flags');
       
     } catch (error: any) {
       console.error('❌ Error creating feature flag:', error);
@@ -50,7 +47,7 @@ export default function AddFeatureFlagPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/feature-flags');
+    navigate('/platform/feature-flags');
   };
 
   return (
@@ -59,7 +56,7 @@ export default function AddFeatureFlagPage() {
       title={t('featureFlags.add')}
       description={t('featureFlags.addDescription')}
       icon={Flag}
-      backPath="/core/feature-flags"
+      backPath="/platform/feature-flags"
       backLabel={t('featureFlags.backToList')}
     >
       <FeatureFlagForm

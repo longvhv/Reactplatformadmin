@@ -399,10 +399,18 @@ export const systemCategoriesApi = {
   },
 
   getTypesByGroup: async (tenantId: string, groupCode: string): Promise<SystemCategoryType[]> => {
+    // ✅ FIX: First find the group by code to get its ID
+    const group = await systemCategoriesApi.getByCode(tenantId, groupCode);
+    if (!group) {
+      console.warn(`⚠️ [System Categories] Group not found for code: ${groupCode}`);
+      return [];
+    }
+    
+    // ✅ FIX: Now query using the group's ID, not code
     return systemCategoriesApi.getAll({
       tenant_id: tenantId,
       type: 'SYSTEM_CATEGORY_TYPE',
-      group_category_id: groupCode,
+      group_category_id: group._id, // Use ID instead of code
       status: 1,
     }) as Promise<SystemCategoryType[]>;
   },
@@ -563,6 +571,106 @@ export const systemCategoriesApi = {
 
 // Export alias for backward compatibility
 export const systemCategoryApi = systemCategoriesApi;
+
+// ==================== WRAPPER METHODS FOR CONVENIENCE ====================
+// These methods use a default tenant_id from environment or first available
+
+/**
+ * Get active groups without tenant filter (for public/system data)
+ */
+export async function getActiveGroups(): Promise<SystemCategoryGroup[]> {
+  const { getSupabaseClient } = await import('../lib/supabase');
+  const supabase = getSupabaseClient();
+  
+  const { data, error } = await supabase
+    .from('system_categories')
+    .select('*')
+    .eq('type', 'SYSTEM_CATEGORY_GROUP')
+    .eq('status', 1)
+    .is('deleted_at', null)
+    .order('order', { ascending: true });
+  
+  if (error) throw new Error(`Failed to fetch groups: ${error.message}`);
+  return data as SystemCategoryGroup[];
+}
+
+/**
+ * Get all types without tenant filter
+ */
+export async function getAllTypes(): Promise<SystemCategoryType[]> {
+  const { getSupabaseClient } = await import('../lib/supabase');
+  const supabase = getSupabaseClient();
+  
+  const { data, error } = await supabase
+    .from('system_categories')
+    .select('*')
+    .eq('type', 'SYSTEM_CATEGORY_TYPE')
+    .is('deleted_at', null)
+    .order('order', { ascending: true });
+  
+  if (error) throw new Error(`Failed to fetch types: ${error.message}`);
+  return data as SystemCategoryType[];
+}
+
+/**
+ * Get types by group code without tenant filter
+ */
+export async function getTypesByGroup(groupCode: string): Promise<SystemCategoryType[]> {
+  const { getSupabaseClient } = await import('../lib/supabase');
+  const supabase = getSupabaseClient();
+  
+  // First get the group by code to find its ID
+  const { data: group, error: groupError } = await supabase
+    .from('system_categories')
+    .select('_id')
+    .eq('type', 'SYSTEM_CATEGORY_GROUP')
+    .eq('code', groupCode)
+    .is('deleted_at', null)
+    .single();
+  
+  if (groupError || !group) {
+    console.warn(`Group not found: ${groupCode}`);
+    return [];
+  }
+  
+  const { data, error } = await supabase
+    .from('system_categories')
+    .select('*')
+    .eq('type', 'SYSTEM_CATEGORY_TYPE')
+    .eq('group_category_id', group._id)
+    .is('deleted_at', null)
+    .order('order', { ascending: true });
+  
+  if (error) throw new Error(`Failed to fetch types for group ${groupCode}: ${error.message}`);
+  return data as SystemCategoryType[];
+}
+
+/**
+ * Get categories by type code (CRITICAL FIX: filter by 'type' field, not by ID)
+ */
+export async function getCategoriesByType(typeCode: string): Promise<CategoryInstance[]> {
+  const { getSupabaseClient } = await import('../lib/supabase');
+  const supabase = getSupabaseClient();
+  
+  console.log(`[getCategoriesByType] Fetching categories for type: "${typeCode}"`);
+  
+  // CRITICAL: Filter by 'type' field, not by _id
+  // The 'type' field contains values like "TYPE_PRODUCT_CATEGORY", "TYPE_DEPARTMENT", etc.
+  const { data, error } = await supabase
+    .from('system_categories')
+    .select('*')
+    .eq('type', typeCode)  // ✅ Filter by type field (string)
+    .is('deleted_at', null)
+    .order('order', { ascending: true });
+  
+  if (error) {
+    console.error(`[getCategoriesByType] Error fetching categories for type "${typeCode}":`, error);
+    throw new Error(`Failed to fetch categories for type ${typeCode}: ${error.message}`);
+  }
+  
+  console.log(`[getCategoriesByType] Found ${data?.length || 0} categories for type "${typeCode}"`);
+  return (data || []) as CategoryInstance[];
+}
 
 export default systemCategoriesApi;
 

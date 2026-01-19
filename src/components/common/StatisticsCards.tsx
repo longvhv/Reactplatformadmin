@@ -2,7 +2,7 @@
  * StatisticsCards Component
  * Unified statistics cards for all list pages
  * Matches Rate Limits page design for consistency
- * ✅ CREATED 2026-01-15: Unified design system
+ * ✅ UPDATED 2026-01-16: Added emoji support and null safety
  */
 
 import React from 'react';
@@ -12,16 +12,25 @@ export interface StatCard {
   label: string;
   value: number | string;
   color?: 'gray' | 'green' | 'blue' | 'orange' | 'red' | 'purple' | 'yellow' | 'indigo';
-  icon?: LucideIcon;
+  icon?: LucideIcon | string; // ✅ Support both Lucide icons and emoji strings
 }
 
 interface StatisticsCardsProps {
-  stats: StatCard[];
+  stats?: StatCard[];
+  cards?: StatCard[]; // Alias for compatibility
   columns?: 3 | 4 | 5 | 6;
   className?: string;
 }
 
-export function StatisticsCards({ stats, columns = 5, className = '' }: StatisticsCardsProps) {
+export function StatisticsCards({ stats, cards, columns = 5, className = '' }: StatisticsCardsProps) {
+  // ✅ Support both props names and provide default empty array
+  const data = stats || cards || [];
+  
+  // ✅ Early return if no data
+  if (data.length === 0) {
+    return null;
+  }
+
   const getColorClasses = (color: StatCard['color']) => {
     const colorMap = {
       gray: 'text-gray-900',
@@ -45,19 +54,28 @@ export function StatisticsCards({ stats, columns = 5, className = '' }: Statisti
 
   return (
     <div className={`grid ${gridColsClass} gap-4 ${className}`}>
-      {stats.map((stat, index) => {
+      {data.map((stat, index) => {
         const Icon = stat.icon;
         const colorClass = getColorClasses(stat.color);
+        
+        // ✅ Check if icon is a string (emoji) or React component
+        const isStringIcon = typeof Icon === 'string';
 
         return (
           <div 
             key={index} 
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
           >
-            {/* Icon (optional) */}
+            {/* Icon (optional) - supports both Lucide icons and emoji strings */}
             {Icon && (
               <div className="mb-2">
-                <Icon className={`w-5 h-5 ${colorClass}`} />
+                {isStringIcon ? (
+                  // ✅ Render emoji as text
+                  <span className="text-2xl">{Icon}</span>
+                ) : (
+                  // ✅ Render Lucide icon as component
+                  <Icon className={`w-5 h-5 ${colorClass}`} />
+                )}
               </div>
             )}
             

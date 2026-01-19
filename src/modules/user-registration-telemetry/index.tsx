@@ -1,6 +1,8 @@
 /**
  * User Registration Telemetry Module
  * Module definition for user registration analytics and tracking
+ * 
+ * 🌐 Path: /admin/registration-analytics
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -25,7 +27,7 @@ export const UserRegistrationTelemetryModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/user-registration-telemetry',
+      path: '/admin/registration-analytics',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <UserRegistrationTelemetryPage />
@@ -34,7 +36,7 @@ export const UserRegistrationTelemetryModule: ModuleDefinition = {
       title: 'userRegistration.menu',
     },
     {
-      path: '/core/user-registration-telemetry/new',
+      path: '/admin/registration-analytics/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddUserRegistrationPage />
@@ -43,7 +45,7 @@ export const UserRegistrationTelemetryModule: ModuleDefinition = {
       title: 'userRegistration.add',
     },
     {
-      path: '/core/user-registration-telemetry/edit/:id',
+      path: '/admin/registration-analytics/:id/edit',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditUserRegistrationPage />
@@ -52,7 +54,7 @@ export const UserRegistrationTelemetryModule: ModuleDefinition = {
       title: 'userRegistration.edit',
     },
     {
-      path: '/core/user-registration-telemetry/:id',
+      path: '/admin/registration-analytics/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <UserRegistrationDetailPage />
@@ -67,7 +69,7 @@ export const UserRegistrationTelemetryModule: ModuleDefinition = {
       id: 'user-registration-telemetry',
       label: 'userRegistration.menu',
       icon: <BarChart3 className="h-5 w-5" />,
-      path: '/core/user-registration-telemetry',
+      path: '/admin/registration-analytics',
       order: 1,
     },
   ],

@@ -1,6 +1,9 @@
 /**
  * User Registration Logs API
  * Manages telemetry data for user registration tracking
+ * 
+ * ✅ UPDATED 2026-01-16: Added telemetry schema prefix
+ * Schema: telemetry.user_registration_logs
  */
 
 import { supabase } from '@/utils/supabase/client';
@@ -53,6 +56,7 @@ export const getUserRegistrationLogs = async (
 ): Promise<UserRegistrationLog[]> => {
   try {
     let query = supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .select('*')
       .order('created_at', { ascending: false });
@@ -103,6 +107,7 @@ export const getUserRegistrationLogById = async (
 ): Promise<UserRegistrationLog | null> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .select('*')
       .eq('_id', id)
@@ -124,6 +129,7 @@ export const createUserRegistrationLog = async (
 ): Promise<UserRegistrationLog> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .insert(logData)
       .select()
@@ -146,6 +152,7 @@ export const updateUserRegistrationLog = async (
 ): Promise<UserRegistrationLog> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .update(logData)
       .eq('_id', id)
@@ -166,6 +173,7 @@ export const updateUserRegistrationLog = async (
 export const deleteUserRegistrationLog = async (id: string): Promise<void> => {
   try {
     const { error } = await supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .delete()
       .eq('_id', id);
@@ -185,6 +193,7 @@ export const getUserRegistrationStats = async (
 ): Promise<UserRegistrationStats> => {
   try {
     let query = supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .select('_id, registration_source, data_region, created_at, tenant_id');
 
@@ -264,6 +273,7 @@ export const getUserRegistrationStats = async (
 export const getRegistrationSources = async (): Promise<string[]> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .select('registration_source')
       .not('registration_source', 'is', null);
@@ -287,6 +297,7 @@ export const getRegistrationSources = async (): Promise<string[]> => {
 export const getDataRegions = async (): Promise<string[]> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .select('data_region')
       .not('data_region', 'is', null);
@@ -316,6 +327,7 @@ export const getRegistrationTrend = async (
     startDate.setDate(startDate.getDate() - days);
 
     let query = supabase
+      .schema('telemetry')
       .from('user_registration_logs')
       .select('created_at')
       .gte('created_at', startDate.toISOString());

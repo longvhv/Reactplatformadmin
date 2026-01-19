@@ -26,7 +26,7 @@ export default function EditProductTypePage() {
       setIsLoading(true);
       const updated = await productTypesApi.update(id, data);
       toast.success(`Đã cập nhật loại sản phẩm: ${updated.name}`);
-      navigate('/core/product-types');
+      navigate('/commerce/product-types');
     } catch (error: any) {
       console.error('Error updating product type:', error);
       toast.error('Không thể cập nhật loại sản phẩm: ' + error.message);
@@ -51,9 +51,9 @@ export default function EditProductTypePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600">{error || 'Không tìm thấy loại sản phẩm'}</p>
+          <p className="text-red-600">Không tìm thấy loại sản phẩm</p>
           <button
-            onClick={() => navigate('/core/product-types')}
+            onClick={() => navigate('/commerce/product-types')}
             className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
             Quay lại danh sách
@@ -66,16 +66,16 @@ export default function EditProductTypePage() {
   return (
     <FormPageLayout
       mode="edit"
-      title={`Chỉnh sửa: ${productType.name}`}
-      description={`Mã: ${productType.code}`}
+      title="Sửa Loại Sản Phẩm"
+      description={`Cập nhật: ${productType.name}`}
       icon={Package}
-      backPath="/core/product-types"
+      backPath="/commerce/product-types"
       backLabel="Quay lại danh sách"
     >
       <ProductTypeForm
         productType={productType}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/product-types')}
+        onCancel={() => navigate('/commerce/product-types')}
         isLoading={isLoading}
       />
     </FormPageLayout>

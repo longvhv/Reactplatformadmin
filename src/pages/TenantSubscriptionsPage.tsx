@@ -1,19 +1,25 @@
 /**
  * Tenant Subscriptions List Page
  * Displays all tenant subscriptions with filtering and management
+ * 
+ * ✅ MIGRATED to Phase 3 Standards (2026-01-18):
+ * - Replaced confirm() with ConfirmDialog
+ * - Using showToast (toast from sonner) for all notifications
+ * - Wrapped in Fragment
+ * - Using PageLayout with icon/title/description
+ * - Using StatisticsCards for statistics
+ * - Full dark mode support
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Download, Filter, Grid, List, TrendingUp } from 'lucide-react';
+import { Plus, Download, Filter, Grid, List, TrendingUp, CreditCard } from 'lucide-react';
 import { 
-  getTenantSubscriptions, 
-  deleteTenantSubscription,
-  getTenantSubscriptionStatistics,
+  tenantSubscriptionsApi,
   TenantSubscription,
   SubscriptionFilters,
   SubscriptionStatistics,
-} from '../api/tenantSubscriptionApi';
+} from '../api/tenantSubscriptionsApi';
 import { SubscriptionTable } from '../components/subscriptions/SubscriptionTable';
 import { SubscriptionCard } from '../components/subscriptions/SubscriptionCard';
 import { Button } from '../components/ui/button';
@@ -22,6 +28,10 @@ import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { useLanguage } from '../providers/LanguageProvider';
 import { toast } from 'sonner@2.0.3';
+import { showToast } from '@/lib/toast';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 export const TenantSubscriptionsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,12 +49,25 @@ export const TenantSubscriptionsPage: React.FC = () => {
     billing_cycle: undefined,
     payment_status: undefined,
   });
+  
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   // Fetch subscriptions
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
-      const data = await getTenantSubscriptions(filters);
+      const data = await tenantSubscriptionsApi.getAll(filters);
       setSubscriptions(data);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
@@ -57,7 +80,7 @@ export const TenantSubscriptionsPage: React.FC = () => {
   // Fetch statistics
   const fetchStatistics = async () => {
     try {
-      const data = await getTenantSubscriptionStatistics();
+      const data = await tenantSubscriptionsApi.getStatistics();
       setStatistics(data);
     } catch (error) {
       console.error('Error fetching statistics:', error);
@@ -71,17 +94,23 @@ export const TenantSubscriptionsPage: React.FC = () => {
   }, [filters]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('subscriptions.deleteConfirm'))) return;
-
-    try {
-      await deleteTenantSubscription(id);
-      toast.success(t('subscriptions.deleteSuccess'));
-      fetchSubscriptions();
-      fetchStatistics();
-    } catch (error: any) {
-      console.error('Error deleting subscription:', error);
-      toast.error(error?.message || t('subscriptions.deleteError'));
-    }
+    setConfirmDialog({
+      open: true,
+      title: t('subscriptions.deleteTitle'),
+      description: t('subscriptions.deleteConfirm'),
+      onConfirm: async () => {
+        try {
+          await tenantSubscriptionsApi.delete(id);
+          showToast.success(t('subscriptions.deleteSuccess'));
+          fetchSubscriptions();
+          fetchStatistics();
+        } catch (error: any) {
+          console.error('Error deleting subscription:', error);
+          showToast.error(error?.message || t('subscriptions.deleteError'));
+        }
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const handleFilterChange = (key: keyof SubscriptionFilters, value: any) => {
@@ -103,82 +132,55 @@ export const TenantSubscriptionsPage: React.FC = () => {
       currency: 'USD',
     }).format(amount);
   };
+  
+  const statisticsData = statistics ? [
+    { 
+      label: t('subscriptions.totalSubscriptions'), 
+      value: statistics.total, 
+      color: 'indigo' as const, 
+      icon: TrendingUp 
+    },
+    { 
+      label: t('subscriptions.activeSubscriptions'), 
+      value: statistics.active, 
+      color: 'green' as const, 
+      icon: TrendingUp 
+    },
+    { 
+      label: t('subscriptions.monthlyRevenue'), 
+      value: formatCurrency(statistics.monthly_recurring_revenue), 
+      color: 'blue' as const, 
+      icon: TrendingUp 
+    },
+    { 
+      label: t('subscriptions.totalRevenue'), 
+      value: formatCurrency(statistics.total_revenue), 
+      color: 'purple' as const, 
+      icon: TrendingUp 
+    },
+  ] : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{t('subscriptions.title')}</h1>
-            <p className="text-gray-600 mt-1">{t('subscriptions.subtitle')}</p>
-          </div>
+    <Fragment>
+      <PageLayout
+        icon={CreditCard}
+        title={t('subscriptions.title')}
+        description={t('subscriptions.subtitle')}
+        actions={
           <Button 
             onClick={() => {
-              navigate('/core/subscriptions/add');
+              navigate('/commerce/tenant-subscriptions/create');
             }}
             className="bg-indigo-600 hover:bg-indigo-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             {t('subscriptions.addSubscription')}
           </Button>
-        </div>
-
+        }
+      >
         {/* Statistics Cards */}
         {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <Card className="border-l-4 border-l-indigo-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{t('subscriptions.totalSubscriptions')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{statistics.total}</p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-indigo-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-green-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{t('subscriptions.activeSubscriptions')}</p>
-                    <p className="text-2xl font-bold text-gray-900">{statistics.active}</p>
-                  </div>
-                  <Badge className="bg-green-100 text-green-800">{t('subscriptions.status.active')}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-blue-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{t('subscriptions.monthlyRevenue')}</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {formatCurrency(statistics.monthly_recurring_revenue)}
-                    </p>
-                  </div>
-                  <span className="text-2xl">💰</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-l-4 border-l-purple-500">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">{t('subscriptions.totalRevenue')}</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {formatCurrency(statistics.total_revenue)}
-                    </p>
-                  </div>
-                  <span className="text-2xl">📊</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <StatisticsCards stats={statisticsData} columns={4} className="mb-0 border-none shadow-sm" />
         )}
 
         {/* Actions Bar */}
@@ -296,37 +298,19 @@ export const TenantSubscriptionsPage: React.FC = () => {
             </CardContent>
           </Card>
         )}
-      </div>
-
-      {/* Content */}
-      {viewMode === 'table' ? (
-        <SubscriptionTable
-          subscriptions={subscriptions}
-          onDelete={handleDelete}
-          loading={loading}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            <div className="col-span-full flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-          ) : subscriptions.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500">{t('subscriptions.noSubscriptions')}</p>
-            </div>
-          ) : (
-            subscriptions.map((subscription) => (
-              <SubscriptionCard
-                key={subscription._id}
-                subscription={subscription}
-                onDelete={handleDelete}
-              />
-            ))
-          )}
-        </div>
-      )}
-    </div>
+      </PageLayout>
+      
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
+        variant="destructive"
+      />
+    </Fragment>
   );
 };
 

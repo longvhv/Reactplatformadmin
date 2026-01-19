@@ -1,22 +1,20 @@
 /**
- * Service Deliveries Module
- * Manages service deliveries like consulting hours, training sessions
+ * Service Deliveries Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/service-deliveries
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
-import { Briefcase } from 'lucide-react';
+import { Truck } from 'lucide-react';
 
-// Lazy-loaded pages
 const ServiceDeliveriesPage = lazy(() => import('../../pages/ServiceDeliveriesPage'));
 const AddServiceDeliveryPage = lazy(() => import('../../pages/AddServiceDeliveryPage'));
 const EditServiceDeliveryPage = lazy(() => import('../../pages/EditServiceDeliveryPage'));
 const ServiceDeliveryDetailPage = lazy(() => import('../../pages/ServiceDeliveryDetailPage'));
 
-/**
- * Service Deliveries Module Definition
- */
 export const ServiceDeliveriesModule: ModuleDefinition = {
   id: "service-deliveries",
   name: "Service Deliveries",
@@ -29,15 +27,15 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
     {
       id: "service-deliveries",
       label: "navigation.serviceDeliveries",
-      path: "/core/service-deliveries",
-      icon: <Briefcase className="w-5 h-5" />,
+      path: "/commerce/service-deliveries",
+      icon: <Truck className="w-5 h-5" />,
       order: 46,
     },
   ],
 
   routes: [
     {
-      path: "/core/service-deliveries",
+      path: "/commerce/service-deliveries",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ServiceDeliveriesPage />
@@ -46,31 +44,31 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
       title: "navigation.serviceDeliveries",
     },
     {
-      path: "/core/service-deliveries/add",
+      path: "/commerce/service-deliveries/add",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddServiceDeliveryPage />
         </Suspense>
       ),
-      title: "serviceDeliveries.add",
+      title: "Add Service Delivery",
     },
     {
-      path: "/core/service-deliveries/edit/:id",
+      path: "/commerce/service-deliveries/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditServiceDeliveryPage />
         </Suspense>
       ),
-      title: "serviceDeliveries.edit",
+      title: "Edit Service Delivery",
     },
     {
-      path: "/core/service-deliveries/:id",
+      path: "/commerce/service-deliveries/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ServiceDeliveryDetailPage />
         </Suspense>
       ),
-      title: "serviceDeliveries.details",
+      title: "Service Delivery Detail",
     },
   ],
 

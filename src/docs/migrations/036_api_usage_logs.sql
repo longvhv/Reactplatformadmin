@@ -194,24 +194,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- ============================================================================
--- PARTITIONING (Optional - for large-scale deployments)
--- ============================================================================
-
--- Note: For production with high volume, consider partitioning by date
--- Example (commented out by default):
-/*
-CREATE TABLE telemetry.api_usage_logs_2026_01 PARTITION OF telemetry.api_usage_logs
-FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
-
-CREATE TABLE telemetry.api_usage_logs_2026_02 PARTITION OF telemetry.api_usage_logs
-FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
-*/
-
--- ============================================================================
--- DATA RETENTION POLICY (Optional)
--- ============================================================================
-
 -- Function to clean up old logs (run via cron/scheduler)
 CREATE OR REPLACE FUNCTION telemetry.cleanup_old_api_logs(
   p_retention_days INTEGER DEFAULT 90
@@ -274,4 +256,5 @@ BEGIN
   RAISE NOTICE 'Indexes: 8 created';
   RAISE NOTICE 'RLS Policies: 3 created';
   RAISE NOTICE 'Functions: 3 created';
+  RAISE NOTICE '📝 Frontend access: Use supabase.schema("telemetry").from("api_usage_logs")';
 END $$;

@@ -60,8 +60,9 @@ export default function EditReservedSlugPage() {
         version: data.version,
       });
     } catch (error: any) {
+      console.error('Error loading slug:', error);
       toast.error('Failed to load slug: ' + error.message);
-      navigate('/core/reserved-slugs');
+      navigate('/platform/reserved-slugs');
     } finally {
       setLoadingSlug(false);
     }
@@ -86,7 +87,7 @@ export default function EditReservedSlugPage() {
       setLoading(true);
       await reservedSlugsApi.update(id, formData);
       toast.success('Reserved slug updated successfully');
-      navigate(`/core/reserved-slugs/${id}`);
+      navigate(`/platform/reserved-slugs/${id}`);
     } catch (error: any) {
       console.error('Error updating slug:', error);
       
@@ -117,7 +118,7 @@ export default function EditReservedSlugPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-red-600">Slug not found</p>
-          <Button onClick={() => navigate('/core/reserved-slugs')} className="mt-4">
+          <Button onClick={() => navigate('/platform/reserved-slugs')} className="mt-4">
             Back to list
           </Button>
         </div>
@@ -129,21 +130,10 @@ export default function EditReservedSlugPage() {
     <FormPageLayout
       mode="edit"
       title="Edit Reserved Slug"
-      description={`${slug.slug} • Version: v${slug.version}`}
+      description={`Update ${slug?.slug || 'slug'}`}
       icon={Shield}
-      backPath="/core/reserved-slugs"
+      backPath="/platform/reserved-slugs"
       backLabel="Back to list"
-      banner={{
-        type: 'info',
-        icon: Info,
-        title: 'Optimistic Locking',
-        message: `This slug uses version control (v${slug.version}). If someone else updates it, you'll get an error and the page will auto-reload.`,
-      }}
-      headerExtra={
-        <Badge className={getTypeColor(slug.type)}>
-          {getTypeLabel(slug.type)}
-        </Badge>
-      }
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Read-only Info */}
@@ -250,7 +240,7 @@ export default function EditReservedSlugPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/core/reserved-slugs')}
+            onClick={() => navigate('/platform/reserved-slugs')}
           >
             Cancel
           </Button>

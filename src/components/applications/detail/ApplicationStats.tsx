@@ -144,7 +144,7 @@ export function ApplicationStats({ appId, appCode }: ApplicationStatsProps) {
     return (
       <div className="bg-white rounded-lg shadow-sm border p-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           <p className="ml-3 text-gray-500">Đang tải thống kê...</p>
         </div>
       </div>

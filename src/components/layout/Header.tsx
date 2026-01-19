@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Menu, X, Search, Bell, User, Settings, LogOut, BookOpen, FileCode } from "lucide-react";
@@ -18,7 +16,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-export function Header() {
+interface HeaderProps {
+  toggleSidebar?: () => void;
+}
+
+export function Header({ toggleSidebar }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -41,6 +43,29 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-card backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="flex h-16 items-center px-4 md:px-6">
+        {/* Hamburger Menu */}
+        {toggleSidebar && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="h-9 w-9 px-0 mr-2"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+
+        {/* Logo & Brand */}
+        <div className="flex items-center gap-3 mr-6">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary/30">
+            <span className="text-white font-bold text-base">VH</span>
+          </div>
+          <div className="hidden md:flex flex-col">
+            <span className="font-bold text-base text-foreground">VHV Platform</span>
+            <span className="text-xs text-muted-foreground">Enterprise Admin</span>
+          </div>
+        </div>
+
         {/* Search */}
         <div className="flex-1 flex items-center gap-4">
           <div className="relative w-full max-w-md">
@@ -138,7 +163,7 @@ export function Header() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/core/dev-docs')}>
+              <DropdownMenuItem onClick={() => navigate('/platform/dev-docs')}>
                 <FileCode className="mr-2 h-4 w-4" />
                 {t('navigation.devDocs')}
               </DropdownMenuItem>

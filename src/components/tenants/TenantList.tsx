@@ -38,7 +38,7 @@ export function TenantList({ tenants, onDelete, onSelect }: TenantListProps) {
     <Card
       key={tenant._id}
       className="p-4 hover:shadow-md transition-shadow cursor-pointer group mb-2"
-      onClick={() => navigate(`/core/tenants/${tenant._id}`)}
+      onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4 flex-1">
@@ -62,7 +62,7 @@ export function TenantList({ tenants, onDelete, onSelect }: TenantListProps) {
               size="icon"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/core/tenants/edit/${tenant._id}`);
+                navigate(`/admin/tenants/${tenant._id}/edit`);
               }}
             >
               <Edit className="w-4 h-4" />

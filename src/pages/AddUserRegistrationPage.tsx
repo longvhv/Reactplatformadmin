@@ -1,11 +1,11 @@
 /**
  * Add User Registration Page
- * Create new registration log entry
+ * Page for creating a new user registration log
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../providers/LanguageProvider';
+import { useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
 import {
   createUserRegistrationLog,
@@ -25,7 +25,7 @@ export default function AddUserRegistrationPage() {
       setIsLoading(true);
       await createUserRegistrationLog(data);
       toast.success(t('userRegistration.createSuccess'));
-      navigate('/core/user-registration-telemetry');
+      navigate('/admin/registration-analytics');
     } catch (error) {
       console.error('Error creating registration log:', error);
       toast.error(t('userRegistration.createError'));
@@ -41,7 +41,7 @@ export default function AddUserRegistrationPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate('/core/user-registration-telemetry')}
+          onClick={() => navigate('/admin/registration-analytics')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           {t('common.back')}

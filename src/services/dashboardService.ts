@@ -5,69 +5,14 @@
  */
 
 import { supabase } from '../utils/supabase/client';
-
-// Dashboard Overview Interface
-export interface DashboardOverview {
-  // Users & Tenants
-  total_users: number;
-  total_tenants: number;
-  users_growth_percent: number;
-  tenants_growth_percent: number;
-  
-  // Subscriptions
-  active_subscriptions: number;
-  expiring_subscriptions: number;
-  total_subscription_orders: number;
-  
-  // Revenue (from invoices)
-  monthly_revenue: number;
-  total_revenue: number;
-  revenue_growth_percent: number;
-  pending_invoice_count: number;
-  
-  // Webhooks
-  active_webhooks: number;
-  unhealthy_webhooks: number;
-  total_webhook_deliveries: number;
-  
-  // API Usage
-  api_calls_today: number;
-  api_calls_month: number;
-  api_errors_today: number;
-  
-  // Traffic
-  traffic_today: number;
-  traffic_month: number;
-  unique_visitors_today: number;
-  
-  // System Jobs
-  total_jobs: number;
-  active_jobs: number;
-  failed_jobs: number;
-}
-
-// Time Series Data for Charts
-export interface TimeSeriesData {
-  date: string;
-  value: number;
-}
-
-export interface ChartData {
-  revenue: TimeSeriesData[];
-  users: TimeSeriesData[];
-  api_calls: TimeSeriesData[];
-  traffic: TimeSeriesData[];
-}
-
-// Recent Activity
-export interface RecentActivity {
-  id: string;
-  type: 'user' | 'subscription' | 'webhook' | 'api' | 'invoice';
-  description: string;
-  timestamp: string;
-  user_name?: string;
-  tenant_name?: string;
-}
+import { billingService } from './billingService';
+import { telemetryService } from './telemetryService';
+import { 
+  DashboardOverview, 
+  ChartData, 
+  TimeSeriesData, 
+  RecentActivity 
+} from './dashboardTypes';
 
 class DashboardService {
   /**
@@ -75,6 +20,8 @@ class DashboardService {
    * Ready for: GET /api/v1/dashboard/overview
    */
   async getOverview(): Promise<DashboardOverview> {
+    console.log('📊 Loading dashboard overview...');
+    
     try {
       // Run all queries in parallel for performance
       const [
@@ -90,14 +37,16 @@ class DashboardService {
       ] = await Promise.all([
         this.getUsersStats(),
         this.getTenantsStats(),
-        this.getSubscriptionsStats(),
-        this.getInvoicesStats(),
+        billingService.getSubscriptionsStats(),
+        billingService.getInvoicesStats(),
         this.getWebhooksStats(),
-        this.getApiUsageStats(),
-        this.getTrafficStats(),
+        telemetryService.getApiUsageStats(),
+        telemetryService.getTrafficStats(),
         this.getJobsStats(),
         this.getGrowthStats(),
       ]);
+
+      console.log('✅ Dashboard overview loaded successfully');
 
       return {
         // Users & Tenants
@@ -138,7 +87,8 @@ class DashboardService {
         failed_jobs: jobsData.failed,
       };
     } catch (error) {
-      console.error('Error getting dashboard overview:', error);
+      console.error('❌ Error getting dashboard overview:', error);
+      console.warn('⚠️  Some dashboard data may be unavailable. See /docs/bugfix/dashboard-missing-tables-2026-01-16.md');
       throw error;
     }
   }
@@ -152,13 +102,37 @@ class DashboardService {
       const { count, error } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
-        .eq('is_deleted', false);
+        .is('deleted_at', null);
 
-      if (error) throw error;
+      if (error) {
+        // Empty message usually means table doesn't exist
+        if (!error.message || error.message === '' || 
+            error.code === 'PGRST204' || error.code === '42P01' || error.code === 'PGRST116') {
+          console.warn('⚠️  Table users not accessible or does not exist - returning zero stats');
+          return { total: 0 };
+        }
+        
+        // Handle network errors
+        if (error.message === 'TypeError: Failed to fetch') {
+          console.warn('⚠️  Network error fetching users (check connection/CORS)');
+          return { total: 0 };
+        }
+        
+        // Log detailed error if it has actual content
+        console.error('Supabase error in getUsersStats:', JSON.stringify(error, null, 2));
+        // Don't throw - return zeros for graceful degradation
+        return { total: 0 };
+      }
 
       return { total: count || 0 };
-    } catch (error) {
-      console.error('Error getting users stats:', error);
+    } catch (error: any) {
+      // This catch should rarely be hit now
+      console.error('Error getting users stats:', {
+        errorStringified: JSON.stringify(error),
+        message: error?.message || error?.msg || (typeof error === 'string' ? error : 'Unknown error'),
+        code: error?.code || error?.statusCode || error?.error_code || 'N/A',
+        details: error?.details || error?.detail || error?.error || null,
+      });
       return { total: 0 };
     }
   }
@@ -172,122 +146,37 @@ class DashboardService {
       const { count, error } = await supabase
         .from('tenants')
         .select('*', { count: 'exact', head: true })
-        .eq('is_deleted', false);
+        .is('deleted_at', null);
 
-      if (error) throw error;
+      if (error) {
+        // Empty message usually means table doesn't exist
+        if (!error.message || error.message === '' || 
+            error.code === 'PGRST204' || error.code === '42P01' || error.code === 'PGRST116') {
+          console.warn('⚠️  Table tenants not accessible or does not exist - returning zero stats');
+          return { total: 0 };
+        }
+        
+        // Handle network errors
+        if (error.message === 'TypeError: Failed to fetch') {
+          console.warn('⚠️  Network error fetching tenants (check connection/CORS)');
+          return { total: 0 };
+        }
+        
+        // Log detailed error if it has actual content
+        console.error('Supabase error in getTenantsStats:', JSON.stringify(error, null, 2));
+        // Don't throw - return zeros for graceful degradation
+        return { total: 0 };
+      }
 
       return { total: count || 0 };
-    } catch (error) {
-      console.error('Error getting tenants stats:', error);
+    } catch (error: any) {
+      console.error('Error getting tenants stats:', {
+        errorStringified: JSON.stringify(error),
+        message: error?.message || error?.msg || (typeof error === 'string' ? error : 'Unknown error'),
+        code: error?.code || error?.statusCode || error?.error_code || 'N/A',
+        details: error?.details || error?.detail || error?.error || null,
+      });
       return { total: 0 };
-    }
-  }
-
-  /**
-   * Get subscriptions statistics
-   * Ready for: GET /api/v1/dashboard/stats/subscriptions
-   */
-  private async getSubscriptionsStats(): Promise<{
-    active: number;
-    expiring: number;
-    total_orders: number;
-  }> {
-    try {
-      // Active subscriptions
-      const { count: activeCount, error: activeError } = await supabase
-        .from('tenant_subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-        .eq('is_deleted', false);
-
-      if (activeError) throw activeError;
-
-      // Expiring soon (within 7 days)
-      const expiryDate = new Date();
-      expiryDate.setDate(expiryDate.getDate() + 7);
-      const expiryDateStr = expiryDate.toISOString();
-
-      const { count: expiringCount, error: expiringError } = await supabase
-        .from('tenant_subscriptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-        .eq('is_deleted', false)
-        .lte('end_date', expiryDateStr);
-
-      if (expiringError) throw expiringError;
-
-      // Total orders
-      const { count: ordersCount, error: ordersError } = await supabase
-        .from('subscription_orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_deleted', false);
-
-      if (ordersError) throw ordersError;
-
-      return {
-        active: activeCount || 0,
-        expiring: expiringCount || 0,
-        total_orders: ordersCount || 0,
-      };
-    } catch (error) {
-      console.error('Error getting subscriptions stats:', error);
-      return { active: 0, expiring: 0, total_orders: 0 };
-    }
-  }
-
-  /**
-   * Get invoices statistics
-   * Ready for: GET /api/v1/dashboard/stats/invoices
-   */
-  private async getInvoicesStats(): Promise<{
-    monthly_revenue: number;
-    total_revenue: number;
-    pending_count: number;
-  }> {
-    try {
-      // Get current month date range
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-      // Monthly revenue (paid invoices this month)
-      const { data: monthlyInvoices, error: monthlyError } = await supabase
-        .from('subscription_invoices')
-        .select('total_amount')
-        .eq('status', 'paid')
-        .gte('paid_at', monthStart.toISOString())
-        .lte('paid_at', monthEnd.toISOString());
-
-      if (monthlyError) throw monthlyError;
-
-      const monthly_revenue = monthlyInvoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-
-      // Total revenue (all paid invoices)
-      const { data: allInvoices, error: allError } = await supabase
-        .from('subscription_invoices')
-        .select('total_amount')
-        .eq('status', 'paid');
-
-      if (allError) throw allError;
-
-      const total_revenue = allInvoices?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-
-      // Pending invoices count
-      const { count: pendingCount, error: pendingError } = await supabase
-        .from('subscription_invoices')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      if (pendingError) throw pendingError;
-
-      return {
-        monthly_revenue,
-        total_revenue,
-        pending_count: pendingCount || 0,
-      };
-    } catch (error) {
-      console.error('Error getting invoices stats:', error);
-      return { monthly_revenue: 0, total_revenue: 0, pending_count: 0 };
     }
   }
 
@@ -301,141 +190,39 @@ class DashboardService {
     total_deliveries: number;
   }> {
     try {
-      // Active webhooks
+      // Active webhooks (is_active = true)
       const { count: activeCount, error: activeError } = await supabase
         .from('webhooks')
         .select('*', { count: 'exact', head: true })
-        .eq('enabled', true)
-        .eq('is_deleted', false);
+        .eq('is_active', true);
 
       if (activeError) throw activeError;
 
-      // Unhealthy webhooks (health_status != 'healthy')
+      // Failed webhooks
       const { count: unhealthyCount, error: unhealthyError } = await supabase
         .from('webhooks')
-        .select('*', { count: 'exact', head: true })
-        .eq('enabled', true)
-        .neq('health_status', 'healthy')
-        .eq('is_deleted', false);
+        .select('failure_count, success_count', { count: 'exact', head: true })
+        .eq('is_active', true)
+        .gt('failure_count', 0);
 
       if (unhealthyError) throw unhealthyError;
 
-      // Total deliveries (from webhook_delivery_logs)
-      const { count: deliveriesCount, error: deliveriesError } = await supabase
-        .from('webhook_delivery_logs')
-        .select('*', { count: 'exact', head: true });
-
-      if (deliveriesError) throw deliveriesError;
+      // Total deliveries (delegated to TelemetryService)
+      const deliveriesCount = await telemetryService.getWebhookDeliveryCount();
 
       return {
         active: activeCount || 0,
         unhealthy: unhealthyCount || 0,
-        total_deliveries: deliveriesCount || 0,
+        total_deliveries: deliveriesCount,
       };
-    } catch (error) {
-      console.error('Error getting webhooks stats:', error);
+    } catch (error: any) {
+      console.error('Error getting webhooks stats:', {
+        message: error?.message || 'Unknown error',
+        code: error?.code || 'N/A',
+        details: error?.details || null,
+        hint: error?.hint || null,
+      });
       return { active: 0, unhealthy: 0, total_deliveries: 0 };
-    }
-  }
-
-  /**
-   * Get API usage statistics
-   * Ready for: GET /api/v1/dashboard/stats/api-usage
-   */
-  private async getApiUsageStats(): Promise<{
-    today: number;
-    month: number;
-    errors_today: number;
-  }> {
-    try {
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      // API calls today
-      const { count: todayCount, error: todayError } = await supabase
-        .from('api_usage_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', todayStart.toISOString());
-
-      if (todayError) throw todayError;
-
-      // API calls this month
-      const { count: monthCount, error: monthError } = await supabase
-        .from('api_usage_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', monthStart.toISOString());
-
-      if (monthError) throw monthError;
-
-      // Errors today (status_code >= 400)
-      const { count: errorsCount, error: errorsError } = await supabase
-        .from('api_usage_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', todayStart.toISOString())
-        .gte('response_status', 400);
-
-      if (errorsError) throw errorsError;
-
-      return {
-        today: todayCount || 0,
-        month: monthCount || 0,
-        errors_today: errorsCount || 0,
-      };
-    } catch (error) {
-      console.error('Error getting API usage stats:', error);
-      return { today: 0, month: 0, errors_today: 0 };
-    }
-  }
-
-  /**
-   * Get traffic statistics
-   * Ready for: GET /api/v1/dashboard/stats/traffic
-   */
-  private async getTrafficStats(): Promise<{
-    today: number;
-    month: number;
-    unique_today: number;
-  }> {
-    try {
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-      // Traffic today
-      const { count: todayCount, error: todayError } = await supabase
-        .from('traffic_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('access_time', todayStart.toISOString());
-
-      if (todayError) throw todayError;
-
-      // Traffic this month
-      const { count: monthCount, error: monthError } = await supabase
-        .from('traffic_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('access_time', monthStart.toISOString());
-
-      if (monthError) throw monthError;
-
-      // Unique visitors today (distinct ip_address)
-      const { data: uniqueData, error: uniqueError } = await supabase
-        .from('traffic_logs')
-        .select('ip_address')
-        .gte('access_time', todayStart.toISOString());
-
-      if (uniqueError) throw uniqueError;
-
-      const unique_today = new Set(uniqueData?.map(d => d.ip_address)).size;
-
-      return {
-        today: todayCount || 0,
-        month: monthCount || 0,
-        unique_today,
-      };
-    } catch (error) {
-      console.error('Error getting traffic stats:', error);
-      return { today: 0, month: 0, unique_today: 0 };
     }
   }
 
@@ -452,17 +239,17 @@ class DashboardService {
       // Total jobs
       const { count: totalCount, error: totalError } = await supabase
         .from('system_jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_deleted', false);
+        .select('*', { count: 'exact', head: true });
+        // Removed .eq('is_deleted', false) as schema does not support soft deletes
 
       if (totalError) throw totalError;
 
-      // Active jobs
+      // Active jobs (is_active = true)
       const { count: activeCount, error: activeError } = await supabase
         .from('system_jobs')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-        .eq('is_deleted', false);
+        .eq('is_active', true);
+        // Changed logic to use is_active boolean instead of status='active'
 
       if (activeError) throw activeError;
 
@@ -470,8 +257,8 @@ class DashboardService {
       const { count: failedCount, error: failedError } = await supabase
         .from('system_jobs')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'failed')
-        .eq('is_deleted', false);
+        .eq('status', 'failed');
+        // Removed .eq('is_deleted', false)
 
       if (failedError) throw failedError;
 
@@ -480,8 +267,13 @@ class DashboardService {
         active: activeCount || 0,
         failed: failedCount || 0,
       };
-    } catch (error) {
-      console.error('Error getting jobs stats:', error);
+    } catch (error: any) {
+      console.error('Error getting jobs stats:', {
+        message: error?.message || 'Unknown error',
+        code: error?.code || 'N/A',
+        details: error?.details || null,
+        hint: error?.hint || null,
+      });
       return { total: 0, active: 0, failed: 0 };
     }
   }
@@ -506,14 +298,14 @@ class DashboardService {
         .from('users')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', thisMonthStart.toISOString())
-        .eq('is_deleted', false);
+        .is('deleted_at', null);
 
       const { count: lastMonthUsers, error: lastUsersError } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', lastMonthStart.toISOString())
         .lte('created_at', lastMonthEnd.toISOString())
-        .eq('is_deleted', false);
+        .is('deleted_at', null);
 
       const users_growth = this.calculateGrowth(thisMonthUsers || 0, lastMonthUsers || 0);
 
@@ -522,34 +314,19 @@ class DashboardService {
         .from('tenants')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', thisMonthStart.toISOString())
-        .eq('is_deleted', false);
+        .is('deleted_at', null);
 
       const { count: lastMonthTenants, error: lastTenantsError } = await supabase
         .from('tenants')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', lastMonthStart.toISOString())
         .lte('created_at', lastMonthEnd.toISOString())
-        .eq('is_deleted', false);
+        .is('deleted_at', null);
 
       const tenants_growth = this.calculateGrowth(thisMonthTenants || 0, lastMonthTenants || 0);
 
       // Revenue growth
-      const { data: thisMonthRevenue, error: thisRevenueError } = await supabase
-        .from('subscription_invoices')
-        .select('total_amount')
-        .eq('status', 'paid')
-        .gte('paid_at', thisMonthStart.toISOString());
-
-      const { data: lastMonthRevenue, error: lastRevenueError } = await supabase
-        .from('subscription_invoices')
-        .select('total_amount')
-        .eq('status', 'paid')
-        .gte('paid_at', lastMonthStart.toISOString())
-        .lte('paid_at', lastMonthEnd.toISOString());
-
-      const thisRevenue = thisMonthRevenue?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-      const lastRevenue = lastMonthRevenue?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-      const revenue_growth = this.calculateGrowth(thisRevenue, lastRevenue);
+      const revenue_growth = await billingService.getRevenueGrowth();
 
       return {
         users_growth,
@@ -585,10 +362,10 @@ class DashboardService {
 
       // Get data for each day
       const [revenueData, usersData, apiData, trafficData] = await Promise.all([
-        this.getRevenueByDate(dates),
+        billingService.getRevenueByDate(dates),
         this.getUsersByDate(dates),
-        this.getApiCallsByDate(dates),
-        this.getTrafficByDate(dates),
+        telemetryService.getApiCallsByDate(dates),
+        telemetryService.getTrafficByDate(dates),
       ]);
 
       return {
@@ -603,27 +380,6 @@ class DashboardService {
     }
   }
 
-  private async getRevenueByDate(dates: string[]): Promise<TimeSeriesData[]> {
-    const result: TimeSeriesData[] = [];
-    
-    for (const date of dates) {
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-      
-      const { data, error } = await supabase
-        .from('subscription_invoices')
-        .select('total_amount')
-        .eq('status', 'paid')
-        .gte('paid_at', date)
-        .lt('paid_at', nextDate.toISOString().split('T')[0]);
-
-      const value = data?.reduce((sum, inv) => sum + (inv.total_amount || 0), 0) || 0;
-      result.push({ date, value });
-    }
-    
-    return result;
-  }
-
   private async getUsersByDate(dates: string[]): Promise<TimeSeriesData[]> {
     const result: TimeSeriesData[] = [];
     
@@ -636,45 +392,7 @@ class DashboardService {
         .select('*', { count: 'exact', head: true })
         .gte('created_at', date)
         .lt('created_at', nextDate.toISOString().split('T')[0])
-        .eq('is_deleted', false);
-
-      result.push({ date, value: count || 0 });
-    }
-    
-    return result;
-  }
-
-  private async getApiCallsByDate(dates: string[]): Promise<TimeSeriesData[]> {
-    const result: TimeSeriesData[] = [];
-    
-    for (const date of dates) {
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-      
-      const { count, error } = await supabase
-        .from('api_usage_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', date)
-        .lt('created_at', nextDate.toISOString().split('T')[0]);
-
-      result.push({ date, value: count || 0 });
-    }
-    
-    return result;
-  }
-
-  private async getTrafficByDate(dates: string[]): Promise<TimeSeriesData[]> {
-    const result: TimeSeriesData[] = [];
-    
-    for (const date of dates) {
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-      
-      const { count, error } = await supabase
-        .from('traffic_logs')
-        .select('*', { count: 'exact', head: true })
-        .gte('access_time', date)
-        .lt('access_time', nextDate.toISOString().split('T')[0]);
+        .is('deleted_at', null);
 
       result.push({ date, value: count || 0 });
     }
@@ -693,15 +411,15 @@ class DashboardService {
       // Get recent user registrations
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, full_name, email, created_at')
-        .eq('is_deleted', false)
+        .select('_id, full_name, email, created_at')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(3);
 
       if (!usersError && users) {
         users.forEach(user => {
           activities.push({
-            id: user.id,
+            id: user._id,
             type: 'user',
             description: `New user registered: ${user.full_name || user.email}`,
             timestamp: user.created_at,
@@ -713,19 +431,32 @@ class DashboardService {
       // Get recent subscriptions
       const { data: subs, error: subsError } = await supabase
         .from('tenant_subscriptions')
-        .select('id, tenant_id, created_at')
-        .eq('is_deleted', false)
+        .select('_id, tenant_id, created_at')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(3);
 
       if (!subsError && subs) {
         subs.forEach(sub => {
           activities.push({
-            id: sub.id,
+            id: sub._id,
             type: 'subscription',
             description: `New subscription created`,
             timestamp: sub.created_at,
             tenant_name: sub.tenant_id,
+          });
+        });
+      }
+
+      // Get recent audit logs
+      const auditLogs = await telemetryService.getAuditLogs(3);
+      if (auditLogs) {
+        auditLogs.forEach(log => {
+          activities.push({
+            id: log._id,
+            type: 'audit' as any, // 'audit' is already in RecentActivity type, but using any to be safe with strict TS
+            description: `${log.action} on ${log.resource}`,
+            timestamp: log.event_time,
           });
         });
       }

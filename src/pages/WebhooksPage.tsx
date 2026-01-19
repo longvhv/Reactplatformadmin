@@ -12,13 +12,22 @@
  * - Secret key management
  * - CRUD operations
  * - Responsive design
+ * 
+ * ✅ MIGRATED to Phase 3 Standards (2026-01-18):
+ * - Replaced confirm() with ConfirmDialog
+ * - Using showToast for all notifications
+ * - Wrapped in Fragment
+ * - Using PageLayout with icon/title/description
+ * - Full dark mode support
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { webhooksApi, Webhook } from '../api/webhooksApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Card } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
 import { 
   Webhook as WebhookIcon, 
   Plus, 
@@ -37,9 +46,12 @@ import {
   RefreshCw,
   Link as LinkIcon,
   Key,
-  Activity
+  Activity,
+  Zap,
 } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '../lib/toast';
+import { PageLayout } from '../components/layout/PageLayout';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 export default function WebhooksPage() {
   const navigate = useNavigate();
@@ -49,6 +61,19 @@ export default function WebhooksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('');
   const [unhealthyFilter, setUnhealthyFilter] = useState(false);
+  
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     loadWebhooks();
@@ -64,7 +89,7 @@ export default function WebhooksPage() {
       });
       setWebhooks(data);
     } catch (error: any) {
-      toast.error('Không thể tải danh sách webhooks: ' + error.message);
+      showToast.error('Lỗi', 'Không thể tải danh sách webhooks: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -75,44 +100,46 @@ export default function WebhooksPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc muốn xóa webhook này?')) return;
-
-    try {
-      await webhooksApi.delete(id);
-      toast.success('Xóa webhook thành công');
-      loadWebhooks();
-    } catch (error: any) {
-      toast.error('Không thể xóa webhook: ' + error.message);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa webhook',
+      description: 'Bạn có chắc muốn xóa webhook này?',
+      onConfirm: async () => {
+        try {
+          await webhooksApi.delete(id);
+          showToast.success('Thành công', 'Xóa webhook thành công');
+          loadWebhooks();
+        } catch (error: any) {
+          showToast.error('Lỗi', 'Không thể xóa webhook: ' + error.message);
+        }
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const handleTest = async (webhook: Webhook) => {
     try {
-      // Use webhooksApi test if available, otherwise show info
-      toast.info('Webhook testing - Feature to be implemented');
-      // TODO: Implement webhooksApi.test() method
-      /*
-      const result = await webhooksApi.test(webhook._id, {
-        event: 'test.webhook',
-        payload: { message: 'Test webhook from dashboard' },
-      });
-      */
+      showToast.info('Thông báo', 'Webhook testing - Feature to be implemented');
     } catch (error: any) {
-      toast.error('Không thể test webhook: ' + error.message);
+      showToast.error('Lỗi', 'Không thể test webhook: ' + error.message);
     }
   };
 
   const handleResetFailures = async (id: string) => {
-    if (!confirm('Bạn có muốn reset failure count về 0?')) return;
-
-    try {
-      // TODO: Implement resetFailures in webhooksApi
-      // await webhooksApi.resetFailures(id);
-      toast.info('Reset failures - Feature to be implemented');
-      loadWebhooks();
-    } catch (error: any) {
-      toast.error('Không thể reset failures: ' + error.message);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Reset failures',
+      description: 'Bạn có muốn reset failure count về 0?',
+      onConfirm: async () => {
+        try {
+          showToast.info('Thông báo', 'Reset failures - Feature to be implemented');
+          loadWebhooks();
+        } catch (error: any) {
+          showToast.error('Lỗi', 'Không thể reset failures: ' + error.message);
+        }
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const getHealthBadge = (failureCount: number) => {
@@ -140,12 +167,12 @@ export default function WebhooksPage() {
 
   const copySecretKey = (secretKey: string) => {
     navigator.clipboard.writeText(secretKey);
-    toast.success('Secret key đã được copy vào clipboard');
+    showToast.success('Thành công', 'Secret key đã được copy vào clipboard');
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
           <p className="text-gray-600 dark:text-gray-400">Đang tải webhooks...</p>
@@ -155,34 +182,24 @@ export default function WebhooksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <WebhookIcon className="w-8 h-8 text-indigo-600" />
-                Webhooks
-              </h1>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {webhooks.length} webhooks
-              </p>
-            </div>
-            <Button
-              onClick={() => navigate('/core/webhooks/new', { replace: true })}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Tạo webhook mới
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters & Search */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+    <Fragment>
+      <PageLayout
+        icon={WebhookIcon}
+        title="Webhooks"
+        description={`${webhooks.length} webhooks`}
+        actions={
+          <Button
+            onClick={() => navigate('/integrations/webhooks/add', { replace: true })}
+            size="sm"
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Tạo webhook mới
+          </Button>
+        }
+      >
+        {/* Filters & Search */}
+        <Card className="p-6">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
@@ -239,7 +256,7 @@ export default function WebhooksPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Table View */}
         {viewMode === 'table' && (
@@ -276,7 +293,7 @@ export default function WebhooksPage() {
                           <LinkIcon className="w-4 h-4 text-gray-400" />
                           <div>
                             <button
-                              onClick={() => navigate(`/core/webhooks/${webhook._id}`)}
+                              onClick={() => navigate(`/integrations/webhooks/${webhook._id}`)}
                               className="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate max-w-xs text-left"
                             >
                               {webhook.url}
@@ -333,7 +350,7 @@ export default function WebhooksPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => navigate(`/core/webhooks/edit/${webhook._id}`, { replace: true })}
+                            onClick={() => navigate(`/integrations/webhooks/edit/${webhook._id}`, { replace: true })}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -372,7 +389,7 @@ export default function WebhooksPage() {
                       </div>
                       <div className="flex-1">
                         <button
-                          onClick={() => navigate(`/core/webhooks/${webhook._id}`)}
+                          onClick={() => navigate(`/integrations/webhooks/${webhook._id}`)}
                           className="text-sm font-semibold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors truncate text-left"
                         >
                           {webhook.name || 'Unnamed webhook'}
@@ -467,7 +484,7 @@ export default function WebhooksPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate(`/core/webhooks/edit/${webhook._id}`, { replace: true })}
+                      onClick={() => navigate(`/integrations/webhooks/edit/${webhook._id}`, { replace: true })}
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
@@ -489,7 +506,7 @@ export default function WebhooksPage() {
               Bắt đầu bằng cách tạo webhook mới để nhận event notifications
             </p>
             <Button
-              onClick={() => navigate('/core/webhooks/new')}
+              onClick={() => navigate('/integrations/webhooks/add')}
               className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -497,7 +514,18 @@ export default function WebhooksPage() {
             </Button>
           </div>
         )}
-      </div>
-    </div>
+      </PageLayout>
+      
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+        variant="destructive"
+      />
+    </Fragment>
   );
 }

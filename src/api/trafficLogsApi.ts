@@ -1,6 +1,9 @@
 /**
  * Traffic Logs API
  * Manages telemetry data for traffic monitoring and analytics
+ * 
+ * ✅ UPDATED 2026-01-16: Added telemetry schema prefix
+ * Schema: telemetry.traffic_logs
  */
 
 import { supabase } from '@/utils/supabase/client';
@@ -82,6 +85,7 @@ export const getTrafficLogs = async (
 ): Promise<TrafficLog[]> => {
   try {
     let query = supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('*')
       .order('timestamp', { ascending: false });
@@ -141,7 +145,7 @@ export const getTrafficLogs = async (
     }
 
     if (filters?.offset) {
-      query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1);
+      query = query.range(filters?.offset, filters.offset + (filters.limit || 10) - 1);
     }
 
     const { data, error } = await query;
@@ -162,6 +166,7 @@ export const getTrafficLogById = async (
 ): Promise<TrafficLog | null> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('*')
       .eq('_id', id)
@@ -183,6 +188,7 @@ export const createTrafficLog = async (
 ): Promise<TrafficLog> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .insert(logData)
       .select()
@@ -205,6 +211,7 @@ export const updateTrafficLog = async (
 ): Promise<TrafficLog> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .update(logData)
       .eq('_id', id)
@@ -225,6 +232,7 @@ export const updateTrafficLog = async (
 export const deleteTrafficLog = async (id: string): Promise<void> => {
   try {
     const { error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .delete()
       .eq('_id', id);
@@ -244,6 +252,7 @@ export const getTrafficStats = async (
 ): Promise<TrafficLogStats> => {
   try {
     let query = supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('_id, method, status_code, data_region, app_code, latency_ms, request_size, response_size, timestamp');
 
@@ -361,6 +370,7 @@ export const getTrafficStats = async (
 export const getHttpMethods = async (): Promise<string[]> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('method')
       .not('method', 'is', null);
@@ -384,6 +394,7 @@ export const getHttpMethods = async (): Promise<string[]> => {
 export const getAppCodes = async (): Promise<string[]> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('app_code')
       .not('app_code', 'is', null);
@@ -407,6 +418,7 @@ export const getAppCodes = async (): Promise<string[]> => {
 export const getDataRegions = async (): Promise<string[]> => {
   try {
     const { data, error } = await supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('data_region')
       .not('data_region', 'is', null);
@@ -436,6 +448,7 @@ export const getTrafficTrend = async (
     startDate.setDate(startDate.getDate() - days);
 
     let query = supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('timestamp, latency_ms')
       .gte('timestamp', startDate.toISOString());
@@ -495,6 +508,7 @@ export const getStatusCodeDistribution = async (
 ): Promise<Record<string, number>> => {
   try {
     let query = supabase
+      .schema('telemetry')
       .from('traffic_logs')
       .select('status_code')
       .not('status_code', 'is', null);

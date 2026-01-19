@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import { Settings, Database, Clock, Shield, AlertTriangle, Save } from 'lucide-react';
 
 export const ApiUsageLogsSettings: React.FC = () => {

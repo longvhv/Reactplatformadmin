@@ -22,7 +22,7 @@ export default function EditServicePackagePage() {
   useEffect(() => {
     const loadPackage = async () => {
       if (!id) {
-        navigate('/core/service-packages');
+        navigate('/commerce/service-packages');
         return;
       }
 
@@ -33,7 +33,7 @@ export default function EditServicePackagePage() {
       } catch (error: any) {
         console.error('Error loading service package:', error);
         toast.error('Không thể tải gói dịch vụ');
-        navigate('/core/service-packages');
+        navigate('/commerce/service-packages');
       } finally {
         setLoading(false);
       }
@@ -52,7 +52,7 @@ export default function EditServicePackagePage() {
       } as any);
 
       toast.success('Đã cập nhật gói dịch vụ');
-      navigate('/core/service-packages');
+      navigate('/commerce/service-packages');
     } catch (error: any) {
       console.error('Error updating service package:', error);
       toast.error('Không thể cập nhật gói dịch vụ: ' + (error.message || 'Unknown error'));
@@ -76,7 +76,7 @@ export default function EditServicePackagePage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-red-600">Không tìm thấy gói dịch vụ</p>
-          <Button onClick={() => navigate('/core/service-packages')} className="mt-4">
+          <Button onClick={() => navigate('/commerce/service-packages')} className="mt-4">
             Quay lại danh sách
           </Button>
         </div>
@@ -90,13 +90,13 @@ export default function EditServicePackagePage() {
       title="Chỉnh sửa gói dịch vụ"
       description={pkg.name}
       icon={PackageIcon}
-      backPath="/core/service-packages"
+      backPath="/commerce/service-packages"
       backLabel="Quay lại danh sách"
     >
       <ServicePackageForm
         package={pkg}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/service-packages')}
+        onCancel={() => navigate('/commerce/service-packages')}
       />
     </FormPageLayout>
   );

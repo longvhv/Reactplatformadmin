@@ -371,7 +371,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
       {/* Back button */}
       <div className="p-4 border-b border-gray-200">
         <Link
-          to="/core/tenants"
+          to="/admin/tenants"
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -474,7 +474,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
                           to={
                             isDisabled
                               ? '#'
-                              : `/core/tenants/${tenant_id}/${tab.path}`
+                              : `/admin/tenants/${tenant_id}/${tab.path}`
                           }
                           className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors group ${
                             isActive
@@ -530,7 +530,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
       {/* Footer actions */}
       <div className="p-4 border-t border-gray-200">
         <Link
-          to={`/core/tenants/${tenant_id}/settings`}
+          to={`/admin/tenants/${tenant_id}/settings`}
           className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
         >
           <Settings className="w-4 h-4" />

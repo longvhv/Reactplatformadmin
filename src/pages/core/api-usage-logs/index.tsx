@@ -1,24 +1,24 @@
 /**
- * API Usage Logs List Page
- * Main page for viewing and managing API usage logs
- * Route: /core/api-usage-logs
+ * API Usage Logs Page
+ * Main page for API usage logs management
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
+// ✅ ULTRA-SIMPLE FIX: Use the simplest possible hook - CANNOT crash
+import { useSimpleTranslation } from '../../../hooks/useSimpleTranslation';
 import { BarChart3, Settings, Plus } from 'lucide-react';
 import { ApiUsageLogsList } from '../../../components/api-usage-logs/ApiUsageLogsList';
 import { ApiUsageLog } from '../../../services/apiUsageLogsService';
 
 export default function ApiUsageLogsPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t } = useSimpleTranslation(); // ✅ Plain object, cannot crash
   const [activeTab, setActiveTab] = useState<'list' | 'analytics'>('list');
 
   // Handle log selection
   const handleSelectLog = (log: ApiUsageLog) => {
-    navigate(`/core/api-usage-logs/${log._id}`);
+    navigate(`/platform/api-usage-logs/${log._id}`);
   };
 
   return (
@@ -44,7 +44,7 @@ export default function ApiUsageLogsPage() {
                 {t('apiUsageLogs.analytics')}
               </button>
               <button
-                onClick={() => navigate('/core/api-usage-logs/settings')}
+                onClick={() => navigate('/platform/api-usage-logs/settings')}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Settings className="h-4 w-4" />

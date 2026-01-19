@@ -80,7 +80,7 @@ export default function EditNotificationPage() {
       });
       
       // Navigate back to list
-      navigate('/core/system-announcements', { replace: true });
+      navigate('/platform/system-announcements', { replace: true });
       
     } catch (err: any) {
       console.error('❌ Error updating system announcement:', err);
@@ -98,7 +98,7 @@ export default function EditNotificationPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/system-announcements');
+    navigate('/platform/system-announcements');
   };
 
   // Loading state
@@ -129,10 +129,10 @@ export default function EditNotificationPage() {
   return (
     <FormPageLayout
       mode="edit"
-      title="Chỉnh sửa thông báo hệ thống"
-      description={`Cập nhật thông tin thông báo "${announcement.title}"`}
+      title="Chỉnh Sửa Thông Báo"
+      description={`Cập nhật: ${announcement?.title || ''}`}
       icon={Bell}
-      backPath="/core/system-announcements"
+      backPath="/platform/system-announcements"
       backLabel="Quay lại danh sách"
     >
       <AnnouncementForm

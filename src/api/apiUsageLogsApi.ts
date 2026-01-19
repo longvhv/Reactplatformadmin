@@ -2,7 +2,7 @@
  * API Usage Logs API Client
  * Uses Adapter pattern - Ready for Golang migration
  * 
- * ✅ CREATED 2026-01-16: 100% database alignment
+ * ✅ UPDATED 2026-01-16: Added telemetry schema prefix
  * Database: telemetry.api_usage_logs (11 fields, API usage tracking)
  */
 
@@ -73,7 +73,7 @@ export const apiUsageLogsApi = {
    */
   getAll: async (filters?: UsageLogFilters): Promise<ApiUsageLog[]> => {
     try {
-      let query = supabase.from('api_usage_logs').select('*');
+      let query = supabase.schema('telemetry').from('api_usage_logs').select('*');
 
       if (filters?.tenant_id) query = query.eq('tenant_id', filters.tenant_id);
       if (filters?.app_code) query = query.eq('app_code', filters.app_code);
@@ -98,6 +98,7 @@ export const apiUsageLogsApi = {
   getById: async (id: string): Promise<ApiUsageLog> => {
     try {
       const { data, error } = await supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .eq('_id', id)
@@ -124,6 +125,7 @@ export const apiUsageLogsApi = {
       };
 
       const { data: result, error } = await supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .insert([logData])
         .select()
@@ -143,6 +145,7 @@ export const apiUsageLogsApi = {
   delete: async (id: string): Promise<void> => {
     try {
       const { error } = await supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .delete()
         .eq('_id', id);
@@ -160,6 +163,7 @@ export const apiUsageLogsApi = {
   getByTenant: async (tenantId: string, limit?: number): Promise<ApiUsageLog[]> => {
     try {
       let query = supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .eq('tenant_id', tenantId)
@@ -182,6 +186,7 @@ export const apiUsageLogsApi = {
   getSuccessful: async (tenantId?: string): Promise<ApiUsageLog[]> => {
     try {
       let query = supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .gte('status_code', 200)
@@ -204,6 +209,7 @@ export const apiUsageLogsApi = {
   getFailed: async (tenantId?: string): Promise<ApiUsageLog[]> => {
     try {
       let query = supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .gte('status_code', 400);
@@ -225,6 +231,7 @@ export const apiUsageLogsApi = {
   getByEndpoint: async (endpoint: string, tenantId?: string): Promise<ApiUsageLog[]> => {
     try {
       let query = supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .eq('api_endpoint', endpoint);
@@ -246,6 +253,7 @@ export const apiUsageLogsApi = {
   getByMethod: async (method: string, tenantId?: string): Promise<ApiUsageLog[]> => {
     try {
       let query = supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .eq('api_method', method);
@@ -267,6 +275,7 @@ export const apiUsageLogsApi = {
   getByApiKey: async (apiKeyId: string): Promise<ApiUsageLog[]> => {
     try {
       const { data, error } = await supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .eq('api_key_id', apiKeyId)
@@ -288,6 +297,7 @@ export const apiUsageLogsApi = {
       const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
       
       const { data, error } = await supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .select('*')
         .eq('tenant_id', tenantId)
@@ -513,6 +523,7 @@ export const apiUsageLogsApi = {
       const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
       const { error, count } = await supabase
+        .schema('telemetry')
         .from('api_usage_logs')
         .delete()
         .eq('tenant_id', tenantId)

@@ -6,11 +6,13 @@
 export * from './base';
 export * from './supabase';
 export * from './http';
+export * from './mock';
 
 import { API_MODE } from '../config';
 import { IApiAdapter } from './base';
 import { SupabaseAdapter } from './supabase';
 import { HttpAdapter } from './http';
+import { MockAdapter } from './mock';
 
 /**
  * Adapter Factory
@@ -19,8 +21,13 @@ import { HttpAdapter } from './http';
 export function createAdapter<T, CreateDto, UpdateDto>(
   tableName: string,
   endpoint?: string,
-  supportsSoftDelete: boolean = false
+  supportsSoftDelete: boolean = false,
+  useMock: boolean = false
 ): IApiAdapter<T, CreateDto, UpdateDto> {
+  if (useMock) {
+    return new MockAdapter<T, CreateDto, UpdateDto>(tableName);
+  }
+  
   if (API_MODE === 'golang') {
     return new HttpAdapter<T, CreateDto, UpdateDto>(tableName, endpoint);
   } else {

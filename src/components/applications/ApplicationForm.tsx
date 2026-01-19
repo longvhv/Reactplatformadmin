@@ -73,7 +73,7 @@ export function ApplicationForm({ mode = 'create' }: { mode?: 'create' | 'edit' 
           is_active: formData.is_active,
         });
         alert('Application created successfully!');
-        navigate(`/core/applications/${app.code}`);
+        navigate(`/platform/applications/${app.code}`);
       } else {
         await applicationsApi.update(code!, {
           name: formData.name,
@@ -81,7 +81,7 @@ export function ApplicationForm({ mode = 'create' }: { mode?: 'create' | 'edit' 
           is_active: formData.is_active,
         });
         alert('Application updated successfully!');
-        navigate(`/core/applications/${code}`);
+        navigate(`/platform/applications/${code}`);
       }
     } catch (error) {
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -93,7 +93,7 @@ export function ApplicationForm({ mode = 'create' }: { mode?: 'create' | 'edit' 
   if (mode === 'edit' && loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -105,7 +105,7 @@ export function ApplicationForm({ mode = 'create' }: { mode?: 'create' | 'edit' 
           <p className="text-red-800">Application not found</p>
         </div>
         <Link
-          to="/core/applications"
+          to="/platform/applications"
           className="inline-flex items-center text-indigo-600 hover:text-indigo-900"
         >
           ← Back to Applications
@@ -118,13 +118,13 @@ export function ApplicationForm({ mode = 'create' }: { mode?: 'create' | 'edit' 
     <div className="space-y-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-600">
-        <Link to="/core/applications" className="hover:text-indigo-600">
+        <Link to="/platform/applications" className="hover:text-indigo-600">
           Applications
         </Link>
         <span>/</span>
         {mode === 'edit' && code && (
           <>
-            <Link to={`/core/applications/${code}`} className="hover:text-indigo-600">
+            <Link to={`/platform/applications/${code}`} className="hover:text-indigo-600">
               {code}
             </Link>
             <span>/</span>
@@ -265,7 +265,7 @@ export function ApplicationForm({ mode = 'create' }: { mode?: 'create' | 'edit' 
           {/* Actions */}
           <div className="flex items-center justify-between pt-6 border-t border-gray-200">
             <Link
-              to={mode === 'edit' ? `/core/applications/${code}` : '/core/applications'}
+              to={mode === 'edit' ? `/platform/applications/${code}` : '/platform/applications'}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
               Cancel

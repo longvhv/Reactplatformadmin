@@ -358,4 +358,5 @@ BEGIN
   RAISE NOTICE 'RLS Policies: 3 created';
   RAISE NOTICE 'Functions: 5 created';
   RAISE NOTICE 'Triggers: 1 created';
+  RAISE NOTICE '📝 Frontend access: Use supabase.schema("telemetry").from("saas_business_reports")';
 END $$;

@@ -21,7 +21,7 @@ export default function AddServicePackagePage() {
       } as CreatePackageRequest);
 
       toast.success('Đã tạo gói dịch vụ mới');
-      navigate('/core/service-packages');
+      navigate('/commerce/service-packages');
     } catch (error: any) {
       console.error('Error creating service package:', error);
       toast.error('Không thể tạo gói dịch vụ: ' + (error.message || 'Unknown error'));
@@ -35,12 +35,12 @@ export default function AddServicePackagePage() {
       title="Thêm gói dịch vụ mới"
       description="Tạo gói dịch vụ với các tính năng và giá cả"
       icon={PackageIcon}
-      backPath="/core/service-packages"
+      backPath="/commerce/service-packages"
       backLabel="Quay lại danh sách"
     >
       <ServicePackageForm
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/service-packages')}
+        onCancel={() => navigate('/commerce/service-packages')}
       />
     </FormPageLayout>
   );

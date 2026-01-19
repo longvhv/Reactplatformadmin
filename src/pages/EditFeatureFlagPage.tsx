@@ -64,12 +64,9 @@ export default function EditFeatureFlagPage() {
       
       console.log('✅ Feature flag updated:', response);
       
-      toast.success(t('featureFlags.updateSuccess'), {
-        description: t('featureFlags.updateSuccessDesc'),
-        duration: 5000,
-      });
+      toast.success(t('featureFlags.updateSuccess'));
       
-      navigate('/core/feature-flags');
+      navigate('/platform/feature-flags');
       
     } catch (error: any) {
       console.error('❌ Error updating feature flag:', error);
@@ -87,7 +84,7 @@ export default function EditFeatureFlagPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/feature-flags');
+    navigate('/platform/feature-flags');
   };
 
   if (loading) {
@@ -110,7 +107,7 @@ export default function EditFeatureFlagPage() {
           <p className="text-gray-600 mb-4">{error || t('featureFlags.notFound')}</p>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => loadFlag()}>{t('common.retry')}</Button>
-            <Button variant="outline" onClick={() => navigate('/core/feature-flags')}>
+            <Button variant="outline" onClick={() => navigate('/platform/feature-flags')}>
               {t('featureFlags.backToList')}
             </Button>
           </div>
@@ -123,9 +120,9 @@ export default function EditFeatureFlagPage() {
     <FormPageLayout
       mode="edit"
       title={t('featureFlags.edit')}
-      description={t('featureFlags.editDescription', { name: flag.flag_name })}
+      description={flag ? flag.flag_name : ''}
       icon={Flag}
-      backPath="/core/feature-flags"
+      backPath="/platform/feature-flags"
       backLabel={t('featureFlags.backToList')}
     >
       <FeatureFlagForm

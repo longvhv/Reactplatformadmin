@@ -22,6 +22,8 @@ const EditTenantPage = lazy(() =>
 
 /**
  * Tenants Module
+ * 
+ * 🌐 Path: /admin/tenants
  */
 export const TenantsModule: ModuleDefinition = {
   id: "tenants",
@@ -33,7 +35,7 @@ export const TenantsModule: ModuleDefinition = {
   order: 10, // QUẢN TRỊ & TRUY CẬP group
   routes: [
     {
-      path: "/core/tenants",
+      path: "/admin/tenants",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Tenants..." />}>
           <TenantsPage />
@@ -42,7 +44,7 @@ export const TenantsModule: ModuleDefinition = {
       title: "Tenants",
     },
     {
-      path: "/core/tenants/add",
+      path: "/admin/tenants/create",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddTenantPage />
@@ -51,7 +53,7 @@ export const TenantsModule: ModuleDefinition = {
       title: "Add Tenant",
     },
     {
-      path: "/core/tenants/edit/:id",
+      path: "/admin/tenants/:id/edit",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditTenantPage />
@@ -65,7 +67,7 @@ export const TenantsModule: ModuleDefinition = {
       id: "tenants",
       label: "navigation.tenants",
       icon: <Building2 className="w-5 h-5" />,
-      path: "/core/tenants",
+      path: "/admin/tenants",
     },
   ],
 };

@@ -1,30 +1,25 @@
 /**
  * Edit System Job Page
- * Edit an existing system job
+ * Page for editing an existing system job
+ * 
+ * ✅ FIXED 2026-01-18: Use EnhancedSystemJobForm
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import {
-  systemJobsApi,
-  SystemJob,
-  SystemJobUpdateData,
-} from '../api/systemJobsApi';
-import { SystemJobForm } from '../components/system-jobs/SystemJobForm';
-import { Button } from '../components/ui/button';
-import { LoadingSpinner } from '../components/common/LoadingSpinner';
-import { toast } from 'sonner@2.0.3';
+import { useNavigate, useParams } from 'react-router';
+import { Settings } from 'lucide-react';
+import { systemJobsApi, SystemJob } from '../api/systemJobsApi';
+import { EnhancedSystemJobForm } from '../components/system-jobs/EnhancedSystemJobForm';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
+import { showToast } from '@/lib/toast';
 
 export default function EditSystemJobPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
   const [job, setJob] = useState<SystemJob | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const loadJob = async () => {
@@ -35,13 +30,13 @@ export default function EditSystemJobPage() {
         if (data) {
           setJob(data);
         } else {
-          toast.error(t('systemJobs.notFound'));
-          navigate('/core/system-jobs');
+          showToast.error('Lỗi', 'Không tìm thấy công việc hệ thống');
+          navigate('/platform/system-jobs');
         }
-      } catch (error) {
-        console.error('Error loading job:', error);
-        toast.error(t('systemJobs.fetchError'));
-        navigate('/core/system-jobs');
+      } catch (error: any) {
+        console.error('Error fetching system job:', error);
+        showToast.error('Lỗi', 'Không thể tải thông tin công việc: ' + error.message);
+        navigate('/platform/system-jobs');
       } finally {
         setLoading(false);
       }
@@ -50,57 +45,51 @@ export default function EditSystemJobPage() {
     loadJob();
   }, [id]);
 
-  const handleSubmit = async (data: SystemJobUpdateData) => {
+  const handleSubmit = async (data: any) => {
     if (!id) return;
 
-    setIsSubmitting(true);
+    setSaving(true);
     try {
-      await systemJobsApi.update(id, data);
-      toast.success(t('systemJobs.updateSuccess'));
-      navigate('/core/system-jobs');
-    } catch (error) {
+      await systemJobsApi.update(id!, data);
+      showToast.success('Thành công', 'Đã cập nhật công việc hệ thống');
+      navigate('/platform/system-jobs');
+    } catch (error: any) {
       console.error('Error updating system job:', error);
-      toast.error(t('systemJobs.updateError'));
+      showToast.error('Lỗi', 'Không thể cập nhật công việc: ' + error.message);
     } finally {
-      setIsSubmitting(false);
+      setSaving(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <LoadingSpinner />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải...</p>
+        </div>
       </div>
     );
   }
 
-  if (!job) {
-    return null;
-  }
+  if (!job) return null;
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/core/system-jobs')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {t('systemJobs.edit')}
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            {t('systemJobs.editJobDescription')}
-          </p>
-        </div>
-      </div>
-
-      {/* Form */}
-      <SystemJobForm job={job} onSubmit={handleSubmit} isLoading={isSubmitting} />
-    </div>
+    <FormPageLayout
+      mode="edit"
+      title="Chỉnh sửa công việc"
+      description={`Cập nhật cấu hình cho ${job.job_name}`}
+      icon={Settings}
+      backPath="/platform/system-jobs"
+      backLabel="Quay lại danh sách"
+    >
+      <EnhancedSystemJobForm 
+        initialData={job}
+        isEdit={true}
+        onSubmit={handleSubmit} 
+        loading={saving}
+        onCancel={() => navigate('/platform/system-jobs')}
+      />
+    </FormPageLayout>
   );
 }

@@ -9,7 +9,7 @@ import {
   CreditCard, Calendar, DollarSign, Users, HardDrive,
   Eye, Pencil, Trash2, RefreshCw, Sparkles, Clock
 } from 'lucide-react';
-import { TenantSubscription, SubscriptionStatus } from '../../api/tenantSubscriptionApi';
+import { TenantSubscription, SubscriptionStatus } from '../../api/tenantSubscriptionsApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from '../ui/card';
@@ -70,7 +70,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
               </div>
               <div>
                 <button
-                  onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
+                  onClick={() => navigate(`/commerce/tenant-subscriptions/${subscription._id}`)}
                   className="font-semibold text-gray-900 hover:text-indigo-600 transition-colors text-left"
                 >
                   {subscription.subscription_name}
@@ -224,7 +224,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
+            onClick={() => navigate(`/commerce/tenant-subscriptions/${subscription._id}`)}
             className="flex-1"
           >
             <Eye className="w-4 h-4 mr-2" />
@@ -233,7 +233,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onEdit ? onEdit(subscription._id!) : navigate(`/core/tenant-subscriptions/edit/${subscription._id}`)}
+            onClick={() => onEdit ? onEdit(subscription._id!) : navigate(`/commerce/tenant-subscriptions/edit/${subscription._id}`)}
             className="flex-1"
           >
             <Pencil className="w-4 h-4 mr-2" />

@@ -10,7 +10,7 @@ import {
   Calendar, DollarSign, Users, HardDrive, AlertCircle,
   CheckCircle, XCircle, Clock, Sparkles
 } from 'lucide-react';
-import { TenantSubscription, SubscriptionStatus, PaymentStatus } from '../../api/tenantSubscriptionApi';
+import { TenantSubscription, SubscriptionStatus, PaymentStatus } from '../../api/tenantSubscriptionsApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useLanguage } from '../../providers/LanguageProvider';
@@ -120,7 +120,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
         <h3 className="mt-2 text-sm font-medium text-gray-900">{t('subscriptions.noSubscriptions')}</h3>
         <p className="mt-1 text-sm text-gray-500">{t('subscriptions.noSubscriptionsDescription')}</p>
         <div className="mt-6">
-          <Button onClick={() => navigate('/core/subscriptions/add')}>
+          <Button onClick={() => navigate('/commerce/tenant-subscriptions/create')}>
             {t('subscriptions.addSubscription')}
           </Button>
         </div>
@@ -169,7 +169,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       </div>
                       <div className="ml-4">
                         <button
-                          onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
+                          onClick={() => navigate(`/commerce/tenant-subscriptions/${subscription._id}`)}
                           className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
                         >
                           {subscription.subscription_name}
@@ -259,7 +259,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/core/tenant-subscriptions/${subscription._id}`)}
+                        onClick={() => navigate(`/commerce/tenant-subscriptions/${subscription._id}`)}
                         title={t('common.view')}
                       >
                         <Eye className="w-4 h-4" />
@@ -267,7 +267,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/core/tenant-subscriptions/edit/${subscription._id}`)}
+                        onClick={() => navigate(`/commerce/tenant-subscriptions/edit/${subscription._id}`)}
                         title={t('common.edit')}
                       >
                         <Pencil className="w-4 h-4" />

@@ -1,96 +1,93 @@
 /**
  * Edit Invoice Page
- * Form to update existing subscription invoice with optimistic locking
- * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * Edit existing subscription invoice
+ * ✅ Updated to use EnhancedInvoiceForm
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { FileText, RefreshCw } from 'lucide-react';
-import { subscriptionInvoiceApi, SubscriptionInvoice } from '../api/subscriptionInvoiceApi';
-import { InvoiceForm } from '../components/invoices/InvoiceForm';
-import { FormPageLayout } from '../components/layouts/FormPageLayout';
-import { toast } from 'sonner@2.0.3';
+import { FileText } from 'lucide-react';
+import { invoiceApi, Invoice } from '@/api/invoiceApi';
+import { EnhancedInvoiceForm } from '@/components/invoices/EnhancedInvoiceForm';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { showToast } from '@/lib/toast';
 
 export default function EditInvoicePage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [loading, setLoading] = useState(false);
-  const [loadingInvoice, setLoadingInvoice] = useState(true);
-  const [invoice, setInvoice] = useState<SubscriptionInvoice | null>(null);
+  
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (id) {
-      loadInvoice(id);
-    }
-  }, [id]);
-
-  const loadInvoice = async (invoiceId: string) => {
-    try {
-      setLoadingInvoice(true);
-      const data = await subscriptionInvoiceApi.getById(invoiceId);
-      setInvoice(data);
-    } catch (error: any) {
-      toast.error('Không thể tải hóa đơn: ' + error.message);
-      navigate('/core/subscription-invoices');
-    } finally {
-      setLoadingInvoice(false);
-    }
-  };
-
-  const handleSubmit = async (data: Omit<SubscriptionInvoice, '_id' | 'created_at' | 'updated_at' | 'version'>) => {
-    if (!id || !invoice) return;
-
-    try {
-      setLoading(true);
-      await subscriptionInvoiceApi.update(id, {
-        ...data,
-        version: invoice.version,
-      });
-      toast.success('Cập nhật hóa đơn thành công!');
-      navigate('/core/subscription-invoices');
-    } catch (error: any) {
-      if (error.message.includes('Version conflict') || error.message.includes('409')) {
-        toast.error('Hóa đơn đã được cập nhật bởi người khác. Đang tải lại...');
-        if (id) loadInvoice(id);
-      } else {
-        toast.error('Không thể cập nhật hóa đơn: ' + error.message);
+    const loadInvoice = async () => {
+      if (!id) return;
+      try {
+        setLoading(true);
+        const data = await invoiceApi.getById(id);
+        if (data) {
+          setInvoice(data);
+        } else {
+          showToast.error('Lỗi', 'Không tìm thấy hóa đơn');
+          navigate('/commerce/subscription-invoices');
+        }
+      } catch (error: any) {
+        console.error('Error fetching invoice:', error);
+        showToast.error('Lỗi', 'Không thể tải hóa đơn: ' + error.message);
+        navigate('/commerce/subscription-invoices');
+      } finally {
+        setLoading(false);
       }
-      throw error;
+    };
+
+    loadInvoice();
+  }, [id, navigate]);
+
+  const handleSubmit = async (data: any) => {
+    if (!id) return;
+
+    setSaving(true);
+    try {
+      await invoiceApi.update(id, data);
+      showToast.success('Thành công', 'Đã cập nhật hóa đơn');
+      navigate('/commerce/subscription-invoices');
+    } catch (error: any) {
+      console.error('Error updating invoice:', error);
+      showToast.error('Lỗi', 'Không thể cập nhật hóa đơn: ' + error.message);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (loadingInvoice) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <RefreshCw className="h-12 w-12 animate-spin mx-auto text-primary mb-4" />
-          <p className="text-muted-foreground">Đang tải hóa đơn...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải...</p>
         </div>
       </div>
     );
   }
 
-  if (!invoice) {
-    return null;
-  }
+  if (!invoice) return null;
 
   return (
     <FormPageLayout
       mode="edit"
-      title="Chỉnh sửa hóa đơn"
-      description={`Cập nhật thông tin hóa đơn #${invoice.invoice_number}`}
+      title="Chỉnh sửa Hóa Đơn"
+      description={`Cập nhật thông tin hóa đơn ${invoice.invoice_number}`}
       icon={FileText}
-      backPath="/core/subscription-invoices"
-      backLabel="Quay lại danh sách"
+      backPath="/commerce/subscription-invoices"
+      backLabel="Danh sách hóa đơn"
     >
-      <InvoiceForm
+      <EnhancedInvoiceForm 
         initialData={invoice}
-        onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/subscription-invoices')}
-        loading={loading}
+        isEdit={true}
+        onSubmit={handleSubmit} 
+        loading={saving}
+        onCancel={() => navigate('/commerce/subscription-invoices')}
       />
     </FormPageLayout>
   );

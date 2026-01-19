@@ -1,12 +1,11 @@
 /**
  * API Usage Logs Analytics Page
- * Displays analytics and statistics for API usage
- * Route: /core/api-usage-logs/analytics
+ * Analytics dashboard for API usage
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import { ArrowLeft, Download, Calendar } from 'lucide-react';
 import { ApiUsageLogsAnalytics } from '../../../components/api-usage-logs/ApiUsageLogsAnalytics';
 import { ApiUsageLogFilters } from '../../../services/apiUsageLogsService';

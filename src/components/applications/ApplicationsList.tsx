@@ -49,7 +49,7 @@ export function ApplicationsList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -73,7 +73,7 @@ export function ApplicationsList() {
           </p>
         </div>
         <Link
-          to="/core/applications/new"
+          to="/platform/applications/create"
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           + Create Application
@@ -141,7 +141,7 @@ export function ApplicationsList() {
             Get started by creating your first application
           </p>
           <Link
-            to="/core/applications/new"
+            to="/platform/applications/create"
             className="inline-flex px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
           >
             Create Application
@@ -177,7 +177,7 @@ export function ApplicationsList() {
                 <tr key={app._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Link
-                      to={`/core/applications/${app.code}`}
+                      to={`/platform/applications/${app.code}`}
                       className="text-sm font-mono font-medium text-indigo-600 hover:text-indigo-900"
                     >
                       {app.code}
@@ -214,7 +214,7 @@ export function ApplicationsList() {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
                       <Link
-                        to={`/core/applications/${app.code}`}
+                        to={`/platform/applications/${app.code}`}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         View
@@ -223,7 +223,7 @@ export function ApplicationsList() {
                         <>
                           <span className="text-gray-300">|</span>
                           <Link
-                            to={`/core/applications/${app.code}/edit`}
+                            to={`/platform/applications/${app.code}/edit`}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             Edit

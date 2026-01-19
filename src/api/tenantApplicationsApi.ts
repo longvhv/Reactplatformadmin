@@ -5,6 +5,12 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
+import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = `https://${projectId}.supabase.co`;
+const supabaseKey = publicAnonKey;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ==================== TYPES ====================
 
@@ -13,6 +19,7 @@ export type LicenseType = 'TRIAL' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
 export interface TenantApplication {
   // I. ĐỊNH DANH
   _id: string;
+  id?: string; // Legacy support
   tenant_id: string;
   app_code: string;
   
@@ -98,12 +105,12 @@ export const tenantApplicationsApi = {
    * Fetch tenant applications with filters
    */
   getAll: async (filters?: TenantApplicationFilters): Promise<TenantApplication[]> => {
-    const { getSupabaseClient } = await import('../lib/supabase');
-    const supabase = getSupabaseClient();
-
     let query = supabase
       .from('tenant_applications')
-      .select('*')
+      .select(`
+        *,
+        application:applications(name, description, icon_url)
+      `)
       .order('created_at', { ascending: false });
 
     // Apply filters
@@ -139,7 +146,14 @@ export const tenantApplicationsApi = {
       throw new Error(`Failed to fetch tenant applications: ${error.message}`);
     }
 
-    return data || [];
+    // Map _id and populate application details
+    return (data || []).map((item: any) => ({
+      ...item,
+      id: item._id,
+      app_name: item.application?.name,
+      app_description: item.application?.description,
+      app_icon: item.application?.icon_url
+    }));
   },
 
   /**
@@ -178,9 +192,6 @@ export const tenantApplicationsApi = {
    * Activate application
    */
   activate: async (id: string): Promise<TenantApplication> => {
-    const { getSupabaseClient } = await import('../lib/supabase');
-    const supabase = getSupabaseClient();
-
     const { data, error } = await supabase
       .from('tenant_applications')
       .update({
@@ -197,7 +208,7 @@ export const tenantApplicationsApi = {
       throw new Error(`Failed to activate application: ${error?.message || 'Unknown error'}`);
     }
 
-    return data;
+    return { ...data, id: data._id };
   },
 
   /**
@@ -205,9 +216,6 @@ export const tenantApplicationsApi = {
    * Deactivate application
    */
   deactivate: async (id: string): Promise<TenantApplication> => {
-    const { getSupabaseClient } = await import('../lib/supabase');
-    const supabase = getSupabaseClient();
-
     const { data, error } = await supabase
       .from('tenant_applications')
       .update({
@@ -223,13 +231,12 @@ export const tenantApplicationsApi = {
       throw new Error(`Failed to deactivate application: ${error?.message || 'Unknown error'}`);
     }
 
-    return data;
+    return { ...data, id: data._id };
   },
 
   /**
    * GET /tenant-applications/statistics
    * Get tenant applications statistics
-   * TODO (Golang): Implement statistics endpoint
    */
   getStatistics: async (tenantId: string): Promise<TenantApplicationStatistics> => {
     const apps = await tenantApplicationsApi.getAll({ tenant_id: tenantId });
@@ -304,7 +311,9 @@ export function calculateStatistics(apps: TenantApplication[]): TenantApplicatio
     }
 
     // By license type
-    byLicenseType[app.license_type]++;
+    if (byLicenseType[app.license_type] !== undefined) {
+      byLicenseType[app.license_type]++;
+    }
 
     // Expiring/Expired
     if (app.expires_at) {
@@ -341,7 +350,7 @@ export function getLicenseTypeLabel(type: LicenseType): string {
     PREMIUM: 'Cao cấp',
     ENTERPRISE: 'Doanh nghiệp',
   };
-  return labels[type];
+  return labels[type] || type;
 }
 
 /**
@@ -354,7 +363,7 @@ export function getLicenseTypeColor(type: LicenseType): string {
     PREMIUM: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
     ENTERPRISE: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
   };
-  return colors[type];
+  return colors[type] || 'bg-gray-100 text-gray-800';
 }
 
 /**

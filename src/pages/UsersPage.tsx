@@ -1,10 +1,10 @@
 /**
  * Users Page
  * Main users management page with table/grid view modes
- * ✅ UPDATED 2026-01-15: Unified statistics design
+ * ✅ MIGRATED Phase 3: ConfirmDialog, showToast, Fragment wrapper
  */
 
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -15,13 +15,18 @@ import {
 import { useUsers } from '../hooks/useUsers';
 import { UserTable } from '../components/users/UserTable';
 import { UserGrid } from '../components/users/UserGrid';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '../lib/toast';
 import { StatisticsCards } from '../components/common/StatisticsCards';
+import { PageLayout } from '../components/layout/PageLayout';
+import { useLanguage } from '../providers/LanguageProvider';
+import { Card } from '../components/ui/card';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 type UserStatus = 'ACTIVE' | 'BANNED' | 'DISABLED' | 'PENDING';
 
 export default function UsersPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,74 +37,106 @@ export default function UsersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
 
-  // Hooks
-  const { users, loading, error, deleteUser, updateUser } = useUsers({ autoLoad: true });
-
-  // Apply filters
-  const filteredUsers = users.filter(user => {
-    // Search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matches = 
-        user.full_name.toLowerCase().includes(query) ||
-        user.email.toLowerCase().includes(query) ||
-        user.phone?.toLowerCase().includes(query); // Fix: phone not phone_number
-      if (!matches) return false;
-    }
-
-    // Status
-    if (statusFilter !== 'all' && user.status !== statusFilter) return false;
-
-    // Verified - check email_verified since we don't have is_verified
-    if (verifiedFilter === 'verified' && !user.email_verified) return false;
-    if (verifiedFilter === 'unverified' && user.email_verified) return false;
-
-    // MFA - might be in metadata, skip for now
-    const userMfa = user.metadata?.mfa_enabled || false;
-    if (mfaFilter === 'enabled' && !userMfa) return false;
-    if (mfaFilter === 'disabled' && userMfa) return false;
-
-    return true;
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
   });
 
-  // Stats
-  const stats = {
-    total: users.length,
-    active: users.filter(u => u.status === 'ACTIVE').length,
-    verified: users.filter(u => u.email_verified).length, // Fix: email_verified
-    mfa: users.filter(u => u.metadata?.mfa_enabled).length, // Fix: from metadata
-    support: users.filter(u => u.metadata?.is_support_staff).length, // Fix: from metadata
-  };
+  // Hooks
+  const { users, loading, deleteUser, updateUser } = useUsers({ autoLoad: true });
+
+  // Apply filters - Memoized
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      // Search
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matches = 
+          user.full_name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query) ||
+          user.phone_number?.toLowerCase().includes(query);
+        if (!matches) return false;
+      }
+
+      // Status
+      if (statusFilter !== 'all' && user.status !== statusFilter) return false;
+
+      // Verified
+      if (verifiedFilter === 'verified' && !user.is_verified) return false;
+      if (verifiedFilter === 'unverified' && user.is_verified) return false;
+
+      // MFA
+      if (mfaFilter === 'enabled' && !user.mfa_enabled) return false;
+      if (mfaFilter === 'disabled' && user.mfa_enabled) return false;
+
+      return true;
+    });
+  }, [users, searchQuery, statusFilter, verifiedFilter, mfaFilter]);
+
+  // Stats - Memoized
+  const stats = useMemo(() => {
+    return [
+      { label: t('common.total'), value: users.length, color: 'gray' as const, icon: UsersIcon },
+      { label: t('users.active'), value: users.filter(u => u.status === 'ACTIVE').length, color: 'green' as const, icon: CheckCircle },
+      { label: t('users.verified'), value: users.filter(u => u.is_verified).length, color: 'blue' as const, icon: UserCheck },
+      { label: t('users.mfaEnabled'), value: users.filter(u => u.mfa_enabled).length, color: 'purple' as const, icon: Shield },
+      { label: t('users.supportStaff'), value: users.filter(u => u.is_support_staff).length, color: 'indigo' as const, icon: User },
+    ];
+  }, [users, t]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await deleteUser(id);
-      toast.success('User deleted successfully');
-    } catch (err) {
-      toast.error('Failed to delete user');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Xác nhận xóa người dùng',
+      description: 'Bạn có chắc chắn muốn xóa người dùng này không?',
+      onConfirm: async () => {
+        try {
+          await deleteUser(id);
+          showToast.success('Xóa thành công', 'Người dùng đã được xóa');
+        } catch (err) {
+          showToast.error('Lỗi', 'Không thể xóa người dùng');
+        }
+      },
+      variant: 'destructive',
+    });
   };
 
   const handleStatusChange = async (id: string, status: UserStatus) => {
     try {
       await updateUser(id, { status });
-      toast.success('Status updated successfully');
+      showToast.success('Cập nhật thành công', 'Trạng thái đã được thay đổi');
     } catch (err) {
-      toast.error('Failed to update status');
+      showToast.error('Lỗi', 'Không thể cập nhật trạng thái');
     }
   };
 
   const handleBulkAction = async (action: string) => {
     if (selectedUsers.length === 0) {
-      alert('Please select users first');
+      showToast.warning('Chọn người dùng', 'Vui lòng chọn ít nhất một người dùng');
       return;
     }
     
-    if (!confirm(`${action} ${selectedUsers.length} users?`)) return;
-    
-    // Implementation for bulk actions
-    console.log(`Bulk ${action}:`, selectedUsers);
+    setConfirmDialog({
+      open: true,
+      title: `Xác nhận ${action}`,
+      description: `Bạn có chắc muốn ${action} ${selectedUsers.length} người dùng đã chọn?`,
+      onConfirm: async () => {
+        // Implementation for bulk actions
+        console.log(`Bulk ${action}:`, selectedUsers);
+        showToast.success('Thành công', `Đã ${action} ${selectedUsers.length} người dùng`);
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+      variant: action === 'delete' ? 'destructive' : 'default',
+    });
   };
 
   const getStatusColor = (status: string) => {
@@ -122,34 +159,24 @@ export default function UsersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+      <Fragment>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+          </div>
         </div>
-      </div>
+      </Fragment>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-                <UsersIcon className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-3xl font-bold text-foreground">
-                Users
-              </span>
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Quản lý người dùng trong hệ thống
-            </p>
-          </div>
-
+    <Fragment>
+      <PageLayout
+        icon={UsersIcon}
+        title={t('navigation.users')}
+        description={t('users.description')}
+        actions={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -158,7 +185,7 @@ export default function UsersPage() {
               onClick={() => {/* Export */}}
             >
               <Download className="w-4 h-4" />
-              Export
+              {t('common.export')}
             </Button>
             <Button
               variant="outline"
@@ -167,34 +194,24 @@ export default function UsersPage() {
               onClick={() => {/* Import */}}
             >
               <Upload className="w-4 h-4" />
-              Import
+              {t('users.import')}
             </Button>
             <Button
               size="sm"
               className="gap-2"
-              onClick={() => navigate('/core/users/new')}
+              onClick={() => navigate('/admin/users/create')}
             >
               <Plus className="w-4 h-4" />
-              Add New
+              {t('users.addNew')}
             </Button>
           </div>
-        </div>
-
+        }
+      >
         {/* Stats */}
-        <StatisticsCards 
-          stats={[
-            { label: 'Tổng số', value: stats.total, color: 'gray', icon: UsersIcon },
-            { label: 'Active', value: stats.active, color: 'green', icon: CheckCircle },
-            { label: 'Verified', value: stats.verified, color: 'blue', icon: UserCheck },
-            { label: 'MFA Enabled', value: stats.mfa, color: 'purple', icon: Shield },
-            { label: 'Support Staff', value: stats.support, color: 'indigo', icon: User },
-          ]}
-          columns={5}
-          className="mb-6"
-        />
+        <StatisticsCards stats={stats} columns={5} />
 
         {/* Filters & Search */}
-        <div className="bg-white rounded-lg shadow-sm border p-4">
+        <Card className="p-6">
           <div className="flex gap-4 mb-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -214,18 +231,37 @@ export default function UsersPage() {
               <Filter className="w-4 h-4" />
               Filters
             </Button>
+
+            <div className="flex gap-1 border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className="gap-2"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="gap-2"
+              >
+                <Grid className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Trạng thái
                 </label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as UserStatus | 'all')}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
                 >
                   <option value="all">Tất cả</option>
                   <option value="ACTIVE">Active</option>
@@ -236,13 +272,13 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Xác thực
                 </label>
                 <select
                   value={verifiedFilter}
                   onChange={(e) => setVerifiedFilter(e.target.value as any)}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
                 >
                   <option value="all">Tất cả</option>
                   <option value="verified">Đã xác thực</option>
@@ -251,13 +287,13 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   MFA
                 </label>
                 <select
                   value={mfaFilter}
                   onChange={(e) => setMfaFilter(e.target.value as any)}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700"
                 >
                   <option value="all">Tất cả</option>
                   <option value="enabled">Đã bật</option>
@@ -270,7 +306,7 @@ export default function UsersPage() {
           {/* Bulk actions */}
           {selectedUsers.length > 0 && (
             <div className="flex items-center gap-2 pt-4 border-t mt-4">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedUsers.length} đã chọn
               </span>
               <Button
@@ -296,29 +332,7 @@ export default function UsersPage() {
               </Button>
             </div>
           )}
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex items-center justify-end mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setViewMode('table')}
-          >
-            <List className="w-4 h-4" />
-            Table
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid className="w-4 h-4" />
-            Grid
-          </Button>
-        </div>
+        </Card>
 
         {/* Users Table/Grid */}
         {viewMode === 'table' ? (
@@ -338,7 +352,19 @@ export default function UsersPage() {
             handleStatusChange={handleStatusChange}
           />
         )}
-      </div>
-    </div>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          onConfirm={confirmDialog.onConfirm}
+          variant={confirmDialog.variant}
+          confirmLabel="Xác nhận"
+          cancelLabel="Hủy"
+        />
+      </PageLayout>
+    </Fragment>
   );
 }

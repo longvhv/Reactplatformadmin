@@ -4,6 +4,20 @@
 
 ---
 
+## 🆕 LATEST UPDATES (2026-01-16)
+
+### 🌍 i18n Migration Planning
+- **2026-01-16-react-i18next-migration-plan.md** - Full migration plan (30 pages)
+- **I18N_COMPARISON_TABLE.md** - Feature comparison & decision matrix  
+- **REACT_I18NEXT_QUICK_START.md** - Developer quick start guide (10 min read)
+- **EXECUTIVE_SUMMARY_I18N_MIGRATION.md** - Executive summary for stakeholders
+
+**Context:** Lập kế hoạch chuyển từ custom LanguageProvider → react-i18next  
+**Status:** ⏳ Planning Phase - Awaiting Approval  
+**Impact:** 476% ROI over 3 years, -48h/year maintenance cost
+
+---
+
 ## 🗂️ CẤU TRÚC THU MỤC
 
 ```

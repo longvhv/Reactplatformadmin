@@ -1,11 +1,10 @@
 /**
  * Revenue Statistics Component
- * Displays revenue analytics for a tenant/partner
- * Design inspired by Stripe/GitHub/Vercel
+ * Displays revenue statistics and charts for tenant
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import {
   LineChart,
   Line,
@@ -149,8 +148,52 @@ export const RevenueStatistics: React.FC<RevenueStatisticsProps> = ({ tenantId }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-        {error}
+      <div className="space-y-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">
+                {error}
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p className="mb-2 font-semibold">🚨 Quick Fix (2 phút):</p>
+                <ol className="list-decimal list-inside space-y-2 ml-2">
+                  <li>
+                    <strong>Enable Telemetry Schema:</strong>
+                    <ul className="list-disc list-inside ml-4 mt-1 text-xs">
+                      <li>Mở Supabase Dashboard → Settings → API</li>
+                      <li>Tìm "Exposed schemas" hoặc "DB Schema"</li>
+                      <li>Sửa từ <code className="bg-red-100 px-1 py-0.5 rounded">public</code> thành <code className="bg-red-100 px-1 py-0.5 rounded">public, telemetry</code></li>
+                      <li>Click Save</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Hard Refresh:</strong> Press <code className="bg-red-100 px-1 py-0.5 rounded">Ctrl+Shift+R</code> (Windows) or <code className="bg-red-100 px-1 py-0.5 rounded">Cmd+Shift+R</code> (Mac)
+                  </li>
+                </ol>
+                <p className="mt-3 text-xs bg-red-50 p-2 rounded border border-red-200">
+                  📖 Chi tiết: <code className="font-mono">/docs/QUICK-FIX-TELEMETRY-SCHEMA.md</code>
+                  <br />
+                  📖 Full guide: <code className="font-mono">/docs/bugfix/2026-01-16-telemetry-schema-postgrest-config.md</code>
+                </p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={loadData}
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-red-300 rounded-lg text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Retry
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

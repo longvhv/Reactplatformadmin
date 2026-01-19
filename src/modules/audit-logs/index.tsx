@@ -32,7 +32,7 @@ export const auditLogsModule = {
     {
       id: 'audit-logs',
       label: 'Lịch sử truy cập',
-      path: '/core/audit-logs',
+      path: '/admin/audit-logs',
       icon: Shield,
       order: 100,
     },
@@ -41,7 +41,7 @@ export const auditLogsModule = {
   // Routes
   routes: [
     {
-      path: '/core/audit-logs',
+      path: '/admin/audit-logs',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AuditLogsPage />
@@ -49,7 +49,7 @@ export const auditLogsModule = {
       ),
     },
     {
-      path: '/core/audit-logs/:id',
+      path: '/admin/audit-logs/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AuditLogDetailPage />
@@ -63,3 +63,6 @@ export const auditLogsModule = {
 };
 
 export default auditLogsModule;
+
+// Named export for consistency
+export { auditLogsModule as AuditLogsModule };

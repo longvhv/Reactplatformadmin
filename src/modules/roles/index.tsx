@@ -13,6 +13,8 @@ const EditRolePage = lazy(() => import("../../pages/EditRolePage"));
 
 /**
  * Roles Module
+ * 
+ * 🌐 Path: /admin/roles
  */
 export const RolesModule: ModuleDefinition = {
   id: "roles",
@@ -24,7 +26,7 @@ export const RolesModule: ModuleDefinition = {
   order: 14, // QUẢN TRỊ & TRUY CẬP group
   routes: [
     {
-      path: "/core/roles",
+      path: "/admin/roles",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Vai trò..." />}>
           <RolesPage />
@@ -33,7 +35,7 @@ export const RolesModule: ModuleDefinition = {
       title: "Roles",
     },
     {
-      path: "/core/roles/new",
+      path: "/admin/roles/create",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <AddRolePage />
@@ -42,7 +44,7 @@ export const RolesModule: ModuleDefinition = {
       title: "Add Role",
     },
     {
-      path: "/core/roles/:id",
+      path: "/admin/roles/:id",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải chi tiết..." />}>
           <RoleDetailPage />
@@ -51,7 +53,7 @@ export const RolesModule: ModuleDefinition = {
       title: "Role Detail",
     },
     {
-      path: "/core/roles/edit/:id",
+      path: "/admin/roles/:id/edit",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <EditRolePage />
@@ -65,7 +67,7 @@ export const RolesModule: ModuleDefinition = {
       id: "roles",
       label: "navigation.roles",
       icon: <Shield className="w-5 h-5" />,
-      path: "/core/roles",
+      path: "/admin/roles",
     },
   ],
 };

@@ -19,6 +19,8 @@ const UserDelegationsPage = lazy(() => import('../../pages/UserDelegationsPage')
   )
 })));
 
+const AddUserDelegationPage = lazy(() => import('../../pages/AddUserDelegationPage'));
+
 export const UserDelegationsModule: ModuleDefinition = {
   id: 'user-delegations',
   name: 'navigation.userDelegations',
@@ -29,7 +31,16 @@ export const UserDelegationsModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: '/core/user-delegations',
+      path: '/admin/user-delegations/create',
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
+          <AddUserDelegationPage />
+        </Suspense>
+      ),
+      title: 'Thêm Ủy Quyền',
+    },
+    {
+      path: '/admin/user-delegations',
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
           <UserDelegationsPage />
@@ -42,7 +53,7 @@ export const UserDelegationsModule: ModuleDefinition = {
     {
       id: 'user-delegations',
       label: 'navigation.userDelegations',
-      path: '/core/user-delegations',
+      path: '/admin/user-delegations',
       icon: <UserCog className="w-4 h-4" />,
       order: 95,
       description: 'Quản lý ủy quyền giữa các users',

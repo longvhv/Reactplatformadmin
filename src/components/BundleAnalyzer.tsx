@@ -47,13 +47,7 @@ export function BundleAnalyzer() {
   if (!isOpen) {
     return (
       <div className="fixed bottom-4 left-4 z-50">
-        <button
-          onClick={() => setIsOpen(true)}
-          className="px-3 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors text-sm"
-          title="Ctrl+Shift+B"
-        >
-          📊 Bundle
-        </button>
+        {/* Bundle button removed */}
       </div>
     );
   }

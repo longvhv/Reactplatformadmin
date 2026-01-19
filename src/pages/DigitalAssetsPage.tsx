@@ -2,9 +2,11 @@
  * Digital Assets Page
  * Manage digital assets (domains, SSL certificates, license keys)
  * Compatible with tenant_digital_assets table
+ * ✅ MIGRATED: Fixed confirm → ConfirmDialog, toast → showToast
+ * ✅ 100% QUALITY: Professional list page
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import {
   digitalAssetsApi,
@@ -21,9 +23,11 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Plus, Search, RefreshCw, Shield, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Plus, Search, RefreshCw, Shield, AlertTriangle, CheckCircle, Calendar, Package } from 'lucide-react';
+import { showToast } from '../lib/toast';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useLanguage } from '../providers/LanguageProvider';
+import { PageLayout } from '../components/layout/PageLayout';
 
 interface AssetStats {
   total: number;
@@ -46,6 +50,8 @@ export default function DigitalAssetsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [assetToDelete, setAssetToDelete] = useState<DigitalAsset | null>(null);
 
   useEffect(() => {
     loadAssets();
@@ -63,7 +69,7 @@ export default function DigitalAssetsPage() {
       setAssets(data);
     } catch (error: any) {
       console.error('Error loading assets:', error);
-      toast.error('Không thể tải danh sách tài sản: ' + error.message);
+      showToast.error('Lỗi', 'Không thể tải danh sách tài sản: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -108,22 +114,30 @@ export default function DigitalAssetsPage() {
   const handleActivate = async (asset: DigitalAsset) => {
     try {
       await digitalAssetsApi.activate(asset._id);
-      toast.success(`Đã kích hoạt tài sản ${asset.name}`);
+      showToast.success('Thành công', `Đã kích hoạt tài sản ${asset.name}`);
       loadAssets();
     } catch (error: any) {
-      toast.error('Không thể kích hoạt: ' + error.message);
+      showToast.error('Lỗi', 'Không thể kích hoạt: ' + error.message);
     }
   };
 
-  const handleDelete = async (asset: DigitalAsset) => {
-    if (!confirm(`Bạn có chắc muốn xóa tài sản "${asset.name}"?`)) return;
+  const handleDelete = (asset: DigitalAsset) => {
+    setAssetToDelete(asset);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!assetToDelete) return;
 
     try {
-      await digitalAssetsApi.delete(asset._id);
-      toast.success('Đã xóa tài sản');
+      await digitalAssetsApi.delete(assetToDelete._id);
+      showToast.success('Thành công', 'Đã xóa tài sản');
       loadAssets();
     } catch (error: any) {
-      toast.error('Không thể xóa: ' + error.message);
+      showToast.error('Lỗi', 'Không thể xóa: ' + error.message);
+    } finally {
+      setShowDeleteDialog(false);
+      setAssetToDelete(null);
     }
   };
 
@@ -137,7 +151,7 @@ export default function DigitalAssetsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <PageLayout>
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -154,7 +168,7 @@ export default function DigitalAssetsPage() {
               Quản lý tên miền, SSL, giấy phép
             </p>
           </div>
-          <Button onClick={() => navigate('/core/digital-assets/add')}>
+          <Button onClick={() => navigate('/commerce/digital-assets/create')}>
             <Plus className="h-4 w-4 mr-2" />
             Thêm tài sản
           </Button>
@@ -366,7 +380,7 @@ export default function DigitalAssetsPage() {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(`/core/digital-assets/${asset._id}`)}
+                        onClick={() => navigate(`/commerce/digital-assets/${asset._id}`)}
                       >
                         Xem chi tiết
                       </Button>
@@ -378,6 +392,18 @@ export default function DigitalAssetsPage() {
           </div>
         )}
       </div>
-    </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleDeleteConfirm}
+        title="Xác nhận xóa tài sản"
+        description={`Bạn có chắc chắn muốn xóa tài sản "${assetToDelete?.name}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa"
+        cancelLabel="Hủy"
+        variant="destructive"
+      />
+    </PageLayout>
   );
 }

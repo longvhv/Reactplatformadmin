@@ -1,11 +1,11 @@
 /**
  * Traffic Logs Analytics Page
- * Advanced analytics and visualizations for traffic data
+ * Analytics and statistics for traffic logs
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../providers/LanguageProvider';
+import { useNavigate } from 'react-router';
 import { ArrowLeft, Download, RefreshCw, Calendar } from 'lucide-react';
 import {
   getTrafficStats,
@@ -145,7 +145,7 @@ export default function TrafficLogsAnalyticsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/core/traffic-logs')}>
+            <Button variant="ghost" onClick={() => navigate('/platform/traffic-logs')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               {t('common.back')}
             </Button>

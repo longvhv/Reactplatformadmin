@@ -53,7 +53,7 @@ export function EnhancedTenantCard({ tenant, onDelete, showHierarchy = true }: E
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/core/tenants/${tenant._id}`)}
+              onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <ExternalLink className="w-4 h-4" />
@@ -61,7 +61,7 @@ export function EnhancedTenantCard({ tenant, onDelete, showHierarchy = true }: E
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/core/tenants/edit/${tenant._id}`)}
+              onClick={() => navigate(`/admin/tenants/${tenant._id}/edit`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <Edit className="w-4 h-4" />

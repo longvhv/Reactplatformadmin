@@ -57,6 +57,15 @@ const en: TranslationKeys = {
     filters: 'Filters',
     export: 'Export',
     view: 'View',
+    status: 'Status',
+    new: 'New',
+    detail: 'Detail',
+    duplicate: 'Duplicate',
+    auditTrail: 'Audit Trail',
+    createdAt: 'Created At',
+    updatedAt: 'Updated At',
+    version: 'Version',
+    update: 'Update',
   },
 
   navigation: {
@@ -104,6 +113,45 @@ const en: TranslationKeys = {
     apiKeys: 'API Keys',
     reports: 'Reports',
     auditLogs: 'Audit Logs',
+    // Special pages & sub-pages
+    analytics: 'Analytics',
+    statistics: 'Statistics',
+    activity: 'Activity',
+    history: 'History',
+    usage: 'Usage',
+    entitlements: 'Entitlements',
+    keys: 'Keys',
+    api: 'API',
+    serviceAccounts: 'Service Accounts',
+    domains: 'Domains',
+    invitations: 'Invitations',
+    routes: 'Routes',
+    sso: 'SSO',
+    configurations: 'Configurations',
+    ssoConfigs: 'SSO Configs',
+    userGroups: 'User Groups',
+    userRoles: 'User Roles',
+    sessions: 'Sessions',
+    devices: 'Devices',
+    consents: 'Consents',
+    linkedIdentities: 'Linked Identities',
+    mfaMethods: 'MFA Methods',
+    mfa: 'MFA',
+    authMethods: 'Auth Methods',
+    webhookDeliveryLogs: 'Webhook Delivery Logs',
+    saasProductTypes: 'SaaS Product Types',
+    subscriptionOrders: 'Subscription Orders',
+    subscriptionInvoices: 'Subscription Invoices',
+    tenantSubscriptions: 'Tenant Subscriptions',
+    systemAnnouncements: 'System Announcements',
+    systemJobs: 'System Jobs',
+    featureFlags: 'Feature Flags',
+    notificationTemplates: 'Notification Templates',
+    apiUsageLogs: 'API Usage Logs',
+    trafficLogs: 'Traffic Logs',
+    userRegistrationTelemetry: 'User Registration Telemetry',
+    locations: 'Locations',
+    tenantMembers: 'Tenant Members',
   },
 
   auth: {
@@ -725,6 +773,7 @@ const en: TranslationKeys = {
 
   locations: {
     title: 'Locations',
+    menu: 'Locations',
     subtitle: 'Manage physical locations and their hierarchy',
     searchPlaceholder: 'Search by name, code or address...',
     add: 'Add Location',
@@ -2365,6 +2414,47 @@ const en: TranslationKeys = {
     exportError: 'Error exporting consents',
     confirmDelete: 'Are you sure you want to delete consent for "{{title}}"?',
     confirmRenew: 'Are you sure you want to renew this consent? This will extend the expiry date.',
+  },
+
+  // ✅ FIX 2026-01-16: Missing translation keys for menu items
+  products: {
+    title: 'Products',
+    menu: 'Products',
+  },
+
+  servicePackages: {
+    title: 'Service Packages',
+    menu: 'Service Packages',
+  },
+
+  subscriptionOrders: {
+    title: 'Subscription Orders',
+    menu: 'Orders',
+  },
+
+  invoices: {
+    title: 'Invoices',
+    menu: 'Invoices',
+  },
+
+  subscriptions: {
+    title: 'Subscriptions',
+    menu: 'Subscriptions',
+  },
+
+  systemAnnouncements: {
+    title: 'System Announcements',
+    menu: 'Announcements',
+  },
+
+  notificationTemplates: {
+    title: 'Notification Templates',
+    menu: 'Templates',
+  },
+
+  saasProductTypes: {
+    title: 'SaaS Product Types',
+    menu: 'SaaS Products',
   },
 };
 

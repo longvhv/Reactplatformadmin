@@ -4,6 +4,7 @@
  * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useLanguage } from '../providers/LanguageProvider';
@@ -22,7 +23,7 @@ export function AddSystemCategoryPage() {
       setLoading(true);
       await systemCategoryApi.create(data);
       toast.success(t('systemCategories.createSuccess'));
-      navigate('/core/system-categories');
+      navigate('/platform/system-categories');
     } catch (error: any) {
       console.error('Failed to create system category:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
@@ -33,7 +34,7 @@ export function AddSystemCategoryPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/system-categories');
+    navigate('/platform/system-categories');
   };
 
   return (
@@ -42,7 +43,7 @@ export function AddSystemCategoryPage() {
       title={t('systemCategories.createCategory')}
       description={t('systemCategories.addCategoryDescription')}
       icon={Plus}
-      backPath="/core/system-categories"
+      backPath="/platform/system-categories"
       backLabel={t('common.backToList')}
     >
       <EnhancedSystemCategoryForm 

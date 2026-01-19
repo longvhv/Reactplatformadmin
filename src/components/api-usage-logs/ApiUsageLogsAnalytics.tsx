@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Activity, AlertCircle, CheckCircle, Clock, Database } from 'lucide-react';
 import { apiUsageLogsService, ApiUsageStats, ApiUsageLogFilters } from '../../services/apiUsageLogsService';
@@ -45,7 +45,7 @@ export const ApiUsageLogsAnalytics: React.FC<ApiUsageLogsAnalyticsProps> = ({ fi
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }

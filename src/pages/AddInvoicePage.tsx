@@ -1,70 +1,49 @@
 /**
  * Add Invoice Page
- * Page for creating new invoices
- * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * Create new subscription invoice
+ * ✅ Updated to use EnhancedInvoiceForm
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { FileText } from 'lucide-react';
-import { subscriptionInvoiceApi, SubscriptionInvoice } from '../api/subscriptionInvoiceApi';
-import { InvoiceForm } from '../components/invoices/InvoiceForm';
-import { FormPageLayout } from '../components/layouts/FormPageLayout';
-import { useLanguage } from '../providers/LanguageProvider';
-import { toast } from 'sonner@2.0.3';
+import { invoiceApi, CreateInvoiceRequest } from '@/api/invoiceApi';
+import { EnhancedInvoiceForm } from '@/components/invoices/EnhancedInvoiceForm';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { showToast } from '@/lib/toast';
 
-export const AddInvoicePage: React.FC = () => {
+export default function AddInvoicePage() {
   const navigate = useNavigate();
-  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (data: Omit<SubscriptionInvoice, '_id' | 'created_at' | 'updated_at' | 'version'>) => {
+  const handleSubmit = async (data: CreateInvoiceRequest | any) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Check if invoice number already exists
-      const exists = await subscriptionInvoiceApi.numberExists(
-        data.invoice_number,
-        data.tenant_id
-      );
-      
-      if (exists) {
-        toast.error(t('invoices.errors.invoiceNumberExists'));
-        throw new Error('Invoice number exists');
-      }
-
-      await subscriptionInvoiceApi.create(data);
-      toast.success(t('invoices.createSuccess'));
-      navigate('/core/subscription-invoices');
+      await invoiceApi.create(data);
+      showToast.success('Thành công', 'Đã tạo hóa đơn mới');
+      navigate('/commerce/subscription-invoices');
     } catch (error: any) {
-      console.error('Failed to create invoice:', error);
-      toast.error(error.message || t('errors.somethingWentWrong'));
-      throw error;
+      console.error('Error creating invoice:', error);
+      showToast.error('Lỗi', 'Không thể tạo hóa đơn: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
-    navigate('/core/subscription-invoices');
-  };
-
   return (
     <FormPageLayout
       mode="add"
-      title={t('invoices.addInvoice')}
-      description={t('invoices.addInvoiceDescription')}
+      title="Thêm Hóa Đơn"
+      description="Tạo hóa đơn thanh toán cho khách hàng"
       icon={FileText}
-      backPath="/core/subscription-invoices"
-      backLabel={t('common.backToList')}
+      backPath="/commerce/subscription-invoices"
+      backLabel="Danh sách hóa đơn"
     >
-      <InvoiceForm
-        onSubmit={handleSubmit}
-        onCancel={handleCancel}
+      <EnhancedInvoiceForm 
+        onSubmit={handleSubmit} 
         loading={loading}
+        onCancel={() => navigate('/commerce/subscription-invoices')}
       />
     </FormPageLayout>
   );
-};
-
-export default AddInvoicePage;
+}

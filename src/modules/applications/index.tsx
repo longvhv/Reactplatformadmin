@@ -19,6 +19,8 @@ const ApplicationFormPage = lazy(() =>
 
 /**
  * Applications Module
+ * 
+ * 🌐 Path: /platform/applications
  */
 export const ApplicationsModule: ModuleDefinition = {
   id: 'applications',
@@ -30,7 +32,7 @@ export const ApplicationsModule: ModuleDefinition = {
   order: 50, // NỀN TẢNG & CẤU HÌNH group
   routes: [
     {
-      path: '/core/applications',
+      path: '/platform/applications',
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Applications..." />}>
           <ApplicationsPage />
@@ -38,7 +40,7 @@ export const ApplicationsModule: ModuleDefinition = {
       ),
       title: 'Applications',
     },
-    // Note: /core/applications/:id and /core/applications/new routes
+    // Note: /platform/applications/:id and /platform/applications/create routes
     // are defined in App.tsx (full-screen detail pages)
   ],
   menuItems: [
@@ -46,7 +48,7 @@ export const ApplicationsModule: ModuleDefinition = {
       id: 'applications',
       label: 'navigation.applications',
       icon: <AppWindow className="w-5 h-5" />,
-      path: '/core/applications',
+      path: '/platform/applications',
     },
   ],
 };

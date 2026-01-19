@@ -9,7 +9,7 @@ import { Building2, RefreshCw } from 'lucide-react';
 import { FormPageLayout } from '@/components/layouts/FormPageLayout';
 import { EnhancedTenantForm } from '@/components/tenants/EnhancedTenantForm';
 import { useTenants } from '@/hooks/useTenants';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '@/lib/toast';
 
 export default function EditTenantPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,10 +21,10 @@ export default function EditTenantPage() {
   const handleSubmit = async (data: any) => {
     try {
       await updateTenant(id!, data);
-      toast.success('Cập nhật tenant thành công!');
-      navigate('/core/tenants');
+      showToast.success('Cập nhật tenant thành công!');
+      navigate('/admin/tenants');
     } catch (error: any) {
-      toast.error('Không thể cập nhật tenant: ' + error.message);
+      showToast.error('Lỗi', 'Không thể cập nhật tenant: ' + error.message);
       throw error;
     }
   };
@@ -56,7 +56,7 @@ export default function EditTenantPage() {
       title="Chỉnh sửa Tenant"
       description={`Cập nhật thông tin cho ${tenant.name}`}
       icon={Building2}
-      backPath="/core/tenants"
+      backPath="/admin/tenants"
       backLabel="Quay lại danh sách"
     >
       <EnhancedTenantForm

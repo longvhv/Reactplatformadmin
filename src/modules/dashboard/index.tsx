@@ -13,6 +13,8 @@ const DashboardPage = lazy(() => import("./DashboardPage"));
  * 
  * Module trang chủ/dashboard của ứng dụng
  * Metadata loaded immediately, component lazy loaded
+ * 
+ * 🌐 Path: /admin/dashboard
  */
 export const DashboardModule: ModuleConfig = {
   id: "dashboard",
@@ -23,7 +25,7 @@ export const DashboardModule: ModuleConfig = {
   order: 1, // CHÍNH group
   routes: [
     {
-      path: "/core/dashboard",
+      path: "/admin/dashboard",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Dashboard..." />}>
           <DashboardPage />
@@ -37,7 +39,7 @@ export const DashboardModule: ModuleConfig = {
       id: "dashboard",
       label: "navigation.dashboard",
       icon: <LayoutDashboard className="w-5 h-5" />,
-      path: "/core/dashboard",
+      path: "/admin/dashboard",
     },
   ],
 };

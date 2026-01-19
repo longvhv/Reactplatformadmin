@@ -1,12 +1,11 @@
 /**
  * API Usage Log Detail Page
- * Displays detailed information about a single API usage log
- * Route: /core/api-usage-logs/:id
+ * Shows details of a specific API usage log
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import { ApiUsageLogDetail } from '../../../components/api-usage-logs/ApiUsageLogDetail';
 import { apiUsageLogsService, ApiUsageLog } from '../../../services/apiUsageLogsService';

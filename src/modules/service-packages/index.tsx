@@ -1,24 +1,17 @@
 /**
- * Service Packages Module
- * Service Package Management with Features & Limits Configuration
+ * Service Packages Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/service-packages
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Package2 } from 'lucide-react';
 
-// Lazy-loaded pages
 const ServicePackagesPage = lazy(() => import('../../pages/ServicePackagesPage'));
-// Note: AddServicePackagePage and EditServicePackagePage moved to App.tsx
-// to fix routing precedence issue (must come before /:id route)
 
-// Note: ServicePackageDetailPage is full-screen (defined in App.tsx)
-
-/**
- * Service Packages Module Definition
- * Note: menuItems label and routes title use translation keys that will be resolved at runtime
- */
 export const ServicePackagesModule: ModuleDefinition = {
   id: "service-packages",
   name: "Service Packages",
@@ -31,7 +24,7 @@ export const ServicePackagesModule: ModuleDefinition = {
     {
       id: "service-packages",
       label: "servicePackages.title", // Translation key
-      path: "/core/service-packages",
+      path: "/commerce/service-packages",
       icon: <Package2 className="w-5 h-5" />,
       order: 45,
     },
@@ -39,7 +32,7 @@ export const ServicePackagesModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/service-packages",
+      path: "/commerce/service-packages",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ServicePackagesPage />

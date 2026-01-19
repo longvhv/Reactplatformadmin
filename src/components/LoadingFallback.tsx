@@ -10,19 +10,21 @@ interface LoadingFallbackProps {
  * Loading Fallback Component
  * 
  * Elegant loading state cho Suspense boundaries
+ * với skeleton screens để improve perceived performance
  */
 export function LoadingFallback({ 
   message = "Đang tải...", 
-  fullScreen = false 
+  fullScreen = true  // Changed default to true for better UX
 }: LoadingFallbackProps) {
   if (fullScreen) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center animate-in fade-in-0 zoom-in-95 duration-500">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary-500/20 to-primary-500/10 flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
-          <p className="text-muted-foreground">{message}</p>
+          <p className="text-muted-foreground text-sm">{message}</p>
+          <p className="text-xs text-muted-foreground/60 mt-2">Vui lòng đợi trong giây lát...</p>
         </div>
       </div>
     );

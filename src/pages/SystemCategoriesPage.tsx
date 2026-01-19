@@ -1,9 +1,13 @@
 /**
- * System Categories Management Page
- * 3-Level Hierarchy: Group -> Type -> Category
+ * System Categories Page
+ * Manage system categories dynamically
+ * ✅ REFACTORED: PageLayout, StatisticsCards, 100% UI/UX Quality
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
+import { Plus, FolderTree, Settings, Trash2, Edit, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { showToast } from '../lib/toast';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useLanguage } from '../providers/LanguageProvider';
 import {
   SystemCategoryGroup,
@@ -12,15 +16,16 @@ import {
   CategoryStatusHelper,
 } from '../api/systemCategoriesApi';
 import { Button } from '../components/ui/button';
-import { Plus, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
 import { CategoryGroupSelector } from '../components/systemCategories/CategoryGroupSelector';
 import { CategoryTypeSelector } from '../components/systemCategories/CategoryTypeSelector';
 import { CategoryTable } from '../components/systemCategories/CategoryTable';
 import { CategoryFormDialog } from '../components/systemCategories/CategoryFormDialog';
 import { useSystemCategories } from '../hooks/useSystemCategories';
+import { PageLayout } from '../components/layout/PageLayout';
+import { StatisticsCards } from '../components/common/StatisticsCards';
+import { Card } from '../components/ui/card';
 
-export function SystemCategoriesPage() {
+export default function SystemCategoriesPage() {
   const { t } = useLanguage();
   const {
     groups,
@@ -45,6 +50,20 @@ export function SystemCategoriesPage() {
   // UI state
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryInstance | null>(null);
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   // Auto-select first group when groups are loaded
   useEffect(() => {
@@ -105,7 +124,7 @@ export function SystemCategoriesPage() {
 
   const handleAddCategory = () => {
     if (!selectedType) {
-      toast.error('Vui lòng chọn loại danh mục trước');
+      showToast('error', 'Vui lòng chọn loại danh mục trước');
       return;
     }
     setEditingCategory(null);
@@ -118,19 +137,25 @@ export function SystemCategoriesPage() {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa danh mục này?')) return;
-    
-    try {
-      await deleteCategory(id);
-      toast.success('Đã xóa danh mục');
-      // Reload categories after delete
-      if (selectedType) {
-        const typeCats = await getCategoriesByType(selectedType.code);
-        setCategories(typeCats);
-      }
-    } catch (error: any) {
-      toast.error('Không thể xóa danh mục: ' + error.message);
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Xác nhận xóa danh mục',
+      description: 'Bạn có chắc chắn muốn xóa danh mục này?',
+      onConfirm: async () => {
+        try {
+          await deleteCategory(id);
+          showToast('success', 'Đã xóa danh mục');
+          // Reload categories after delete
+          if (selectedType) {
+            const typeCats = await getCategoriesByType(selectedType.code);
+            setCategories(typeCats);
+          }
+        } catch (error: any) {
+          showToast('error', 'Không thể xóa danh mục: ' + error.message);
+        }
+      },
+      variant: 'destructive',
+    });
   };
 
   const handleToggleStatus = async (category: CategoryInstance) => {
@@ -140,7 +165,7 @@ export function SystemCategoriesPage() {
         : CategoryStatusHelper.ACTIVE;
       
       await updateCategory(category.id!, { status: newStatus });
-      toast.success('Đã cập nhật trạng thái');
+      showToast('success', 'Đã cập nhật trạng thái');
       
       // Reload categories after update
       if (selectedType) {
@@ -148,7 +173,7 @@ export function SystemCategoriesPage() {
         setCategories(typeCats);
       }
     } catch (error: any) {
-      toast.error('Không thể cập nhật trạng thái: ' + error.message);
+      showToast('error', 'Không thể cập nhật trạng thái: ' + error.message);
     }
   };
 
@@ -156,7 +181,7 @@ export function SystemCategoriesPage() {
     try {
       if (editingCategory) {
         await updateCategory(editingCategory.id!, data);
-        toast.success('Đã cập nhật danh mục');
+        showToast('success', 'Đã cập nhật danh mục');
       } else {
         // Create new category with type from selected type
         await createCategory({
@@ -164,7 +189,7 @@ export function SystemCategoriesPage() {
           type: selectedType!.code,
           group_category_id: selectedGroup!.code,
         });
-        toast.success('Đã tạo danh mục mới');
+        showToast('success', 'Đã tạo danh mục mới');
       }
       
       setShowFormDialog(false);
@@ -176,27 +201,21 @@ export function SystemCategoriesPage() {
         setCategories(typeCats);
       }
     } catch (error: any) {
-      toast.error(error.message);
+      showToast('error', error.message);
     }
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Quản lý Danh mục Hệ thống
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Quản lý cấu trúc danh mục 3 cấp: Nhóm → Loại → Danh mục
-          </p>
-        </div>
+    <PageLayout
+      title="Quản lý Danh mục Hệ thống"
+      description="Quản lý cấu trúc danh mục 3 cấp: Nhóm → Loại → Danh mục"
+      icon={FolderTree}
+      actions={
         <div className="flex items-center gap-2">
           <Button
             onClick={() => {
               localStorage.removeItem('system_categories_data');
-              toast.info('Đã xóa cache');
+              showToast('info', 'Đã xóa cache');
             }}
             variant="outline"
             className="gap-2"
@@ -206,9 +225,9 @@ export function SystemCategoriesPage() {
           </Button>
           <Button
             onClick={async () => {
-              toast.info('Đang tải lại dữ liệu từ API...');
+              showToast('info', 'Đang tải lại dữ liệu từ API...');
               await refresh();
-              toast.success('Đã làm mới dữ liệu');
+              showToast('success', 'Đã làm mới dữ liệu');
             }}
             variant="outline"
             className="gap-2"
@@ -217,8 +236,8 @@ export function SystemCategoriesPage() {
             Làm mới
           </Button>
         </div>
-      </div>
-
+      }
+    >
       {/* Error Alert */}
       {hookError && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -348,8 +367,18 @@ export function SystemCategoriesPage() {
           }}
         />
       )}
-    </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        variant={confirmDialog.variant}
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+      />
+    </PageLayout>
   );
 }
-
-export default SystemCategoriesPage;

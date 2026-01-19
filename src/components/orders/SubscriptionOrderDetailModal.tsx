@@ -321,7 +321,7 @@ export const SubscriptionOrderDetailModal: React.FC<SubscriptionOrderDetailModal
   const StatusIcon = STATUS_CONFIG[order.status].icon;
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
         
         {/* ===== HEADER ===== */}

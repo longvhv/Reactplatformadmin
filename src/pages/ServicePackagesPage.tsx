@@ -3,11 +3,12 @@
  * 
  * Main page for managing service packages with statistics
  * Aligned with DatabaseCommand.md schema: product_id, entitlements_config, status, is_public
+ * ✅ MIGRATED Phase 3: ConfirmDialog, showToast, Fragment wrapper
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Search, Filter, RefreshCw, List, Grid, Edit2, Trash2, Copy, Package as PackageIcon } from 'lucide-react';
+import { Plus, Search, Filter, RefreshCw, List, Grid, Edit2, Trash2, Copy, Package as PackageIcon, CheckCircle, XCircle, Archive, Globe, Lock } from 'lucide-react';
 import { 
   packagesApi,
   Package, 
@@ -20,7 +21,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useLanguage } from '../providers/LanguageProvider';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '../lib/toast';
+import { PageLayout } from '../components/layout/PageLayout';
+import { StatisticsCards } from '../components/common/StatisticsCards';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 
 export default function ServicePackagesPage() {
   const { t } = useLanguage();
@@ -36,6 +40,23 @@ export default function ServicePackagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [publicFilter, setPublicFilter] = useState<string>('all');
+
+  // Deleting state
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     loadPackages();
@@ -53,7 +74,7 @@ export default function ServicePackagesPage() {
       setPackages(data);
     } catch (error: any) {
       console.error('Error loading packages:', error);
-      toast.error('Không thể tải danh sách gói dịch vụ: ' + error.message);
+      showToast.error('Lỗi', 'Không thể tải danh sách gói dịch vụ: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -97,29 +118,39 @@ export default function ServicePackagesPage() {
   };
 
   const handleDelete = async (pkg: Package) => {
-    if (!confirm(`Bạn có chắc muốn xóa gói "${pkg.name}"?`)) return;
-
-    try {
-      await packagesApi.delete(pkg._id);
-      toast.success('Đã xóa gói dịch vụ');
-      loadPackages();
-      loadStats();
-    } catch (error: any) {
-      console.error('Error deleting package:', error);
-      toast.error('Không thể xóa: ' + error.message);
-    }
+    setDeletingId(pkg._id);
+    setConfirmDialog({
+      open: true,
+      title: 'Xác nhận xóa',
+      description: `Bạn có chắc muốn xóa gói "${pkg.name}"?`,
+      onConfirm: async () => {
+        try {
+          await packagesApi.delete(pkg._id);
+          showToast.success('Thành công', 'Đã xóa gói dịch vụ');
+          loadPackages();
+          loadStats();
+        } catch (error: any) {
+          console.error('Error deleting package:', error);
+          showToast.error('Lỗi', 'Không thể xóa: ' + error.message);
+        } finally {
+          setDeletingId(null);
+          setConfirmDialog({ open: false, title: '', description: '', onConfirm: () => {} });
+        }
+      },
+      variant: 'destructive',
+    });
   };
 
   const handleClone = async (pkg: Package) => {
     try {
       const newCode = `${pkg.code}_COPY_${Date.now()}`;
       await packagesApi.clone(pkg._id, newCode);
-      toast.success('Đã sao chép gói dịch vụ');
+      showToast.success('Thành công', 'Đã sao chép gói dịch vụ');
       loadPackages();
       loadStats();
     } catch (error: any) {
       console.error('Error cloning package:', error);
-      toast.error('Không thể sao chép: ' + error.message);
+      showToast.error('Lỗi', 'Không thể sao chép: ' + error.message);
     }
   };
 
@@ -197,7 +228,7 @@ export default function ServicePackagesPage() {
                     <div>
                       <div 
                         className="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-indigo-600 hover:underline"
-                        onClick={() => navigate(`/core/service-packages/${pkg._id}`)}
+                        onClick={() => navigate(`/commerce/service-packages/${pkg._id}`)}
                       >
                         {pkg.name}
                       </div>
@@ -231,7 +262,7 @@ export default function ServicePackagesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/core/service-packages/edit/${pkg._id}`)}
+                        onClick={() => navigate(`/commerce/service-packages/edit/${pkg._id}`)}
                         title="Chỉnh sửa"
                       >
                         <Edit2 className="h-4 w-4" />
@@ -285,7 +316,7 @@ export default function ServicePackagesPage() {
                   <div className="flex-1">
                     <CardTitle 
                       className="text-lg mb-1 cursor-pointer hover:text-indigo-600"
-                      onClick={() => navigate(`/core/service-packages/${pkg._id}`)}
+                      onClick={() => navigate(`/commerce/service-packages/${pkg._id}`)}
                     >
                       {pkg.name}
                     </CardTitle>
@@ -326,7 +357,7 @@ export default function ServicePackagesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => navigate(`/core/service-packages/edit/${pkg._id}`)}
+                    onClick={() => navigate(`/commerce/service-packages/edit/${pkg._id}`)}
                     title="Chỉnh sửa"
                   >
                     <Edit2 className="h-4 w-4" />
@@ -358,71 +389,37 @@ export default function ServicePackagesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-                <PackageIcon className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-3xl font-bold text-foreground">Gói dịch vụ</span>
-            </h1>
-            <p className="text-muted-foreground mt-2">Quản lý các gói dịch vụ của hệ thống</p>
-          </div>
+    <Fragment>
+      <PageLayout
+        icon={PackageIcon}
+        title="Gói dịch vụ"
+        description="Quản lý các gói dịch vụ của hệ thống"
+        actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={loadPackages}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Làm mới
             </Button>
-            <Button onClick={() => navigate('/core/service-packages/add')}>
+            <Button onClick={() => navigate('/commerce/service-packages/add')}>
               <Plus className="h-4 w-4 mr-2" />
               Thêm gói mới
             </Button>
           </div>
-        </div>
-
-        {/* Statistics Cards */}
+        }
+      >
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Tổng số gói</div>
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Hoạt động</div>
-                <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Không hoạt động</div>
-                <div className="text-2xl font-bold text-gray-600">{stats.inactive}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Lưu trữ</div>
-                <div className="text-2xl font-bold text-orange-600">{stats.archived}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Công khai</div>
-                <div className="text-2xl font-bold text-blue-600">{stats.public}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Riêng tư</div>
-                <div className="text-2xl font-bold text-purple-600">{stats.private}</div>
-              </CardContent>
-            </Card>
-          </div>
+          <StatisticsCards
+            stats={[
+              { label: 'Tổng số gói', value: stats.total, color: 'gray', icon: PackageIcon },
+              { label: 'Hoạt động', value: stats.active, color: 'green', icon: CheckCircle },
+              { label: 'Không hoạt đng', value: stats.inactive, color: 'gray', icon: XCircle },
+              { label: 'Lưu trữ', value: stats.archived, color: 'orange', icon: Archive },
+              { label: 'Công khai', value: stats.public, color: 'blue', icon: Globe },
+              { label: 'Riêng tư', value: stats.private, color: 'purple', icon: Lock },
+            ]}
+            columns={6}
+            className="mb-0 border-none shadow-sm"
+          />
         )}
 
         {/* Filters */}
@@ -488,7 +485,19 @@ export default function ServicePackagesPage() {
         <Card>
           {viewMode === 'table' ? <TableView /> : <GridView />}
         </Card>
-      </div>
-    </div>
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          onConfirm={confirmDialog.onConfirm}
+          variant={confirmDialog.variant}
+          confirmLabel="Xác nhận"
+          cancelLabel="Hủy"
+        />
+      </PageLayout>
+    </Fragment>
   );
 }

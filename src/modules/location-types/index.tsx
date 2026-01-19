@@ -1,6 +1,8 @@
 /**
  * Location Types Module
  * Manages location type definitions with extra fields
+ * 
+ * 🌐 Path: /platform/location-types
  */
 
 import { lazy } from 'react';
@@ -20,7 +22,7 @@ export const LocationTypesModule: Module = {
   
   routes: [
     {
-      path: '/core/location-types',
+      path: '/platform/location-types',
       element: <LocationTypesPage />,
     },
   ],
@@ -30,7 +32,7 @@ export const LocationTypesModule: Module = {
       id: 'location-types',
       label: 'Location Types',
       icon: MapPin,
-      path: '/core/location-types',
+      path: '/platform/location-types',
       category: 'Master Data',
       order: 30,
       permission: 'location_types.view',

@@ -1,6 +1,8 @@
 /**
  * Feature Flags Module
  * Module definition for feature flags management
+ * 
+ * 🌐 Path: /platform/feature-flags
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -25,7 +27,7 @@ export const FeatureFlagsModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/feature-flags',
+      path: '/platform/feature-flags',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <FeatureFlagsPage />
@@ -34,7 +36,7 @@ export const FeatureFlagsModule: ModuleDefinition = {
       title: 'featureFlags.menu',
     },
     {
-      path: '/core/feature-flags/new',
+      path: '/platform/feature-flags/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddFeatureFlagPage />
@@ -43,7 +45,7 @@ export const FeatureFlagsModule: ModuleDefinition = {
       title: 'featureFlags.add',
     },
     {
-      path: '/core/feature-flags/edit/:id',
+      path: '/platform/feature-flags/:id/edit',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditFeatureFlagPage />
@@ -52,7 +54,7 @@ export const FeatureFlagsModule: ModuleDefinition = {
       title: 'featureFlags.edit',
     },
     {
-      path: '/core/feature-flags/:id',
+      path: '/platform/feature-flags/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <FeatureFlagDetailPage />
@@ -67,7 +69,7 @@ export const FeatureFlagsModule: ModuleDefinition = {
       id: 'feature-flags',
       label: 'featureFlags.menu',
       icon: <Flag className="h-5 w-5" />,
-      path: '/core/feature-flags',
+      path: '/platform/feature-flags',
       order: 1,
     },
   ],

@@ -1,0 +1,7 @@
+Replace these 5 instances in /pages/SubscriptionDetailPage.tsx:
+
+1. Line 62: navigate('/core/tenant-subscriptions') → navigate('/thuong-mai/dang-ky-to-chuc')
+2. Line 67: navigate('/core/tenant-subscriptions') → navigate('/thuong-mai/dang-ky-to-chuc')
+3. Line 81: navigate('/core/tenant-subscriptions') → navigate('/thuong-mai/dang-ky-to-chuc')
+4. Line 181: navigate('/core/tenant-subscriptions') → navigate('/thuong-mai/dang-ky-to-chuc')
+5. Line 312: navigate(`/core/tenant-subscriptions/edit/${subscription._id}`) → navigate(`/thuong-mai/dang-ky-to-chuc/sua/${subscription._id}`)

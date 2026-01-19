@@ -1,12 +1,11 @@
 /**
  * API Usage Logs Settings Page
- * Manages settings and configurations for API usage logging
- * Route: /core/api-usage-logs/settings
+ * Configuration and settings for API usage logging
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../providers/LanguageProvider';
 import { ArrowLeft } from 'lucide-react';
 import { ApiUsageLogsSettings } from '../../../components/api-usage-logs/ApiUsageLogsSettings';
 

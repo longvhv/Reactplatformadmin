@@ -5,12 +5,13 @@
  * Features: Filter, Search, Export, Real-time updates
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AuditLogTable } from '../components/audit-logs/AuditLogTable';
 import { useAuditLogs } from '../hooks/useAuditLogs';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Card } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import {
   Shield,
@@ -24,10 +25,12 @@ import {
   Users,
   CheckCircle,
   XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { useLanguage } from '../providers/LanguageProvider';
 import { AuditLogFilters, exportAuditLogs } from '../api/auditLogApi';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '../lib/toast';
+import { PageLayout } from '../components/layout/PageLayout';
 
 export default function AuditLogsPage() {
   const navigate = useNavigate();
@@ -58,7 +61,7 @@ export default function AuditLogsPage() {
   // Handle export
   const handleExport = async () => {
     try {
-      toast.info('Đang xuất dữ liệu...');
+      showToast.info('Đang xuất', 'Đang xuất dữ liệu...');
       const blob = await exportAuditLogs(filters);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -68,9 +71,9 @@ export default function AuditLogsPage() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      toast.success('Xuất dữ liệu thành công!');
+      showToast.success('Thành công', 'Xuất dữ liệu thành công!');
     } catch (error) {
-      toast.error('Lỗi khi xuất dữ liệu');
+      showToast.error('Lỗi', 'Lỗi khi xuất dữ liệu');
       console.error('Export error:', error);
     }
   };
@@ -86,87 +89,94 @@ export default function AuditLogsPage() {
   ).length;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Shield className="w-8 h-8 text-indigo-600" />
-              Lịch sử truy cập
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Theo dõi và kiểm toán mọi hoạt động trong hệ thống
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={refresh} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </Button>
-            <Button variant="outline" onClick={handleExport}>
-              <Download className="w-4 h-4 mr-2" />
-              Xuất CSV
-            </Button>
-          </div>
+    <PageLayout
+      icon={Shield}
+      title="Lịch sử truy cập"
+      description="Theo dõi và kiểm toán mọi hoạt động trong hệ thống"
+      actions={
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Xuất CSV
+          </Button>
         </div>
-      </div>
-
+      }
+    >
       {/* Statistics Cards */}
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tổng sự kiện</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Tổng sự kiện
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {statistics.total_events.toLocaleString()}
                 </p>
               </div>
-              <Activity className="w-8 h-8 text-indigo-600" />
+              <div className="p-3 rounded-lg bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600">
+                <Activity className="w-6 h-6" />
+              </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Thành công</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+          <Card className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Thành công
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {statistics.success_count.toLocaleString()}
                 </p>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-600" />
+              <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/20 text-green-600">
+                <CheckCircle className="w-6 h-6" />
+              </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Thất bại</p>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+          <Card className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Thất bại
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {statistics.failed_count.toLocaleString()}
                 </p>
               </div>
-              <XCircle className="w-8 h-8 text-red-600" />
+              <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-600">
+                <XCircle className="w-6 h-6" />
+              </div>
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Người dùng</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+          <Card className="p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                  Người dùng
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {statistics.unique_users.toLocaleString()}
                 </p>
               </div>
-              <Users className="w-8 h-8 text-indigo-600" />
+              <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/20 text-blue-600">
+                <Users className="w-6 h-6" />
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Filters & Search */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6">
+      <Card className="p-6">
         <div className="flex flex-col gap-4">
           {/* Search Bar */}
           <div className="flex gap-2">
@@ -276,39 +286,44 @@ export default function AuditLogsPage() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Results Info */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Hiển thị <span className="font-semibold">{logs.length}</span> trong tổng số{' '}
-          <span className="font-semibold">{total.toLocaleString()}</span> bản ghi
-        </p>
-      </div>
+        {/* Results Info */}
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Hiển thị <span className="font-semibold">{logs.length}</span> trong tổng số{' '}
+            <span className="font-semibold">{total.toLocaleString()}</span> bản ghi
+          </p>
+        </div>
+      </Card>
 
       {/* Error State */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-          <p className="text-red-800 dark:text-red-200">{error}</p>
-        </div>
+        <Card className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-600" />
+            <p className="text-red-800 dark:text-red-200">{error}</p>
+          </div>
+        </Card>
       )}
 
       {/* Table */}
-      <AuditLogTable 
-        logs={logs} 
-        loading={loading}
-        onViewDetails={(log) => navigate(`/core/audit-logs/${log._id}`)}
-      />
+      <Card>
+        <AuditLogTable 
+          logs={logs} 
+          loading={loading}
+          onViewDetails={(log) => navigate(`/admin/audit-logs/${log._id}`)}
+        />
+      </Card>
 
       {/* Load More */}
       {hasMore && !loading && (
-        <div className="mt-6 text-center">
+        <div className="flex justify-center">
           <Button variant="outline" onClick={loadMore}>
             <TrendingUp className="w-4 h-4 mr-2" />
             Tải thêm
           </Button>
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 }

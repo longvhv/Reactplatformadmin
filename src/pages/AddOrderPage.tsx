@@ -1,57 +1,30 @@
 /**
- * Add Subscription Order Page
- * Production-ready form for creating subscription orders
- * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
- * ✅ UPDATED 2026-01-15: Switched to OrderFormV2 with LineItemsEditor support
+ * Add Order Page
+ * Create new subscription order
+ * ✅ Updated to use EnhancedOrderForm
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ordersApi, CreateOrderRequest } from '../api/ordersApi';
-import { OrderFormV2 } from '../components/orders/OrderFormV2';
-import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { ShoppingCart } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { ordersApi, CreateOrderRequest } from '@/api/ordersApi';
+import { EnhancedOrderForm } from '@/components/orders/EnhancedOrderForm';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { showToast } from '@/lib/toast';
 
 export default function AddOrderPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (data: CreateOrderRequest) => {
+  const handleSubmit = async (data: CreateOrderRequest | any) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Validate required fields
-      if (!data.order_number) {
-        toast.error('Vui lòng nhập mã đơn hàng');
-        return;
-      }
-      
-      if (!data.tenant_id) {
-        toast.error('Vui lòng chọn tenant');
-        return;
-      }
-
-      if (data.total_amount <= 0) {
-        toast.error('Tổng tiền phải lớn hơn 0');
-        return;
-      }
-
-      // Create order
-      const created = await ordersApi.create(data);
-      
-      toast.success(`Đã tạo đơn hàng ${data.order_number}`);
-      navigate(`/core/subscription-orders/${created._id}`);
-      
+      await ordersApi.create(data);
+      showToast.success('Thành công', 'Đã tạo đơn hàng mới');
+      navigate('/commerce/subscription-orders');
     } catch (error: any) {
       console.error('Error creating order:', error);
-      
-      // Handle specific errors
-      if (error.message.includes('duplicate') || error.message.includes('unique')) {
-        toast.error('Mã đơn hàng đã tồn tại. Vui lòng dùng mã khác.');
-      } else {
-        toast.error(`Không thể tạo đơn hàng: ${error.message}`);
-      }
+      showToast.error('Lỗi', 'Không thể tạo đơn hàng: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -60,16 +33,16 @@ export default function AddOrderPage() {
   return (
     <FormPageLayout
       mode="add"
-      title="Tạo đơn hàng mới"
-      description="Tạo đơn hàng subscription cho tenant"
+      title="Thêm Đơn Hàng"
+      description="Tạo đơn hàng mới (Subscription hoặc One-time)"
       icon={ShoppingCart}
-      backPath="/core/subscription-orders"
-      backLabel="Quay lại danh sách"
+      backPath="/commerce/subscription-orders"
+      backLabel="Danh sách đơn hàng"
     >
-      <OrderFormV2
-        onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/subscription-orders')}
+      <EnhancedOrderForm 
+        onSubmit={handleSubmit} 
         loading={loading}
+        onCancel={() => navigate('/commerce/subscription-orders')}
       />
     </FormPageLayout>
   );

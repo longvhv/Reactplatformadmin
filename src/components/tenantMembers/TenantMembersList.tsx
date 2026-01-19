@@ -5,11 +5,12 @@
 
 import { useState, useMemo } from 'react';
 import { useLanguage } from '../../providers/LanguageProvider';
-import { Users, UserPlus, Search, Filter, MoreVertical, Edit, Trash2, UserCheck } from 'lucide-react';
+import { Search, Filter, MoreVertical, Edit, Trash2, UserCheck } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
+import { StatusBadge } from '@/components/common/StatusBadge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,26 +94,20 @@ export function TenantMembersList({
     });
   }, [members, searchQuery, roleFilter, statusFilter]);
 
-  // Get role badge color
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'OWNER': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'ADMIN': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'MEMBER': return 'bg-green-100 text-green-800 border-green-200';
-      case 'VIEWER': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  // Get role badge color - DEPRECATED: Use StatusBadge
+  const roleConfig = {
+    OWNER: { label: 'Owner', color: 'bg-purple-100 text-purple-800 border-purple-200' },
+    ADMIN: { label: 'Admin', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+    MEMBER: { label: 'Member', color: 'bg-green-100 text-green-800 border-green-200' },
+    VIEWER: { label: 'Viewer', color: 'bg-gray-100 text-gray-800 border-gray-200' },
   };
 
-  // Get status badge color
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'ACTIVE': return 'bg-green-100 text-green-800 border-green-200';
-      case 'ONBOARDING': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'SUSPENDED': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'RESIGNED': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
+  // Get status badge color - DEPRECATED: Use StatusBadge
+  const statusConfig = {
+    ACTIVE: { label: 'Active', color: 'bg-green-100 text-green-800 border-green-200' },
+    ONBOARDING: { label: 'Onboarding', color: 'bg-blue-100 text-blue-800 border-blue-200' },
+    SUSPENDED: { label: 'Suspended', color: 'bg-orange-100 text-orange-800 border-orange-200' },
+    RESIGNED: { label: 'Resigned', color: 'bg-gray-100 text-gray-800 border-gray-200' },
   };
 
   // Format date
@@ -123,27 +118,6 @@ export function TenantMembersList({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold">{t('tenantMembers.title')}</h2>
-            <p className="text-sm text-muted-foreground">
-              {filteredMembers.length} {t('tenantMembers.members')}
-            </p>
-          </div>
-        </div>
-        {onAdd && (
-          <Button onClick={onAdd} className="gap-2">
-            <UserPlus className="w-4 h-4" />
-            {t('tenantMembers.addMember')}
-          </Button>
-        )}
-      </div>
-
       {/* Filters */}
       <Card className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -232,12 +206,8 @@ export function TenantMembersList({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <h3 className="font-semibold">{member.user_name || 'Unknown'}</h3>
-                      <Badge className={`${getRoleBadgeColor(member.role)} text-xs`}>
-                        {member.role}
-                      </Badge>
-                      <Badge className={`${getStatusBadgeColor(member.status)} text-xs`}>
-                        {member.status}
-                      </Badge>
+                      <StatusBadge status={member.role} config={roleConfig} className="text-xs" showIcon={false} />
+                      <StatusBadge status={member.status} config={statusConfig} className="text-xs" showIcon={false} />
                     </div>
                     
                     <div className="space-y-1 text-sm text-muted-foreground">

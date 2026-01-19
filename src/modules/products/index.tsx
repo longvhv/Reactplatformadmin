@@ -18,6 +18,8 @@ const EditProductPage = lazy(() => import('../../pages/EditProductPage'));
 /**
  * Products Module Definition
  * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/products
  */
 export const ProductsModule: ModuleDefinition = {
   id: "products",
@@ -31,7 +33,7 @@ export const ProductsModule: ModuleDefinition = {
     {
       id: "products",
       label: "products.title", // Translation key
-      path: "/core/products",
+      path: "/commerce/products",
       icon: <Package className="w-5 h-5" />,
       order: 40,
     },
@@ -39,7 +41,7 @@ export const ProductsModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/products",
+      path: "/commerce/products",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ProductsPage />
@@ -48,7 +50,7 @@ export const ProductsModule: ModuleDefinition = {
       title: "products.title", // Translation key
     },
     {
-      path: "/core/products/add",
+      path: "/commerce/products/create",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddProductPage />
@@ -57,21 +59,14 @@ export const ProductsModule: ModuleDefinition = {
       title: "products.addProduct", // Translation key
     },
     {
-      path: "/core/products/edit/:id",
+      path: "/commerce/products/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditProductPage />
         </Suspense>
       ),
-      title: "products.edit", // Translation key
+      title: "products.editProduct", // Translation key
     },
+    // Note: /commerce/products/:id is full-screen (defined in App.tsx)
   ],
-
-  initialize: async () => {
-    console.log('✅ Products module initialized');
-  },
-
-  cleanup: async () => {
-    console.log('🧹 Products module cleaned up');
-  },
 };

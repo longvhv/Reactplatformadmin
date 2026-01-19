@@ -10,6 +10,8 @@ const HelpPage = lazy(() => import("../../pages/HelpPage"));
 
 /**
  * Help Module
+ * 
+ * 🌐 Path: /system/help
  */
 export const HelpModule: ModuleDefinition = {
   id: "help",
@@ -18,10 +20,10 @@ export const HelpModule: ModuleDefinition = {
   icon: <HelpCircle className="w-4 h-4" />,
   enabled: true,
   showInSidebar: true,
-  order: 120, // PHÂN TÍCH & BÁO CÁO group (bottom)
+  order: 120,
   routes: [
     {
-      path: "/core/help",
+      path: "/system/help",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải trợ giúp..." />}>
           <HelpPage />
@@ -35,7 +37,7 @@ export const HelpModule: ModuleDefinition = {
       id: "help",
       label: "navigation.help",
       icon: <HelpCircle className="w-5 h-5" />,
-      path: "/core/help",
+      path: "/system/help",
     },
   ],
 };

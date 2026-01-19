@@ -59,6 +59,9 @@ export interface TenantServiceDelivery {
   version: number; // bigint, NOT NULL, default 1, >= 1 (optimistic locking)
 }
 
+// Export alias for backward compatibility
+export type ServiceDelivery = TenantServiceDelivery;
+
 export interface ServiceDeliveryWithDetails extends TenantServiceDelivery {
   // Joined from products
   product_name?: string;
@@ -254,12 +257,12 @@ export const tenantServiceDeliveriesApi = {
     if (delivery.product_id) {
       const { data: product } = await supabase
         .from('saas_products')
-        .select('name, product_code')
+        .select('name, code')
         .eq('_id', delivery.product_id)
         .single();
       if (product) {
         product_name = product.name;
-        product_code = product.product_code;
+        product_code = product.code;
       }
     }
 
@@ -748,6 +751,13 @@ export function getStatusLabel(status: DeliveryStatus): string {
 }
 
 /**
+ * Alias for getStatusLabel (for backward compatibility)
+ */
+export function getServiceStatusLabel(status: DeliveryStatus): string {
+  return getStatusLabel(status);
+}
+
+/**
  * Get status color
  */
 export function getStatusColor(status: DeliveryStatus): string {
@@ -758,6 +768,31 @@ export function getStatusColor(status: DeliveryStatus): string {
     CANCELLED: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
   };
   return colors[status];
+}
+
+/**
+ * Alias for getStatusColor (for backward compatibility)
+ */
+export function getServiceStatusColor(status: DeliveryStatus): string {
+  return getStatusColor(status);
+}
+
+/**
+ * Get unit type label
+ */
+export function getUnitTypeLabel(unitType: string): string {
+  const labels: Record<string, string> = {
+    HOUR: 'Giờ',
+    DAY: 'Ngày',
+    SESSION: 'Buổi',
+    PROJECT: 'Dự án',
+    ITEM: 'Mục',
+    USER: 'Người dùng',
+    LICENSE: 'Giấy phép',
+    MONTH: 'Tháng',
+    YEAR: 'Năm',
+  };
+  return labels[unitType] || unitType;
 }
 
 /**
@@ -808,6 +843,19 @@ export function isFullyDelivered(delivery: TenantServiceDelivery): boolean {
  */
 export function isOverDelivered(delivery: TenantServiceDelivery): boolean {
   return delivery.delivered_units > delivery.total_units;
+}
+
+/**
+ * Check if delivery is overdue
+ * Note: This requires a due_date field which isn't in the current schema
+ * For now, returns false. Can be enhanced when due_date is added.
+ */
+export function isDeliveryOverdue(delivery: TenantServiceDelivery): boolean {
+  // TODO: Implement when due_date field is added to schema
+  // const dueDate = delivery.service_metadata?.due_date;
+  // if (!dueDate) return false;
+  // return new Date(dueDate) < new Date() && delivery.status !== 'COMPLETED';
+  return false;
 }
 
 /**

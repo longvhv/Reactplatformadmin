@@ -57,7 +57,7 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
     {
       section: "Account",
       items: [
-        { icon: Settings, label: t('navigation.settings'), shortcut: "⌘,", action: () => navigate("/settings") },
+        { icon: Settings, label: t('navigation.settings'), shortcut: "⌘,", action: () => navigate("/system/settings") },
         { icon: Mail, label: "Tin nhắn", badge: "3", action: () => console.log("Messages") },
         { icon: Bell, label: "Thông báo", action: () => console.log("Notifications") },
       ],
@@ -65,20 +65,20 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
     {
       section: "Developer",
       items: [
-        { icon: FileCode, label: t('navigation.devDocs'), action: () => navigate("/dev-docs") },
+        { icon: FileCode, label: t('navigation.devDocs'), action: () => navigate("/system/dev-docs") },
       ],
     },
     {
       section: "Preferences",
       items: [
-        { icon: Palette, label: t('navigation.appearance'), action: () => navigate("/appearance") },
+        { icon: Palette, label: t('navigation.appearance'), action: () => navigate("/system/appearance") },
         { icon: Keyboard, label: "Phím tắt", shortcut: "⌘K", action: () => console.log("Shortcuts") },
       ],
     },
     {
       section: "Help",
       items: [
-        { icon: HelpCircle, label: t('navigation.help'), action: () => navigate("/help") },
+        { icon: HelpCircle, label: t('navigation.help'), action: () => navigate("/system/help") },
         { icon: Shield, label: "Chính sách bảo mật", action: () => console.log("Privacy") },
       ],
     },

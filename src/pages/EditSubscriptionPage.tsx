@@ -42,7 +42,7 @@ export const EditSubscriptionPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error fetching subscription:', error);
       toast.error(t('subscriptions.fetchError'));
-      navigate('/core/subscriptions');
+      navigate('/commerce/tenant-subscriptions');
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export const EditSubscriptionPage: React.FC = () => {
     try {
       await updateTenantSubscription(id, formData as UpdateSubscriptionRequest);
       toast.success(t('subscriptions.updateSuccess'));
-      navigate('/core/subscriptions');
+      navigate('/commerce/tenant-subscriptions');
     } catch (error: any) {
       console.error('Error updating subscription:', error);
       toast.error(t('subscriptions.updateError'));
@@ -66,7 +66,7 @@ export const EditSubscriptionPage: React.FC = () => {
   };
 
   const handleCancel = () => {
-    navigate('/core/subscriptions');
+    navigate('/commerce/tenant-subscriptions');
   };
 
   if (loading) {
@@ -85,7 +85,7 @@ export const EditSubscriptionPage: React.FC = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">{t('subscriptions.notFound')}</h2>
-          <Button onClick={() => navigate('/core/subscriptions')}>
+          <Button onClick={() => navigate('/commerce/tenant-subscriptions')}>
             {t('common.back')}
           </Button>
         </div>
@@ -99,7 +99,7 @@ export const EditSubscriptionPage: React.FC = () => {
       title="Chỉnh sửa Subscription"
       description={`Cập nhật thông tin subscription #${subscription.subscription_number}`}
       icon={Calendar}
-      backPath="/core/subscriptions"
+      backPath="/commerce/tenant-subscriptions"
       backLabel="Quay lại danh sách"
     >
       <SubscriptionForm

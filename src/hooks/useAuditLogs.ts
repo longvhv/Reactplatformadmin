@@ -5,13 +5,19 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  AuditLog, 
-  AuditLogFilters, 
-  AuditLogStatistics,
-  getAuditLogs, 
-  getAuditLogStatistics 
-} from '../api/auditLogApi';
+import { auditLogApi, AuditLog, AuditLogFilters } from '../api/auditLogApi';
+
+// Statistics interface (if needed)
+interface AuditLogStatistics {
+  total: number;
+  total_events: number;
+  success_count: number;
+  failed_count: number;
+  unique_users: number;
+  byAction: Record<string, number>;
+  byResource: Record<string, number>;
+  byUser: Record<string, number>;
+}
 
 interface UseAuditLogsOptions {
   filters?: AuditLogFilters;
@@ -55,7 +61,7 @@ export function useAuditLogs(options: UseAuditLogsOptions = {}): UseAuditLogsRet
 
       const currentOffset = append ? offset : 0;
       
-      const result = await getAuditLogs({
+      const result = await auditLogApi.getAuditLogs({
         ...filters,
         limit,
         offset: currentOffset,
@@ -79,7 +85,7 @@ export function useAuditLogs(options: UseAuditLogsOptions = {}): UseAuditLogsRet
 
   const fetchStatistics = useCallback(async () => {
     try {
-      const stats = await getAuditLogStatistics(filters);
+      const stats = await auditLogApi.getAuditLogStatistics(filters);
       setStatistics(stats);
     } catch (err) {
       console.error('Error fetching audit log statistics:', err);

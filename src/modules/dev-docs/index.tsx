@@ -14,6 +14,8 @@ const DatabaseDocsPage = lazy(() => import("../../pages/DatabaseDocsPage"));
 
 /**
  * Developer Docs Module
+ * 
+ * 🌐 Path: /system/dev-docs
  */
 export const DevDocsModule: ModuleDefinition = {
   id: "dev-docs",
@@ -24,7 +26,7 @@ export const DevDocsModule: ModuleDefinition = {
   showInSidebar: false, // Hidden from sidebar
   routes: [
     {
-      path: "/core/dev-docs",
+      path: "/system/dev-docs",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải tài liệu..." />}>
           <DevDocsPage />
@@ -33,7 +35,7 @@ export const DevDocsModule: ModuleDefinition = {
       title: "Developer Docs",
     },
     {
-      path: "/core/api-docs",
+      path: "/system/dev-docs/api",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải API docs..." />}>
           <ApiDocsPage />
@@ -42,7 +44,7 @@ export const DevDocsModule: ModuleDefinition = {
       title: "API Documentation",
     },
     {
-      path: "/core/database-docs",
+      path: "/system/dev-docs/database",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải database docs..." />}>
           <DatabaseDocsPage />
@@ -56,25 +58,25 @@ export const DevDocsModule: ModuleDefinition = {
       id: "dev-docs",
       label: "navigation.devDocs",
       icon: <BookOpen className="w-5 h-5" />,
-      path: "/core/dev-docs",
+      path: "/system/dev-docs",
       children: [
         {
           id: "dev-overview",
           label: "navigation.overview",
           icon: <FileText className="w-4 h-4" />,
-          path: "/core/dev-docs",
+          path: "/system/dev-docs",
         },
         {
           id: "api-docs",
           label: "api.title",
           icon: <Code2 className="w-4 h-4" />,
-          path: "/core/api-docs",
+          path: "/system/dev-docs/api",
         },
         {
           id: "database-docs",
           label: "database.title",
           icon: <Database className="w-4 h-4" />,
-          path: "/core/database-docs",
+          path: "/system/dev-docs/database",
         },
       ],
     },

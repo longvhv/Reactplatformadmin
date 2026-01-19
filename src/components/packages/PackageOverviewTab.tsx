@@ -74,7 +74,7 @@ export function PackageOverviewTab({ packageId, package: pkg }: PackageOverviewT
               Product ID
             </label>
             <Link
-              to={`/core/products/${pkg.product_id}`}
+              to={`/commerce/products/${pkg.product_id}`}
               className="text-sm text-indigo-600 hover:underline font-mono"
             >
               {pkg.product_id}

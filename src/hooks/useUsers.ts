@@ -2,11 +2,11 @@
  * useUsers Hook
  * Hook for managing users with full CRUD operations
  * Uses Supabase via API adapter (ready for Golang migration)
+ * ✅ FIXED 2026-01-16: Removed infinite reload loop caused by t dependency
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner@2.0.3';
-import { useLanguage } from '@/providers/LanguageProvider';
 import { usersApi, type User } from '@/api/usersApi';
 
 interface UseUsersOptions {
@@ -15,7 +15,6 @@ interface UseUsersOptions {
 
 export function useUsers(options: UseUsersOptions = {}) {
   const { autoLoad = true } = options;
-  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(autoLoad);
   const [error, setError] = useState<Error | null>(null);
@@ -33,11 +32,11 @@ export function useUsers(options: UseUsersOptions = {}) {
       const error = err instanceof Error ? err : new Error('Failed to load users');
       console.error('❌ [useUsers] Error loading users:', error);
       setError(error);
-      toast.error(t('users.loadError') || 'Failed to load users');
+      toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []); // ✅ FIXED: Removed t dependency to prevent infinite loop
 
   // Load users on mount if autoLoad is enabled
   useEffect(() => {
@@ -53,15 +52,15 @@ export function useUsers(options: UseUsersOptions = {}) {
       const newUser = await usersApi.create(userData);
       console.log('✅ [useUsers] User created:', newUser._id);
       await loadUsers(); // Reload users
-      toast.success(t('users.userCreated') || 'User created successfully');
+      toast.success('User created successfully');
       return newUser;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to create user');
       console.error('❌ [useUsers] Error creating user:', error);
-      toast.error(t('users.createError') || 'Failed to create user');
+      toast.error('Failed to create user');
       throw error;
     }
-  }, [t, loadUsers]);
+  }, [loadUsers]); // ✅ FIXED: Removed t dependency
 
   // Update user
   const updateUser = useCallback(async (id: string, userData: any) => {
@@ -80,15 +79,15 @@ export function useUsers(options: UseUsersOptions = {}) {
       });
       console.log('✅ [useUsers] User updated:', updated._id);
       await loadUsers(); // Reload users
-      toast.success(t('users.userUpdated') || 'User updated successfully');
+      toast.success('User updated successfully');
       return updated;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to update user');
       console.error('❌ [useUsers] Error updating user:', error);
-      toast.error(t('users.updateError') || 'Failed to update user');
+      toast.error('Failed to update user');
       throw error;
     }
-  }, [t, users, loadUsers]);
+  }, [users, loadUsers]); // ✅ FIXED: Removed t dependency
 
   // Delete user
   const deleteUser = useCallback(async (id: string) => {
@@ -97,15 +96,15 @@ export function useUsers(options: UseUsersOptions = {}) {
       await usersApi.delete(id);
       console.log('✅ [useUsers] User deleted:', id);
       await loadUsers(); // Reload users
-      toast.success(t('users.userDeleted') || 'User deleted successfully');
+      toast.success('User deleted successfully');
       return true;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to delete user');
       console.error('❌ [useUsers] Error deleting user:', error);
-      toast.error(t('users.deleteError') || 'Failed to delete user');
+      toast.error('Failed to delete user');
       throw error;
     }
-  }, [t, loadUsers]);
+  }, [loadUsers]); // ✅ FIXED: Removed t dependency
 
   // Bulk delete users
   const bulkDeleteUsers = useCallback(async (userIds: string[]) => {
@@ -122,17 +121,15 @@ export function useUsers(options: UseUsersOptions = {}) {
       }
       console.log('✅ [useUsers] Bulk deleted users:', deletedCount);
       await loadUsers(); // Reload users
-      const message = t('users.usersDeleted')?.replace('{count}', deletedCount.toString()) 
-        || `${deletedCount} users deleted successfully`;
-      toast.success(message);
+      toast.success(`${deletedCount} users deleted successfully`);
       return deletedCount;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to delete users');
       console.error('❌ [useUsers] Error bulk deleting users:', error);
-      toast.error(t('users.bulkDeleteError') || 'Failed to delete users');
+      toast.error('Failed to delete users');
       throw error;
     }
-  }, [t, loadUsers]);
+  }, [loadUsers]); // ✅ FIXED: Removed t dependency
 
   // Get user by id
   const getUser = useCallback((id: string): User | undefined => {

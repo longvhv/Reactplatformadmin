@@ -12,6 +12,8 @@ const AuthLogsPage = lazy(() =>
 
 /**
  * Auth Logs Module
+ * 
+ * 🌐 Path: /admin/auth-logs
  */
 export const AuthLogsModule: ModuleDefinition = {
   id: "auth-logs",
@@ -22,7 +24,7 @@ export const AuthLogsModule: ModuleDefinition = {
   showInSidebar: true,
   routes: [
     {
-      path: "/core/auth-logs",
+      path: "/admin/auth-logs",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải Lịch sử truy cập..." />}>
           <AuthLogsPage />
@@ -36,7 +38,7 @@ export const AuthLogsModule: ModuleDefinition = {
       id: "auth-logs",
       label: "navigation.authLogs",
       icon: <Shield className="w-5 h-5" />,
-      path: "/core/auth-logs",
+      path: "/admin/auth-logs",
     },
   ],
 };

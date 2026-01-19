@@ -2,7 +2,7 @@
  * Role Form Dialog
  * Create/Edit role with validation
  * 
- * ✅ UPDATED 2026-01-14: Uses new Role interface with 9 fields
+ * ✅ UPDATED 2026-01-16: Added application filter and real Supabase data
  */
 
 import React, { useState, useEffect } from 'react';
@@ -10,7 +10,14 @@ import { Role, RoleType, CreateRoleRequest, UpdateRoleRequest } from '../../api/
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { X, Shield, Plus, Trash2 } from 'lucide-react';
+import { X, Shield, Plus, Trash2, Filter, Search } from 'lucide-react';
+import { fetchApplications, Application } from '../../services/applicationsService';
+import { 
+  fetchPermissions, 
+  fetchPermissionsByApplicationIds,
+  PermissionWithApplication 
+} from '../../services/permissionsService';
+import { toast } from 'sonner@2.0.3';
 
 interface RoleFormDialogProps {
   role?: Role | null;
@@ -52,6 +59,35 @@ export function RoleFormDialog({
   const [customPermission, setCustomPermission] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [permissions, setPermissions] = useState<PermissionWithApplication[]>([]);
+  const [filteredPermissions, setFilteredPermissions] = useState<PermissionWithApplication[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedApplicationIds, setSelectedApplicationIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadApplications = async () => {
+      try {
+        const apps = await fetchApplications();
+        setApplications(apps);
+      } catch (error: any) {
+        toast.error(`Failed to load applications: ${error.message}`);
+      }
+    };
+
+    const loadPermissions = async () => {
+      try {
+        const perms = await fetchPermissions();
+        setPermissions(perms);
+        setFilteredPermissions(perms);
+      } catch (error: any) {
+        toast.error(`Failed to load permissions: ${error.message}`);
+      }
+    };
+
+    loadApplications();
+    loadPermissions();
+  }, []);
 
   useEffect(() => {
     if (role) {
@@ -154,6 +190,49 @@ export function RoleFormDialog({
     }));
   };
 
+  const toggleApplicationFilter = (appCode: string) => {
+    setSelectedApplicationIds(prev => {
+      const newSelection = prev.includes(appCode)
+        ? prev.filter(code => code !== appCode)
+        : [...prev, appCode];
+      
+      // Update filtered permissions based on new selection
+      if (newSelection.length === 0) {
+        setFilteredPermissions(permissions);
+      } else {
+        // p.application_id is mapped to app_code in service
+        const filtered = permissions.filter(p => newSelection.includes(p.application_id || ''));
+        setFilteredPermissions(filtered);
+      }
+      
+      return newSelection;
+    });
+  };
+
+  const filterPermissionsByApplication = async (appCode: string) => {
+    if (appCode === 'all') {
+      setFilteredPermissions(permissions);
+    } else {
+      try {
+        const perms = await fetchPermissionsByApplicationIds([appCode]);
+        setFilteredPermissions(perms);
+      } catch (error: any) {
+        toast.error(`Failed to filter permissions: ${error.message}`);
+      }
+    }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+    if (term) {
+      const filtered = permissions.filter(p => p.code.includes(term) || p.description.includes(term));
+      setFilteredPermissions(filtered);
+    } else {
+      setFilteredPermissions(permissions);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -233,6 +312,50 @@ export function RoleFormDialog({
               </div>
             )}
 
+            {/* Application Filter */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Filter className="h-4 w-4 text-gray-500" />
+                <Label>Lọc theo ứng dụng ({selectedApplicationIds.length} đã chọn)</Label>
+              </div>
+              <div className="grid grid-cols-2 gap-2 p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900/50 max-h-40 overflow-y-auto">
+                {applications.map(app => (
+                  <label
+                    key={app.id}
+                    className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedApplicationIds.includes(app.code)}
+                      onChange={() => toggleApplicationFilter(app.code)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {app.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Không chọn = hiển thị tất cả quyền hạn
+              </p>
+            </div>
+
+            {/* Search Permissions */}
+            <div>
+              <Label>Tìm kiếm quyền hạn</Label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={searchTerm}
+                  onChange={handleSearch}
+                  placeholder="VD: reports:export"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                />
+                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-500 dark:text-gray-300" />
+              </div>
+            </div>
+
             {/* Common Permissions */}
             <div>
               <Label>Quyền hạn phổ biến</Label>
@@ -250,6 +373,29 @@ export function RoleFormDialog({
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">
                       {perm}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Filtered Permissions */}
+            <div>
+              <Label>Quyền hạn theo ứng dụng</Label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {filteredPermissions.map(perm => (
+                  <label
+                    key={perm.code}
+                    className="flex items-center gap-2 p-2 border border-gray-200 dark:border-gray-700 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.permission_codes.includes(perm.code)}
+                      onChange={() => togglePermission(perm.code)}
+                      className="rounded border-gray-300"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300 font-mono">
+                      {perm.code}
                     </span>
                   </label>
                 ))}

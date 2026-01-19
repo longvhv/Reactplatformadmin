@@ -25,7 +25,7 @@ export const ReservedSlugsModule: ModuleDefinition = {
   order: 54, // NỀN TẢNG & CẤU HÌNH group
   routes: [
     {
-      path: '/core/reserved-slugs',
+      path: '/platform/reserved-slugs',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ReservedSlugsPage />
@@ -34,7 +34,7 @@ export const ReservedSlugsModule: ModuleDefinition = {
       title: 'Reserved Slugs',
     },
     {
-      path: '/core/reserved-slugs/add',
+      path: '/platform/reserved-slugs/add',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddReservedSlugPage />
@@ -43,7 +43,7 @@ export const ReservedSlugsModule: ModuleDefinition = {
       title: 'Thêm Từ Khóa Dành Riêng',
     },
     {
-      path: '/core/reserved-slugs/edit/:id',
+      path: '/platform/reserved-slugs/edit/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditReservedSlugPage />
@@ -52,7 +52,7 @@ export const ReservedSlugsModule: ModuleDefinition = {
       title: 'Chỉnh Sửa Từ Khóa Dành Riêng',
     },
     {
-      path: '/core/reserved-slugs/:id',
+      path: '/platform/reserved-slugs/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ReservedSlugDetailPage />
@@ -65,7 +65,7 @@ export const ReservedSlugsModule: ModuleDefinition = {
     {
       id: 'reserved-slugs',
       label: 'navigation.reservedSlugs',
-      path: '/core/reserved-slugs',
+      path: '/platform/reserved-slugs',
       icon: <Shield className="w-4 h-4" />,
       category: 'system',
       description: 'Manage reserved slugs',

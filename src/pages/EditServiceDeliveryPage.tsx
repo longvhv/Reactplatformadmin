@@ -13,7 +13,7 @@ import {
   ServiceUnitType, 
   ServiceStatus 
 } from '../api/serviceDeliveriesApi';
-import { FormPageLayout } from '../components/layout/FormPageLayout';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
@@ -42,7 +42,7 @@ export default function EditServiceDeliveryPage() {
   useEffect(() => {
     if (!id) {
       toast.error('ID không hợp lệ');
-      navigate('/core/service-deliveries');
+      navigate('/commerce/service-deliveries');
       return;
     }
 
@@ -57,9 +57,9 @@ export default function EditServiceDeliveryPage() {
         setCompletedAt(data.completed_at ? data.completed_at.slice(0, 16) : '');
       })
       .catch(error => {
-        console.error('Error loading delivery:', error);
+        console.error('Error loading service delivery:', error);
         toast.error('Không thể tải thông tin dịch vụ: ' + error.message);
-        navigate('/core/service-deliveries');
+        navigate('/commerce/service-deliveries');
       })
       .finally(() => setLoading(false));
   }, [id, navigate]);
@@ -107,7 +107,7 @@ export default function EditServiceDeliveryPage() {
 
       await serviceDeliveriesApi.update(id, request);
       toast.success('Cập nhật dịch vụ thành công!');
-      navigate(`/core/service-deliveries/${id}`);
+      navigate(`/commerce/service-deliveries/${id}`);
     } catch (error: any) {
       console.error('Error updating service delivery:', error);
       toast.error('Lỗi khi cập nhật: ' + error.message);
@@ -117,7 +117,7 @@ export default function EditServiceDeliveryPage() {
   };
 
   const handleCancel = () => {
-    navigate(`/core/service-deliveries/${id}`);
+    navigate(`/commerce/service-deliveries/${id}`);
   };
 
   if (loading) {
@@ -125,8 +125,8 @@ export default function EditServiceDeliveryPage() {
       <FormPageLayout
         title="Đang tải..."
         description="Vui lòng đợi"
-        icon={<Briefcase className="h-6 w-6" />}
-        backLink="/core/service-deliveries"
+        icon={Briefcase}
+        backLink="/commerce/service-deliveries"
       >
         <div className="text-center py-8">Đang tải dữ liệu...</div>
       </FormPageLayout>
@@ -143,9 +143,9 @@ export default function EditServiceDeliveryPage() {
   return (
     <FormPageLayout
       title="Chỉnh Sửa Dịch Vụ"
-      description={`Cập nhật thông tin: ${delivery.service_name}`}
-      icon={<Briefcase className="h-6 w-6" />}
-      backLink={`/core/service-deliveries/${id}`}
+      description={`Cập nhật: ${delivery.service_name}`}
+      icon={Briefcase}
+      backLink={`/commerce/service-deliveries/${id}`}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Readonly Info */}

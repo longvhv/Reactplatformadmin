@@ -50,7 +50,7 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
   return (
     <div 
       className="bg-card rounded-xl border border-border/40 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer"
-      onClick={() => navigate(`/core/tenants/${tenant._id}`)}
+      onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
     >
       <div className="space-y-4">
         {/* Header */}

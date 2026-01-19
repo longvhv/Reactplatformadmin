@@ -1,20 +1,24 @@
 /**
- * Subscription Invoices List Page
- * Main page for viewing and managing invoices
+ * Subscription Invoices Page
+ * Display and manage subscription invoices
+ * ✅ MIGRATED Phase 3: ConfirmDialog, showToast, Fragment wrapper
  */
 
-import React, { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Plus, Search, Filter, Download, RefreshCw, List, Grid } from 'lucide-react';
-import { subscriptionInvoiceApi, SubscriptionInvoice, InvoiceFilters, InvoiceStatistics } from '../api/subscriptionInvoiceApi';
-import { InvoiceTable } from '../components/invoices/InvoiceTable';
-import { InvoiceCard } from '../components/invoices/InvoiceCard';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Card, CardContent } from '../components/ui/card';
-import { useLanguage } from '../providers/LanguageProvider';
-import { toast } from 'sonner@2.0.3';
+import { Plus, Search, Filter, RefreshCw, Receipt, DollarSign, Clock, CheckCircle, XCircle, AlertCircle, FileText, List, Grid } from 'lucide-react';
+import { subscriptionInvoiceApi, SubscriptionInvoice, InvoiceStatistics } from '@/api/subscriptionInvoiceApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { InvoiceTable } from '@/components/invoices/InvoiceTable';
+import { InvoiceCard } from '@/components/invoices/InvoiceCard';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { showToast } from '@/lib/toast';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 export const SubscriptionInvoicesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +34,20 @@ export const SubscriptionInvoicesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     loadInvoices();
@@ -47,7 +65,7 @@ export const SubscriptionInvoicesPage: React.FC = () => {
       setInvoices(data);
     } catch (error) {
       console.error('Error loading invoices:', error);
-      toast.error(t('invoices.errors.loadFailed'));
+      showToast.error(t('invoices.errors.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -99,17 +117,23 @@ export const SubscriptionInvoicesPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('invoices.confirmDeleteMessage'))) return;
-    
-    try {
-      await subscriptionInvoiceApi.softDelete(id, 'current-user');
-      toast.success(t('invoices.deleteSuccess'));
-      loadInvoices();
-      loadStatistics();
-    } catch (error) {
-      console.error('Error deleting invoice:', error);
-      toast.error(t('invoices.errors.deleteFailed'));
-    }
+    setConfirmDialog({
+      open: true,
+      title: t('invoices.confirmDeleteTitle'),
+      description: t('invoices.confirmDeleteMessage'),
+      onConfirm: async () => {
+        try {
+          await subscriptionInvoiceApi.softDelete(id, 'current-user');
+          showToast.success(t('invoices.deleteSuccess'));
+          loadInvoices();
+          loadStatistics();
+        } catch (error) {
+          console.error('Error deleting invoice:', error);
+          showToast.error(t('invoices.errors.deleteFailed'));
+        }
+      },
+      variant: 'destructive'
+    });
   };
 
   const handleStatusChange = async (id: string, newStatus: any) => {
@@ -118,11 +142,11 @@ export const SubscriptionInvoicesPage: React.FC = () => {
       if (!invoice) return;
       
       await subscriptionInvoiceApi.changeStatus(id, newStatus, invoice.version || 1);
-      toast.success(t('invoices.statusUpdateSuccess'));
+      showToast.success(t('invoices.statusUpdateSuccess'));
       loadInvoices();
     } catch (error) {
       console.error('Error updating status:', error);
-      toast.error(t('invoices.errors.updateFailed'));
+      showToast.error(t('invoices.errors.updateFailed'));
     }
   };
 
@@ -134,74 +158,61 @@ export const SubscriptionInvoicesPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{t('invoices.title')}</h1>
-          <p className="text-gray-500 mt-1">{t('invoices.subtitle')}</p>
-        </div>
+    <PageLayout
+      title={t('invoices.title')}
+      description={t('invoices.subtitle')}
+      icon={FileText}
+      actions={
         <div className="flex gap-2">
           <Button variant="outline" onClick={loadInvoices}>
             <RefreshCw className="h-4 w-4 mr-2" />
             {t('common.refresh')}
           </Button>
-          <Button onClick={() => navigate('/core/subscription-invoices/add')}>
+          <Button onClick={() => navigate('/commerce/subscription-invoices/add')}>
             <Plus className="h-4 w-4 mr-2" />
             {t('invoices.addInvoice')}
           </Button>
         </div>
-      </div>
-
-      {/* Statistics Cards */}
+      }
+    >
       {statistics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-600">{t('invoices.stats.total')}</div>
-              <div className="text-2xl font-bold text-gray-900">{statistics.total}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {formatCurrency(statistics.total_amount, 'VND')}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-600">{t('invoices.stats.paid')}</div>
-              <div className="text-2xl font-bold text-green-600">{statistics.paid}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {formatCurrency(statistics.paid_amount, 'VND')}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-600">Open</div>
-              <div className="text-2xl font-bold text-blue-600">{statistics.open}</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {formatCurrency(statistics.outstanding_amount, 'VND')}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-600">{t('invoices.stats.overdue')}</div>
-              <div className="text-2xl font-bold text-red-600">{statistics.overdue}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-sm text-gray-600">Amount Due</div>
-              <div className="text-2xl font-bold text-orange-600">
-                {formatCurrency(statistics.amount_due, 'VND')}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatisticsCards
+          stats={[
+            {
+              title: t('invoices.stats.total'),
+              value: statistics.total,
+              currency: formatCurrency(statistics.total_amount, 'VND'),
+              icon: Receipt,
+              color: 'gray'
+            },
+            {
+              title: t('invoices.stats.paid'),
+              value: statistics.paid,
+              currency: formatCurrency(statistics.paid_amount, 'VND'),
+              icon: CheckCircle,
+              color: 'green'
+            },
+            {
+              title: 'Open',
+              value: statistics.open,
+              currency: formatCurrency(statistics.outstanding_amount, 'VND'),
+              icon: Clock,
+              color: 'blue'
+            },
+            {
+              title: t('invoices.stats.overdue'),
+              value: statistics.overdue,
+              icon: AlertCircle,
+              color: 'red'
+            },
+            {
+              title: 'Amount Due',
+              value: formatCurrency(statistics.amount_due, 'VND'),
+              icon: DollarSign,
+              color: 'orange'
+            }
+          ]}
+        />
       )}
 
       {/* Filters */}
@@ -295,7 +306,7 @@ export const SubscriptionInvoicesPage: React.FC = () => {
           )}
         </div>
       )}
-    </div>
+    </PageLayout>
   );
 };
 

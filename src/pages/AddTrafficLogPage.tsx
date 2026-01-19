@@ -1,11 +1,11 @@
 /**
  * Add Traffic Log Page
- * Create a new traffic log entry (typically for testing/debugging)
+ * Manual creation of traffic log (for testing/demo)
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../providers/LanguageProvider';
+import { useNavigate } from 'react-router';
 import { ArrowLeft, Save } from 'lucide-react';
 import { createTrafficLog, TrafficLogCreateData } from '../api/trafficLogsApi';
 import { Button } from '../components/ui/button';
@@ -41,7 +41,7 @@ export default function AddTrafficLogPage() {
       setSaving(true);
       await createTrafficLog(formData);
       toast.success(t('trafficLogs.createSuccess'));
-      navigate('/core/traffic-logs');
+      navigate('/platform/traffic-logs');
     } catch (error) {
       console.error('Error creating traffic log:', error);
       toast.error(t('trafficLogs.createError'));
@@ -59,7 +59,7 @@ export default function AddTrafficLogPage() {
       <div className="max-w-4xl mx-auto p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => navigate('/core/traffic-logs')}>
+          <Button variant="ghost" onClick={() => navigate('/platform/traffic-logs')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             {t('common.back')}
           </Button>
@@ -258,7 +258,7 @@ export default function AddTrafficLogPage() {
 
           {/* Actions */}
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/core/traffic-logs')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/platform/traffic-logs')}>
               {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={saving}>

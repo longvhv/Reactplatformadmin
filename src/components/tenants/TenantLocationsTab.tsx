@@ -102,7 +102,7 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
     getStats,
   } = useLocations({ tenant_id: tenantId });
 
-  const { locationTypes } = useLocationTypes({ tenant_id: tenantId, include_system: true });
+  const { locationTypes } = useLocationTypes({ tenant_id: tenantId });
 
   const [tree, setTree] = useState<LocationWithRelations[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -355,7 +355,7 @@ function LocationTypesPanel({ tenantId }: { tenantId: string }) {
     activateLocationType,
     deactivateLocationType,
     getStats,
-  } = useLocationTypes({ tenant_id: tenantId, include_system: true });
+  } = useLocationTypes({ tenant_id: tenantId });
 
   const [stats, setStats] = useState({
     total: 0,

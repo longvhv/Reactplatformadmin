@@ -54,6 +54,7 @@ export interface RouteDefinition {
 export class ModuleRegistry {
   private static instance: ModuleRegistry;
   private modules: Map<string, ModuleDefinition> = new Map();
+  private listeners: Set<() => void> = new Set();
 
   private constructor() {}
 
@@ -65,6 +66,20 @@ export class ModuleRegistry {
       ModuleRegistry.instance = new ModuleRegistry();
     }
     return ModuleRegistry.instance;
+  }
+
+  /**
+   * Subscribe to registry changes
+   */
+  public subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => listener());
   }
 
   /**
@@ -97,6 +112,7 @@ export class ModuleRegistry {
     });
     
     console.log(`✓ Module đã đăng ký: ${module.name} (${module.id})`);
+    this.notifyListeners();
   }
 
   /**
@@ -105,6 +121,7 @@ export class ModuleRegistry {
   public unregister(moduleId: string): void {
     if (this.modules.delete(moduleId)) {
       console.log(`✓ Module đã hủy đăng ký: ${moduleId}`);
+      this.notifyListeners();
     }
   }
 
@@ -155,6 +172,7 @@ export class ModuleRegistry {
     if (module) {
       module.enabled = enabled;
       console.log(`✓ Module ${moduleId} ${enabled ? 'đã kích hoạt' : 'đã vô hiệu hóa'}`);
+      this.notifyListeners();
     }
   }
 
@@ -164,6 +182,7 @@ export class ModuleRegistry {
   public reset(): void {
     this.modules.clear();
     console.log('✓ Module Registry đã được reset');
+    this.notifyListeners();
   }
 
   /**

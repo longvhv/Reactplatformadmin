@@ -1,185 +1,15 @@
-/**
- * Tenant Members Management Page
- * Manage tenant-user relationships with CRUD operations
- * 
- * Features:
- * - List all tenant members with filtering
- * - Add/Edit/Delete members
- * - Offline-first with localStorage fallback
- * - i18n support
- */
-
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router';
+import { showToast } from '../lib/toast';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { useLanguage } from '../providers/LanguageProvider';
 import { TenantMembersList, TenantMember } from '../components/tenantMembers/TenantMembersList';
 import { TenantMemberForm, TenantMemberFormData } from '../components/tenantMembers/TenantMemberForm';
-import { toast } from 'sonner@2.0.3';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
-
-// ============================================
-// API FUNCTIONS
-// ============================================
-
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
-
-async function fetchTenantMembers(): Promise<TenantMember[]> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/tenant-members`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch tenant members');
-    }
-
-    const result = await response.json();
-    const members = result.data || [];
-    
-    // Cache to localStorage
-    localStorage.setItem('tenant_members_cache', JSON.stringify(members));
-    
-    return members;
-  } catch (error) {
-    console.error('[fetchTenantMembers] Error:', error);
-    
-    // Fallback to localStorage
-    const cached = localStorage.getItem('tenant_members_cache');
-    if (cached) {
-      return JSON.parse(cached);
-    }
-    
-    // Fallback to demo data
-    const demoData = localStorage.getItem('seed_tenant_members');
-    if (demoData) {
-      return JSON.parse(demoData);
-    }
-    
-    return [];
-  }
-}
-
-async function createTenantMember(data: TenantMemberFormData): Promise<TenantMember> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/tenant-members`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create tenant member');
-    }
-
-    const result = await response.json();
-    return result.data;
-  } catch (error) {
-    console.error('[createTenantMember] Error:', error);
-    throw error;
-  }
-}
-
-async function updateTenantMember(id: string, data: Partial<TenantMemberFormData>): Promise<TenantMember> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/tenant-members/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update tenant member');
-    }
-
-    const result = await response.json();
-    return result.data;
-  } catch (error) {
-    console.error('[updateTenantMember] Error:', error);
-    throw error;
-  }
-}
-
-async function deleteTenantMember(id: string): Promise<void> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/tenant-members/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete tenant member');
-    }
-  } catch (error) {
-    console.error('[deleteTenantMember] Error:', error);
-    throw error;
-  }
-}
-
-async function fetchTenants() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/tenants`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch tenants');
-    
-    const result = await response.json();
-    return result.data || [];
-  } catch (error) {
-    console.error('[fetchTenants] Error:', error);
-    
-    // Fallback to localStorage
-    const cached = localStorage.getItem('tenants_cache');
-    if (cached) {
-      return JSON.parse(cached);
-    }
-    
-    return [];
-  }
-}
-
-async function fetchUsers() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/users`, {
-      headers: {
-        'Authorization': `Bearer ${publicAnonKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch users');
-    
-    const result = await response.json();
-    return result.data || [];
-  } catch (error) {
-    console.error('[fetchUsers] Error:', error);
-    
-    // Fallback to localStorage
-    const cached = localStorage.getItem('users_cache');
-    if (cached) {
-      return JSON.parse(cached);
-    }
-    
-    return [];
-  }
-}
+import { tenantMembersApi } from '../api/tenantMembersApi';
+import { PageLayout } from '../components/layout/PageLayout';
+import { StatisticsCards } from '../components/common/StatisticsCards';
+import { Button } from '../components/ui/button';
+import { UserPlus, Users, CheckCircle, Clock, AlertCircle, UserX } from 'lucide-react';
 
 // ============================================
 // MAIN COMPONENT
@@ -194,6 +24,20 @@ export function TenantMembersPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TenantMember | null>(null);
 
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
+
   // Load data on mount
   useEffect(() => {
     loadData();
@@ -203,9 +47,9 @@ export function TenantMembersPage() {
     setLoading(true);
     try {
       const [membersData, tenantsData, usersData] = await Promise.all([
-        fetchTenantMembers(),
-        fetchTenants(),
-        fetchUsers()
+        tenantMembersApi.getAll(),
+        tenantMembersApi.fetchTenants(),
+        tenantMembersApi.fetchUsers()
       ]);
       
       // Enrich members with user data
@@ -224,7 +68,7 @@ export function TenantMembersPage() {
       setUsers(usersData);
     } catch (error) {
       console.error('Failed to load data:', error);
-      toast.error('Failed to load data');
+      showToast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -244,45 +88,71 @@ export function TenantMembersPage() {
 
   // Handle delete member
   const handleDelete = async (memberId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) {
-      return;
-    }
-
-    try {
-      await deleteTenantMember(memberId);
-      toast.success('Member removed successfully');
-      await loadData();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to remove member');
-    }
+    setConfirmDialog({
+      open: true,
+      title: 'Remove Member',
+      description: 'Are you sure you want to remove this member?',
+      onConfirm: async () => {
+        try {
+          await tenantMembersApi.delete(memberId);
+          showToast.success('Member removed successfully');
+          await loadData();
+        } catch (error: any) {
+          showToast.error(error.message || 'Failed to remove member');
+        }
+      },
+      variant: 'destructive',
+    });
   };
 
   // Handle form submit
   const handleFormSubmit = async (data: TenantMemberFormData) => {
     try {
       if (editingMember) {
-        await updateTenantMember(editingMember._id, data);
-        toast.success('Member updated successfully');
+        await tenantMembersApi.update(editingMember._id, data);
+        showToast.success('Member updated successfully');
       } else {
-        await createTenantMember(data);
-        toast.success('Member added successfully');
+        await tenantMembersApi.create(data);
+        showToast.success('Member added successfully');
       }
       
       await loadData();
       setFormOpen(false);
       setEditingMember(null);
     } catch (error: any) {
-      toast.error(error.message || 'Failed to save member');
+      showToast.error(error.message || 'Failed to save member');
       throw error;
     }
   };
 
+  // Stats
+  const stats = useMemo(() => {
+    return [
+      { label: t('common.total'), value: members.length, color: 'indigo' as const, icon: Users },
+      { label: 'Active', value: members.filter(m => m.status === 'ACTIVE').length, color: 'green' as const, icon: CheckCircle },
+      { label: 'Onboarding', value: members.filter(m => m.status === 'ONBOARDING').length, color: 'blue' as const, icon: Clock },
+      { label: 'Suspended', value: members.filter(m => m.status === 'SUSPENDED').length, color: 'orange' as const, icon: AlertCircle },
+      { label: 'Resigned', value: members.filter(m => m.status === 'RESIGNED').length, color: 'gray' as const, icon: UserX },
+    ];
+  }, [members, t]);
+
   return (
-    <div className="container mx-auto py-8 px-4">
+    <PageLayout
+      title={t('tenantMembers.title')}
+      description={`${members.length} ${t('tenantMembers.members')}`}
+      icon={Users}
+      actions={
+        <Button onClick={handleAdd} className="gap-2">
+          <UserPlus className="w-4 h-4" />
+          {t('tenantMembers.addMember')}
+        </Button>
+      }
+    >
+      <StatisticsCards stats={stats} columns={5} className="mb-0 border-none shadow-sm" />
+
       <TenantMembersList
         members={members}
         loading={loading}
-        onAdd={handleAdd}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
@@ -300,7 +170,18 @@ export function TenantMembersPage() {
         managers={members.filter(m => ['OWNER', 'ADMIN'].includes(m.role))}
         mode={editingMember ? 'edit' : 'create'}
       />
-    </div>
+
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        variant={confirmDialog.variant}
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+      />
+    </PageLayout>
   );
 }
 

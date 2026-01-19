@@ -96,7 +96,7 @@ export function OrderTable({ orders, onEdit, onDelete, loading }: OrderTableProp
             >
               <td className="px-6 py-4 whitespace-nowrap">
                 <button
-                  onClick={() => navigate(`/core/subscription-orders/${order._id}`)}
+                  onClick={() => navigate(`/commerce/subscription-orders/${order._id}`)}
                   className="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
                 >
                   <FileText className="w-4 h-4" />

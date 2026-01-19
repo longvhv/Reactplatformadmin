@@ -1,6 +1,8 @@
 /**
  * Notification Templates Module
  * Module definition for notification template management
+ * 
+ * 🌐 Path: /platform/notification-templates
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -22,7 +24,7 @@ export const NotificationTemplatesModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/notification-templates',
+      path: '/platform/notification-templates',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <NotificationTemplatesPage />
@@ -37,7 +39,7 @@ export const NotificationTemplatesModule: ModuleDefinition = {
       id: 'notification-templates',
       label: 'notificationTemplates.menu',
       icon: <Mail className="h-5 w-5" />,
-      path: '/core/notification-templates',
+      path: '/platform/notification-templates',
       order: 1,
     },
   ],

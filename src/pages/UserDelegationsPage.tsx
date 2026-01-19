@@ -3,15 +3,22 @@
  * Quản lý ủy quyền giữa các users
  * 
  * ⚠️ UNDER DEVELOPMENT - Production-ready template
+ * 
+ * ✅ MIGRATED to Phase 3 Standards (2026-01-18):
+ * - Replaced confirm() with ConfirmDialog
+ * - Using showToast (toast from sonner) for all notifications
+ * - Wrapped in Fragment
+ * - Using PageLayout with icon/title/description
+ * - Using StatisticsCards component
+ * - Full dark mode support
  */
 
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import { 
   UserCog, 
   Plus, 
   Search, 
-  Filter, 
   RefreshCw,
   Calendar,
   CheckCircle,
@@ -19,7 +26,6 @@ import {
   Clock,
   User,
   ArrowRight,
-  Edit2,
   Trash2,
   Info
 } from 'lucide-react';
@@ -29,7 +35,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { useLanguage } from '../providers/LanguageProvider';
+import { PageLayout } from '../components/layout/PageLayout';
 import { toast } from 'sonner@2.0.3';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 // ==================== TYPES ====================
 
@@ -138,19 +148,27 @@ export default function UserDelegationsPage() {
   const navigate = useNavigate();
 
   const [delegations, setDelegations] = useState<UserDelegation[]>(MOCK_DELEGATIONS);
-  const [filteredDelegations, setFilteredDelegations] = useState<UserDelegation[]>(MOCK_DELEGATIONS);
-  const [stats, setStats] = useState<DelegationStats>(MOCK_STATS);
   const [loading, setLoading] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
-  useEffect(() => {
-    applyFilters();
-  }, [delegations, searchTerm, statusFilter]);
-
-  const applyFilters = () => {
+  // Filtered delegations (Memoized for performance)
+  const filteredDelegations = useMemo(() => {
     let filtered = [...delegations];
 
     // Search filter
@@ -170,7 +188,51 @@ export default function UserDelegationsPage() {
       filtered = filtered.filter(d => d.status === statusFilter);
     }
 
-    setFilteredDelegations(filtered);
+    return filtered;
+  }, [delegations, searchTerm, statusFilter]);
+
+  // Real-time stats calculation
+  const stats = useMemo(() => {
+    return [
+      { 
+        label: t('common.total'), 
+        value: delegations.length, 
+        color: 'gray' as const, 
+        icon: UserCog 
+      },
+      { 
+        label: t('userDelegations.active'), 
+        value: delegations.filter(d => d.status === 'ACTIVE').length, 
+        color: 'green' as const, 
+        icon: CheckCircle 
+      },
+      { 
+        label: t('userDelegations.pending'), 
+        value: delegations.filter(d => d.status === 'PENDING').length, 
+        color: 'yellow' as const, 
+        icon: Clock 
+      },
+      { 
+        label: t('userDelegations.expired'), 
+        value: delegations.filter(d => d.status === 'EXPIRED').length, 
+        color: 'gray' as const, 
+        icon: XCircle 
+      },
+      { 
+        label: t('userDelegations.revoked'), 
+        value: delegations.filter(d => d.status === 'REVOKED').length, 
+        color: 'red' as const, 
+        icon: XCircle 
+      },
+    ];
+  }, [delegations, t]);
+
+  // Status configuration for badges
+  const statusConfig = {
+    ACTIVE: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: CheckCircle, label: 'Đang hoạt động' },
+    EXPIRED: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300', icon: XCircle, label: 'Đã hết hạn' },
+    REVOKED: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', icon: XCircle, label: 'Đã thu hồi' },
+    PENDING: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', icon: Clock, label: 'Chờ kích hoạt' },
   };
 
   const handleRefresh = () => {
@@ -183,47 +245,37 @@ export default function UserDelegationsPage() {
   };
 
   const handleRevoke = (delegation: UserDelegation) => {
-    if (!confirm(`Bạn có chắc muốn thu hồi ủy quyền từ "${delegation.delegator_name}" đến "${delegation.delegate_name}"?`)) {
-      return;
-    }
-
-    // TODO: API call to revoke
-    toast.success('Đã thu hồi ủy quyền');
-    
-    // Update local state
-    setDelegations(prev => prev.map(d => 
-      d._id === delegation._id ? { ...d, status: 'REVOKED' as DelegationStatus } : d
-    ));
+    setConfirmDialog({
+      open: true,
+      title: 'Thu hồi ủy quyền',
+      description: `Bạn có chắc muốn thu hồi ủy quyền từ "${delegation.delegator_name}" đến "${delegation.delegate_name}"?`,
+      onConfirm: () => {
+        // TODO: API call to revoke
+        toast.success('Đã thu hồi ủy quyền');
+        
+        // Update local state
+        setDelegations(prev => prev.map(d => 
+          d._id === delegation._id ? { ...d, status: 'REVOKED' as DelegationStatus } : d
+        ));
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const handleDelete = (delegation: UserDelegation) => {
-    if (!confirm(`Bạn có chắc muốn xóa ủy quyền này?`)) {
-      return;
-    }
-
-    // TODO: API call to delete
-    toast.success('Đã xóa ủy quyền');
-    
-    // Update local state
-    setDelegations(prev => prev.filter(d => d._id !== delegation._id));
-  };
-
-  const getStatusBadge = (status: DelegationStatus) => {
-    const config = {
-      ACTIVE: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: CheckCircle, label: 'Đang hoạt động' },
-      EXPIRED: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300', icon: XCircle, label: 'Đã hết hạn' },
-      REVOKED: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', icon: XCircle, label: 'Đã thu hồi' },
-      PENDING: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', icon: Clock, label: 'Chờ kích hoạt' },
-    };
-    
-    const { color, icon: Icon, label } = config[status];
-    
-    return (
-      <Badge className={`${color} flex items-center gap-1`}>
-        <Icon className="w-3 h-3" />
-        {label}
-      </Badge>
-    );
+    setConfirmDialog({
+      open: true,
+      title: 'Xóa ủy quyền',
+      description: 'Bạn có chắc muốn xóa ủy quyền này?',
+      onConfirm: () => {
+        // TODO: API call to delete
+        toast.success('Đã xóa ủy quyền');
+        
+        // Update local state
+        setDelegations(prev => prev.filter(d => d._id !== delegation._id));
+        setConfirmDialog({ ...confirmDialog, open: false });
+      },
+    });
   };
 
   const formatDate = (dateStr: string) => {
@@ -235,24 +287,12 @@ export default function UserDelegationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center">
-                <UserCog className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-3xl font-bold text-foreground">
-                Ủy quyền
-              </span>
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Quản lý ủy quyền giữa các users
-            </p>
-          </div>
-          
+    <Fragment>
+      <PageLayout
+        title={t('userDelegations.title')}
+        description={t('userDelegations.description')}
+        icon={UserCog}
+        actions={
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -260,17 +300,19 @@ export default function UserDelegationsPage() {
               disabled={loading}
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
+              {t('common.refresh')}
             </Button>
             <Button
-              onClick={() => toast.info('Tính năng "Thêm ủy quyền" đang được phát triển')}
-              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={() => navigate('/admin/user-delegations/create')}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
             >
               <Plus className="w-4 h-4 mr-2" />
-              Thêm ủy quyền
+              {t('userDelegations.add')}
             </Button>
           </div>
-        </div>
+        }
+      >
+        <StatisticsCards stats={stats} columns={5} className="mb-0 border-none shadow-sm" />
 
         {/* Development Notice */}
         <Card className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
@@ -287,54 +329,6 @@ export default function UserDelegationsPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Đang hoạt động</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.active}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Chờ kích hoạt</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Đã hết hạn</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-600">{stats.expired}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Đã thu hồi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{stats.revoked}</div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Filters */}
         <Card>
@@ -449,7 +443,7 @@ export default function UserDelegationsPage() {
 
                             <div>
                               <div className="text-muted-foreground mb-1">Trạng thái</div>
-                              {getStatusBadge(delegation.status)}
+                              <StatusBadge status={delegation.status} config={statusConfig} />
                             </div>
                           </div>
 
@@ -502,7 +496,18 @@ export default function UserDelegationsPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+      </PageLayout>
+      
+      <ConfirmDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        onConfirm={confirmDialog.onConfirm}
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+        variant="destructive"
+      />
+    </Fragment>
   );
 }

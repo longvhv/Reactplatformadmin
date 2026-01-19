@@ -1,6 +1,8 @@
 /**
  * Edit Product Page
  * ✅ FIXED 2026-01-15: Using productsApi (correct schema)
+ * ✅ FIXED 2026-01-17: Updated paths to Vietnamese structure
+ * ✅ FIXED 2026-01-18: Enhanced UI with EnhancedProductForm
  */
 
 import React, { useState, useEffect } from 'react';
@@ -9,8 +11,8 @@ import { Button } from '../components/ui/button';
 import { Package } from 'lucide-react';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { productsApi, Product, UpdateProductRequest } from '../api/productsApi';
-import { ProductForm } from '../components/products/ProductForm';
-import { toast } from 'sonner@2.0.3';
+import { EnhancedProductForm } from '../components/products/EnhancedProductForm';
+import { showToast } from '@/lib/toast';
 
 const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -32,23 +34,24 @@ export default function EditProductPage() {
       const data = await productsApi.getById(id!);
       setProduct(data);
     } catch (error: any) {
-      toast.error('Không thể tải thông tin sản phẩm: ' + error.message);
-      navigate('/core/products');
+      console.error('Error loading product:', error);
+      showToast.error('Lỗi', 'Không thể tải thông tin sản phẩm: ' + error.message);
+      navigate('/commerce/products');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (data: UpdateProductRequest) => {
+  const handleSubmit = async (data: any) => {
     if (!product) return;
 
     try {
-      await productsApi.update(product._id!, data);
-      toast.success('Đã cập nhật sản phẩm');
-      navigate('/core/products');
+      await productsApi.update(product._id!, data as UpdateProductRequest);
+      showToast.success('Thành công', 'Đã cập nhật sản phẩm');
+      navigate('/commerce/products');
     } catch (error: any) {
-      toast.error('Không thể cập nhật: ' + error.message);
-      throw error;
+      console.error('Error updating product:', error);
+      showToast.error('Lỗi', 'Không thể cập nhật: ' + error.message);
     }
   };
 
@@ -67,8 +70,8 @@ export default function EditProductPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600">Không tìm thấy sản phẩm</p>
-          <Button onClick={() => navigate('/core/products')} className="mt-4">
+          <p className="text-red-600 mb-4">Không tìm thấy sản phẩm</p>
+          <Button onClick={() => navigate('/commerce/products')}>
             Quay lại danh sách
           </Button>
         </div>
@@ -82,14 +85,14 @@ export default function EditProductPage() {
       title="Chỉnh sửa sản phẩm"
       description={`${product.name} (${product.code})`}
       icon={Package}
-      backPath="/core/products"
+      backPath="/commerce/products"
       backLabel="Quay lại danh sách"
     >
-      <ProductForm
+      <EnhancedProductForm
         product={product}
         tenantId={DEMO_TENANT_ID}
         onSubmit={handleSubmit}
-        onCancel={() => navigate('/core/products')}
+        onCancel={() => navigate('/commerce/products')}
       />
     </FormPageLayout>
   );

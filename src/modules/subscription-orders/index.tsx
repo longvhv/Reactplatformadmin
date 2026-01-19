@@ -1,23 +1,20 @@
 /**
- * Subscription Orders Module
- * Subscription Order Management
+ * Subscription Orders Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/subscription-orders
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { ShoppingCart } from 'lucide-react';
 
-// Lazy-loaded pages
 const SubscriptionOrdersPage = lazy(() => import('../../pages/SubscriptionOrdersPage'));
-const OrderDetailPage = lazy(() => import('../../pages/OrderDetailPage'));
 const AddOrderPage = lazy(() => import('../../pages/AddOrderPage'));
 const EditOrderPage = lazy(() => import('../../pages/EditOrderPage'));
+const SubscriptionOrderDetailPage = lazy(() => import('../../pages/SubscriptionOrderDetailPage'));
 
-/**
- * Subscription Orders Module Definition
- * Note: menuItems label and routes title use translation keys that will be resolved at runtime
- */
 export const SubscriptionOrdersModule: ModuleDefinition = {
   id: "subscription-orders",
   name: "Subscription Orders",
@@ -30,7 +27,7 @@ export const SubscriptionOrdersModule: ModuleDefinition = {
     {
       id: "subscription-orders",
       label: "subscriptionOrders.title", // Translation key
-      path: "/core/subscription-orders",
+      path: "/commerce/subscription-orders",
       icon: <ShoppingCart className="w-5 h-5" />,
       order: 45,
     },
@@ -38,40 +35,40 @@ export const SubscriptionOrdersModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/subscription-orders",
+      path: "/commerce/subscription-orders",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <SubscriptionOrdersPage />
         </Suspense>
       ),
-      title: "subscriptionOrders.title", // Translation key
+      title: "subscriptionOrders.title",
     },
     {
-      path: "/core/subscription-orders/add",
+      path: "/commerce/subscription-orders/create",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddOrderPage />
         </Suspense>
       ),
-      title: "subscriptionOrders.addOrder", // Translation key
+      title: "Tạo đơn hàng",
     },
     {
-      path: "/core/subscription-orders/edit/:id",
+      path: "/commerce/subscription-orders/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditOrderPage />
         </Suspense>
       ),
-      title: "subscriptionOrders.edit", // Translation key
+      title: "Chỉnh sửa đơn hàng",
     },
     {
-      path: "/core/subscription-orders/:id",
+      path: "/commerce/subscription-orders/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <OrderDetailPage />
+          <SubscriptionOrderDetailPage />
         </Suspense>
       ),
-      title: "subscriptionOrders.viewDetails", // Translation key
+      title: "Chi tiết đơn hàng",
     },
   ],
 

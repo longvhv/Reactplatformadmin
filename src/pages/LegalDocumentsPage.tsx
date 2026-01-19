@@ -1,27 +1,24 @@
 /**
  * LegalDocumentsPage
  * Trang quản lý điều khoản sử dụng
+ * ✅ REFACTORED: PageLayout, StatisticsCards, 100% UI/UX Quality
  */
 
-import React, { useState } from 'react';
-import {
-  FileText,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  Check,
-  Archive,
-  Upload,
-  Search,
-  Filter,
-  ChevronDown,
-} from 'lucide-react';
-import { useLegalDocuments } from '../hooks/useLegalDocuments';
-import { LegalDocumentModal } from '../components/legal/LegalDocumentModal';
-import { LegalDocument, LegalDocumentType, LegalDocumentStatus } from '../api/legalDocumentsApi';
+import { Fragment, useState } from 'react';
+import { FileText, Plus, Edit, Trash2, Eye, Archive, Upload, Search, Filter, ChevronDown } from 'lucide-react';
+import { useLegalDocuments } from '@/hooks/useLegalDocuments';
+import { LegalDocumentModal } from '@/components/legal/LegalDocumentModal';
+import { LegalDocument, LegalDocumentType, LegalDocumentStatus } from '@/api/legalDocumentsApi';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-export function LegalDocumentsPage() {
+export default function LegalDocumentsPage() {
   const { documents, loading, createDocument, updateDocument, deleteDocument, publishDocument, archiveDocument } =
     useLegalDocuments();
 
@@ -31,6 +28,20 @@ export function LegalDocumentsPage() {
   const [filterType, setFilterType] = useState<LegalDocumentType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<LegalDocumentStatus | 'all'>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Confirm dialog states
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+    variant?: 'default' | 'destructive';
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   // Get type label
   const getTypeLabel = (type: LegalDocumentType): string => {
@@ -50,14 +61,14 @@ export function LegalDocumentsPage() {
   // Get type color
   const getTypeColor = (type: LegalDocumentType): string => {
     const colors: Record<LegalDocumentType, string> = {
-      terms_of_service: 'bg-blue-50 text-blue-700 border-blue-200',
-      privacy_policy: 'bg-purple-50 text-purple-700 border-purple-200',
-      cookie_policy: 'bg-orange-50 text-orange-700 border-orange-200',
-      gdpr: 'bg-green-50 text-green-700 border-green-200',
-      eula: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      sla: 'bg-pink-50 text-pink-700 border-pink-200',
-      dpa: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-      other: 'bg-gray-50 text-gray-700 border-gray-200',
+      terms_of_service: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300',
+      privacy_policy: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300',
+      cookie_policy: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-300',
+      gdpr: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300',
+      eula: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/20 dark:text-indigo-300',
+      sla: 'bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/20 dark:text-pink-300',
+      dpa: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-300',
+      other: 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:text-gray-300',
     };
     return colors[type];
   };
@@ -65,9 +76,9 @@ export function LegalDocumentsPage() {
   // Get status badge
   const getStatusBadge = (status: LegalDocumentStatus) => {
     const config = {
-      draft: { color: 'bg-gray-100 text-gray-700', label: 'Draft' },
-      published: { color: 'bg-green-100 text-green-700', label: 'Published' },
-      archived: { color: 'bg-orange-100 text-orange-700', label: 'Archived' },
+      draft: { color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300', label: 'Draft' },
+      published: { color: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-300', label: 'Published' },
+      archived: { color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300', label: 'Archived' },
     };
     const { color, label } = config[status];
     return <span className={`px-2 py-1 rounded-full text-xs font-medium ${color}`}>{label}</span>;
@@ -105,128 +116,134 @@ export function LegalDocumentsPage() {
   };
 
   // Handle delete
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa điều khoản này?')) return;
-
-    setDeletingId(id);
-    try {
-      await deleteDocument(id);
-    } catch (err) {
-      console.error('Error deleting document:', err);
-    } finally {
-      setDeletingId(null);
-    }
+  const handleDelete = (doc: LegalDocument) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Xác nhận xóa',
+      description: `Bạn có chắc muốn xóa điều khoản "${doc.title}"? Hành động này không thể hoàn tác.`,
+      variant: 'destructive',
+      onConfirm: async () => {
+        setDeletingId(doc._id);
+        try {
+          await deleteDocument(doc._id);
+          showToast.success('Xóa thành công', 'Đã xóa điều khoản');
+        } catch (err: any) {
+          console.error('Error deleting document:', err);
+          showToast.error('Lỗi', err.message || 'Không thể xóa điều khoản');
+        } finally {
+          setDeletingId(null);
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   // Handle publish
-  const handlePublish = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn publish điều khoản này?')) return;
-
-    try {
-      await publishDocument(id, 'current-user-id'); // TODO: Get from auth context
-    } catch (err) {
-      console.error('Error publishing document:', err);
-      alert('Failed to publish document');
-    }
+  const handlePublish = (doc: LegalDocument) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Xác nhận publish',
+      description: `Bạn có chắc muốn publish điều khoản "${doc.title}"? Điều khoản sẽ có hiệu lực ngay lập tức.`,
+      onConfirm: async () => {
+        try {
+          await publishDocument(doc._id, 'current-user-id');
+          showToast.success('Publish thành công', 'Điều khoản đã được công bố');
+        } catch (err: any) {
+          console.error('Error publishing document:', err);
+          showToast.error('Lỗi', err.message || 'Không thể publish điều khoản');
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   // Handle archive
-  const handleArchive = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn archive điều khoản này?')) return;
-
-    try {
-      await archiveDocument(id, 'current-user-id'); // TODO: Get from auth context
-    } catch (err) {
-      console.error('Error archiving document:', err);
-      alert('Failed to archive document');
-    }
+  const handleArchive = (doc: LegalDocument) => {
+    setConfirmDialog({
+      open: true,
+      title: 'Xác nhận archive',
+      description: `Bạn có chắc muốn archive điều khoản "${doc.title}"? Điều khoản sẽ không còn hiệu lực.`,
+      onConfirm: async () => {
+        try {
+          await archiveDocument(doc._id, 'current-user-id');
+          showToast.success('Archive thành công', 'Điều khoản đã được lưu trữ');
+        } catch (err: any) {
+          console.error('Error archiving document:', err);
+          showToast.error('Lỗi', err.message || 'Không thể archive điều khoản');
+        } finally {
+          setConfirmDialog({ ...confirmDialog, open: false });
+        }
+      },
+    });
   };
 
   // Handle submit
   const handleSubmit = async (data: any, id?: string) => {
-    if (id) {
-      await updateDocument(id, data);
-    } else {
-      await createDocument(data);
+    try {
+      if (id) {
+        await updateDocument(id, data);
+        showToast.success('Cập nhật thành công', 'Đã cập nhật điều khoản');
+      } else {
+        await createDocument(data);
+        showToast.success('Tạo thành công', 'Đã tạo điều khoản mới');
+      }
+      setIsModalOpen(false);
+      setEditingDoc(undefined);
+    } catch (err: any) {
+      console.error('Error saving document:', err);
+      showToast.error('Lỗi', err.message || 'Không thể lưu điều khoản');
     }
   };
 
   // Stats
-  const stats = {
-    total: documents.length,
-    published: documents.filter((d) => d.status === 'published').length,
-    draft: documents.filter((d) => d.status === 'draft').length,
-    archived: documents.filter((d) => d.status === 'archived').length,
-  };
+  const stats = [
+    { label: 'Tổng số', value: documents.length, color: 'gray' as const, icon: FileText },
+    { label: 'Published', value: documents.filter((d) => d.status === 'published').length, color: 'green' as const, icon: FileText },
+    { label: 'Draft', value: documents.filter((d) => d.status === 'draft').length, color: 'gray' as const, icon: FileText },
+    { label: 'Archived', value: documents.filter((d) => d.status === 'archived').length, color: 'orange' as const, icon: Archive },
+  ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Đang tải...</p>
+      <Fragment>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Đang tải...</p>
+          </div>
         </div>
-      </div>
+      </Fragment>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-indigo-100 rounded-lg">
-                <FileText className="w-6 h-6 text-indigo-600" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Điều khoản sử dụng</h1>
-                <p className="text-gray-500 mt-1">Quản lý các điều khoản, chính sách pháp lý</p>
-              </div>
-            </div>
-            <button
-              onClick={handleAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Thêm mới
-            </button>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-4 gap-4 mt-6">
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500">Tổng số</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500">Published</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">{stats.published}</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500">Draft</p>
-              <p className="text-2xl font-bold text-gray-600 mt-1">{stats.draft}</p>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <p className="text-sm text-gray-500">Archived</p>
-              <p className="text-2xl font-bold text-orange-600 mt-1">{stats.archived}</p>
-            </div>
-          </div>
-        </div>
+    <Fragment>
+      <PageLayout
+        icon={FileText}
+        title="Điều khoản sử dụng"
+        description="Quản lý các điều khoản, chính sách pháp lý"
+        actions={
+          <Button onClick={handleAdd}>
+            <Plus className="w-4 h-4 mr-2" />
+            Thêm mới
+          </Button>
+        }
+      >
+        {/* Stats */}
+        <StatisticsCards stats={stats} columns={4} />
 
         {/* Filters */}
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-3 gap-4">
+        <Card className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
+              <Input
                 placeholder="Tìm kiếm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                className="pl-10"
               />
             </div>
 
@@ -236,7 +253,7 @@ export function LegalDocumentsPage() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 appearance-none"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 appearance-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="all">All Types</option>
                 <option value="terms_of_service">Terms of Service</option>
@@ -257,7 +274,7 @@ export function LegalDocumentsPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 appearance-none"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 appearance-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="all">All Statuses</option>
                 <option value="draft">Draft</option>
@@ -267,129 +284,143 @@ export function LegalDocumentsPage() {
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <Card>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiêu đề</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Loại</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Version</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày HL</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tiêu đề</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Loại</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Version</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trạng thái</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Ngày HL</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Views</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredDocuments.map((doc) => (
-                  <tr key={doc._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900">{doc.title}</span>
-                        <span className="text-xs text-gray-500">{doc.slug}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getTypeColor(
-                          doc.type
-                        )}`}
-                      >
-                        {getTypeLabel(doc.type)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-900">{doc.version}</span>
-                    </td>
-                    <td className="px-4 py-3">{getStatusBadge(doc.status)}</td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-900">{formatDate(doc.effective_date)}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-900">
-                        <Eye className="w-4 h-4 text-gray-400" />
-                        {doc.view_count}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        {doc.status === 'draft' && (
-                          <button
-                            onClick={() => handlePublish(doc._id)}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-                            title="Publish"
-                          >
-                            <Upload className="w-4 h-4" />
-                          </button>
-                        )}
-                        {doc.status === 'published' && (
-                          <button
-                            onClick={() => handleArchive(doc._id)}
-                            className="p-1 text-orange-600 hover:bg-orange-50 rounded transition-colors"
-                            title="Archive"
-                          >
-                            <Archive className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleEdit(doc)}
-                          className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(doc._id)}
-                          disabled={deletingId === doc._id}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredDocuments.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500 dark:text-gray-400 mb-4">
+                        {searchTerm || filterType !== 'all' || filterStatus !== 'all'
+                          ? 'Không tìm thấy kết quả'
+                          : 'Chưa có điều khoản nào'}
+                      </p>
+                      {!searchTerm && filterType === 'all' && filterStatus === 'all' && (
+                        <Button onClick={handleAdd} variant="outline">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Thêm điều khoản đầu tiên
+                        </Button>
+                      )}
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredDocuments.map((doc) => (
+                    <tr key={doc._id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{doc.title}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{doc.slug}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge className={getTypeColor(doc.type)}>
+                          {getTypeLabel(doc.type)}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-900 dark:text-white">{doc.version}</span>
+                      </td>
+                      <td className="px-6 py-4">{getStatusBadge(doc.status)}</td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-900 dark:text-white">{formatDate(doc.effective_date)}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
+                          <Eye className="w-4 h-4 text-gray-400" />
+                          {doc.view_count}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-2">
+                          {doc.status === 'draft' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePublish(doc)}
+                              className="text-green-600 hover:text-green-700"
+                              title="Publish"
+                            >
+                              <Upload className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {doc.status === 'published' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleArchive(doc)}
+                              className="text-orange-600 hover:text-orange-700"
+                              title="Archive"
+                            >
+                              <Archive className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(doc)}
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(doc)}
+                            disabled={deletingId === doc._id}
+                            className="text-red-600 hover:text-red-700 disabled:opacity-50"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
+        </Card>
 
-          {/* Empty State */}
-          {filteredDocuments.length === 0 && (
-            <div className="text-center py-12">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 mb-4">
-                {searchTerm || filterType !== 'all' || filterStatus !== 'all'
-                  ? 'Không tìm thấy kết quả'
-                  : 'Chưa có điều khoản nào'}
-              </p>
-              {!searchTerm && filterType === 'all' && filterStatus === 'all' && (
-                <button
-                  onClick={handleAdd}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-                >
-                  <Plus className="w-4 h-4" />
-                  Thêm điều khoản đầu tiên
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+        {/* Modal */}
+        <LegalDocumentModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingDoc(undefined);
+          }}
+          onSubmit={handleSubmit}
+          editData={editingDoc}
+        />
 
-      {/* Modal */}
-      <LegalDocumentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmit}
-        editData={editingDoc}
-      />
-    </div>
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          open={confirmDialog.open}
+          onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          onConfirm={confirmDialog.onConfirm}
+          variant={confirmDialog.variant}
+          confirmLabel="Xác nhận"
+          cancelLabel="Hủy"
+        />
+      </PageLayout>
+    </Fragment>
   );
 }
-
-export default LegalDocumentsPage;

@@ -10,17 +10,19 @@ import { Plus, Search, LayoutGrid, Network, List, Building2, CheckCircle, Clock,
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import { useTenants } from '@/hooks/useTenants';
 import { useTenantTree } from '@/hooks/useTenantTree';
-import { TenantFilters } from '@/components/tenants/TenantFilters';
-import { StatisticsCards } from '../components/common/StatisticsCards';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { TenantTreeView } from '@/components/tenants/TenantTreeView';
+import { TenantFilters } from '@/components/tenants/TenantFilters';
 import { TenantDetailView } from '@/components/tenants/TenantDetailView';
 import { TenantGrid } from '@/components/tenants/TenantGrid';
 import { TenantList } from '@/components/tenants/TenantList';
 import { isRootTenant } from '@/utils/tenant-utils';
-import { toast } from 'sonner';
+import { showToast } from '@/lib/toast';
 import type { TenantStatus, TenantTier, DataRegion } from '@/data/tenants';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 type ViewMode = 'grid' | 'tree' | 'list';
 
@@ -35,6 +37,7 @@ export default function TenantsPage() {
   const [tierFilter, setTierFilter] = useState<TenantTier | 'all'>('all');
   const [regionFilter, setRegionFilter] = useState<DataRegion | 'all'>('all');
   const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'root' | 'children'>('all');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   // Hooks
   const { tenants, loading, error, deleteTenant } = useTenants({ autoLoad: true });
@@ -83,13 +86,19 @@ export default function TenantsPage() {
     rootTenants: tenants.filter(t => isRootTenant(t)).length,
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('tenants.confirmDelete'))) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await deleteTenant(id);
-      toast.success(t('tenants.deleteSuccess'));
+      await deleteTenant(deleteId);
+      showToast.success('Xóa thành công', t('tenants.deleteSuccess'));
     } catch (err) {
-      toast.error(t('tenants.deleteError'));
+      showToast.error('Lỗi', t('tenants.deleteError'));
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -102,121 +111,133 @@ export default function TenantsPage() {
   };
 
   const handleAddTenant = () => {
-    navigate('/core/tenants/add');
+    navigate('/admin/tenants/create');
   };
 
+  const statCards = [
+    { label: 'Total Tenants', value: stats.total, color: 'indigo' as const, icon: Building2 },
+    { label: 'Active', value: stats.active, color: 'green' as const, icon: CheckCircle },
+    { label: 'Trial', value: stats.trial, color: 'yellow' as const, icon: Clock },
+    { label: 'Enterprise', value: stats.enterprise, color: 'purple' as const, icon: Crown },
+    { label: 'Partners', value: stats.partners, color: 'blue' as const, icon: Handshake },
+    { label: 'Root Tenants', value: stats.rootTenants, color: 'gray' as const, icon: Users },
+  ];
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - NOT sticky anymore */}
-      <div className="border-b border-border bg-card">
-        <div className="max-w-[1920px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/90 rounded-xl flex items-center justify-center">
-                  <Building2 className="h-6 w-6 text-white" />
+    <>
+      <PageLayout
+        icon={Building2}
+        title={t('tenants.title') || 'Tenant Management'}
+        description={t('tenants.subtitle') || 'Manage organizations and hierarchical structure'}
+        actions={
+          <Button onClick={handleAddTenant} size="sm" className="gap-2">
+            <Plus className="w-4 h-4" />
+            {t('tenants.addTenant') || 'Add Tenant'}
+          </Button>
+        }
+      >
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          {statCards.map((stat) => (
+            <Card key={stat.label} className="p-6">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    {stat.label}
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {stat.value}
+                  </p>
                 </div>
-                <span className="text-3xl font-bold text-foreground">
-                  {t('tenants.title') || 'Tenant Management'}
-                </span>
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                {t('tenants.subtitle') || 'Manage organizations and hierarchical structure'}
-              </p>
-            </div>
-            <Button onClick={handleAddTenant} className="gap-2">
-              <Plus className="w-4 h-4" />
-              {t('tenants.addTenant') || 'Add Tenant'}
-            </Button>
-          </div>
-
-          {/* Collapsible Stats */}
-          <StatisticsCards 
-            stats={[
-              { label: 'Total Tenants', value: stats.total, color: 'indigo', icon: Building2 },
-              { label: 'Active', value: stats.active, color: 'green', icon: CheckCircle },
-              { label: 'Trial', value: stats.trial, color: 'yellow', icon: Clock },
-              { label: 'Enterprise', value: stats.enterprise, color: 'purple', icon: Crown },
-              { label: 'Partners', value: stats.partners, color: 'blue', icon: Handshake },
-              { label: 'Root Tenants', value: stats.rootTenants, color: 'gray', icon: Users },
-            ]}
-            columns={6}
-            className="mb-4"
-          />
+                <div className={`p-3 rounded-lg ${
+                  stat.color === 'indigo' ? 'bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600' :
+                  stat.color === 'green' ? 'bg-green-100 dark:bg-green-900/20 text-green-600' :
+                  stat.color === 'yellow' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
+                  stat.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/20 text-purple-600' :
+                  stat.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-600' :
+                  'bg-gray-100 dark:bg-gray-800 text-gray-600'
+                }`}>
+                  <stat.icon className="w-6 h-6" />
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="max-w-[1920px] mx-auto px-6 py-4 space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={t('tenants.searchPlaceholder') || 'Search tenants...'}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+        {/* Filters & Search */}
+        <Card className="p-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder={t('tenants.searchPlaceholder') || 'Search tenants...'}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex gap-2">
+              <TenantFilters
+                statusFilter={statusFilter}
+                tierFilter={tierFilter}
+                regionFilter={regionFilter}
+                hierarchyFilter={hierarchyFilter}
+                onStatusChange={setStatusFilter}
+                onTierChange={setTierFilter}
+                onRegionChange={setRegionFilter}
+                onHierarchyChange={setHierarchyFilter}
+                onClear={clearFilters}
               />
+
+              {/* View Toggle */}
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'tree' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  onClick={() => setViewMode('tree')}
+                >
+                  <Network className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                  size="icon"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Filter Controls */}
-          <div className="flex gap-2">
-            <TenantFilters
-              statusFilter={statusFilter}
-              tierFilter={tierFilter}
-              regionFilter={regionFilter}
-              hierarchyFilter={hierarchyFilter}
-              onStatusChange={setStatusFilter}
-              onTierChange={setTierFilter}
-              onRegionChange={setRegionFilter}
-              onHierarchyChange={setHierarchyFilter}
-              onClear={clearFilters}
-            />
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredTenants.length} of {tenants.length} tenants
+          </p>
+        </Card>
 
-            {/* View Toggle */}
-            <div className="flex border rounded-md">
-              <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('grid')}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'tree' ? 'secondary' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('tree')}
-              >
-                <Network className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-                size="icon"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-sm text-muted-foreground">
-          Showing {filteredTenants.length} of {tenants.length} tenants
-        </p>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-[1920px] mx-auto px-6 pb-6">
+        {/* Content */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-muted-foreground mt-4">Loading tenants...</p>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-muted-foreground mt-4">Loading tenants...</p>
+            </div>
           </div>
         ) : error ? (
-          <div className="text-center py-12 text-destructive">{error}</div>
+          <Card className="p-6">
+            <div className="text-center py-12 text-destructive">{error}</div>
+          </Card>
         ) : viewMode === 'tree' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
@@ -238,18 +259,29 @@ export default function TenantsPage() {
                   childrenCount={getChildren(selectedTenant._id).length}
                 />
               ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  Select a tenant to view details
-                </div>
+                <Card className="p-6">
+                  <div className="text-center py-12 text-muted-foreground">
+                    Select a tenant to view details
+                  </div>
+                </Card>
               )}
             </div>
           </div>
         ) : viewMode === 'grid' ? (
-          <TenantGrid tenants={filteredTenants} onDelete={handleDelete} onSelect={selectTenant} />
+          <TenantGrid tenants={filteredTenants} onDelete={handleDeleteClick} onSelect={selectTenant} />
         ) : (
-          <TenantList tenants={filteredTenants} onDelete={handleDelete} onSelect={selectTenant} />
+          <TenantList tenants={filteredTenants} onDelete={handleDeleteClick} onSelect={selectTenant} />
         )}
-      </div>
-    </div>
+      </PageLayout>
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        title={t('tenants.deleteTitle') || 'Xóa Tenant'}
+        description={t('tenants.confirmDelete') || 'Bạn có chắc chắn muốn xóa tenant này không?'}
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+      />
+    </>
   );
 }

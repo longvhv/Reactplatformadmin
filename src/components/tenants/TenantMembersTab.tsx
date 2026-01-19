@@ -90,7 +90,7 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
 
   const fetchStats = async () => {
     try {
-      const s = await tenantMembersApi.getStats(tenantId);
+      const s = await tenantMembersApi.getStatistics(tenantId);
       setStats(s);
     } catch (error) {
       console.error('Error fetching stats:', error);

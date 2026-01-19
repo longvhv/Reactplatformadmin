@@ -85,7 +85,7 @@ export function AuditLogTable({ logs, loading, onViewDetails }: AuditLogTablePro
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -211,7 +211,7 @@ export function AuditLogTable({ logs, loading, onViewDetails }: AuditLogTablePro
                         if (onViewDetails) {
                           onViewDetails(log);
                         } else {
-                          navigate(`/core/audit-logs/${log._id}`);
+                          navigate(`/admin/audit-logs/${log._id}`);
                         }
                       }}
                     >

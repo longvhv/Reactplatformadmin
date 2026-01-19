@@ -1,6 +1,8 @@
 /**
  * API Usage Logs Module
  * Module definition for API usage monitoring and analytics
+ * 
+ * 🌐 Path: /integrations/api-usage-logs
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -25,7 +27,7 @@ export const ApiUsageLogsModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/api-usage-logs',
+      path: '/integrations/api-usage-logs',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ApiUsageLogsPage />
@@ -34,7 +36,7 @@ export const ApiUsageLogsModule: ModuleDefinition = {
       title: 'apiUsageLogs.menu',
     },
     {
-      path: '/core/api-usage-logs/analytics',
+      path: '/integrations/api-usage-logs/analytics',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ApiUsageLogsAnalyticsPage />
@@ -43,7 +45,7 @@ export const ApiUsageLogsModule: ModuleDefinition = {
       title: 'apiUsageLogs.analytics',
     },
     {
-      path: '/core/api-usage-logs/settings',
+      path: '/integrations/api-usage-logs/settings',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ApiUsageLogsSettingsPage />
@@ -52,7 +54,7 @@ export const ApiUsageLogsModule: ModuleDefinition = {
       title: 'apiUsageLogs.settings',
     },
     {
-      path: '/core/api-usage-logs/:id',
+      path: '/integrations/api-usage-logs/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ApiUsageLogDetailPage />
@@ -67,7 +69,7 @@ export const ApiUsageLogsModule: ModuleDefinition = {
       id: 'api-usage-logs',
       label: 'apiUsageLogs.menu',
       icon: <BarChart3 className="h-5 w-5" />,
-      path: '/core/api-usage-logs',
+      path: '/integrations/api-usage-logs',
       order: 1,
     },
   ],

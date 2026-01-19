@@ -1,59 +1,50 @@
 /**
  * Add System Job Page
- * Create a new system job
+ * Create a new system background job
+ * 
+ * ✅ FIXED 2026-01-18: Use EnhancedSystemJobForm
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { systemJobsApi, SystemJobCreateData } from '../api/systemJobsApi';
-import { SystemJobForm } from '../components/system-jobs/SystemJobForm';
-import { Button } from '../components/ui/button';
-import { toast } from 'sonner@2.0.3';
+import { useNavigate } from 'react-router';
+import { Settings } from 'lucide-react';
+import { systemJobsApi, CreateJobRequest } from '../api/systemJobsApi';
+import { EnhancedSystemJobForm } from '../components/system-jobs/EnhancedSystemJobForm';
+import { FormPageLayout } from '../components/layouts/FormPageLayout';
+import { showToast } from '@/lib/toast';
 
 export default function AddSystemJobPage() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (data: SystemJobCreateData) => {
-    setIsLoading(true);
+  const handleSubmit = async (data: CreateJobRequest | any) => {
+    setLoading(true);
     try {
       await systemJobsApi.create(data);
-      toast.success(t('systemJobs.createSuccess'));
-      navigate('/core/system-jobs');
-    } catch (error) {
+      showToast.success('Thành công', 'Đã tạo công việc hệ thống mới');
+      navigate('/platform/system-jobs');
+    } catch (error: any) {
       console.error('Error creating system job:', error);
-      toast.error(t('systemJobs.createError'));
+      showToast.error('Lỗi', 'Không thể tạo công việc: ' + error.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/core/system-jobs')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-            {t('systemJobs.add')}
-          </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            {t('systemJobs.addJobDescription')}
-          </p>
-        </div>
-      </div>
-
-      {/* Form */}
-      <SystemJobForm onSubmit={handleSubmit} isLoading={isLoading} />
-    </div>
+    <FormPageLayout
+      mode="add"
+      title="Thêm công việc hệ thống"
+      description="Tạo và cấu hình các tác vụ chạy ngầm của hệ thống"
+      icon={Settings}
+      backPath="/platform/system-jobs"
+      backLabel="Quay lại danh sách"
+    >
+      <EnhancedSystemJobForm 
+        onSubmit={handleSubmit} 
+        loading={loading}
+        onCancel={() => navigate('/platform/system-jobs')}
+      />
+    </FormPageLayout>
   );
 }

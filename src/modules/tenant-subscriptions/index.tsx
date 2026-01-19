@@ -1,25 +1,19 @@
 /**
- * Tenant Subscriptions Module
- * Subscription Management with full CRUD operations
+ * Tenant Subscriptions Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/tenant-subscriptions
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { CreditCard } from 'lucide-react';
 
-// Lazy-loaded pages
 const TenantSubscriptionsPage = lazy(() => import('../../pages/TenantSubscriptionsPage'));
-const SubscriptionDetailPage = lazy(() => import('../../pages/SubscriptionDetailPage'));
 const AddSubscriptionPage = lazy(() => import('../../pages/AddSubscriptionPage'));
-const EditSubscriptionPage = lazy(() => import('../../pages/EditSubscriptionPage'));
+const SubscriptionDetailPageFullscreen = lazy(() => import('../../pages/SubscriptionDetailPage'));
 
-// Note: Some subscription detail views use full-screen layout (defined in App.tsx)
-
-/**
- * Tenant Subscriptions Module Definition
- * Translation keys are resolved at runtime
- */
 export const TenantSubscriptionsModule: ModuleDefinition = {
   id: "tenant-subscriptions",
   name: "Tenant Subscriptions",
@@ -32,7 +26,7 @@ export const TenantSubscriptionsModule: ModuleDefinition = {
     {
       id: "tenant-subscriptions",
       label: "subscriptions.title", // Translation key
-      path: "/core/tenant-subscriptions",
+      path: "/commerce/tenant-subscriptions",
       icon: <CreditCard className="w-5 h-5" />,
       order: 47,
     },
@@ -40,7 +34,7 @@ export const TenantSubscriptionsModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/core/tenant-subscriptions",
+      path: "/commerce/tenant-subscriptions",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <TenantSubscriptionsPage />
@@ -49,31 +43,22 @@ export const TenantSubscriptionsModule: ModuleDefinition = {
       title: "subscriptions.title", // Translation key
     },
     {
-      path: "/core/tenant-subscriptions/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <SubscriptionDetailPage />
-        </Suspense>
-      ),
-      title: "subscriptions.viewSubscription", // Translation key
-    },
-    {
-      path: "/core/tenant-subscriptions/add",
+      path: "/commerce/tenant-subscriptions/create",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddSubscriptionPage />
         </Suspense>
       ),
-      title: "subscriptions.addSubscription", // Translation key
+      title: "subscriptions.addSubscription",
     },
     {
-      path: "/core/tenant-subscriptions/edit/:id",
+      path: "/commerce/tenant-subscriptions/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <EditSubscriptionPage />
+          <SubscriptionDetailPageFullscreen />
         </Suspense>
       ),
-      title: "subscriptions.editSubscription", // Translation key
+      title: "subscriptions.detail",
     },
   ],
 

@@ -22,7 +22,7 @@ export default function AddRegionPage() {
       setLoading(true);
       await regionsApi.create(data);
       toast.success('Đã tạo region thành công');
-      navigate('/core/regions');
+      navigate('/platform/regions');
     } catch (error: any) {
       console.error('Failed to create region:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
@@ -33,7 +33,7 @@ export default function AddRegionPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/regions');
+    navigate('/platform/regions');
   };
 
   return (
@@ -42,7 +42,7 @@ export default function AddRegionPage() {
       title="Thêm Region"
       description="Tạo địa giới mới"
       icon={Map}
-      backPath="/core/regions"
+      backPath="/platform/regions"
       backLabel="Quay lại danh sách"
     >
       <RegionForm 

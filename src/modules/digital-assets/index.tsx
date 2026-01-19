@@ -1,22 +1,20 @@
 /**
- * Digital Assets Module
- * Manages digital assets like domains, SSL certificates, license keys
+ * Digital Assets Module Definition
+ * Note: menuItems label and routes title use translation keys that will be resolved at runtime
+ * 
+ * 🌐 Path: /commerce/digital-assets
  */
 
-import { lazy, Suspense } from 'react';
 import { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
-import { Shield } from 'lucide-react';
+import { Image } from 'lucide-react';
 
-// Lazy-loaded pages
 const DigitalAssetsPage = lazy(() => import('../../pages/DigitalAssetsPage'));
-const AddDigitalAssetPage = lazy(() => import('../../pages/AddDigitalAssetPage'));
-const EditDigitalAssetPage = lazy(() => import('../../pages/EditDigitalAssetPage'));
+const AddTenantDigitalAssetPage = lazy(() => import('../../pages/AddTenantDigitalAssetPage'));
+const EditTenantDigitalAssetPage = lazy(() => import('../../pages/EditTenantDigitalAssetPage'));
 const DigitalAssetDetailPage = lazy(() => import('../../pages/DigitalAssetDetailPage'));
 
-/**
- * Digital Assets Module Definition
- */
 export const DigitalAssetsModule: ModuleDefinition = {
   id: "digital-assets",
   name: "Digital Assets",
@@ -29,15 +27,15 @@ export const DigitalAssetsModule: ModuleDefinition = {
     {
       id: "digital-assets",
       label: "navigation.digitalAssets",
-      path: "/core/digital-assets",
-      icon: <Shield className="w-5 h-5" />,
+      path: "/commerce/digital-assets",
+      icon: <Image className="w-5 h-5" />,
       order: 45,
     },
   ],
 
   routes: [
     {
-      path: "/core/digital-assets",
+      path: "/commerce/digital-assets",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <DigitalAssetsPage />
@@ -46,31 +44,31 @@ export const DigitalAssetsModule: ModuleDefinition = {
       title: "navigation.digitalAssets",
     },
     {
-      path: "/core/digital-assets/add",
+      path: "/commerce/digital-assets/create",
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <AddDigitalAssetPage />
+          <AddTenantDigitalAssetPage />
         </Suspense>
       ),
-      title: "digitalAssets.add",
+      title: "Add Digital Asset",
     },
     {
-      path: "/core/digital-assets/edit/:id",
+      path: "/commerce/digital-assets/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <EditDigitalAssetPage />
+          <EditTenantDigitalAssetPage />
         </Suspense>
       ),
-      title: "digitalAssets.edit",
+      title: "Edit Digital Asset",
     },
     {
-      path: "/core/digital-assets/:id",
+      path: "/commerce/digital-assets/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <DigitalAssetDetailPage />
         </Suspense>
       ),
-      title: "digitalAssets.details",
+      title: "Digital Asset Detail",
     },
   ],
 

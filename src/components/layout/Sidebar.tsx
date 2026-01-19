@@ -58,40 +58,34 @@ export function Sidebar() {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [modulesReady, setModulesReady] = useState(false);
-  
-  console.log('🔍 DEBUG: Sidebar component RENDERED! modulesReady:', modulesReady);
+  const [registryVersion, setRegistryVersion] = useState(0);
   
   // Wait for modules to be registered
   useEffect(() => {
-    console.log('🔍 DEBUG: Sidebar useEffect RUNNING - setting up timer');
+    // Subscribe to registry changes
+    const unsubscribe = ModuleRegistry.getInstance().subscribe(() => {
+      setRegistryVersion(v => v + 1);
+    });
+
     // Give moduleRegistration time to complete
     const timer = setTimeout(() => {
-      console.log('🔍 DEBUG: Timer fired! Setting modulesReady = true');
       setModulesReady(true);
-      console.log('🔍 DEBUG Sidebar: Modules ready, triggering useMemo recalculation');
     }, 100);
     
     return () => {
-      console.log('🔍 DEBUG: Sidebar useEffect CLEANUP');
       clearTimeout(timer);
+      unsubscribe();
     };
   }, []);
 
   // Get menu items from ModuleRegistry
   const MENU_GROUPS = useMemo(() => {
-    console.log('🔍 DEBUG Sidebar useMemo: Running... modulesReady =', modulesReady);
-    
     if (!modulesReady) {
-      console.log('🔍 DEBUG Sidebar useMemo: Modules not ready yet, returning empty groups');
       return [];
     }
     
     const registry = ModuleRegistry.getInstance();
     const menuItems = registry.getAllMenuItems();
-    
-    console.log('🔍 DEBUG Sidebar: All menu items from registry:', menuItems);
-    console.log('🔍 DEBUG Sidebar: Digital Assets found?', menuItems.find(m => m.label?.includes('Tài Sản')));
-    console.log('🔍 DEBUG Sidebar: Service Deliveries found?', menuItems.find(m => m.label?.includes('Dịch Vụ')));
 
     // Group menu items by their order
     const groupedItems: Record<string, MenuItem[]> = {};
@@ -99,8 +93,6 @@ export function Sidebar() {
     menuItems.forEach((item) => {
       const order = (item as any).order ?? 999;
       const groupId = getMenuGroup(order);
-      
-      console.log(`🔍 DEBUG Sidebar: Item "${item.label}" - order: ${order}, group: ${groupId}`);
 
       if (!groupedItems[groupId]) {
         groupedItems[groupId] = [];
@@ -131,11 +123,9 @@ export function Sidebar() {
         });
       }
     });
-    
-    console.log('🔍 DEBUG: Final groups:', groups);
 
     return groups;
-  }, [modulesReady]);
+  }, [modulesReady, registryVersion]);
 
   // Close mobile sidebar on navigation
   useEffect(() => {
@@ -165,7 +155,7 @@ export function Sidebar() {
         {/* Header */}
         <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600">
+            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600">
               <span className="text-white font-bold text-sm">VH</span>
             </div>
             <span className="text-base font-semibold text-gray-900">VHV Platform</span>
@@ -198,7 +188,7 @@ export function Sidebar() {
                       to={item.path}
                       className={`flex items-center justify-between px-3 py-2 rounded-md transition-all duration-150 group ${
                         isActive
-                          ? 'bg-indigo-600 text-white'
+                          ? 'bg-primary text-white'
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                       title={item.description}
@@ -214,10 +204,10 @@ export function Sidebar() {
                           className={`px-2 py-0.5 text-[11px] font-semibold rounded-full flex-shrink-0 ml-2 ${
                             typeof item.badge === 'string'
                               ? isActive 
-                                ? 'bg-indigo-700 text-white'
-                                : 'bg-indigo-100 text-indigo-700'
+                                ? 'bg-primary-700 text-white'
+                                : 'bg-primary-100 text-primary-700'
                               : isActive
-                              ? 'bg-indigo-700 text-white'
+                              ? 'bg-primary-700 text-white'
                               : 'bg-gray-100 text-gray-600'
                           }`}
                         >
@@ -235,10 +225,10 @@ export function Sidebar() {
         {/* Footer */}
         <div className="border-t border-gray-200 p-2 space-y-0.5">
           <Link
-            to="/core/profile"
+            to="/admin/profile"
             className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 ${
-              isActiveRoute('/core/profile')
-                ? 'bg-indigo-600 text-white'
+              isActiveRoute('/admin/profile')
+                ? 'bg-primary text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
           >

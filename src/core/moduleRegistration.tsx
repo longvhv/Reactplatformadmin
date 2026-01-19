@@ -39,6 +39,7 @@ import { FeatureFlagsModule } from '../modules/feature-flags/index';
 import { NotificationTemplatesModule } from '../modules/notification-templates/index';
 import { RolesModule } from '../modules/roles/index';
 import { AuthLogsModule } from '../modules/auth-logs/index';
+import { AuditLogsModule } from '../modules/audit-logs/index';
 import { LegalDocumentsModule } from '../modules/legal-documents/index';
 import { UserDelegationsModule } from '../modules/user-delegations/index';
 import { LocationTypesModule } from '../modules/location-types/index';
@@ -85,6 +86,7 @@ export function registerAllModules(): void {
   registry.register(NotificationTemplatesModule);
   registry.register(RolesModule);
   registry.register(AuthLogsModule);
+  registry.register(AuditLogsModule);
   registry.register(LegalDocumentsModule);
   registry.register(UserDelegationsModule);
   registry.register(SettingsModule);
@@ -95,7 +97,7 @@ export function registerAllModules(): void {
   registry.register(TrafficLogsModule);
   registry.register(ApiUsageLogsModule);
   
-  console.log('✅ All 38 modules registered successfully');
+  console.log('✅ All 39 modules registered successfully');
 }
 
 // Auto-register on import

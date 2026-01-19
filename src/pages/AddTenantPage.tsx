@@ -1,18 +1,20 @@
 /**
  * Add Tenant Page
- * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
+ * ✅ UPDATED 2026-01-18: Support subscription creation
  * 
  * Features:
  * - Complete tenant creation form
- * - Hierarchical tenant support (parent selection)
- * - Partner relationship support
+ * - Hierarchical tenant support with autocomplete
+ * - Partner relationship support with tier filtering
+ * - Optional subscription creation immediately
  * - Dynamic profile and settings
  * - Full validation, i18n support, Indigo theme design
  * 
- * Database Schema: tenants table
+ * Database Schema: tenants table + tenant_subscriptions table
  * Route: /core/tenants/add
  * 
  * @see /api/tenantsApi.ts
+ * @see /api/tenantSubscriptionsApi.ts
  * @see /data/tenants.ts
  */
 
@@ -22,8 +24,9 @@ import { Building2 } from 'lucide-react';
 import { useLanguage } from '../providers/LanguageProvider';
 import { FormPageLayout } from '../components/layouts/FormPageLayout';
 import { EnhancedTenantForm } from '../components/tenants/EnhancedTenantForm';
-import { toast } from 'sonner@2.0.3';
+import { showToast } from '@/lib/toast';
 import { tenantsApi, CreateTenantRequest, Tenant } from '../api/tenantsApi';
+import { tenantSubscriptionsApi, CreateSubscriptionRequest } from '../api/tenantSubscriptionsApi';
 
 export default function AddTenantPage() {
   const navigate = useNavigate();
@@ -45,31 +48,47 @@ export default function AddTenantPage() {
     }
   };
 
-  const handleSubmit = async (data: Partial<Tenant>) => {
+  const handleSubmit = async (data: Partial<Tenant>, subscriptionData?: CreateSubscriptionRequest) => {
     try {
       setLoading(true);
 
       // Validate required fields
       if (!data.name?.trim()) {
-        toast.error(t('tenants.errors.nameRequired'));
+        showToast.error(t('tenants.errors.nameRequired'));
         throw new Error('Name required');
       }
 
       if (!data.code?.trim()) {
-        toast.error(t('tenants.errors.codeRequired'));
+        showToast.error(t('tenants.errors.codeRequired'));
         throw new Error('Code required');
       }
 
       // Create tenant
       const createData: CreateTenantRequest = data as CreateTenantRequest;
-      await tenantsApi.create(createData);
+      const newTenant = await tenantsApi.create(createData);
       
-      toast.success(t('tenants.createSuccess'));
-      navigate('/core/tenants');
+      // Create subscription if data provided
+      if (subscriptionData && newTenant._id) {
+        try {
+          const subscriptionPayload: CreateSubscriptionRequest = {
+            ...subscriptionData,
+            tenant_id: newTenant._id,
+          };
+          await tenantSubscriptionsApi.create(subscriptionPayload);
+          showToast.success('Tenant và subscription đã được tạo thành công!');
+        } catch (subError: any) {
+          console.error('Failed to create subscription:', subError);
+          showToast.warning(`Tenant đã tạo nhưng subscription thất bại: ${subError.message}`);
+        }
+      } else {
+        showToast.success(t('tenants.createSuccess'));
+      }
+      
+      navigate('/admin/tenants');
       
     } catch (error: any) {
       console.error('Error creating tenant:', error);
-      toast.error(error.message || t('errors.somethingWentWrong'));
+      showToast.error(error.message || t('errors.somethingWentWrong'));
       throw error;
     } finally {
       setLoading(false);
@@ -82,7 +101,7 @@ export default function AddTenantPage() {
       title={t('tenants.createTenant')}
       description={t('tenants.addTenantDescription')}
       icon={Building2}
-      backPath="/core/tenants"
+      backPath="/admin/tenants"
       backLabel={t('common.backToList')}
     >
       <EnhancedTenantForm

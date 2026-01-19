@@ -1,6 +1,8 @@
 /**
  * System Jobs Module
  * Module definition for system jobs management
+ * 
+ * 🌐 Path: /platform/system-jobs
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -25,7 +27,7 @@ export const SystemJobsModule: ModuleDefinition = {
   
   routes: [
     {
-      path: '/core/system-jobs',
+      path: '/platform/system-jobs',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <SystemJobsPage />
@@ -34,7 +36,7 @@ export const SystemJobsModule: ModuleDefinition = {
       title: 'systemJobs.menu',
     },
     {
-      path: '/core/system-jobs/new',
+      path: '/platform/system-jobs/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddSystemJobPage />
@@ -43,7 +45,7 @@ export const SystemJobsModule: ModuleDefinition = {
       title: 'systemJobs.add',
     },
     {
-      path: '/core/system-jobs/edit/:id',
+      path: '/platform/system-jobs/:id/edit',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditSystemJobPage />
@@ -52,7 +54,7 @@ export const SystemJobsModule: ModuleDefinition = {
       title: 'systemJobs.edit',
     },
     {
-      path: '/core/system-jobs/:id',
+      path: '/platform/system-jobs/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <SystemJobDetailPage />
@@ -67,7 +69,7 @@ export const SystemJobsModule: ModuleDefinition = {
       id: 'system-jobs',
       label: 'systemJobs.menu',
       icon: <Settings className="h-5 w-5" />,
-      path: '/core/system-jobs',
+      path: '/platform/system-jobs',
       order: 1,
     },
   ],

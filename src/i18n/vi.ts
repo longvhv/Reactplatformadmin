@@ -15,6 +15,10 @@ const vi = {
     delete: 'Xóa',
     edit: 'Sửa',
     add: 'Thêm',
+    new: 'Mới',
+    detail: 'Chi tiết',
+    view: 'Xem',
+    duplicate: 'Sao chép',
     search: 'Tìm kiếm',
     filter: 'Lọc',
     sort: 'Sắp xếp',
@@ -54,7 +58,6 @@ const vi = {
     all: 'Tất cả',
     filters: 'Bộ lọc',
     export: 'Xuất',
-    view: 'Xem',
     status: 'Trạng thái',
     // Missing keys
     auditTrail: 'Nhật ký kiểm toán',
@@ -66,30 +69,93 @@ const vi = {
 
   navigation: {
     dashboard: 'Dashboard',
-    users: 'Quản lý người dùng',
     tenants: 'Tenants',
     tenantMembers: 'Thành viên Tenant',
+    users: 'Quản lý người dùng',
+    userRoles: 'Vai trò người dùng',
+    userDelegations: 'Ủy quyền',
     roles: 'Vai trò',
-    productTypes: 'Loại sản phẩm',
+    permissions: 'Phân quyền',
     authLogs: 'Lịch sử truy cập',
-    legalDocuments: 'Điều khoản sử dụng',
-    categories: 'Danh mục',
+    auditLogs: 'Nhật Ký Kiểm Toán',
+    
+    // Commerce
+    products: 'Sản Phẩm',
+    productTypes: 'Loại sản phẩm',
+    saasProductTypes: 'Loại sản phẩm SaaS',
+    servicePackages: 'Gói Dịch Vụ',
+    subscriptionOrders: 'Đơn hàng đăng ký',
+    subscriptionInvoices: 'Hóa đơn đăng ký',
+    tenantSubscriptions: 'Đăng ký Tenant',
+    digitalAssets: 'Tài Sản Số',
+    serviceDeliveries: 'Vận hành Dịch Vụ',
+
+    // Platform
+    applications: 'Ứng dụng',
     systemCategories: 'Danh mục hệ thống',
     locationTypes: 'Loại địa điểm',
-    permissions: 'Phân quyền',
-    profile: 'Hồ sơ',
+    locations: 'Địa điểm',
+    rateLimits: 'Giới hạn tốc độ',
+    reservedSlugs: 'Từ Khóa Dành Riêng',
+    systemAnnouncements: 'Thông báo hệ thống',
+    systemJobs: 'Công việc hệ thống',
+    featureFlags: 'Cờ tính năng',
+    notificationTemplates: 'Mẫu thông báo',
+    legalDocuments: 'Văn bản pháp lý',
+    
+    // Integrations
+    webhooks: 'Webhooks',
+    apiUsageLogs: 'Nhật ký sử dụng API',
+    
+    // Telemetry
+    userRegistrationTelemetry: 'Thống kê đăng ký',
+    trafficLogs: 'Nhật ký truy cập',
+    
+    // System
     settings: 'Cài đặt',
     help: 'Trợ giúp',
+    devDocs: 'Tài liệu phát triển',
+    profile: 'Hồ sơ',
     logout: 'Đăng xuất',
     appearance: 'Giao diện',
-    devDocs: 'Developer Docs',
-    applications: 'Ứng dụng',
-    rateLimits: 'Giới hạn tốc độ',
-    webhooks: 'Webhooks',
-    userDelegations: 'Ủy quyền',
-    digitalAssets: 'Tài Sản Số',
-    serviceDeliveries: 'Dịch Vụ',
-    // Menu groups
+    
+    // Special pages & sub-pages
+    analytics: 'Phân tích',
+    statistics: 'Thống kê',
+    reports: 'Báo cáo',
+    overview: 'Tổng Quan',
+    activity: 'Hoạt động',
+    history: 'Lịch sử',
+    usage: 'Sử dụng',
+    entitlements: 'Quyền hạn hệ thống',
+    keys: 'Khóa',
+    api: 'API',
+    serviceAccounts: 'Tài khoản dịch vụ',
+    domains: 'Tên miền',
+    invitations: 'Lời mời',
+    routes: 'Định tuyến',
+    appRoutes: 'App Routes',
+    sso: 'SSO',
+    configurations: 'Cấu hình',
+    ssoConfigs: 'Cấu hình SSO',
+    userGroups: 'Nhóm người dùng',
+    sessions: 'Phiên',
+    devices: 'Thiết bị',
+    consents: 'Đồng ý',
+    linkedIdentities: 'Liên kết',
+    mfaMethods: 'Xác thực đa yếu tố',
+    mfa: 'MFA',
+    authMethods: 'Phương thức xác thực',
+    webhookDeliveryLogs: 'Nhật ký giao webhook',
+    
+    // Legacy / Misc
+    categories: 'Danh mục',
+    subscriptions: 'Đăng Ký',
+    orders: 'Đơn Hàng',
+    announcements: 'Thông Báo',
+    apiKeys: 'API Keys',
+    
+    // Menu groups (Legacy support)
     groupMain: 'CHÍNH',
     groupIdentity: 'QUẢN TRỊ & TRUY CẬP',
     groupCommerce: 'THƯƠNG MẠI & THANH TOÁN',
@@ -97,30 +163,30 @@ const vi = {
     groupIntegrations: 'TÍCH HỢP & API',
     groupAnalytics: 'PHÂN TÍCH & BÁO CÁO',
     groupSystem: 'HỆ THỐNG & HỖ TRỢ',
-    // Menu items
-    overview: 'Tổng Quan',
-    products: 'Sản Phẩm',
-    servicePackages: 'Gói Dịch Vụ',
-    subscriptions: 'Đăng Ký',
-    orders: 'Đơn Hàng',
-    appRoutes: 'App Routes',
-    reservedSlugs: 'Từ Khóa Dành Riêng',
-    announcements: 'Thông Báo',
-    apiKeys: 'API Keys',
-    reports: 'Báo Cáo',
-    auditLogs: 'Nhật Ký Kiểm Toán',
-    // ✅ NEW: Missing translations
+    
+    // Specific keys
     'Thống kê doanh thu': 'Thống kê doanh thu',
     'Domains': 'Tên miền',
     'API Keys': 'API Keys',
     'Service Accounts': 'Tài khoản dịch vụ',
     'Invitations': 'Lời mời',
-    // ✅ NEW: Usage events tab
     'Sử dụng': 'Sử dụng',
     'Tình trạng sử dụng': 'Tình trạng sử dụng',
-    // ✅ NEW: Tenant applications tab
     'Applications': 'Ứng dụng',
     'Ứng dụng': 'Ứng dụng',
+    'API Usage': 'Sử dụng API',
+  },
+
+  menu: {
+    groups: {
+      main: 'CHÍNH',
+      identity: 'QUẢN TRỊ & TRUY CẬP',
+      commerce: 'THƯƠNG MẠI & THANH TOÁN',
+      platform: 'NỀN TẢNG & CẤU HÌNH',
+      integrations: 'TÍCH HỢP & API',
+      telemetry: 'GIÁM SÁT & BÁO CÁO',
+      system: 'HỆ THỐNG & HỖ TRỢ',
+    }
   },
 
   auth: {
@@ -144,7 +210,7 @@ const vi = {
     security: 'Bảo mật',
     notifications: 'Thông báo',
     activity: 'Hoạt động',
-    name: 'Họ và tên',
+    name: 'Họ và t��n',
     email: 'Email',
     phone: 'Số điện thoại',
     location: 'Địa chỉ',
@@ -280,11 +346,31 @@ const vi = {
     deleteError: 'Không thể xóa người dùng',
     bulkDeleteError: 'Không thể xóa nhiều người dùng',
     noUsersFound: 'Không tìm thấy người dùng nào phù hợp',
-    itemsPerPage: 'Số mục mỗi trang',
+    itemsPerPage: 'S��� mục mỗi trang',
     showing: 'Hiển thị',
     of: 'ca',
     page: 'Trang',
     perPage: 'mỗi trang',
+    verified: 'Đã xác thực',
+    mfaEnabled: 'Đã bật MFA',
+    supportStaff: 'Nhân viên hỗ trợ',
+  },
+
+  userDelegations: {
+    title: 'Ủy quyền',
+    description: 'Quản lý ủy quyền giữa các người dùng',
+    add: 'Thêm ủy quyền',
+    active: 'Đang hoạt động',
+    pending: 'Chờ kích hoạt',
+    expired: 'Đã hết hạn',
+    revoked: 'Đã thu hồi',
+    delegator: 'Người ủy quyền',
+    delegate: 'Người được ủy quyền',
+    permissions: 'Quyền',
+    reason: 'Lý do',
+    revoke: 'Thu hồi',
+    noDelegations: 'Không có ủy quyền nào',
+    developmentNotice: 'Module này đang trong quá trình phát triển. Hiện tại đang hiển thị dữ liệu giả lập.',
   },
 
   errors: {
@@ -542,7 +628,7 @@ const vi = {
     domainPlaceholder: 'vd: abc.example.com',
     emailPlaceholder: 'billing@example.com',
     phonePlaceholder: '+84 123 456 789',
-    codeHelp: 'Chỉ chữ thường, số và dấu gạch ngang',
+    codeHelp: 'Chỉ chữ thường, số và dấu g���ch ngang',
     slugHelp: 'Chỉ chữ thường, số và dấu gạch ngang',
     addTenantDescription: 'Tạo tổ chức tenant mới',
     editTenantDescription: 'Cập nhật thông tin và cài đặt tenant',
@@ -673,7 +759,7 @@ const vi = {
     searchPlaceholder: 'Tìm kiếm danh mục hệ thống...',
     addCategory: 'Thêm danh mục hệ thống',
     editCategory: 'Sửa danh mục hệ thống',
-    deleteCategory: 'Xóa danh mục hệ thống',
+    deleteCategory: 'X��a danh mục hệ thống',
     categoryDetails: 'Chi tiết danh mục hệ thống',
     allTypes: 'Tất cả loại',
     allGroups: 'Tất cả nhóm',
@@ -804,6 +890,7 @@ const vi = {
 
   locations: {
     title: 'Địa điểm',
+    menu: 'Địa điểm',
     subtitle: 'Quản lý các địa điểm vật lý và cấu trúc phân cấp',
     searchPlaceholder: 'Tìm kiếm theo tên, mã hoặc địa chỉ...',
     add: 'Thêm địa điểm',
@@ -1784,7 +1871,7 @@ const vi = {
       keyRequired: 'Mã cờ là bắt buộc',
       keyInvalid: 'Mã cờ chỉ được chứa chữ cái, số và gạch dưới',
       keyExists: 'Mã cờ đã tồn tại',
-      nameRequired: 'Tên cờ là bắt buộc',
+      nameRequired: 'Tên cờ là b���t buộc',
       typeRequired: 'Loại cờ là bắt buộc',
       environmentRequired: 'Môi trường là bắt buộc',
       percentageInvalid: 'Phần trăm phải từ 0-100',
@@ -2648,7 +2735,7 @@ const vi = {
     sourceApplication: 'Ứng dụng nguồn',
     sourcePage: 'Trang nguồn',
     userAgent: 'User Agent',
-    withdrawnDate: 'Ngày rút lại',
+    withdrawnDate: 'Ngày r��t lại',
     privacyPolicy: 'Chính sách bảo mật',
     termsOfService: 'Điều khoản dịch vụ',
     cookiePolicy: 'Chính sách cookie',
@@ -2666,6 +2753,47 @@ const vi = {
     exportError: 'Lỗi khi xuất đồng thuận',
     confirmDelete: 'Bạn có chắc muốn xóa đồng thuận cho "{{title}}"?',
     confirmRenew: 'Bạn có chắc muốn gia hạn đồng thuận này? Ngày hết hạn sẽ được kéo dài.',
+  },
+
+  // ✅ FIX 2026-01-16: Missing translation keys for menu items
+  products: {
+    title: 'Sản Phẩm',
+    menu: 'Sản Phẩm',
+  },
+
+  servicePackages: {
+    title: 'Gói Dịch Vụ',
+    menu: 'Gói Dịch Vụ',
+  },
+
+  subscriptionOrders: {
+    title: 'Đơn Hàng Đăng Ký',
+    menu: 'Đơn Hàng',
+  },
+
+  invoices: {
+    title: 'Hóa Đơn',
+    menu: 'Hóa Đơn',
+  },
+
+  subscriptions: {
+    title: 'Đăng Ký',
+    menu: 'Đăng Ký',
+  },
+
+  systemAnnouncements: {
+    title: 'Thông Báo Hệ Thống',
+    menu: 'Thông Báo',
+  },
+
+  notificationTemplates: {
+    title: 'Mẫu Thông Báo',
+    menu: 'Mẫu Thông Báo',
+  },
+
+  saasProductTypes: {
+    title: 'Loại Sản Phẩm SaaS',
+    menu: 'SaaS Product Types',
   },
 };
 

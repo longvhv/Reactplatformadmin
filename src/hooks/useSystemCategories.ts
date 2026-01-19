@@ -10,6 +10,10 @@ import {
   SystemCategoryType,
   CategoryInstance,
   SystemCategory,
+  getActiveGroups,
+  getAllTypes,
+  getTypesByGroup,
+  getCategoriesByType,
 } from '../api/systemCategoriesApi';
 import { systemCategoriesSeed } from '../data/system-categories-seed';
 
@@ -41,21 +45,22 @@ export function useSystemCategories() {
       console.log('🔄 [System Categories] Fetching from API...');
       
       try {
-        const apiGroups = await systemCategoryApi.getActiveGroups();
+        const apiGroups = await getActiveGroups();
         console.log('✅ [System Categories] API Groups:', apiGroups.length, apiGroups);
         
         if (apiGroups.length > 0) {
           // API has data, fetch all categories
           console.log('🔄 [System Categories] Fetching all types...');
-          const allTypes = await systemCategoryApi.getAllTypes();
+          const allTypes = await getAllTypes();
           console.log('✅ [System Categories] API Types:', allTypes.length, allTypes);
           
-          // Fetch categories for each type
+          // Fetch categories for each type using the wrapper function (no tenantId needed)
           const categoryPromises = allTypes
             .filter(type => type.status === 1) // Only active types
             .map(async type => {
               try {
-                const cats = await systemCategoryApi.getCategoriesByType(type.code);
+                // ✅ Use getCategoriesByType wrapper (no tenantId param)
+                const cats = await getCategoriesByType(type.code);
                 console.log(`✅ [System Categories] Categories for ${type.code}:`, cats.length);
                 return cats;
               } catch (err) {
@@ -153,10 +158,10 @@ export function useSystemCategories() {
   };
 
   // Get types by group code
-  const getTypesByGroup = useCallback(async (groupCode: string): Promise<SystemCategoryType[]> => {
+  const getTypesByGroupHook = useCallback(async (groupCode: string): Promise<SystemCategoryType[]> => {
     try {
-      // Call API directly instead of filtering local data
-      const types = await systemCategoryApi.getTypesByGroup(groupCode);
+      // Call API wrapper directly
+      const types = await getTypesByGroup(groupCode);
       console.log(`✅ [useSystemCategories] Types for group ${groupCode}:`, types.length, types);
       return types;
     } catch (error) {
@@ -183,7 +188,7 @@ export function useSystemCategories() {
   }, [allCategories, groups]);
 
   // Get categories by type code
-  const getCategoriesByType = useCallback(async (typeCode: string): Promise<CategoryInstance[]> => {
+  const getCategoriesByTypeHook = useCallback(async (typeCode: string): Promise<CategoryInstance[]> => {
     console.log(`🔍 [getCategoriesByType] Filtering for typeCode: "${typeCode}"`);
     console.log(`🔍 [getCategoriesByType] Total allCategories:`, allCategories.length);
     
@@ -209,10 +214,10 @@ export function useSystemCategories() {
       return uniqueCategories.sort((a, b) => (a.order || 0) - (b.order || 0));
     }
     
-    // If no local data, try fetching from API directly
+    // If no local data, try fetching from API directly using wrapper
     console.log(`⚠️ [getCategoriesByType] No local data, fetching from API for "${typeCode}"`);
     try {
-      const apiCategories = await systemCategoryApi.getCategoriesByType(typeCode);
+      const apiCategories = await getCategoriesByType(typeCode);
       console.log(`✅ [getCategoriesByType] Fetched ${apiCategories.length} categories from API`);
       
       // Update local state with fetched categories
@@ -335,8 +340,8 @@ export function useSystemCategories() {
     error,
     
     // Methods
-    getTypesByGroup,
-    getCategoriesByType,
+    getTypesByGroup: getTypesByGroupHook,
+    getCategoriesByType: getCategoriesByTypeHook,
     createCategory,
     updateCategory,
     deleteCategory,

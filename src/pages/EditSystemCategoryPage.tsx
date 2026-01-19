@@ -4,7 +4,8 @@
  * ✅ UPDATED 2026-01-15: Unified design with FormPageLayout
  */
 
-import { Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Edit, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router';
 import { useLanguage } from '../providers/LanguageProvider';
 import { systemCategoryApi, SystemCategory } from '../api/systemCategoriesApi';
@@ -32,13 +33,13 @@ export function EditSystemCategoryPage() {
       const data = await systemCategoryApi.getById(id!);
       if (!data) {
         toast.error(t('systemCategories.notFound'));
-        navigate('/core/system-categories');
+        navigate('/platform/system-categories');
       }
       setCategory(data);
     } catch (error: any) {
       console.error('Failed to load category:', error);
       toast.error(t('errors.somethingWentWrong'));
-      navigate('/core/system-categories');
+      navigate('/platform/system-categories');
     } finally {
       setLoading(false);
     }
@@ -49,7 +50,7 @@ export function EditSystemCategoryPage() {
       setSubmitting(true);
       await systemCategoryApi.update(id!, data);
       toast.success(t('systemCategories.updateSuccess'));
-      navigate('/core/system-categories');
+      navigate('/platform/system-categories');
     } catch (error: any) {
       console.error('Failed to update category:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
@@ -60,7 +61,7 @@ export function EditSystemCategoryPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/system-categories');
+    navigate('/platform/system-categories');
   };
 
   if (loading && !category) {
@@ -84,7 +85,7 @@ export function EditSystemCategoryPage() {
       title={t('systemCategories.editCategory')}
       description={t('systemCategories.editCategoryDescription')}
       icon={Edit}
-      backPath="/core/system-categories"
+      backPath="/platform/system-categories"
       backLabel={t('common.backToList')}
     >
       <EnhancedSystemCategoryForm 

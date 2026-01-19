@@ -6,7 +6,7 @@
 
 import { useNavigate } from 'react-router';
 import { 
-  Edit, Trash2, Eye, Mail, Phone, 
+  Edit, Trash2, Mail, Phone, 
   CheckCircle, Shield, Lock, Calendar 
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -88,7 +88,17 @@ export function UserGrid({
           </div>
 
           <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate(`/admin/users/${user._id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate(`/admin/users/${user._id}`);
+                }
+              }}
+            >
               {user.avatar_url ? (
                 <img 
                   src={user.avatar_url} 
@@ -115,7 +125,17 @@ export function UserGrid({
 
           <CardContent className="space-y-3">
             {/* Email */}
-            <div className="flex items-center gap-2 text-sm">
+            <div 
+              className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"
+              onClick={() => navigate(`/admin/users/${user._id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate(`/admin/users/${user._id}`);
+                }
+              }}
+            >
               <Mail className="w-4 h-4 text-gray-400" />
               <span className="text-gray-600 dark:text-gray-400 truncate">
                 {user.email}
@@ -168,16 +188,7 @@ export function UserGrid({
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => navigate(`/core/users/${user._id}`)}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                View
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => navigate(`/core/users/${user._id}/edit`)}
+                onClick={() => navigate(`/admin/users/${user._id}/edit`)}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit

@@ -30,13 +30,13 @@ export default function EditRegionPage() {
       const data = await regionsApi.getById(id!);
       if (!data) {
         toast.error('Region không tồn tại');
-        navigate('/core/regions');
+        navigate('/platform/regions');
       }
       setRegion(data);
     } catch (error: any) {
       console.error('Failed to load region:', error);
       toast.error(t('errors.somethingWentWrong'));
-      navigate('/core/regions');
+      navigate('/platform/regions');
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export default function EditRegionPage() {
       setLoading(true);
       await regionsApi.update(id!, data);
       toast.success('Đã cập nhật region');
-      navigate('/core/regions');
+      navigate('/platform/regions');
     } catch (error: any) {
       console.error('Failed to update region:', error);
       toast.error(error.message || t('errors.somethingWentWrong'));
@@ -57,7 +57,7 @@ export default function EditRegionPage() {
   };
 
   const handleCancel = () => {
-    navigate('/core/regions');
+    navigate('/platform/regions');
   };
 
   if (loading && !region) {
@@ -76,7 +76,7 @@ export default function EditRegionPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <p className="text-red-600">Không tìm thấy region</p>
-          <Button onClick={() => navigate('/core/regions')} className="mt-4">
+          <Button onClick={() => navigate('/platform/regions')} className="mt-4">
             Quay lại danh sách
           </Button>
         </div>
@@ -90,7 +90,7 @@ export default function EditRegionPage() {
       title="Chỉnh sửa Region"
       description={region.name}
       icon={Globe}
-      backPath="/core/regions"
+      backPath="/platform/regions"
       backLabel="Quay lại danh sách"
     >
       <RegionForm

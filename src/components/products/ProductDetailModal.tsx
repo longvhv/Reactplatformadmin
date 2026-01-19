@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { SaaSProduct } from '../../api/saasProductApi';
+import { Product } from '../../api/productsApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -28,7 +28,7 @@ import { toast } from 'sonner@2.0.3';
 import { useNavigate } from 'react-router';
 
 interface ProductDetailModalProps {
-  product: SaaSProduct;
+  product: Product;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -96,7 +96,7 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
 
   const handleEdit = () => {
     onClose();
-    navigate(`/core/products/edit/${product._id}`);
+    navigate(`/commerce/products/edit/${product._id}`);
   };
 
   const renderFeatures = () => {
