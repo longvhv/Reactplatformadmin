@@ -3,6 +3,7 @@
  * Quản lý user groups trong tenant
  * 
  * ✅ REWRITTEN 2026-01-14: Uses userGroupsApi with 16 fields
+ * ✅ UPDATED 2026-01-20: Added Detail View with Members management
  */
 
 import { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ import {
   ArchiveRestore,
   RefreshCw,
   Filter,
+  Eye,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +36,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { userGroupsApi, UserGroupWithMembers, getStatusColor } from '../../api/userGroupsApi';
+import { tenantMembersApi, TenantMember } from '@/api/tenantMembersApi';
+import { UserGroupForm } from '../user-groups/UserGroupForm';
+import { UserGroupDetailView } from '../user-groups/UserGroupDetailView';
 import { toast } from 'sonner@2.0.3';
 
 interface TenantUserGroupsTabProps {
@@ -50,14 +55,28 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [editingGroup, setEditingGroup] = useState<UserGroupWithMembers | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<UserGroupWithMembers | null>(null);
+  
+  // For Detail View
+  const [groupMembers, setGroupMembers] = useState<TenantMember[]>([]);
+  const [allMembers, setAllMembers] = useState<TenantMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   useEffect(() => {
     loadGroups();
+    loadAllMembers();
   }, [tenantId]);
 
   useEffect(() => {
     filterGroups();
   }, [searchQuery, typeFilter, statusFilter, groups]);
+
+  // Load members when a group is selected
+  useEffect(() => {
+    if (selectedGroup) {
+      loadGroupMembers(selectedGroup._id);
+    }
+  }, [selectedGroup]);
 
   const loadGroups = async () => {
     try {
@@ -74,6 +93,44 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
       setGroups([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAllMembers = async () => {
+    try {
+      const members = await tenantMembersApi.getByTenant(tenantId);
+      setAllMembers(members);
+    } catch (error) {
+      console.error('Error loading members:', error);
+    }
+  };
+
+  const loadGroupMembers = async (groupId: string) => {
+    try {
+      setLoadingMembers(true);
+      // In a real app, this would be a direct API call to get members of a group
+      // Here we simulate it or use a helper if available
+      // Ideally: const members = await userGroupsApi.getMembers(groupId);
+      // But since we are migrating, we might need to fetch IDs and then filter
+      
+      // Temporary solution: We assume backend gives us the list or we fetch membership records
+      // and map them to tenant members.
+      // Since we don't have a direct "getMembers" returning TenantMember[] in userGroupsApi yet (it throws error),
+      // we should use groupMembersApi which we just updated/verified.
+      
+      // Dynamic import to avoid circular dependency issues if any, or just use it if available
+      const { groupMembersApi } = await import('../../api/groupMembersApi');
+      const memberships = await groupMembersApi.getByGroup(groupId, true); // Active only
+      
+      const memberIds = new Set(memberships.map(m => m.tenant_member_id));
+      const members = allMembers.filter(m => memberIds.has(m._id));
+      
+      setGroupMembers(members);
+    } catch (error) {
+      console.error('Error loading group members:', error);
+      toast.error('Không thể tải thành viên nhóm');
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -112,6 +169,10 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
   const handleEdit = (group: UserGroupWithMembers) => {
     setEditingGroup(group);
     setShowDialog(true);
+  };
+
+  const handleViewDetails = (group: UserGroupWithMembers) => {
+    setSelectedGroup(group);
   };
 
   const handleDelete = async (id: string) => {
@@ -193,10 +254,6 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
 
   const countByStatus = (status: string) => {
     return groups.filter(g => g.status === status).length;
-  };
-
-  const countByType = (type: string) => {
-    return groups.filter(g => g.group_type === type).length;
   };
 
   if (loading) {
@@ -347,7 +404,11 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
               filteredGroups.map((group) => {
                 const TypeIcon = getTypeIcon(group.group_type);
                 return (
-                  <TableRow key={group._id}>
+                  <TableRow 
+                    key={group._id} 
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    onClick={() => handleViewDetails(group)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className={`p-2 rounded-lg ${getTypeColor(group.group_type).split(' ')[0]}`}>
@@ -388,7 +449,15 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetails(group)}
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -439,7 +508,8 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
 
       {/* Create/Edit Dialog */}
       {showDialog && (
-        <UserGroupDialog
+        <UserGroupForm
+          open={showDialog}
           group={editingGroup}
           tenantId={tenantId}
           availableTypes={availableTypes}
@@ -454,200 +524,21 @@ export function TenantUserGroupsTab({ tenantId }: TenantUserGroupsTabProps) {
           }}
         />
       )}
-    </div>
-  );
-}
 
-// ==================== USER GROUP DIALOG ====================
-
-interface UserGroupDialogProps {
-  group?: UserGroupWithMembers | null;
-  tenantId: string;
-  availableTypes: string[];
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-function UserGroupDialog({
-  group,
-  tenantId,
-  availableTypes,
-  onClose,
-  onSuccess,
-}: UserGroupDialogProps) {
-  const [formData, setFormData] = useState({
-    code: group?.code || '',
-    name: group?.name || '',
-    description: group?.description || '',
-    group_type: group?.group_type || '',
-    status: group?.status || 'ACTIVE',
-    order: group?.order?.toString() || '0',
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!formData.code.trim() || !formData.name.trim()) {
-      setError('Mã code và tên nhóm là bắt buộc');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      if (group) {
-        // Update existing
-        await userGroupsApi.update(group._id, {
-          code: formData.code,
-          name: formData.name,
-          description: formData.description || undefined,
-          group_type: formData.group_type || undefined,
-          status: formData.status as any,
-          order: parseInt(formData.order) || 0,
-        });
-        toast.success('Đã cập nhật nhóm');
-      } else {
-        // Create new
-        await userGroupsApi.create({
-          tenant_id: tenantId,
-          code: formData.code,
-          name: formData.name,
-          description: formData.description || undefined,
-          group_type: formData.group_type || undefined,
-          status: formData.status as any,
-          order: parseInt(formData.order) || 0,
-        });
-        toast.success('Đã tạo nhóm mới');
-      }
-
-      onSuccess();
-    } catch (error: any) {
-      console.error('Error saving group:', error);
-      setError(error.message || 'Không thể lưu nhóm');
-      toast.error(error.message || 'Không thể lưu nhóm');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {group ? 'Chỉnh sửa nhóm' : 'Tạo nhóm mới'}
-          </h3>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Mã code <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              placeholder="VD: dev-team"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tên nhóm <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="VD: Development Team"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loại nhóm</label>
-            <input
-              type="text"
-              value={formData.group_type}
-              onChange={(e) => setFormData({ ...formData, group_type: e.target.value })}
-              placeholder="VD: PROJECT, ORG_UNIT, PERMISSION"
-              list="group-types"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-            {availableTypes.length > 0 && (
-              <datalist id="group-types">
-                {availableTypes.map(type => (
-                  <option key={type} value={type} />
-                ))}
-              </datalist>
-            )}
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Có thể tự nhập hoặc chọn từ danh sách có sẵn
-            </p>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mô tả</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Mô tả nhóm..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thứ tự</label>
-            <input
-              type="number"
-              value={formData.order}
-              onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-              placeholder="0"
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          {/* Footer */}
-          <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-              Hủy
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Đang lưu...' : group ? 'Cập nhật' : 'Tạo mới'}
-            </Button>
-          </div>
-        </form>
-      </div>
+      {/* Detail View */}
+      {selectedGroup && (
+        <UserGroupDetailView
+          group={selectedGroup}
+          members={groupMembers}
+          allMembers={allMembers}
+          loading={loadingMembers}
+          onClose={() => setSelectedGroup(null)}
+          onEdit={() => handleEdit(selectedGroup)}
+          onArchive={() => handleArchive(selectedGroup._id)}
+          onActivate={() => handleActivate(selectedGroup._id)}
+          onRefresh={() => loadGroupMembers(selectedGroup._id)}
+        />
+      )}
     </div>
   );
 }

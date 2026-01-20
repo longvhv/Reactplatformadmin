@@ -82,6 +82,7 @@ export interface CreateUserGroupRequest {
 
 /**
  * Update User Group Request
+ * ✅ IMPROVEMENT: Added version for optimistic locking
  */
 export interface UpdateUserGroupRequest {
   code?: string;
@@ -92,6 +93,7 @@ export interface UpdateUserGroupRequest {
   order?: number;
   metadata?: Record<string, any>;
   updated_by?: string;
+  version?: number; // ✅ Optional for now, but recommended for optimistic locking
 }
 
 /**
@@ -154,7 +156,7 @@ export interface AddMembersRequest {
 const adapter = createAdapter<UserGroup, CreateUserGroupRequest, UpdateUserGroupRequest>(
   'user_groups',
   '/user-groups',
-  true  // ✅ FIX: Enable soft delete filtering
+  true  // Enable soft delete filtering
 );
 
 // ==================== API CLIENT ====================
@@ -212,11 +214,12 @@ export const userGroupsApi = {
    * DELETE /user-groups/:id (SOFT DELETE)
    * Sets deleted_at to current timestamp
    */
-  delete: async (id: string, deleted_by?: string): Promise<void> => {
+  delete: async (id: string, deleted_by?: string, version?: number): Promise<void> => {
     // Soft delete: set deleted_at
     await adapter.update(id, {
       deleted_at: new Date().toISOString(),
       deleted_by,
+      version,
     } as any);
   },
 
@@ -231,10 +234,11 @@ export const userGroupsApi = {
   /**
    * Restore soft-deleted group
    */
-  restore: async (id: string): Promise<UserGroup> => {
+  restore: async (id: string, version?: number): Promise<UserGroup> => {
     return adapter.update(id, {
       deleted_at: undefined,
       deleted_by: undefined,
+      version,
     } as any);
   },
 
@@ -271,38 +275,41 @@ export const userGroupsApi = {
   /**
    * Update group status
    */
-  updateStatus: async (id: string, status: UserGroupStatus, updated_by?: string): Promise<UserGroup> => {
+  updateStatus: async (id: string, status: UserGroupStatus, updated_by?: string, version?: number): Promise<UserGroup> => {
     return adapter.update(id, {
       status,
       updated_by,
+      version,
     });
   },
 
   /**
    * Archive group (set status to ARCHIVED)
    */
-  archive: async (id: string, updated_by?: string): Promise<UserGroup> => {
+  archive: async (id: string, updated_by?: string, version?: number): Promise<UserGroup> => {
     return adapter.update(id, {
       status: 'ARCHIVED',
       updated_by,
+      version,
     });
   },
 
   /**
    * Activate group (set status to ACTIVE)
    */
-  activate: async (id: string, updated_by?: string): Promise<UserGroup> => {
+  activate: async (id: string, updated_by?: string, version?: number): Promise<UserGroup> => {
     return adapter.update(id, {
       status: 'ACTIVE',
       updated_by,
+      version,
     });
   },
 
   /**
    * Update group order
    */
-  updateOrder: async (id: string, order: number): Promise<UserGroup> => {
-    return adapter.update(id, { order });
+  updateOrder: async (id: string, order: number, version?: number): Promise<UserGroup> => {
+    return adapter.update(id, { order, version });
   },
 
   /**
@@ -398,6 +405,7 @@ export const userGroupsApi = {
    * Bulk update status
    */
   bulkUpdateStatus: async (ids: string[], status: UserGroupStatus, updated_by?: string): Promise<void> => {
+    // Note: Bulk operations usually don't support version checks individually unless passed as map
     await Promise.all(
       ids.map(id => adapter.update(id, { status, updated_by }))
     );

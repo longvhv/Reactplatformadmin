@@ -7,16 +7,18 @@ export * from './base';
 export * from './supabase';
 export * from './http';
 export * from './mock';
+export * from './data-client-adapter';
 
-import { API_MODE } from '../config';
 import { IApiAdapter } from './base';
-import { SupabaseAdapter } from './supabase';
-import { HttpAdapter } from './http';
 import { MockAdapter } from './mock';
+import { DataClientAdapter } from './data-client-adapter';
 
 /**
  * Adapter Factory
- * Creates appropriate adapter based on API_MODE
+ * Creates appropriate adapter based on DataClient configuration
+ * 
+ * ✅ UPDATED: Now uses unified DataClientAdapter which delegates 
+ * to the configured DataClient (Supabase or Golang)
  */
 export function createAdapter<T, CreateDto, UpdateDto>(
   tableName: string,
@@ -30,10 +32,8 @@ export function createAdapter<T, CreateDto, UpdateDto>(
     return new MockAdapter<T, CreateDto, UpdateDto>(tableName);
   }
   
-  if (API_MODE === 'golang') {
-    return new HttpAdapter<T, CreateDto, UpdateDto>(tableName, endpoint);
-  } else {
-    // Default to Supabase for 'supabase' and 'hybrid' modes
-    return new SupabaseAdapter<T, CreateDto, UpdateDto>(tableName, supportsSoftDelete);
-  }
+  // Always return DataClientAdapter
+  // The DataClient itself (getDataClient()) handles the switch 
+  // between Supabase and Golang based on configuration.
+  return new DataClientAdapter<T, CreateDto, UpdateDto>(tableName, supportsSoftDelete);
 }

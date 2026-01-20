@@ -20,14 +20,10 @@ import {
   Server, 
   Plus, 
   Search, 
-  Download, 
-  Upload, 
   CheckCircle, 
   XCircle,
-  Code,
   Activity,
   MoreVertical,
-  Edit,
   Settings,
   PowerOff,
   Power,
@@ -49,7 +45,6 @@ function ApplicationsPage() {
   const { 
     applications, 
     loading, 
-    error, 
     deleteApplication, 
     toggleActive,
     loadApplications,
@@ -57,8 +52,6 @@ function ApplicationsPage() {
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedApps, setSelectedApps] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     title: string;
@@ -110,8 +103,8 @@ function ApplicationsPage() {
     const query = searchQuery.toLowerCase();
     return (
       app.name.toLowerCase().includes(query) ||
-      app.app_code.toLowerCase().includes(query) ||
-      app.description?.toLowerCase().includes(query)
+      app.code.toLowerCase().includes(query) ||
+      (app.description && app.description.toLowerCase().includes(query))
     );
   });
 
@@ -120,7 +113,7 @@ function ApplicationsPage() {
     { label: 'Total Apps', value: applications.length, color: 'indigo' as const, icon: Server },
     { label: 'Active', value: applications.filter(a => a.is_active).length, color: 'green' as const, icon: CheckCircle },
     { label: 'Inactive', value: applications.filter(a => !a.is_active).length, color: 'gray' as const, icon: XCircle },
-    { label: 'With API', value: applications.filter(a => a.capabilities?.length > 0).length, color: 'blue' as const, icon: Code },
+    // Removed "With API" stat as capabilities are not in the main table
   ];
 
   if (loading) {
@@ -161,7 +154,7 @@ function ApplicationsPage() {
         }
       >
         {/* Stats */}
-        <StatisticsCards stats={stats} columns={4} />
+        <StatisticsCards stats={stats} columns={3} />
 
         {/* Search */}
         <Card className="p-6">
@@ -188,7 +181,6 @@ function ApplicationsPage() {
                   <th className="text-left py-3 px-4 font-semibold text-sm">Name</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Code</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">Capabilities</th>
                   <th className="text-left py-3 px-4 font-semibold text-sm">Created</th>
                   <th className="text-right py-3 px-4 font-semibold text-sm">Actions</th>
                 </tr>
@@ -203,7 +195,7 @@ function ApplicationsPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{app.app_code}</code>
+                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{app.code}</code>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
@@ -219,11 +211,6 @@ function ApplicationsPage() {
                           </>
                         )}
                       </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-gray-600">
-                        {app.capabilities?.length || 0}
-                      </span>
                     </td>
                     <td className="py-3 px-4">
                       <span className="text-sm text-gray-500">
@@ -246,7 +233,7 @@ function ApplicationsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/${app._id}`)}>
+                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/${app._id}/edit`)}>
                               <Settings className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
@@ -301,8 +288,5 @@ function ApplicationsPage() {
   );
 }
 
-// Named export for reuse
 export { ApplicationsPage };
-
-// Default export for routing
 export default ApplicationsPage;

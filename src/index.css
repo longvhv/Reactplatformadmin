@@ -1200,6 +1200,10 @@
     height: 1.15rem;
   }
 
+  .h-\[80vh\] {
+    height: 80vh;
+  }
+
   .h-\[250px\] {
     height: 250px;
   }
@@ -1280,6 +1284,10 @@
     min-height: calc(var(--spacing) * 16);
   }
 
+  .min-h-\[150px\] {
+    min-height: 150px;
+  }
+
   .min-h-\[600px\] {
     min-height: 600px;
   }
@@ -1296,12 +1304,20 @@
     width: 50%;
   }
 
+  .w-1\/3 {
+    width: 33.3333%;
+  }
+
   .w-2 {
     width: calc(var(--spacing) * 2);
   }
 
   .w-2\.5 {
     width: calc(var(--spacing) * 2.5);
+  }
+
+  .w-2\/3 {
+    width: 66.6667%;
   }
 
   .w-3 {
@@ -1574,6 +1590,11 @@
 
   .-translate-y-1\/2 {
     --tw-translate-y: calc(calc(1 / 2 * 100%) * -1);
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
+
+  .translate-y-0\.5 {
+    --tw-translate-y: calc(var(--spacing) * .5);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
 
@@ -2175,6 +2196,10 @@
     border-color: var(--color-yellow-400);
   }
 
+  .border-yellow-500 {
+    border-color: var(--color-yellow-500);
+  }
+
   .border-t-transparent {
     border-top-color: #0000;
   }
@@ -2579,6 +2604,10 @@
     background-color: var(--color-yellow-100);
   }
 
+  .bg-yellow-400 {
+    background-color: var(--color-yellow-400);
+  }
+
   .bg-yellow-500 {
     background-color: var(--color-yellow-500);
   }
@@ -2935,6 +2964,10 @@
 
   .py-12 {
     padding-block: calc(var(--spacing) * 12);
+  }
+
+  .pt-0 {
+    padding-top: calc(var(--spacing) * 0);
   }
 
   .pt-0\.5 {
@@ -3896,6 +3929,11 @@
     color: var(--muted-foreground);
   }
 
+  .last\:border-b-0:last-child {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 0;
+  }
+
   @media (hover: hover) {
     .hover\:scale-105:hover {
       --tw-scale-x: 105%;
@@ -4749,6 +4787,10 @@
     color: var(--primary-foreground);
   }
 
+  .data-\[state\=closed\]\:animate-accordion-up[data-state="closed"] {
+    animation: accordion-up var(--tw-duration, .2s) ease-out;
+  }
+
   .data-\[state\=closed\]\:animate-out[data-state="closed"] {
     animation: exit var(--tw-duration, .15s) var(--tw-ease, ease);
   }
@@ -4759,6 +4801,10 @@
 
   .data-\[state\=closed\]\:zoom-out-95[data-state="closed"] {
     --tw-exit-scale: .95;
+  }
+
+  .data-\[state\=open\]\:animate-accordion-down[data-state="open"] {
+    animation: accordion-down var(--tw-duration, .2s) ease-out;
   }
 
   .data-\[state\=open\]\:animate-in[data-state="open"] {
@@ -6052,6 +6098,10 @@
     border-bottom-width: 0;
   }
 
+  .\[\&\[data-state\=open\]\>svg\]\:rotate-180[data-state="open"] > svg {
+    rotate: 180deg;
+  }
+
   @media (hover: hover) {
     a.\[a\&\]\:hover\:bg-accent:hover {
       background-color: var(--accent);
@@ -7049,5 +7099,25 @@ html {
   to {
     opacity: var(--tw-exit-opacity, 1);
     transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0) scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1)) rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: var(--radix-accordion-content-height, var(--bits-accordion-content-height));
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height, var(--bits-accordion-content-height));
+  }
+
+  to {
+    height: 0;
   }
 }

@@ -37,16 +37,19 @@ import {
 } from "@/api/tenantSubscriptionsApi";
 
 interface TenantFormProps {
-  tenant?: Tenant;
+  tenant?: Tenant | null;
   tenants?: Tenant[];
   onSubmit: (data: Partial<Tenant>, subscriptionData?: CreateSubscriptionRequest) => Promise<void>;
   isEdit?: boolean;
+  loading?: boolean;
+  onCancel?: () => void;
 }
 
-export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = false }: TenantFormProps) {
+export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = false, loading = false, onCancel }: TenantFormProps) {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  // Remove internal loading state since we receive it as prop
+  // const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState("basic");
 
@@ -134,7 +137,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
       }
       if (!subscriptionData.end_date) {
         newErrors.end_date = "Ngày kết thúc không được để trống";
-      } else if (new Date(subscriptionData.end_date) < new Date(subscriptionData.start_date || '')) {
+      } else if (subscriptionData.start_date && new Date(subscriptionData.end_date) < new Date(subscriptionData.start_date)) {
         newErrors.end_date = "Ngày kết thúc phải sau ngày bắt đầu";
       }
     }
@@ -152,7 +155,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
       return;
     }
 
-    setLoading(true);
+    // loading is handled by parent
     try {
       const submitData: Partial<Tenant> = {
         name: formData.name,
@@ -198,12 +201,12 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
       } as CreateSubscriptionRequest : undefined;
 
       await onSubmit(submitData, subscriptionPayload);
-      navigate("/admin/tenants");
+      // Navigation is handled by parent usually, but we keep the old behavior if parent doesn't navigate
+      // navigate("/admin/tenants"); 
     } catch (error) {
       console.error("Failed to save tenant:", error);
-    } finally {
-      setLoading(false);
-    }
+    } 
+    // loading state is controlled by parent
   };
 
   const handleChange = (field: string, value: any) => {
@@ -732,7 +735,12 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
 
           {/* Form Actions */}
           <div className="flex items-center justify-end gap-4 mt-6">
-            <Button type="button" variant="outline" onClick={() => navigate("/core/tenants")} disabled={loading}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel || (() => navigate("/admin/tenants"))} 
+              disabled={loading}
+            >
               {t("common.cancel")}
             </Button>
             <Button type="submit" disabled={loading} className="gap-2">

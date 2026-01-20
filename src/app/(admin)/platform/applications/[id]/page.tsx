@@ -107,7 +107,7 @@ function ApplicationDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/platform/applications/edit/${id}`)}>
+              <DropdownMenuItem onClick={() => router.push(`/platform/applications/${id}/edit`)}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>
@@ -138,7 +138,7 @@ function ApplicationDetailPage() {
             <dl className="space-y-2">
               <div className="flex justify-between">
                 <dt className="text-gray-600">App Code:</dt>
-                <dd className="font-mono text-sm">{app.app_code}</dd>
+                <dd className="font-mono text-sm">{app.code}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-600">Status:</dt>
@@ -151,8 +151,10 @@ function ApplicationDetailPage() {
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600">Capabilities:</dt>
-                <dd>{app.capabilities?.length || 0}</dd>
+                <dt className="text-gray-600">Created At:</dt>
+                <dd className="text-sm">
+                  {new Date(app.created_at).toLocaleDateString('vi-VN')}
+                </dd>
               </div>
             </dl>
           </div>

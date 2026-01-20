@@ -42,6 +42,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner@2.0.3';
 import { TenantApplicationModal } from './TenantApplicationModal';
+import { EditTenantApplicationModal } from './EditTenantApplicationModal';
 
 interface TenantApplicationsTabProps {
   tenantId: string;
@@ -58,6 +59,8 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
   const [selectedApp, setSelectedApp] = useState<TenantApplication | null>(null);
   const [showActions, setShowActions] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingApp, setEditingApp] = useState<TenantApplication | null>(null);
 
   useEffect(() => {
     loadApplications();
@@ -129,6 +132,12 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
     loadApplications();
   };
 
+  const handleEdit = (app: TenantApplication) => {
+    setEditingApp(app);
+    setIsEditModalOpen(true);
+    setShowActions(null);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -177,6 +186,19 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
         onSuccess={loadApplications}
         tenantId={tenantId}
       />
+
+      {/* Edit Application Modal */}
+      {editingApp && (
+        <EditTenantApplicationModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingApp(null);
+          }}
+          onSuccess={loadApplications}
+          application={editingApp}
+        />
+      )}
 
       {/* Statistics Cards */}
       {statistics && (
@@ -441,10 +463,7 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
                           <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border z-10">
                             <div className="py-1">
                               <button
-                                onClick={() => {
-                                  setShowActions(null);
-                                  // TODO: Open edit dialog
-                                }}
+                                onClick={() => handleEdit(app)}
                                 className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 flex items-center gap-2"
                               >
                                 <Edit className="w-4 h-4" />

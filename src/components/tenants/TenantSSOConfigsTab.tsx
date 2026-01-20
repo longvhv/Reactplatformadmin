@@ -2,43 +2,25 @@
  * Tenant SSO Configs Tab Component
  * Manage SSO configurations for tenant (SAML, OAuth2, OIDC, LDAP, CAS, OTHER)
  * 
- * ✅ FIXED 2026-01-14: Provider 6 values, Status 4 values, 4 audit fields added
+ * ✅ ENHANCED 2026-01-20: Uses dedicated SSOConfigDialog for full field support
  */
 
 import { useState } from 'react';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../ui/dialog';
 import { Badge } from '../ui/badge';
-import { Shield, Plus, Edit2, Trash2, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Shield, Plus, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
 import { useTenantSSOConfigs } from '../../hooks/useTenantSSOConfigs';
 import {
   TenantSSOConfig,
   SSOProvider,
-  SSOConfigStatus,
   getProviderLabel,
   getProviderColor,
   getStatusColor,
-  getStatusIcon,
+  CreateSSOConfigRequest,
+  UpdateSSOConfigRequest,
 } from '../../api/tenantSSOConfigsApi';
 import { toast } from 'sonner@2.0.3';
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import { SSOConfigDialog } from './SSOConfigDialog';
 
 interface TenantSSOConfigsTabProps {
   tenantId: string;
@@ -48,74 +30,40 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
   const {
     configs,
     loading,
-    error,
     createConfig,
     updateConfig,
     deleteConfig,
     testConfig: testConfigHook,
-    activateConfig,
-    deactivateConfig,
-    setTesting,
-    deprecateConfig,
     refresh,
   } = useTenantSSOConfigs({ tenant_id: tenantId });
 
   const [showDialog, setShowDialog] = useState(false);
   const [editingConfig, setEditingConfig] = useState<TenantSSOConfig | null>(null);
-  const [formData, setFormData] = useState<Partial<TenantSSOConfig>>({
-    provider: 'SAML' as SSOProvider,
-    status: 'TESTING' as SSOConfigStatus,
-    scopes: ['openid', 'profile', 'email'],
-  });
 
-  const handleSave = async () => {
+  const handleSave = async (data: CreateSSOConfigRequest | UpdateSSOConfigRequest) => {
     try {
-      if (!formData.name || !formData.provider) {
-        toast.error('Name and Provider are required');
-        return;
-      }
-
       if (editingConfig) {
-        await updateConfig(editingConfig._id, formData);
-        toast.success('SSO config updated');
+        await updateConfig(editingConfig._id, data as UpdateSSOConfigRequest);
+        toast.success('SSO config updated successfully');
       } else {
-        await createConfig({
-          tenant_id: tenantId,
-          provider: formData.provider as SSOProvider,
-          name: formData.name,
-          description: formData.description,
-          status: formData.status as SSOConfigStatus,
-          entity_id: formData.entity_id,
-          sso_url: formData.sso_url,
-          slo_url: formData.slo_url,
-          certificate: formData.certificate,
-          metadata_url: formData.metadata_url,
-          client_id: formData.client_id,
-          client_secret: formData.client_secret,
-          authorization_endpoint: formData.authorization_endpoint,
-          token_endpoint: formData.token_endpoint,
-          userinfo_endpoint: formData.userinfo_endpoint,
-          jwks_uri: formData.jwks_uri,
-          scopes: formData.scopes,
-          attribute_mapping: formData.attribute_mapping,
-          settings: formData.settings,
-        });
-        toast.success('SSO config created');
+        await createConfig(data as CreateSSOConfigRequest);
+        toast.success('SSO config created successfully');
       }
-      handleCloseDialog();
+      refresh();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to save');
+      console.error('Failed to save SSO config:', err);
+      throw err; // Propagate error to dialog to show toast there or handle it
     }
   };
 
   const handleDelete = async (config: TenantSSOConfig) => {
-    if (!confirm(`Delete SSO config "${config.name}"?`)) return;
+    if (!confirm(`Delete SSO config "${config.name}"? This action cannot be undone.`)) return;
 
     try {
       await deleteConfig(config._id);
-      toast.success('SSO config deleted');
+      toast.success('SSO config deleted successfully');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to delete');
+      toast.error(err.message || 'Failed to delete config');
     }
   };
 
@@ -141,26 +89,10 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
   const handleOpenDialog = (config?: TenantSSOConfig) => {
     if (config) {
       setEditingConfig(config);
-      setFormData(config);
     } else {
       setEditingConfig(null);
-      setFormData({
-        provider: 'SAML',
-        status: 'TESTING',
-        scopes: ['openid', 'profile', 'email'],
-      });
     }
     setShowDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setShowDialog(false);
-    setEditingConfig(null);
-    setFormData({
-      provider: 'SAML',
-      status: 'TESTING',
-      scopes: ['openid', 'profile', 'email'],
-    });
   };
 
   if (loading) {
@@ -277,233 +209,16 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingConfig ? 'Edit SSO Configuration' : 'Add SSO Configuration'}
-            </DialogTitle>
-            <DialogDescription>
-              Configure single sign-on integration for this tenant
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Basic Info */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="provider">Provider *</Label>
-                <Select
-                  value={formData.provider}
-                  onValueChange={(value) => setFormData({ ...formData, provider: value as any })}
-                  disabled={!!editingConfig}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SAML">SAML 2.0</SelectItem>
-                    <SelectItem value="OAUTH2">OAuth 2.0</SelectItem>
-                    <SelectItem value="OIDC">OpenID Connect</SelectItem>
-                    <SelectItem value="LDAP">LDAP</SelectItem>
-                    <SelectItem value="CAS">CAS</SelectItem>
-                    <SelectItem value="OTHER">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="status">Status *</Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value) => setFormData({ ...formData, status: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="TESTING">Testing</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
-                    <SelectItem value="DEPRECATED">Deprecated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="name">Configuration Name *</Label>
-              <Input
-                id="name"
-                value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Corporate SSO"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description || ''}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Optional description"
-                rows={2}
-              />
-            </div>
-
-            {/* SAML-specific fields */}
-            {formData.provider === 'SAML' && (
-              <>
-                <div>
-                  <Label htmlFor="entity_id">Entity ID *</Label>
-                  <Input
-                    id="entity_id"
-                    value={formData.entity_id || ''}
-                    onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
-                    placeholder="https://idp.example.com/entity"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="sso_url">SSO URL *</Label>
-                  <Input
-                    id="sso_url"
-                    value={formData.sso_url || ''}
-                    onChange={(e) => setFormData({ ...formData, sso_url: e.target.value })}
-                    placeholder="https://idp.example.com/sso"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="slo_url">SLO URL (Optional)</Label>
-                  <Input
-                    id="slo_url"
-                    value={formData.slo_url || ''}
-                    onChange={(e) => setFormData({ ...formData, slo_url: e.target.value })}
-                    placeholder="https://idp.example.com/slo"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="certificate">X.509 Certificate</Label>
-                  <Textarea
-                    id="certificate"
-                    value={formData.certificate || ''}
-                    onChange={(e) => setFormData({ ...formData, certificate: e.target.value })}
-                    placeholder="-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="metadata_url">Metadata URL (Optional)</Label>
-                  <Input
-                    id="metadata_url"
-                    value={formData.metadata_url || ''}
-                    onChange={(e) => setFormData({ ...formData, metadata_url: e.target.value })}
-                    placeholder="https://idp.example.com/metadata"
-                  />
-                </div>
-              </>
-            )}
-
-            {/* OAuth2/OIDC-specific fields */}
-            {(formData.provider === 'OAUTH2' || formData.provider === 'OIDC') && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="client_id">Client ID *</Label>
-                    <Input
-                      id="client_id"
-                      value={formData.client_id || ''}
-                      onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                      placeholder="client_id_here"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="client_secret">Client Secret</Label>
-                    <Input
-                      id="client_secret"
-                      type="password"
-                      value={formData.client_secret || ''}
-                      onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="authorization_endpoint">Authorization Endpoint *</Label>
-                  <Input
-                    id="authorization_endpoint"
-                    value={formData.authorization_endpoint || ''}
-                    onChange={(e) => setFormData({ ...formData, authorization_endpoint: e.target.value })}
-                    placeholder="https://idp.example.com/oauth/authorize"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="token_endpoint">Token Endpoint *</Label>
-                  <Input
-                    id="token_endpoint"
-                    value={formData.token_endpoint || ''}
-                    onChange={(e) => setFormData({ ...formData, token_endpoint: e.target.value })}
-                    placeholder="https://idp.example.com/oauth/token"
-                  />
-                </div>
-
-                {formData.provider === 'OIDC' && (
-                  <>
-                    <div>
-                      <Label htmlFor="userinfo_endpoint">UserInfo Endpoint</Label>
-                      <Input
-                        id="userinfo_endpoint"
-                        value={formData.userinfo_endpoint || ''}
-                        onChange={(e) => setFormData({ ...formData, userinfo_endpoint: e.target.value })}
-                        placeholder="https://idp.example.com/oauth/userinfo"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="jwks_uri">JWKS URI</Label>
-                      <Input
-                        id="jwks_uri"
-                        value={formData.jwks_uri || ''}
-                        onChange={(e) => setFormData({ ...formData, jwks_uri: e.target.value })}
-                        placeholder="https://idp.example.com/.well-known/jwks.json"
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <Label htmlFor="scopes">Scopes (comma-separated)</Label>
-                  <Input
-                    id="scopes"
-                    value={formData.scopes?.join(', ') || ''}
-                    onChange={(e) => setFormData({ 
-                      ...formData, 
-                      scopes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                    })}
-                    placeholder="openid, profile, email"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCloseDialog}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>
-              {editingConfig ? 'Update' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SSOConfigDialog 
+        open={showDialog}
+        onOpenChange={(open) => {
+          setShowDialog(open);
+          if (!open) setEditingConfig(null);
+        }}
+        tenantId={tenantId}
+        config={editingConfig}
+        onSave={handleSave}
+      />
     </div>
   );
 }

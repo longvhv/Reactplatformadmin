@@ -154,7 +154,6 @@ export function TenantMembersList({
             <SelectContent>
               <SelectItem value="all">{t('common.all')}</SelectItem>
               <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
-              <SelectItem value="INVITED">Invited</SelectItem>
               <SelectItem value="ONBOARDING">{t('common.onboarding')}</SelectItem>
               <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
               <SelectItem value="RESIGNED">{t('common.resigned')}</SelectItem>

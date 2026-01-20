@@ -1,9 +1,6 @@
 /**
  * Golang API Data Client Implementation
  * Uses REST API to interact with Golang backend
- * 
- * NOTE: This is a skeleton implementation for future use.
- * The actual Golang API endpoints need to be implemented on the backend.
  */
 
 import type {
@@ -194,7 +191,7 @@ export class GolangApiDataClient implements IDataClient {
       params?: Record<string, string>;
     }
   ): Promise<T> {
-    const url = this.buildUrl(endpoint, { filters: options?.params });
+    const url = this.buildUrl(endpoint.startsWith('/') ? endpoint : `/${endpoint}`, { filters: options?.params });
 
     try {
       const response = await fetch(url, {
@@ -222,11 +219,23 @@ export class GolangApiDataClient implements IDataClient {
    * Get HTTP headers for API requests
    */
   private getHeaders(): Record<string, string> {
-    return {
-      'Authorization': `Bearer ${this.apiKey}`,
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+
+    // Try to get user token from storage if available (Client-side)
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('vhv-auth-token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        return headers;
+      }
+    }
+
+    // Fallback to API Key (Service-to-Service or Public access)
+    headers['Authorization'] = `Bearer ${this.apiKey}`;
+    return headers;
   }
 
   /**
@@ -320,6 +329,11 @@ export class GolangApiDataClient implements IDataClient {
     }
 
     if (statusCode === 401) {
+      // Handle Unauthorized - Clear token if client-side
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('vhv-auth-token');
+        // Optional: Redirect to login or dispatch event
+      }
       return new Error(`Unauthorized: ${message}`);
     }
 

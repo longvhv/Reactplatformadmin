@@ -2,6 +2,8 @@
  * UserAuthMethodsTab Component
  * Manages linked identities and MFA methods for a user
  * Used in UserDetailPage
+ * 
+ * ✅ REWRITTEN 2026-01-20: Uses userLinkedIdentitiesApi and userMfaMethodsApi with Dialogs
  */
 
 import { useState, useEffect } from 'react';
@@ -11,24 +13,42 @@ import {
   Clock, Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import type { LinkedIdentity, MFAMethod, IdentityProvider, MFAMethodType } from '@/data/user-auth-methods';
-import { IDENTITY_PROVIDERS, IDENTITY_STATUSES, MFA_METHOD_TYPES, MFA_STATUSES } from '@/data/user-auth-methods';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { LinkedIdentityDialog } from './LinkedIdentityDialog';
+import { MFAMethodDialog } from './MFAMethodDialog';
+import { 
+  userLinkedIdentitiesApi, 
+  UserLinkedIdentity, 
+  IdentityProvider 
+} from '@/api/userLinkedIdentitiesApi';
+import {
+  userMfaMethodsApi,
+  UserMfaMethod,
+  MfaMethodType
+} from '@/api/userMfaMethodsApi';
+import { 
+  IDENTITY_PROVIDERS as UI_IDENTITY_PROVIDERS, 
+  IDENTITY_STATUSES as UI_IDENTITY_STATUSES, 
+  MFA_METHOD_TYPES, 
+  MFA_STATUSES 
+} from '@/data/user-auth-methods';
+import { toast } from 'sonner@2.0.3';
 
 interface UserAuthMethodsTabProps {
   userId: string;
 }
 
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
-
 export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
-  const [linkedIdentities, setLinkedIdentities] = useState<LinkedIdentity[]>([]);
-  const [mfaMethods, setMfaMethods] = useState<MFAMethod[]>([]);
+  const [linkedIdentities, setLinkedIdentities] = useState<UserLinkedIdentity[]>([]);
+  const [mfaMethods, setMfaMethods] = useState<UserMfaMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Identity Dialog State
   const [showAddIdentity, setShowAddIdentity] = useState(false);
+  const [editingIdentity, setEditingIdentity] = useState<UserLinkedIdentity | null>(null);
+  
+  // MFA Dialog State
   const [showAddMFA, setShowAddMFA] = useState(false);
+  const [editingMFA, setEditingMFA] = useState<UserMfaMethod | null>(null);
 
   useEffect(() => {
     loadData();
@@ -43,6 +63,7 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
       ]);
     } catch (error) {
       console.error('Error loading auth methods:', error);
+      toast.error('Failed to load authentication methods');
     } finally {
       setLoading(false);
     }
@@ -50,101 +71,76 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
 
   const loadLinkedIdentities = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user-linked-identities?user_id=${userId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const result = await response.json();
-      setLinkedIdentities(result.data || []);
+      const identities = await userLinkedIdentitiesApi.getByUserId(userId);
+      setLinkedIdentities(identities);
     } catch (error) {
       console.error('Error loading linked identities:', error);
+      toast.error('Failed to load linked identities');
     }
   };
 
   const loadMFAMethods = async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user-mfa-methods?user_id=${userId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const result = await response.json();
-      setMfaMethods(result.data || []);
+      const methods = await userMfaMethodsApi.getByUserId(userId);
+      setMfaMethods(methods);
     } catch (error) {
       console.error('Error loading MFA methods:', error);
+      // Don't show toast here to avoid double errors if both fail
     }
   };
 
-  const handleDeleteIdentity = async (identity: LinkedIdentity) => {
-    if (!confirm(`Remove ${identity.provider} login?`)) return;
+  // IDENTITY HANDLERS
+
+  const handleDeleteIdentity = async (identity: UserLinkedIdentity) => {
+    if (!confirm(`Are you sure you want to remove ${identity.provider} login?`)) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user-linked-identities/${identity._id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to remove identity');
-
+      await userLinkedIdentitiesApi.delete(identity._id);
+      toast.success('Identity removed successfully');
       await loadLinkedIdentities();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting identity:', error);
-      alert('Failed to remove identity');
+      toast.error(error.message || 'Failed to remove identity');
     }
   };
 
-  const handleDeleteMFA = async (method: MFAMethod) => {
+  const handleEditIdentity = (identity: UserLinkedIdentity) => {
+    setEditingIdentity(identity);
+    setShowAddIdentity(true);
+  };
+
+  // MFA HANDLERS
+
+  const handleDeleteMFA = async (method: UserMfaMethod) => {
     if (!confirm(`Remove ${method.method_type} MFA method?`)) return;
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/user-mfa-methods/${method._id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${publicAnonKey}`,
-          },
-        }
-      );
-
-      if (!response.ok) throw new Error('Failed to remove MFA method');
-
+      await userMfaMethodsApi.delete(method._id);
+      toast.success('MFA method removed');
       await loadMFAMethods();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting MFA method:', error);
-      alert('Failed to remove MFA method');
+      toast.error(error.message || 'Failed to remove MFA method');
     }
   };
 
-  const getProviderConfig = (provider: IdentityProvider) => {
-    return IDENTITY_PROVIDERS.find(p => p.value === provider) || IDENTITY_PROVIDERS[0];
+  const handleEditMFA = (method: UserMfaMethod) => {
+    setEditingMFA(method);
+    setShowAddMFA(true);
   };
 
-  const getMFATypeConfig = (type: MFAMethodType) => {
+  // HELPERS
+
+  const getProviderConfig = (provider: IdentityProvider) => {
+    return UI_IDENTITY_PROVIDERS.find(p => p.value === provider) || 
+           { value: provider, label: provider, color: 'bg-gray-50 text-gray-700 border-gray-200' };
+  };
+
+  const getMFATypeConfig = (type: MfaMethodType) => {
     return MFA_METHOD_TYPES.find(t => t.value === type) || MFA_METHOD_TYPES[0];
   };
 
-  const formatDate = (date?: string) => {
+  const formatDate = (date?: string | null) => {
     if (!date) return 'Never';
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -158,7 +154,7 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -177,7 +173,14 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
               Social login providers and identity accounts
             </p>
           </div>
-          <Button onClick={() => setShowAddIdentity(!showAddIdentity)} variant="outline" size="sm">
+          <Button 
+            onClick={() => {
+              setEditingIdentity(null);
+              setShowAddIdentity(true);
+            }} 
+            variant="outline" 
+            size="sm"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Link Account
           </Button>
@@ -194,7 +197,7 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {linkedIdentities.map((identity) => {
               const providerConfig = getProviderConfig(identity.provider);
-              const statusConfig = IDENTITY_STATUSES.find(s => s.value === identity.status);
+              const statusConfig = UI_IDENTITY_STATUSES.find(s => s.value === identity.status);
 
               return (
                 <div
@@ -214,18 +217,29 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          {identity.provider_email || identity.display_name}
+                          {identity.provider_email || identity.display_name || identity.provider_username || 'No identifier'}
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteIdentity(identity)}
-                      className="text-red-600 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditIdentity(identity)}
+                        title="Edit Identity"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteIdentity(identity)}
+                        className="text-red-600 hover:bg-red-50"
+                        title="Remove Identity"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2 mb-2">
@@ -263,7 +277,14 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
               Additional security methods for account protection
             </p>
           </div>
-          <Button onClick={() => setShowAddMFA(!showAddMFA)} variant="outline" size="sm">
+          <Button 
+            onClick={() => {
+              setEditingMFA(null);
+              setShowAddMFA(true);
+            }} 
+            variant="outline" 
+            size="sm"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Add MFA Method
           </Button>
@@ -316,15 +337,26 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
                         </p>
                       </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteMFA(method)}
-                      className="text-red-600 hover:bg-red-50"
-                      disabled={method.is_enforced}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditMFA(method)}
+                        title="Edit MFA Method"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteMFA(method)}
+                        className="text-red-600 hover:bg-red-50"
+                        disabled={method.is_enforced}
+                        title={method.is_enforced ? "Cannot remove enforced method" : "Remove Method"}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Method Details */}
@@ -363,7 +395,7 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
                     </div>
                     {method.method_type === 'BACKUP_CODES' && (
                       <div>
-                        Codes: {method.backup_codes_total! - method.backup_codes_used!} / {method.backup_codes_total} remaining
+                        Codes: {method.backup_codes_total! - (method.backup_codes_used || 0)} / {method.backup_codes_total} remaining
                       </div>
                     )}
                     <div className="flex items-center gap-1">
@@ -413,6 +445,30 @@ export function UserAuthMethodsTab({ userId }: UserAuthMethodsTabProps) {
           </div>
         </div>
       )}
+
+      {/* Linked Identity Dialog */}
+      <LinkedIdentityDialog 
+        open={showAddIdentity} 
+        onOpenChange={(open) => {
+          setShowAddIdentity(open);
+          if (!open) setEditingIdentity(null);
+        }}
+        userId={userId}
+        identity={editingIdentity}
+        onSuccess={loadLinkedIdentities}
+      />
+
+      {/* MFA Method Dialog */}
+      <MFAMethodDialog 
+        open={showAddMFA} 
+        onOpenChange={(open) => {
+          setShowAddMFA(open);
+          if (!open) setEditingMFA(null);
+        }}
+        userId={userId}
+        method={editingMFA}
+        onSuccess={loadMFAMethods}
+      />
     </div>
   );
 }

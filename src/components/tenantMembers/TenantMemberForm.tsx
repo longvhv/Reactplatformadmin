@@ -8,6 +8,7 @@ import { useLanguage } from '../../providers/LanguageProvider';
 import { UserPlus, Save, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Card } from '../ui/card';
 import {
@@ -25,29 +26,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
+import { MemberRole, MemberStatus, TenantMemberFormData as ApiFormData } from '../../api/tenantMembersApi';
 
 // ============================================
 // TYPES
 // ============================================
 
-export interface TenantMemberFormData {
-  tenant_id: string;
-  user_id: string;
-  employee_code?: string;
-  internal_email?: string;
-  job_title?: string;
-  manager_id?: string;
-  role: 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
-  status: 'ACTIVE' | 'RESIGNED' | 'ONBOARDING' | 'SUSPENDED';
-  joined_at?: string;
-  left_at?: string;
+// Extend API form data with string fields for JSON editing
+export interface TenantMemberFormData extends ApiFormData {
+  permissionsString?: string;
+  metadataString?: string;
 }
 
 interface TenantMemberFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: TenantMemberFormData) => Promise<void>;
-  initialData?: Partial<TenantMemberFormData>;
+  onSubmit: (data: ApiFormData) => Promise<void>;
+  initialData?: Partial<ApiFormData>;
   tenants?: Array<{ _id: string; name: string; code: string }>;
   users?: Array<{ _id: string; name: string; email: string }>;
   managers?: Array<{ _id: string; user_name: string }>;
@@ -82,7 +77,10 @@ export function TenantMemberForm({
     role: initialData?.role || 'MEMBER',
     status: initialData?.status || 'ACTIVE',
     joined_at: initialData?.joined_at || '',
-    left_at: initialData?.left_at || '',
+    permissions: initialData?.permissions || [],
+    metadata: initialData?.metadata || {},
+    permissionsString: JSON.stringify(initialData?.permissions || [], null, 2),
+    metadataString: JSON.stringify(initialData?.metadata || {}, null, 2),
   });
 
   // Reset form when dialog opens/closes
@@ -98,7 +96,10 @@ export function TenantMemberForm({
         role: initialData?.role || 'MEMBER',
         status: initialData?.status || 'ACTIVE',
         joined_at: initialData?.joined_at || '',
-        left_at: initialData?.left_at || '',
+        permissions: initialData?.permissions || [],
+        metadata: initialData?.metadata || {},
+        permissionsString: JSON.stringify(initialData?.permissions || [], null, 2),
+        metadataString: JSON.stringify(initialData?.metadata || {}, null, 2),
       });
       setErrors({});
     }
@@ -120,12 +121,27 @@ export function TenantMemberForm({
       newErrors.internal_email = t('validation.invalidEmail');
     }
 
-    if (formData.joined_at && formData.left_at) {
-      const joinedDate = new Date(formData.joined_at);
-      const leftDate = new Date(formData.left_at);
-      if (leftDate <= joinedDate) {
-        newErrors.left_at = 'Left date must be after joined date';
+    // Validate JSON fields
+    try {
+      if (formData.permissionsString) {
+        const parsed = JSON.parse(formData.permissionsString);
+        if (!Array.isArray(parsed)) {
+          newErrors.permissions = 'Permissions must be a JSON array';
+        }
       }
+    } catch (e) {
+      newErrors.permissions = 'Invalid JSON format';
+    }
+
+    try {
+      if (formData.metadataString) {
+        const parsed = JSON.parse(formData.metadataString);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          newErrors.metadata = 'Metadata must be a JSON object';
+        }
+      }
+    } catch (e) {
+      newErrors.metadata = 'Invalid JSON format';
     }
 
     setErrors(newErrors);
@@ -142,7 +158,18 @@ export function TenantMemberForm({
 
     setLoading(true);
     try {
-      await onSubmit(formData);
+      // Parse JSON fields
+      const submitData: ApiFormData = {
+        ...formData,
+        permissions: formData.permissionsString ? JSON.parse(formData.permissionsString) : [],
+        metadata: formData.metadataString ? JSON.parse(formData.metadataString) : {},
+      };
+      
+      // Remove temporary fields
+      delete (submitData as any).permissionsString;
+      delete (submitData as any).metadataString;
+
+      await onSubmit(submitData);
       onClose();
     } catch (error) {
       console.error('Failed to submit form:', error);
@@ -240,7 +267,7 @@ export function TenantMemberForm({
               <Label htmlFor="employee_code">Employee Code</Label>
               <Input
                 id="employee_code"
-                value={formData.employee_code}
+                value={formData.employee_code || ''}
                 onChange={(e) => handleChange('employee_code', e.target.value)}
                 placeholder="e.g., EMP-001"
               />
@@ -251,7 +278,7 @@ export function TenantMemberForm({
               <Label htmlFor="job_title">Job Title</Label>
               <Input
                 id="job_title"
-                value={formData.job_title}
+                value={formData.job_title || ''}
                 onChange={(e) => handleChange('job_title', e.target.value)}
                 placeholder="e.g., Senior Developer"
               />
@@ -264,7 +291,7 @@ export function TenantMemberForm({
             <Input
               id="internal_email"
               type="email"
-              value={formData.internal_email}
+              value={formData.internal_email || ''}
               onChange={(e) => handleChange('internal_email', e.target.value)}
               placeholder="internal@company.com"
               className={errors.internal_email ? 'border-red-500' : ''}
@@ -282,7 +309,7 @@ export function TenantMemberForm({
               </Label>
               <Select 
                 value={formData.role} 
-                onValueChange={(value: any) => handleChange('role', value)}
+                onValueChange={(value: MemberRole) => handleChange('role', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -303,7 +330,7 @@ export function TenantMemberForm({
               </Label>
               <Select 
                 value={formData.status} 
-                onValueChange={(value: any) => handleChange('status', value)}
+                onValueChange={(value: MemberStatus) => handleChange('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -312,7 +339,7 @@ export function TenantMemberForm({
                   <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
                   <SelectItem value="ONBOARDING">{t('common.onboarding')}</SelectItem>
                   <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
-                  <SelectItem value="OFFBOARDED">Offboarded</SelectItem>
+                  <SelectItem value="RESIGNED">{t('common.resigned')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -324,7 +351,7 @@ export function TenantMemberForm({
               <Label htmlFor="manager_id">Manager</Label>
               <Select 
                 value={formData.manager_id || 'none'} 
-                onValueChange={(value) => handleChange('manager_id', value === 'none' ? '' : value)}
+                onValueChange={(value) => handleChange('manager_id', value === 'none' ? undefined : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select manager" />
@@ -348,25 +375,42 @@ export function TenantMemberForm({
               <Input
                 id="joined_at"
                 type="date"
-                value={formData.joined_at}
+                value={formData.joined_at ? formData.joined_at.split('T')[0] : ''}
                 onChange={(e) => handleChange('joined_at', e.target.value)}
               />
             </div>
+          </div>
 
-            {/* Left Date */}
-            <div className="space-y-2">
-              <Label htmlFor="left_at">Left Date</Label>
-              <Input
-                id="left_at"
-                type="date"
-                value={formData.left_at}
-                onChange={(e) => handleChange('left_at', e.target.value)}
-                className={errors.left_at ? 'border-red-500' : ''}
-              />
-              {errors.left_at && (
-                <p className="text-sm text-red-500">{errors.left_at}</p>
-              )}
-            </div>
+          {/* Permissions (JSON) */}
+          <div className="space-y-2">
+            <Label htmlFor="permissions">Permissions (JSON Array)</Label>
+            <Textarea
+              id="permissions"
+              value={formData.permissionsString}
+              onChange={(e) => handleChange('permissionsString', e.target.value)}
+              placeholder='["READ_ALL", "WRITE_OWN"]'
+              className={`font-mono text-xs ${errors.permissions ? 'border-red-500' : ''}`}
+              rows={3}
+            />
+            {errors.permissions && (
+              <p className="text-sm text-red-500">{errors.permissions}</p>
+            )}
+          </div>
+
+          {/* Metadata (JSON) */}
+          <div className="space-y-2">
+            <Label htmlFor="metadata">Metadata (JSON Object)</Label>
+            <Textarea
+              id="metadata"
+              value={formData.metadataString}
+              onChange={(e) => handleChange('metadataString', e.target.value)}
+              placeholder='{"department": "Engineering", "level": "L5"}'
+              className={`font-mono text-xs ${errors.metadata ? 'border-red-500' : ''}`}
+              rows={3}
+            />
+            {errors.metadata && (
+              <p className="text-sm text-red-500">{errors.metadata}</p>
+            )}
           </div>
 
           <DialogFooter>

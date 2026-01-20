@@ -94,7 +94,10 @@ function TenantMembersPage() {
     if (!editingMember) return;
     
     try {
-      await tenantMembersApi.update(editingMember._id, data);
+      await tenantMembersApi.update(editingMember._id, {
+        ...data,
+        version: editingMember.version
+      });
       showToast.success('Success', 'Member updated successfully');
       setFormOpen(false);
       setEditingMember(null);
@@ -134,15 +137,16 @@ function TenantMembersPage() {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const activeMembers = members.filter(m => m.status === 'active').length;
-    const pendingMembers = members.filter(m => m.status === 'pending').length;
-    const inactiveMembers = members.filter(m => m.status === 'inactive').length;
+    const activeMembers = members.filter(m => m.status === 'ACTIVE').length;
+    const resignedMembers = members.filter(m => m.status === 'RESIGNED').length;
+    const onboardingMembers = members.filter(m => m.status === 'ONBOARDING').length;
+    const suspendedMembers = members.filter(m => m.status === 'SUSPENDED').length;
 
     return [
       { label: 'Total Members', value: members.length, color: 'indigo' as const, icon: Users },
       { label: 'Active', value: activeMembers, color: 'green' as const, icon: CheckCircle },
-      { label: 'Pending', value: pendingMembers, color: 'yellow' as const, icon: Clock },
-      { label: 'Inactive', value: inactiveMembers, color: 'gray' as const, icon: UserX },
+      { label: 'Onboarding', value: onboardingMembers, color: 'blue' as const, icon: Clock },
+      { label: 'Resigned/Suspended', value: resignedMembers + suspendedMembers, color: 'gray' as const, icon: UserX },
     ];
   }, [members]);
 

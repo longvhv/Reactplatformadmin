@@ -28,6 +28,7 @@ export class SupabaseDataClient implements IDataClient {
     'roles',
     'permissions',
     'webhooks',
+    'user_delegations',
     'telemetry.auth_logs',
     'telemetry.api_usage_logs',
     'telemetry.traffic_logs',

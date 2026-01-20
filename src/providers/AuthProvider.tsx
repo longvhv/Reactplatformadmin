@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CurrentUser, getCurrentUser } from '@/lib/currentUser';
+import { getDataClient } from '@/lib/data-client';
+import { DataClientFactory } from '@/lib/data-client/DataClientFactory';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -17,6 +19,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Initialize DataClient configuration
+  useEffect(() => {
+    try {
+      // Ensure factory is configured from environment if not already
+      if (!DataClientFactory.getConfig()) {
+        // @ts-ignore - Accessing private static method via any or we can expose it. 
+        // Actually, DataClientFactory doesn't expose getDefaultConfig publicly in the interface I read.
+        // But we can check process.env here or rely on the Factory's internals if we modified it.
+        // Let's assume we need to configure it.
+        const type = process.env.NEXT_PUBLIC_DATA_SOURCE === 'golang-api' ? 'golang-api' : 'supabase';
+        if (type === 'golang-api') {
+             DataClientFactory.configure({
+                type: 'golang-api',
+                golangApi: {
+                    baseUrl: process.env.NEXT_PUBLIC_GOLANG_API_URL || 'http://localhost:8080/api/v1',
+                    apiKey: process.env.NEXT_PUBLIC_GOLANG_API_KEY || 'demo-key'
+                }
+             });
+        } else {
+             DataClientFactory.configure({
+                type: 'supabase',
+                supabase: {
+                    url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+                    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+                }
+             });
+        }
+      }
+    } catch (e) {
+      console.warn("DataClient auto-configuration failed", e);
+    }
+  }, []);
+
   // Check authentication on mount
   useEffect(() => {
     const initAuth = async () => {
@@ -28,22 +63,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (bypassUserId && bypassEmail) {
           console.log('🔓 BYPASS MODE: Restoring session from localStorage');
           setIsAuthenticated(true);
+          // Try to get extended profile if possible
           const currentUser = await getCurrentUser();
           setUser(currentUser);
           setLoading(false);
           return;
         }
 
-        // Normal Supabase auth check
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          setIsAuthenticated(true);
-          const currentUser = await getCurrentUser();
-          setUser(currentUser);
+        // Check if we are using Golang API
+        const config = DataClientFactory.getConfig();
+        if (config?.type === 'golang-api') {
+           const token = localStorage.getItem('vhv-auth-token');
+           if (token) {
+             const client = getDataClient();
+             try {
+               // Verify token and get user profile
+               // Assuming GET /auth/me returns the user profile
+               const userProfile = await client.execute<any>('auth/me');
+               setIsAuthenticated(true);
+               
+               // Map Golang User to CurrentUser interface
+               setUser({
+                 id: userProfile.id || userProfile._id,
+                 email: userProfile.email,
+                 aud: 'authenticated',
+                 role: userProfile.role || 'user',
+                 created_at: userProfile.created_at,
+                 updated_at: userProfile.updated_at,
+                 app_metadata: {},
+                 user_metadata: userProfile.metadata || {},
+                 display_name: userProfile.full_name,
+                 full_name: userProfile.full_name,
+                 avatar_url: userProfile.avatar_url
+               } as CurrentUser);
+             } catch (err) {
+               console.error('Session expired or invalid', err);
+               localStorage.removeItem('vhv-auth-token');
+               setIsAuthenticated(false);
+               setUser(null);
+             }
+           }
         } else {
-          setIsAuthenticated(false);
-          setUser(null);
+            // Normal Supabase auth check
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session?.user) {
+              setIsAuthenticated(true);
+              const currentUser = await getCurrentUser();
+              setUser(currentUser);
+            } else {
+              setIsAuthenticated(false);
+              setUser(null);
+            }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -56,9 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initAuth();
 
-    // Subscribe to auth changes
+    // Subscribe to auth changes (Supabase only)
+    // For Golang, we rely on state updates in login/logout methods
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        const config = DataClientFactory.getConfig();
+        if (config?.type === 'golang-api') return; // Ignore Supabase events if in Golang mode
+
         console.log('Auth state changed:', event);
         
         if (session?.user) {
@@ -79,8 +154,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      // BYPASS: Skip password check, just verify user exists in database
-      console.log('🔓 BYPASS MODE: Checking if user exists with email:', email);
+      // Check for Golang API config
+      const config = DataClientFactory.getConfig();
+      if (config?.type === 'golang-api') {
+          const client = getDataClient();
+          // Execute login
+          const response = await client.execute<{ token: string; user: any }>('auth/login', {
+             method: 'POST',
+             body: { email, password }
+          });
+
+          if (response?.token) {
+              localStorage.setItem('vhv-auth-token', response.token);
+              setIsAuthenticated(true);
+              
+              // Map user
+              const userProfile = response.user;
+              setUser({
+                 id: userProfile.id || userProfile._id,
+                 email: userProfile.email,
+                 aud: 'authenticated',
+                 role: userProfile.role || 'user',
+                 created_at: userProfile.created_at,
+                 updated_at: userProfile.updated_at,
+                 app_metadata: {},
+                 user_metadata: userProfile.metadata || {},
+                 display_name: userProfile.full_name,
+                 full_name: userProfile.full_name,
+                 avatar_url: userProfile.avatar_url
+               } as CurrentUser);
+               return;
+          }
+      }
+
+      // Existing Supabase Logic / Bypass Mode
+      
+      // BYPASS: Skip password check if configured or fallback
+      console.log('🔓 Authentication Attempt:', email);
       
       // Check if user profile exists in database
       const { data: userProfile, error: profileError } = await supabase
@@ -90,7 +200,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (profileError || !userProfile) {
-        throw new Error('Tài khoản không tồn tại trong hệ thống. Email: ' + email);
+        // If not found in DB, try Supabase Auth Sign In (Real Auth)
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+        
+        if (error) throw error;
+        if (data.user) return; // Supabase auth listener will handle state update
+        
+        throw new Error('Tài khoản không tồn tại hoặc mật khẩu sai.');
       }
 
       console.log('✅ User found in database:', userProfile);
@@ -113,6 +232,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      const config = DataClientFactory.getConfig();
+      
+      if (config?.type === 'golang-api') {
+          // Golang Logout
+          localStorage.removeItem('vhv-auth-token');
+          setIsAuthenticated(false);
+          setUser(null);
+          return;
+      }
+
       await supabase.auth.signOut();
       
       // Clear bypass mode localStorage
@@ -127,6 +256,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Still clear local state and localStorage even if API call fails
       localStorage.removeItem('bypass-auth-user-id');
       localStorage.removeItem('bypass-auth-email');
+      localStorage.removeItem('vhv-auth-token');
       setIsAuthenticated(false);
       setUser(null);
     }

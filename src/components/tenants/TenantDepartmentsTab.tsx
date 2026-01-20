@@ -25,8 +25,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { departmentsApi, DepartmentTreeNode, Department } from '../../api/departmentsApi';
-import { tenantMembersApi, TenantMember } from '../../api/tenantMembersApi';
 import { DepartmentDetailView } from '../departments/DepartmentDetailView';
+import { DepartmentForm } from '../departments/DepartmentForm';
 import { toast } from 'sonner@2.0.3';
 
 interface TenantDepartmentsTabProps {
@@ -388,12 +388,10 @@ export function TenantDepartmentsTab({ tenantId }: TenantDepartmentsTabProps) {
         )}
       </Card>
 
-      {/* Create/Edit Dialog - Placeholder */}
+      {/* Create/Edit Form */}
       {showDialog && (
-        <DepartmentDialog
-          department={editingDept}
-          parentDepartment={parentDept}
-          tenantId={tenantId}
+        <DepartmentForm
+          open={showDialog}
           onClose={() => {
             setShowDialog(false);
             setEditingDept(null);
@@ -405,6 +403,9 @@ export function TenantDepartmentsTab({ tenantId }: TenantDepartmentsTabProps) {
             setParentDept(null);
             loadDepartments();
           }}
+          tenantId={tenantId}
+          department={editingDept}
+          parentDepartment={parentDept}
         />
       )}
 
@@ -415,182 +416,6 @@ export function TenantDepartmentsTab({ tenantId }: TenantDepartmentsTabProps) {
           onClose={() => setSelectedDept(null)}
         />
       )}
-    </div>
-  );
-}
-
-// ==================== DEPARTMENT DIALOG ====================
-
-interface DepartmentDialogProps {
-  department?: DepartmentTreeNode | null;
-  parentDepartment?: DepartmentTreeNode | null;
-  tenantId: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-function DepartmentDialog({
-  department,
-  parentDepartment,
-  tenantId,
-  onClose,
-  onSuccess,
-}: DepartmentDialogProps) {
-  const [formData, setFormData] = useState({
-    code: department?.code || '',
-    name: department?.name || '',
-    description: department?.description || '',
-    status: department?.status || 'ACTIVE',
-    order: department?.order?.toString() || '0',
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!formData.code.trim() || !formData.name.trim()) {
-      setError('Mã code và tên phòng ban là bắt buộc');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      if (department) {
-        // Update existing - ✅ Include version
-        await departmentsApi.update(department._id, {
-          code: formData.code,
-          name: formData.name,
-          description: formData.description || undefined,
-          status: formData.status as any,
-          order: parseInt(formData.order) || 0,
-          version: department.version,  // ✅ Required for optimistic locking
-        });
-        toast.success('Đã cập nhật phòng ban');
-      } else {
-        // Create new
-        await departmentsApi.create({
-          tenant_id: tenantId,
-          code: formData.code,
-          name: formData.name,
-          description: formData.description || undefined,
-          parent_department_id: parentDepartment?._id,
-          status: formData.status as any,
-          order: parseInt(formData.order) || 0,
-        });
-        toast.success('Đã tạo phòng ban mới');
-      }
-
-      onSuccess();
-    } catch (error: any) {
-      console.error('Error saving department:', error);
-      setError(error.message || 'Không thể lưu phòng ban');
-      toast.error(error.message || 'Không thể lưu phòng ban');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {department ? 'Chỉnh sửa phòng ban' : parentDepartment ? 'Thêm phòng ban con' : 'Tạo phòng ban mới'}
-          </h3>
-          {parentDepartment && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Phòng ban cha: <span className="font-semibold">{parentDepartment.name}</span>
-            </p>
-          )}
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Mã code <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.code}
-              onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-              placeholder="VD: ENG"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Tên phòng ban <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="VD: Engineering"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Mô tả</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Mô tả phòng ban..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Trạng thái</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="ARCHIVED">Archived</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Thứ tự</label>
-            <input
-              type="number"
-              value={formData.order}
-              onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-              placeholder="0"
-              min="0"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg mt-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
-            />
-          </div>
-
-          {/* Footer */}
-          <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-              Hủy
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Đang lưu...' : department ? 'Cập nhật' : 'Tạo mới'}
-            </Button>
-          </div>
-        </form>
-      </div>
     </div>
   );
 }

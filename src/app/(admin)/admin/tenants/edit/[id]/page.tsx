@@ -71,11 +71,12 @@ function EditTenantPage() {
       backLabel={t('tenants.backToList')}
     >
       <EnhancedTenantForm
-        initialData={tenant}
+        tenant={tenant}
         tenants={tenants}
         onSubmit={handleSubmit}
         loading={loading}
         onCancel={() => router.push('/admin/tenants')}
+        isEdit={true}
       />
     </FormPageLayout>
   );

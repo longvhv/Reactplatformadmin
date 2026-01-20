@@ -16,11 +16,14 @@ import { projectId, publicAnonKey } from '@/utils/supabase/info';
  */
 export type ApiMode = 'supabase' | 'golang' | 'hybrid';
 
+// ✅ UPDATED: Support Next.js environment variables first
 export const API_MODE = (
-  typeof import.meta !== 'undefined' && 
-  import.meta.env && 
-  import.meta.env.VITE_API_MODE
-) ? import.meta.env.VITE_API_MODE as ApiMode : 'supabase';
+  typeof process !== 'undefined' && process.env.NEXT_PUBLIC_DATA_SOURCE === 'golang-api'
+) ? 'golang' : (
+  (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_MODE)
+    ? import.meta.env.VITE_API_MODE as ApiMode 
+    : 'supabase'
+);
 
 /**
  * Golang API Configuration
@@ -28,10 +31,12 @@ export const API_MODE = (
  */
 export const GOLANG_API_CONFIG = {
   baseURL: (
-    typeof import.meta !== 'undefined' && 
-    import.meta.env && 
-    import.meta.env.VITE_GOLANG_API_URL
-  ) ? import.meta.env.VITE_GOLANG_API_URL : 'http://localhost:8080/api/v1',
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_GOLANG_API_URL
+  ) ? process.env.NEXT_PUBLIC_GOLANG_API_URL : (
+    (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GOLANG_API_URL)
+      ? import.meta.env.VITE_GOLANG_API_URL 
+      : 'http://localhost:8080/api/v1'
+  ),
   timeout: 30000, // 30 seconds
   retryCount: 3,
   retryDelay: 1000, // 1 second
@@ -165,13 +170,18 @@ export class HttpClient {
       'Content-Type': 'application/json',
     };
 
-    // Add auth token if available
+    // Add auth token if available (vhv-auth-token matches GolangApiDataClient)
     const token = typeof window !== 'undefined' 
-      ? localStorage.getItem('auth_token') 
+      ? (localStorage.getItem('vhv-auth-token') || localStorage.getItem('auth_token'))
       : null;
     
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    } else {
+        // Fallback for server-side or if no token
+        if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_GOLANG_API_KEY) {
+             headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_GOLANG_API_KEY}`;
+        }
     }
 
     return headers;
