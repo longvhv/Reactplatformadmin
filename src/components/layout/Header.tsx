@@ -4,6 +4,7 @@ import { Menu, X, Search, Bell, User, Settings, LogOut, BookOpen, FileCode } fro
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { useTheme } from "@/providers/ThemeProvider";
+import { useAuthContext } from "@/providers/AuthProvider";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ interface HeaderProps {
 export function Header({ toggleSidebar }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const { logout } = useAuthContext();
   const [mounted, setMounted] = useState(false);
   const navigate = useNavigate();
 
@@ -173,8 +175,8 @@ export function Header({ toggleSidebar }: HeaderProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600" onClick={() => {
-                console.log('Logging out...');
-                // Add logout logic here
+                logout();
+                navigate('/login');
               }}>
                 <LogOut className="mr-2 h-4 w-4" />
                 {t('navigation.logout')}

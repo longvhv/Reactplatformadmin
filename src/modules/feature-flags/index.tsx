@@ -11,10 +11,19 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Flag } from 'lucide-react';
 
 // Lazy-loaded pages
-const FeatureFlagsPage = lazy(() => import('../../pages/FeatureFlagsPage'));
-const AddFeatureFlagPage = lazy(() => import('../../pages/AddFeatureFlagPage'));
-const EditFeatureFlagPage = lazy(() => import('../../pages/EditFeatureFlagPage'));
-const FeatureFlagDetailPage = lazy(() => import('../../pages/FeatureFlagDetailPage'));
+const FeatureFlagsPage = lazy(() => import('../../app/(admin)/feature-flags/page'));
+
+const AddFeatureFlagPage = lazy(() => 
+  import('../../app/(admin)/platform/feature-flags/create/page')
+);
+
+const EditFeatureFlagPage = lazy(() => 
+  import('../../app/(admin)/platform/feature-flags/edit/[id]/page')
+);
+
+const FeatureFlagDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/feature-flags/[id]/page')
+);
 
 export const FeatureFlagsModule: ModuleDefinition = {
   id: 'feature-flags',

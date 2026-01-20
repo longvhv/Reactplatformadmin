@@ -10,10 +10,18 @@ import { ModuleDefinition } from '../../core/ModuleRegistry';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Shield } from 'lucide-react';
 
-const ReservedSlugsPage = lazy(() => import('../../pages/ReservedSlugsPage'));
-const AddReservedSlugPage = lazy(() => import('../../pages/AddReservedSlugPage'));
-const EditReservedSlugPage = lazy(() => import('../../pages/EditReservedSlugPage'));
-const ReservedSlugDetailPage = lazy(() => import('../../pages/ReservedSlugDetailPage'));
+const ReservedSlugsPage = lazy(() => 
+  import('../../app/(admin)/platform/reserved-slugs/page')
+);
+const AddReservedSlugPage = lazy(() => 
+  import('../../app/(admin)/platform/reserved-slugs/create/page')
+);
+const EditReservedSlugPage = lazy(() => 
+  import('../../app/(admin)/platform/reserved-slugs/edit/[id]/page')
+);
+const ReservedSlugDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/reserved-slugs/[id]/page')
+);
 
 export const ReservedSlugsModule: ModuleDefinition = {
   id: "reserved-slugs",

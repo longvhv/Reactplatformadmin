@@ -6,11 +6,11 @@ import { Code2, FileText, Database, BookOpen } from "lucide-react";
 /**
  * Lazy-load Dev Docs Pages
  */
-const DevDocsPage = lazy(() => import("../../pages/DevDocsPage"));
+const DevDocsPage = lazy(() => import("../../app/(admin)/docs/dev/page"));
 
-const ApiDocsPage = lazy(() => import("../../pages/ApiDocsPage"));
+const ApiDocsPage = lazy(() => import("../../app/(admin)/docs/api/page"));
 
-const DatabaseDocsPage = lazy(() => import("../../pages/DatabaseDocsPage"));
+const DatabaseDocsPage = lazy(() => import("../../app/(admin)/docs/database/page"));
 
 /**
  * Developer Docs Module

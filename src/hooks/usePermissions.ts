@@ -2,55 +2,151 @@
  * usePermissions Hook
  * Hook for managing permissions with real API integration
  * 
- * ✅ UPDATED 2026-01-15: Connected to real API instead of mock data
+ * MIGRATED: Now uses DataClient abstraction layer
+ * - Easy to switch between Supabase and Golang API
+ * - Consistent pattern across all hooks
+ * - Type-safe with generics
+ * ✅ UPDATED 2026-01-15: Connected to real API
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useDataClient } from './useDataClient';
 import { permissionsApi, Permission, PermissionFilters, CreatePermissionRequest, UpdatePermissionRequest, PermissionNode } from '../api/permissionsApi';
 
 interface UsePermissionsOptions {
   autoLoad?: boolean;
   filters?: PermissionFilters;
+  limit?: number;
+  offset?: number;
 }
 
 export function usePermissions(options: UsePermissionsOptions = {}) {
+  const { autoLoad = true, filters, limit, offset } = options;
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [total, setTotal] = useState<number | undefined>();
+
+  // Get DataClient instance
+  const dataClient = useDataClient();
 
   /**
-   * Load permissions from API
+   * Load permissions from database
    */
   const loadPermissions = useCallback(async () => {
+    // Guard: Wait for dataClient to be ready
+    if (!dataClient) {
+      console.log('[usePermissions] Waiting for DataClient to initialize...');
+      return;
+    }
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      const data = await permissionsApi.getAll(options.filters);
-      setPermissions(data);
+      console.log('[usePermissions] Loading permissions from data source...');
+
+      // Try cache first
+      const cacheKey = 'permissions_cache';
+      const cachedData = localStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        const cached = JSON.parse(cachedData);
+        const cacheAge = Date.now() - cached.timestamp;
+
+        // Use cache if less than 5 minutes old
+        if (cacheAge < 5 * 60 * 1000) {
+          setPermissions(cached.data);
+          setTotal(cached.total);
+          setLoading(false);
+
+          // Continue to fetch in background
+          fetchFromDataSource(true);
+          return;
+        }
+      }
+
+      // Fetch from data source
+      await fetchFromDataSource(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load permissions';
       setError(message);
-      console.error('Error loading permissions:', err);
-    } finally {
+      console.error('[usePermissions] Error loading permissions:', err);
       setLoading(false);
     }
-  }, [options.filters]);
+  }, [dataClient, filters, limit, offset]);
+
+  /**
+   * Fetch from data source using DataClient
+   */
+  const fetchFromDataSource = async (isBackgroundUpdate: boolean) => {
+    if (!dataClient) {
+      if (!isBackgroundUpdate) {
+        setLoading(false);
+      }
+      return;
+    }
+
+    try {
+      // Build filters
+      const queryFilters: Record<string, any> = {};
+      if (filters?.app_code) queryFilters.app_code = filters.app_code;
+      if (filters?.parent_code) queryFilters.parent_code = filters.parent_code;
+      if (filters?.type) queryFilters.type = filters.type;
+      if (filters?.search) queryFilters.search = filters.search;
+
+      // Query using DataClient
+      const result = await dataClient.query<Permission>('permissions', {
+        filters: queryFilters,
+        orderBy: [{ field: 'code', direction: 'asc' }],
+        limit,
+        offset,
+      });
+
+      console.log('[usePermissions] Loaded permissions:', result.data.length);
+
+      // Update cache
+      localStorage.setItem(
+        'permissions_cache',
+        JSON.stringify({
+          data: result.data,
+          total: result.total,
+          timestamp: Date.now(),
+        })
+      );
+
+      // Update state
+      setPermissions(result.data);
+      setTotal(result.total);
+
+      if (!isBackgroundUpdate) {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('[usePermissions] Fetch error:', err);
+      
+      if (!isBackgroundUpdate) {
+        throw err;
+      }
+    }
+  };
 
   /**
    * Get permissions as tree structure
+   * Note: This uses permissionsApi helper, not DataClient
    */
   const getTree = useCallback(async (appCode: string): Promise<PermissionNode[]> => {
     setLoading(true);
     setError(null);
     
     try {
+      // This is a special endpoint, use permissionsApi for now
       const tree = await permissionsApi.getTree(appCode);
       return tree;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to load permissions tree';
       setError(message);
-      console.error('Error loading permissions tree:', err);
+      console.error('[usePermissions] Error loading tree:', err);
       return [];
     } finally {
       setLoading(false);
@@ -58,75 +154,135 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
   }, []);
 
   /**
-   * Create a new permission
+   * Create new permission
    */
-  const createPermission = useCallback(async (data: CreatePermissionRequest): Promise<Permission> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const created = await permissionsApi.create(data);
-      await loadPermissions(); // Refresh list
-      return created;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create permission';
-      setError(message);
-      console.error('Error creating permission:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadPermissions]);
+  const createPermission = useCallback(
+    async (data: CreatePermissionRequest): Promise<Permission> => {
+      if (!dataClient) {
+        throw new Error('DataClient not initialized');
+      }
+
+      setError(null);
+
+      try {
+        console.log('[usePermissions] Creating permission:', data);
+
+        // Create using DataClient
+        const newPermission = await dataClient.create<Permission>('permissions', data);
+
+        console.log('[usePermissions] Permission created:', newPermission._id);
+
+        // Optimistic update
+        setPermissions((prev) => [newPermission, ...prev]);
+
+        // Invalidate cache
+        localStorage.removeItem('permissions_cache');
+
+        return newPermission;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to create permission';
+        setError(message);
+        console.error('[usePermissions] Error creating permission:', err);
+        throw new Error(message);
+      }
+    },
+    [dataClient]
+  );
 
   /**
-   * Update an existing permission
+   * Update permission with optimistic locking
    */
-  const updatePermission = useCallback(async (id: string, data: UpdatePermissionRequest): Promise<Permission> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const updated = await permissionsApi.update(id, data);
-      await loadPermissions(); // Refresh list
-      return updated;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to update permission';
-      setError(message);
-      console.error('Error updating permission:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadPermissions]);
+  const updatePermission = useCallback(
+    async (id: string, data: UpdatePermissionRequest): Promise<Permission> => {
+      if (!dataClient) {
+        throw new Error('DataClient not initialized');
+      }
+
+      setError(null);
+
+      try {
+        console.log('[usePermissions] Updating permission:', id, data);
+
+        // Get current permission for version check
+        const currentPermission = permissions.find((p) => p._id === id);
+        if (!currentPermission) {
+          throw new Error('Permission not found in local state');
+        }
+
+        // Prepare update data (remove immutable fields)
+        const updateData: any = { ...data };
+        delete updateData._id;
+        delete updateData.created_at;
+        delete updateData.created_by;
+        
+        // Include version for optimistic locking
+        updateData.version = currentPermission.version;
+
+        // Update using DataClient
+        const updatedPermission = await dataClient.update<Permission>('permissions', id, updateData);
+
+        console.log('[usePermissions] Permission updated:', updatedPermission._id);
+
+        // Optimistic update
+        setPermissions((prev) => prev.map((p) => (p._id === id ? updatedPermission : p)));
+
+        // Invalidate cache
+        localStorage.removeItem('permissions_cache');
+
+        return updatedPermission;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to update permission';
+        setError(message);
+        console.error('[usePermissions] Error updating permission:', err);
+        throw new Error(message);
+      }
+    },
+    [dataClient, permissions]
+  );
 
   /**
-   * Delete a permission (soft delete)
+   * Delete permission (soft delete)
    */
-  const deletePermission = useCallback(async (id: string): Promise<void> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      await permissionsApi.delete(id);
-      await loadPermissions(); // Refresh list
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete permission';
-      setError(message);
-      console.error('Error deleting permission:', err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [loadPermissions]);
+  const deletePermission = useCallback(
+    async (id: string): Promise<void> => {
+      if (!dataClient) {
+        throw new Error('DataClient not initialized');
+      }
+
+      setError(null);
+
+      try {
+        console.log('[usePermissions] Deleting permission:', id);
+
+        // Delete using DataClient (soft delete)
+        await dataClient.delete('permissions', id);
+
+        console.log('[usePermissions] Permission deleted:', id);
+
+        // Optimistic update
+        setPermissions((prev) => prev.filter((p) => p._id !== id));
+
+        // Invalidate cache
+        localStorage.removeItem('permissions_cache');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to delete permission';
+        setError(message);
+        console.error('[usePermissions] Error deleting permission:', err);
+        throw new Error(message);
+      }
+    },
+    [dataClient]
+  );
 
   /**
    * Get permission statistics
+   * Note: This is a custom endpoint, may need DataClient.execute() in future
    */
   const getStats = useCallback(async () => {
     try {
-      return await permissionsApi.getStats(options.filters);
+      return await permissionsApi.getStats(filters);
     } catch (err) {
-      console.error('Error getting permission stats:', err);
+      console.error('[usePermissions] Error getting stats:', err);
       return {
         total: 0,
         by_app: {},
@@ -135,7 +291,7 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
         root_count: 0,
       };
     }
-  }, [options.filters]);
+  }, [filters]);
 
   /**
    * Helper: Build tree from current permissions
@@ -165,18 +321,36 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
     return permissionsApi.getBreadcrumb(permissions, code);
   }, [permissions]);
 
+  /**
+   * Refresh permissions from server
+   */
+  const refresh = useCallback(async () => {
+    localStorage.removeItem('permissions_cache');
+    await loadPermissions();
+  }, [loadPermissions]);
+
   // Auto-load on mount if enabled
   useEffect(() => {
-    if (options.autoLoad) {
+    if (autoLoad && dataClient) {
+      console.log('[usePermissions] Auto-loading permissions');
       loadPermissions();
     }
-  }, [options.autoLoad, loadPermissions]);
+  }, [autoLoad, dataClient]); // Only depend on autoLoad and dataClient
+
+  // Trigger load when dataClient becomes available
+  useEffect(() => {
+    if (dataClient && autoLoad) {
+      console.log('[usePermissions] DataClient ready, triggering load');
+      loadPermissions();
+    }
+  }, [dataClient]); // Only depend on dataClient to avoid loop
 
   return {
     // Data
     permissions,
     loading,
     error,
+    total,
     
     // CRUD operations
     loadPermissions,
@@ -195,7 +369,7 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
     getBreadcrumb,
     
     // Manual refresh
-    refresh: loadPermissions,
+    refresh,
   };
 }
 

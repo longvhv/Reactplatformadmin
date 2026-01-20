@@ -5,6 +5,8 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { LogIn, Github, Sparkles } from "lucide-react";
+import { useAuthContext } from "../../providers/AuthProvider";
+import { showToast } from "../../lib/toast";
 
 /**
  * Modern Login Page
@@ -13,6 +15,7 @@ import { LogIn, Github, Sparkles } from "lucide-react";
  */
 export function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuthContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,13 +24,14 @@ export function LoginPage() {
     e.preventDefault();
     setLoading(true);
 
-    // Giả lập API call
-    setTimeout(() => {
+    try {
+      await login(email, password);
+      showToast.success('Đăng nhập thành công', 'Chào mừng bạn trở lại!');
+      navigate("/admin/dashboard");
+    } catch (error) {
+      showToast.error('Đăng nhập thất bại', 'Vui lòng kiểm tra lại email và mật khẩu');
       setLoading(false);
-      // Mock login success
-      localStorage.setItem("vhv-auth-token", "mock-token-123");
-      navigate("/");
-    }, 1000);
+    }
   };
 
   const handleOAuthLogin = (provider: string) => {

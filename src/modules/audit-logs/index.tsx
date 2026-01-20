@@ -8,8 +8,14 @@ import { lazy, Suspense } from 'react';
 import { Shield } from 'lucide-react';
 
 // Lazy load pages
-const AuditLogsPage = lazy(() => import('../../pages/AuditLogsPage'));
-const AuditLogDetailPage = lazy(() => import('../../pages/AuditLogDetailPage'));
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const AuditLogsPage = lazy(() => 
+  import('../../app/(admin)/admin/audit-logs/page')
+);
+
+const AuditLogDetailPage = lazy(() => 
+  import('../../app/(admin)/admin/audit-logs/[id]/page')
+);
 
 // Loading fallback component
 function LoadingFallback() {
@@ -24,7 +30,7 @@ function LoadingFallback() {
 export const auditLogsModule = {
   id: 'audit-logs',
   name: 'Audit Logs',
-  icon: Shield,
+  icon: <Shield className="w-4 h-4" />,
   description: 'Quản lý lịch sử hoạt động và kiểm toán hệ thống',
   
   // Navigation menu items
@@ -33,7 +39,7 @@ export const auditLogsModule = {
       id: 'audit-logs',
       label: 'Lịch sử truy cập',
       path: '/admin/audit-logs',
-      icon: Shield,
+      icon: <Shield className="w-5 h-5" />,
       order: 100,
     },
   ],

@@ -10,10 +10,18 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { ShoppingCart } from 'lucide-react';
 
-const SubscriptionOrdersPage = lazy(() => import('../../pages/SubscriptionOrdersPage'));
-const AddOrderPage = lazy(() => import('../../pages/AddOrderPage'));
-const EditOrderPage = lazy(() => import('../../pages/EditOrderPage'));
-const SubscriptionOrderDetailPage = lazy(() => import('../../pages/SubscriptionOrderDetailPage'));
+const SubscriptionOrdersPage = lazy(() => 
+  import('../../app/(admin)/commerce/subscription-orders/page')
+);
+const SubscriptionOrderDetailPage = lazy(() => 
+  import('../../app/(admin)/commerce/subscription-orders/[id]/page')
+);
+const AddOrderPage = lazy(() => 
+  import('../../app/(admin)/commerce/subscription-orders/create/page')
+);
+const EditOrderPage = lazy(() => 
+  import('../../app/(admin)/commerce/subscription-orders/edit/[id]/page')
+);
 
 export const SubscriptionOrdersModule: ModuleDefinition = {
   id: "subscription-orders",

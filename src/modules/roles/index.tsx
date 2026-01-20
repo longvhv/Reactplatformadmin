@@ -4,12 +4,24 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Shield } from "lucide-react";
 
 /**
- * Lazy load Roles pages
+ * Lazy-load Roles Pages
+ * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
-const RolesPage = lazy(() => import("../../pages/RolesPage"));
-const RoleDetailPage = lazy(() => import("../../pages/RoleDetailPage"));
-const AddRolePage = lazy(() => import("../../pages/AddRolePage"));
-const EditRolePage = lazy(() => import("../../pages/EditRolePage"));
+const RolesPage = lazy(() => 
+  import("../../app/(admin)/admin/roles/page")
+);
+
+const RoleDetailPage = lazy(() => 
+  import("../../app/(admin)/admin/roles/[id]/page")
+);
+
+const AddRolePage = lazy(() => 
+  import("../../app/(admin)/admin/roles/create/page")
+);
+
+const EditRolePage = lazy(() => 
+  import("../../app/(admin)/admin/roles/edit/[id]/page")
+);
 
 /**
  * Roles Module

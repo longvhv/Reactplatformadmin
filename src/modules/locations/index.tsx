@@ -7,14 +7,19 @@
  */
 
 import { MapPin } from 'lucide-react';
-import LocationsPage from '../../pages/LocationsPage';
 import type { ModuleDefinition } from '../../core/ModuleRegistry';
+import { lazy, Suspense } from 'react';
+import { LoadingFallback } from '../../components/LoadingFallback';
+
+// Lazy-loaded pages
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const LocationsPage = lazy(() => import('../../app/(admin)/location-types/page'));
 
 export const LocationsModule: ModuleDefinition = {
   id: 'locations',
   name: 'Locations',
   description: 'Manage locations and their hierarchies',
-  icon: MapPin,
+  icon: <MapPin className="w-4 h-4" />,
   showInSidebar: false,
   category: 'Infrastructure',
   order: 55,
@@ -22,7 +27,11 @@ export const LocationsModule: ModuleDefinition = {
   routes: [
     {
       path: '/platform/locations',
-      element: <LocationsPage />,
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải Locations..." />}>
+          <LocationsPage />
+        </Suspense>
+      ),
     },
   ],
 };

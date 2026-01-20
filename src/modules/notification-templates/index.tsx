@@ -11,7 +11,7 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Mail } from 'lucide-react';
 
 // Lazy-loaded pages
-const NotificationTemplatesPage = lazy(() => import('../../pages/NotificationTemplatesPage'));
+const NotificationTemplatesPage = lazy(() => import('../../app/(admin)/notification-templates/page'));
 
 export const NotificationTemplatesModule: ModuleDefinition = {
   id: 'notification-templates',

@@ -24,6 +24,7 @@ import subscriptionOrdersAPI from "./subscription-orders-api.ts";
 import subscriptionInvoicesAPI from "./subscription-invoices-api.ts";
 import systemAnnouncementsAPI from "./system-announcements-api.ts";
 import notificationTemplatesAPI from "./notification-templates-api.ts";
+import initTenantAPI from "./init-tenant-routes.tsx";
 
 const app = new Hono();
 
@@ -88,6 +89,7 @@ app.route("/make-server-7eedb4e0/api/core", subscriptionOrdersAPI);
 app.route("/make-server-7eedb4e0/api/core", subscriptionInvoicesAPI);
 app.route("/make-server-7eedb4e0/api/core", systemAnnouncementsAPI);
 app.route("/make-server-7eedb4e0/api/core", notificationTemplatesAPI);
+app.route("/make-server-7eedb4e0/api/core", initTenantAPI);
 
 // Handle OPTIONS preflight for any route
 app.options("*", (c) => {

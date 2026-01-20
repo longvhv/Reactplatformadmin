@@ -10,10 +10,18 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Truck } from 'lucide-react';
 
-const ServiceDeliveriesPage = lazy(() => import('../../pages/ServiceDeliveriesPage'));
-const AddServiceDeliveryPage = lazy(() => import('../../pages/AddServiceDeliveryPage'));
-const EditServiceDeliveryPage = lazy(() => import('../../pages/EditServiceDeliveryPage'));
-const ServiceDeliveryDetailPage = lazy(() => import('../../pages/ServiceDeliveryDetailPage'));
+const ServiceDeliveriesPage = lazy(() => 
+  import('../../app/(admin)/platform/service-deliveries/page')
+);
+const ServiceDeliveryDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/service-deliveries/[id]/page')
+);
+const AddServiceDeliveryPage = lazy(() => 
+  import('../../app/(admin)/platform/service-delivery/add/page')
+);
+const EditServiceDeliveryPage = lazy(() => 
+  import('../../app/(admin)/platform/service-delivery/edit/[id]/page')
+);
 
 export const ServiceDeliveriesModule: ModuleDefinition = {
   id: "service-deliveries",

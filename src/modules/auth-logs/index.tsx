@@ -6,8 +6,10 @@ import { Shield } from "lucide-react";
 /**
  * Lazy-load Auth Logs Page
  */
+// Lazy load the list page
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const AuthLogsPage = lazy(() => 
-  import("../../pages/AuthLogsPage")
+  import('../../app/(admin)/admin/auth-logs/page')
 );
 
 /**

@@ -6,25 +6,49 @@
 import { createClient } from '@supabase/supabase-js';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-// Singleton instance
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
-
-// Clean up instance on HMR to prevent "Multiple GoTrueClient" warnings in dev
-if (import.meta.hot) {
-  import.meta.hot.dispose(() => {
-    supabaseInstance = null;
-  });
-}
+// Use a global registry to ensure true singleton across module boundaries
+// This prevents "Multiple GoTrueClient instances" warnings
+const globalForSupabase = globalThis as unknown as {
+  supabaseClient: ReturnType<typeof createClient> | undefined;
+  supabaseCreated: boolean;
+};
 
 export function getSupabaseClient() {
-  if (!supabaseInstance) {
-    supabaseInstance = createClient(
-      `https://${projectId}.supabase.co`,
-      publicAnonKey
-    );
+  // Return existing instance if available
+  if (globalForSupabase.supabaseClient) {
+    return globalForSupabase.supabaseClient;
   }
-  return supabaseInstance;
+  
+  // Prevent concurrent creation
+  if (globalForSupabase.supabaseCreated) {
+    // Wait a tick and retry (rare race condition)
+    return new Promise<ReturnType<typeof createClient>>((resolve) => {
+      setTimeout(() => resolve(getSupabaseClient()), 0);
+    }) as any;
+  }
+  
+  // Mark as being created
+  globalForSupabase.supabaseCreated = true;
+  
+  // Create new instance
+  const client = createClient(
+    `https://${projectId}.supabase.co`,
+    publicAnonKey,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'sb-vewxdzhvrpxsmpmlwaqr-auth-token',
+      },
+    }
+  );
+  
+  // Store in global registry
+  globalForSupabase.supabaseClient = client;
+  
+  return client;
 }
 
-// Export default instance
+// Export default instance - lazily initialized
 export const supabase = getSupabaseClient();

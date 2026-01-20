@@ -7,20 +7,25 @@ import { Package } from "lucide-react";
  * Lazy load Product Types pages
  * ✅ CREATED 2026-01-15: Module definition for Product Types
  */
-const ProductTypesPage = lazy(() => import("../../pages/ProductTypesPage"));
-const ProductTypeDetailPage = lazy(() => import("../../pages/ProductTypeDetailPage"));
-const AddProductTypePage = lazy(() => import("../../pages/AddProductTypePage"));
-const EditProductTypePage = lazy(() => import("../../pages/EditProductTypePage"));
+const ProductTypesPage = lazy(() => import("../../app/(admin)/product-types/page"));
+const ProductTypeDetailPage = lazy(() => 
+  import("../../app/(admin)/platform/product-types/[id]/page")
+);
+const AddProductTypePage = lazy(() => 
+  import("../../app/(admin)/platform/product-types/create/page")
+);
+const EditProductTypePage = lazy(() => 
+  import("../../app/(admin)/platform/product-types/edit/[id]/page")
+);
 
 /**
- * Product Types Module
- * 
- * 🌐 Path: /commerce/product-types
+ * Product Types Module - Quản lý các loại sản phẩm
+ * 🌐 Path: /platform/product-types
  */
 export const ProductTypesModule: ModuleDefinition = {
   id: "product-types",
   name: "Product Types",
-  description: "Quản lý loại sản phẩm",
+  description: "Quản lý các loại sản phẩm",
   icon: <Package className="w-4 h-4" />,
   enabled: true,
   showInSidebar: false,

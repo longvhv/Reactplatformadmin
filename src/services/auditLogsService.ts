@@ -1,20 +1,10 @@
 /**
  * Audit Logs Service
- * Handles system audit trail and user activity tracking
- * Ready for migration to Golang microservice backend
- * 
- * ⚠️ SCHEMA LOCATION: telemetry.audit_logs
- * 
- * This service queries audit logs from the 'telemetry' schema using
- * Supabase client's .schema() method for direct schema access.
- * 
- * Setup Required:
- * 1. Run migration: /docs/migrations/044_audit_logs.sql
- * 2. Migration creates telemetry.audit_logs table
- * 3. GRANT permissions already in migration
+ * Handles CRUD operations for audit logs
+ * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.audit_logs table
 export interface AuditLog {

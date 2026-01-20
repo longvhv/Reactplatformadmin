@@ -50,14 +50,14 @@ export function PermissionTreeItem({
     <div>
       {/* Current Item */}
       <div
-        className="group flex items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-50 transition-colors"
+        className="group flex items-center gap-2 rounded-md px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
         style={{ paddingLeft: `${12 + indent}px` }}
       >
         {/* Expand/Collapse Button */}
         {hasChildren ? (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+            className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             {expanded ? (
               <ChevronDown className="h-4 w-4" />
@@ -85,7 +85,7 @@ export function PermissionTreeItem({
         {/* Name & Code */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900 truncate">
+            <span className="font-medium text-gray-900 dark:text-white truncate">
               {permission.name}
             </span>
             {permission.is_group && (
@@ -94,7 +94,7 @@ export function PermissionTreeItem({
               </Badge>
             )}
           </div>
-          <p className="text-xs font-mono text-gray-500 truncate">
+          <p className="text-xs font-mono text-gray-500 dark:text-gray-400 truncate">
             {permission.code}
           </p>
         </div>

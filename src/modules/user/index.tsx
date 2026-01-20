@@ -3,8 +3,25 @@ import { Users } from "lucide-react";
 import { lazy, Suspense } from "react";
 import { LoadingFallback } from "../../components/LoadingFallback";
 
-const UsersPage = lazy(() => import("../../pages/UsersPage"));
-const AddUserPage = lazy(() => import("../../pages/AddUserPage"));
+/**
+ * Lazy-load Users Pages
+ * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+ */
+const UsersPage = lazy(() => 
+  import("../../app/(admin)/admin/users/page")
+);
+
+const UserDetailPage = lazy(() => 
+  import("../../app/(admin)/admin/users/[id]/page")
+);
+
+const AddUserPage = lazy(() => 
+  import("../../app/(admin)/admin/users/create/page")
+);
+
+const EditUserPage = lazy(() => 
+  import("../../app/(admin)/admin/users/edit/[id]/page")
+);
 
 /**
  * Users Module
@@ -37,6 +54,24 @@ export const UsersModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "Add User",
+    },
+    {
+      path: "/admin/users/:id",
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
+          <UserDetailPage />
+        </Suspense>
+      ),
+      title: "User Detail",
+    },
+    {
+      path: "/admin/users/edit/:id",
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải..." />}>
+          <EditUserPage />
+        </Suspense>
+      ),
+      title: "Edit User",
     },
   ],
   menuItems: [

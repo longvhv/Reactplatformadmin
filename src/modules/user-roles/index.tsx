@@ -7,7 +7,12 @@
 
 import { UserCog } from 'lucide-react';
 import type { ModuleDefinition } from '../../core/ModuleRegistry';
-import UserRolesPage from '../../pages/UserRolesPage';
+import { lazy, Suspense } from 'react';
+import { LoadingFallback } from '../../components/LoadingFallback';
+
+// Lazy-loaded pages
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const UserRolesPage = lazy(() => import('../../app/(admin)/admin/roles/page'));
 
 export const UserRolesModule: ModuleDefinition = {
   id: 'user-roles',
@@ -21,7 +26,11 @@ export const UserRolesModule: ModuleDefinition = {
   routes: [
     {
       path: '/admin/user-roles',
-      element: <UserRolesPage />,
+      element: (
+        <Suspense fallback={<LoadingFallback message="Đang tải Phân quyền..." />}>
+          <UserRolesPage />
+        </Suspense>
+      ),
     },
   ],
   

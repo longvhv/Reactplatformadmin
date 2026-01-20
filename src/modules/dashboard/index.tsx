@@ -5,8 +5,11 @@ import { LayoutDashboard, BarChart3, PieChart, TrendingUp, Activity } from "luci
 
 /**
  * Lazy-load Dashboard Page
+ * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
-const DashboardPage = lazy(() => import("./DashboardPage"));
+const DashboardPage = lazy(() => 
+  import("../../app/(admin)/admin/dashboard/page")
+);
 
 /**
  * Dashboard Module

@@ -21,9 +21,11 @@ import { MockAdapter } from './mock';
 export function createAdapter<T, CreateDto, UpdateDto>(
   tableName: string,
   endpoint?: string,
-  supportsSoftDelete: boolean = false,
-  useMock: boolean = false
+  options?: { supportsSoftDelete?: boolean; useMock?: boolean }
 ): IApiAdapter<T, CreateDto, UpdateDto> {
+  const supportsSoftDelete = options?.supportsSoftDelete ?? false;
+  const useMock = options?.useMock ?? false;
+  
   if (useMock) {
     return new MockAdapter<T, CreateDto, UpdateDto>(tableName);
   }

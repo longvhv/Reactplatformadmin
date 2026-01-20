@@ -76,7 +76,8 @@ export function Toast({
     `}>
       {/* Icon */}
       <div className="flex-shrink-0 rounded-full p-1 bg-white">
-        {typeof IconComponent === 'function' ? (
+        {/* Handle React component (function or ForwardRef) */}
+        {typeof IconComponent === 'function' || (IconComponent && typeof IconComponent === 'object' && '$$typeof' in IconComponent) ? (
           <IconComponent className={`w-5 h-5 ${styles.icon}`} />
         ) : (
           IconComponent

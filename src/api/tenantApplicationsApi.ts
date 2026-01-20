@@ -5,12 +5,7 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = `https://${projectId}.supabase.co`;
-const supabaseKey = publicAnonKey;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '@/utils/supabase/client';
 
 // ==================== TYPES ====================
 
@@ -109,7 +104,7 @@ export const tenantApplicationsApi = {
       .from('tenant_applications')
       .select(`
         *,
-        application:applications(name, description, icon_url)
+        application:applications(name, description)
       `)
       .order('created_at', { ascending: false });
 

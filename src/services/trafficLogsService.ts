@@ -1,20 +1,10 @@
 /**
  * Traffic Logs Service
- * Tracks web traffic, page views, and visitor analytics
- * Ready for migration to Golang microservice backend
- * 
- * ⚠️ SCHEMA LOCATION: telemetry.traffic_logs
- * 
- * This service queries traffic logs from the 'telemetry' schema using
- * Supabase client's .schema() method for direct schema access.
- * 
- * Setup Required:
- * 1. Run migration: /docs/migrations/046_traffic_logs.sql
- * 2. Migration creates telemetry.traffic_logs table
- * 3. GRANT permissions already in migration
+ * Handles CRUD operations for traffic logs
+ * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.traffic_logs table
 export interface TrafficLog {

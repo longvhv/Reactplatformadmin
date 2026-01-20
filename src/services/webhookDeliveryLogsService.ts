@@ -1,20 +1,10 @@
 /**
  * Webhook Delivery Logs Service
- * Handles webhook delivery tracking and analytics
- * Ready for migration to Golang microservice backend
- * 
- * ⚠️ SCHEMA LOCATION: telemetry.webhook_delivery_logs
- * 
- * This service queries webhook logs from the 'telemetry' schema using
- * Supabase client's .schema() method for direct schema access.
- * 
- * Setup Required:
- * 1. Run migration: /docs/migrations/043_webhook_delivery_logs.sql
- * 2. Migration creates telemetry.webhook_delivery_logs table
- * 3. GRANT permissions already in migration
+ * Handles CRUD operations for webhook delivery logs
+ * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.webhook_delivery_logs table
 export interface WebhookDeliveryLog {

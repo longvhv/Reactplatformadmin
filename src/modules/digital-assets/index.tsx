@@ -10,10 +10,18 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Image } from 'lucide-react';
 
-const DigitalAssetsPage = lazy(() => import('../../pages/DigitalAssetsPage'));
-const AddTenantDigitalAssetPage = lazy(() => import('../../pages/AddTenantDigitalAssetPage'));
-const EditTenantDigitalAssetPage = lazy(() => import('../../pages/EditTenantDigitalAssetPage'));
-const DigitalAssetDetailPage = lazy(() => import('../../pages/DigitalAssetDetailPage'));
+const DigitalAssetsPage = lazy(() => 
+  import('../../app/(admin)/commerce/digital-assets/page')
+);
+const DigitalAssetDetailPage = lazy(() => 
+  import('../../app/(admin)/commerce/digital-assets/[id]/page')
+);
+const AddTenantDigitalAssetPage = lazy(() => 
+  import('../../app/(admin)/content/digital-assets/add/page')
+);
+const EditTenantDigitalAssetPage = lazy(() => 
+  import('../../app/(admin)/content/digital-assets/edit/[id]/page')
+);
 
 export const DigitalAssetsModule: ModuleDefinition = {
   id: "digital-assets",

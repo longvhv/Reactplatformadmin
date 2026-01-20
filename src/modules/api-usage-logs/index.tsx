@@ -11,10 +11,9 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { BarChart3 } from 'lucide-react';
 
 // Lazy-loaded pages
-const ApiUsageLogsPage = lazy(() => import('../../pages/core/api-usage-logs/index'));
-const ApiUsageLogDetailPage = lazy(() => import('../../pages/core/api-usage-logs/[id]'));
-const ApiUsageLogsAnalyticsPage = lazy(() => import('../../pages/core/api-usage-logs/analytics'));
-const ApiUsageLogsSettingsPage = lazy(() => import('../../pages/core/api-usage-logs/settings'));
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const ApiUsageLogsPage = lazy(() => import('../../app/(admin)/platform/api-usage-logs/page'));
+const ApiUsageLogDetailPage = lazy(() => import('../../app/(admin)/platform/api-usage-logs/[id]/page'));
 
 export const ApiUsageLogsModule: ModuleDefinition = {
   id: 'api-usage-logs',
@@ -34,24 +33,6 @@ export const ApiUsageLogsModule: ModuleDefinition = {
         </Suspense>
       ),
       title: 'apiUsageLogs.menu',
-    },
-    {
-      path: '/integrations/api-usage-logs/analytics',
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <ApiUsageLogsAnalyticsPage />
-        </Suspense>
-      ),
-      title: 'apiUsageLogs.analytics',
-    },
-    {
-      path: '/integrations/api-usage-logs/settings',
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <ApiUsageLogsSettingsPage />
-        </Suspense>
-      ),
-      title: 'apiUsageLogs.settings',
     },
     {
       path: '/integrations/api-usage-logs/:id',

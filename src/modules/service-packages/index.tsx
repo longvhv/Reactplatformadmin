@@ -10,7 +10,7 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Package2 } from 'lucide-react';
 
-const ServicePackagesPage = lazy(() => import('../../pages/ServicePackagesPage'));
+const ServicePackagesPage = lazy(() => import('../../app/(admin)/service-packages/page'));
 
 export const ServicePackagesModule: ModuleDefinition = {
   id: "service-packages",

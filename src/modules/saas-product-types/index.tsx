@@ -10,16 +10,24 @@ import { Package } from 'lucide-react';
 import { ModuleDefinition } from '../../core/types';
 import { LoadingFallback } from '../../components/LoadingFallback';
 
-const SaasProductTypesPage = lazy(() => import('../../pages/SaasProductTypesPage'));
-const AddSaasProductTypePage = lazy(() => import('../../pages/AddSaasProductTypePage'));
-const EditSaasProductTypePage = lazy(() => import('../../pages/EditSaasProductTypePage'));
-const SaasProductTypeDetailPage = lazy(() => import('../../pages/SaasProductTypeDetailPage'));
+const SaasProductTypesPage = lazy(() => 
+  import('../../app/(admin)/platform/saas-product-types/page')
+);
+const AddSaasProductTypePage = lazy(() => 
+  import('../../app/(admin)/platform/saas-product-types/create/page')
+);
+const EditSaasProductTypePage = lazy(() => 
+  import('../../app/(admin)/platform/saas-product-types/edit/[id]/page')
+);
+const SaasProductTypeDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/saas-product-types/[id]/page')
+);
 
 export const SaasProductTypesModule: ModuleDefinition = {
   id: 'saas-product-types',
   name: 'SaaS Product Types',
   description: 'Manage SaaS product type categories',
-  icon: Package,
+  icon: <Package className="w-4 h-4" />,
   category: 'Product',
   order: 90,
 
@@ -67,7 +75,7 @@ export const SaasProductTypesModule: ModuleDefinition = {
     {
       id: 'saas-product-types',
       label: 'saasProductTypes.menu',
-      icon: Package,
+      icon: <Package className="w-5 h-5" />,
       path: '/commerce/saas-product-types',
       category: 'Product',
       order: 90,

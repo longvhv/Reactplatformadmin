@@ -11,10 +11,20 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Activity } from 'lucide-react';
 
 // Lazy-loaded pages
-const TrafficLogsPage = lazy(() => import('../../pages/TrafficLogsPage'));
-const TrafficLogDetailPage = lazy(() => import('../../pages/TrafficLogDetailPage'));
-const TrafficLogsAnalyticsPage = lazy(() => import('../../pages/TrafficLogsAnalyticsPage'));
-const AddTrafficLogPage = lazy(() => import('../../pages/AddTrafficLogPage'));
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const TrafficLogsPage = lazy(() => 
+  import('../../app/(admin)/platform/traffic-logs/page')
+);
+
+const TrafficLogDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/traffic-logs/[id]/page')
+);
+const TrafficLogsAnalyticsPage = lazy(() => 
+  import('../../app/(admin)/platform/traffic-logs/analytics/page')
+);
+const AddTrafficLogPage = lazy(() => 
+  import('../../app/(admin)/platform/traffic-logs/create/page')
+);
 
 export const TrafficLogsModule: ModuleDefinition = {
   id: 'traffic-logs',

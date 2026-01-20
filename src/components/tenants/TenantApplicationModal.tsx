@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -157,6 +158,9 @@ export function TenantApplicationModal({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Thêm Ứng Dụng vào Tenant</DialogTitle>
+          <DialogDescription>
+            Chọn ứng dụng và cấu hình các thông số để thêm vào tenant của bạn.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4">

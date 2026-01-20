@@ -10,10 +10,18 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Webhook } from 'lucide-react';
 
-const WebhooksPage = lazy(() => import('../../pages/WebhooksPage'));
-const AddWebhookPage = lazy(() => import('../../pages/AddWebhookPage'));
-const EditWebhookPage = lazy(() => import('../../pages/EditWebhookPage'));
-const WebhookDetailPage = lazy(() => import('../../pages/WebhookDetailPage'));
+const WebhooksPage = lazy(() => 
+  import('../../app/(admin)/platform/webhooks/page')
+);
+const AddWebhookPage = lazy(() => 
+  import('../../app/(admin)/platform/webhooks/add/page')
+);
+const EditWebhookPage = lazy(() => 
+  import('../../app/(admin)/platform/webhooks/edit/[id]/page')
+);
+const WebhookDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/webhooks/[id]/page')
+);
 
 export const WebhooksModule: ModuleDefinition = {
   id: "webhooks",

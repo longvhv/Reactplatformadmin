@@ -10,13 +10,13 @@ import type { Module } from '../../core/ModuleRegistry';
 import { MapPin } from 'lucide-react';
 
 // ✅ Lazy load page components for code splitting
-const LocationTypesPage = lazy(() => import('../../pages/LocationTypesPage'));
+const LocationTypesPage = lazy(() => import('../../app/(admin)/location-types/page'));
 
 export const LocationTypesModule: Module = {
   id: 'location-types',
   name: 'Location Types',
   description: 'Manage location type definitions and custom fields',
-  icon: MapPin,
+  icon: <MapPin className="w-4 h-4" />,
   category: 'Master Data',
   order: 30,
   
@@ -31,7 +31,7 @@ export const LocationTypesModule: Module = {
     {
       id: 'location-types',
       label: 'Location Types',
-      icon: MapPin,
+      icon: <MapPin className="w-5 h-5" />,
       path: '/platform/location-types',
       category: 'Master Data',
       order: 30,

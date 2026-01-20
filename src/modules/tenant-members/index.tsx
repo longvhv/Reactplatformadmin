@@ -5,9 +5,10 @@ import { Users } from "lucide-react";
 
 /**
  * Lazy-load Tenant Members Page
+ * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
 const TenantMembersPage = lazy(() => 
-  import("../../pages/TenantMembersPage")
+  import("../../app/(admin)/admin/tenant-members/page")
 );
 
 /**

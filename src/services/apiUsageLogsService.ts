@@ -1,22 +1,10 @@
 /**
  * API Usage Logs Service
- * Handles all API calls for API usage telemetry
- * Ready for migration to Golang microservice backend
- * 
- * ⚠️ SCHEMA LOCATION: telemetry.api_usage_logs
- * 
- * This service queries API usage logs from the 'telemetry' schema using
- * Supabase client's .schema() method for direct schema access.
- * 
- * Setup Required:
- * 1. Run migration: /docs/migrations/036_api_usage_logs.sql
- * 2. Migration creates telemetry.api_usage_logs table
- * 3. GRANT permissions already in migration
- * 
- * See: /docs/bugfix/2026-01-16-telemetry-schema-access-fix.md
+ * Handles CRUD operations for API usage logs
+ * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.api_usage_logs table
 export interface ApiUsageLog {

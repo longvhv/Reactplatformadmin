@@ -129,7 +129,7 @@ export function PermissionFormDialog({
                 required
                 className="font-mono"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Mã định danh duy nhất (không thể thay đổi sau khi tạo)
               </p>
             </div>
@@ -178,7 +178,7 @@ export function PermissionFormDialog({
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="is_group">Là thư mục phân nhóm</Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
                   Thư mục chỉ dùng để nhóm các quyền con
                 </p>
               </div>

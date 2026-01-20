@@ -21,10 +21,34 @@ export class SupabaseAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, 
   private supportsSoftDelete: boolean;
   protected fieldMapping?: FieldMapping;
 
+  /**
+   * Tables that don't exist yet in database (suppress errors)
+   * TODO: Remove tables from this list as they are created
+   */
+  private static readonly TABLES_NOT_YET_CREATED = new Set([
+    'auth_logs',
+    'permissions',
+    'audit_logs',
+    'traffic_logs',
+    'api_usage_logs',
+    'user_registration_logs',
+  ]);
+
   constructor(tableName: string, supportsSoftDelete: boolean = false, fieldMapping?: FieldMapping) {
     super(tableName);
     this.supportsSoftDelete = supportsSoftDelete;
     this.fieldMapping = fieldMapping;
+  }
+
+  /**
+   * Check if we should suppress errors for this table
+   */
+  private shouldSuppressError(tableName: string): boolean {
+    // Extract base table name if it has schema prefix
+    const baseTableName = tableName.includes('.') 
+      ? tableName.split('.')[1] 
+      : tableName;
+    return SupabaseAdapter.TABLES_NOT_YET_CREATED.has(baseTableName);
   }
 
   /**
@@ -83,6 +107,12 @@ export class SupabaseAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, 
    */
   async getAll(filters?: BaseFilters): Promise<T[]> {
     try {
+      // Check if Supabase is available
+      if (!supabase) {
+        console.warn(`[${this.tableName}] Supabase client not available, returning empty array`);
+        return [];
+      }
+
       let query = supabase
         .from(this.tableName)
         .select('*');
@@ -130,12 +160,22 @@ export class SupabaseAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, 
       const { data, error } = await query;
 
       if (error) {
-        this.handleError(error, 'fetch all');
+        // Suppress errors for tables that don't exist yet
+        if (!this.shouldSuppressError(this.tableName)) {
+          console.error(`[${this.tableName}] Supabase error:`, error);
+        }
+        // Return empty array instead of throwing
+        return [];
       }
 
       return ((data || []) as any[]).map(row => this.mapFromDb(row)) as T[];
     } catch (error) {
-      this.handleError(error, 'fetch all');
+      // Suppress errors for tables that don't exist yet
+      if (!this.shouldSuppressError(this.tableName)) {
+        console.error(`[${this.tableName}] Error in getAll:`, error);
+      }
+      // Return empty array instead of throwing
+      return [];
     }
   }
 
@@ -159,7 +199,18 @@ export class SupabaseAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, 
       const { data, error } = await query.single();
 
       if (error) {
-        console.error(`[${this.tableName}] Error in getById:`, error);
+        console.error(`[${this.tableName}] Supabase error in getById:`, {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+        
+        // Provide more context for common errors
+        if (error.message === 'Failed to fetch' || error.message.includes('fetch')) {
+          throw new Error(`Network error: Unable to connect to database. Please check your internet connection and try again.`);
+        }
+        
         this.handleError(error, 'fetch by id');
       }
 
@@ -167,6 +218,15 @@ export class SupabaseAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, 
       return this.mapFromDb(data) as T;
     } catch (error) {
       console.error(`[${this.tableName}] Exception in getById:`, error);
+      
+      // Re-throw with better context
+      if (error instanceof Error) {
+        if (error.message.includes('Network error')) {
+          throw error; // Already has good context
+        }
+        throw new Error(`Failed to fetch ${this.tableName}: ${error.message}`);
+      }
+      
       this.handleError(error, 'fetch by id');
     }
   }

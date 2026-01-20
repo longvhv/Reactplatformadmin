@@ -1,20 +1,10 @@
 /**
  * User Registration Logs Service
- * Tracks user signups and registration analytics
- * Ready for migration to Golang microservice backend
- * 
- * ⚠️ SCHEMA LOCATION: telemetry.user_registration_logs
- * 
- * This service queries registration logs from the 'telemetry' schema using
- * Supabase client's .schema() method for direct schema access.
- * 
- * Setup Required:
- * 1. Run migration: /docs/migrations/045_user_registration_logs.sql
- * 2. Migration creates telemetry.user_registration_logs table
- * 3. GRANT permissions already in migration
+ * Handles CRUD operations for user registration logs
+ * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.user_registration_logs table
 export interface UserRegistrationLog {

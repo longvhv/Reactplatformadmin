@@ -547,3 +547,30 @@ export const getStatusCodeDistribution = async (
     throw error;
   }
 };
+
+// ==================== API CLIENT ====================
+
+/**
+ * Traffic Logs API Client
+ * Unified object export for consistent usage pattern
+ */
+export const trafficLogsApi = {
+  // CRUD Operations
+  getAll: getTrafficLogs,
+  getById: getTrafficLogById,
+  create: createTrafficLog,
+  update: updateTrafficLog,
+  delete: deleteTrafficLog,
+
+  // Statistics & Analytics
+  getStats: getTrafficStats,
+  getTrend: getTrafficTrend,
+  getStatusCodeDistribution,
+
+  // Metadata
+  getHttpMethods,
+  getAppCodes,
+  getDataRegions,
+};
+
+export default trafficLogsApi;

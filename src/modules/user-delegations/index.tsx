@@ -8,18 +8,14 @@ import { UserCog } from 'lucide-react';
 import type { ModuleDefinition } from '../../core/ModuleRegistry';
 import { LoadingFallback } from '../../components/LoadingFallback';
 
-// Lazy load pages (will create later)
-const UserDelegationsPage = lazy(() => import('../../pages/UserDelegationsPage').catch(() => ({
-  default: () => (
-    <div className="p-8 text-center">
-      <UserCog className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-      <h2 className="text-2xl font-bold mb-2">Ủy quyền</h2>
-      <p className="text-gray-600">Tính năng quản lý ủy quyền giữa các users đang được phát triển</p>
-    </div>
-  )
-})));
-
-const AddUserDelegationPage = lazy(() => import('../../pages/AddUserDelegationPage'));
+// Lazy load pages - Import from bridge files (no .catch() pattern!)
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const UserDelegationsPage = lazy(() => 
+  import('../../app/(admin)/platform/user-delegations/page')
+);
+const AddUserDelegationPage = lazy(() => 
+  import('../../app/(admin)/platform/user-delegations/create/page')
+);
 
 export const UserDelegationsModule: ModuleDefinition = {
   id: 'user-delegations',

@@ -71,9 +71,76 @@ export interface AuditLogsResponse {
 const adapter = createAdapter<AuditLog, CreateAuditLogRequest, any>(
   'audit_logs',
   '/audit-logs',
-  false,
-  true // Use mock adapter since audit_logs table doesn't exist
+  { useMock: true } // ✅ Use mock adapter since audit_logs table doesn't exist
 );
+
+// Seed mock data for development
+const seedMockData = async () => {
+  try {
+    const existing = await adapter.getAll();
+    if (existing.length === 0) {
+      // Create sample audit logs
+      const sampleLogs: CreateAuditLogRequest[] = [
+        {
+          user_id: 'user-001',
+          action: 'CREATE',
+          resource: 'User',
+          resource_id: 'user-123',
+          status: 'SUCCESS',
+          ip_address: '192.168.1.100',
+          user_agent: 'Mozilla/5.0',
+          metadata: { role: 'admin' },
+        },
+        {
+          user_id: 'user-002',
+          action: 'UPDATE',
+          resource: 'Application',
+          resource_id: 'app-456',
+          status: 'SUCCESS',
+          ip_address: '192.168.1.101',
+          user_agent: 'Mozilla/5.0',
+          changes: { name: { from: 'Old App', to: 'New App' } },
+        },
+        {
+          user_id: 'user-001',
+          action: 'DELETE',
+          resource: 'Role',
+          resource_id: 'role-789',
+          status: 'FAILED',
+          ip_address: '192.168.1.100',
+          user_agent: 'Mozilla/5.0',
+          metadata: { error: 'Insufficient permissions' },
+        },
+        {
+          user_id: 'user-003',
+          action: 'LOGIN',
+          resource: 'Auth',
+          status: 'SUCCESS',
+          ip_address: '192.168.1.102',
+          user_agent: 'Chrome/120.0',
+        },
+        {
+          user_id: 'user-002',
+          action: 'VIEW',
+          resource: 'Tenant',
+          resource_id: 'tenant-001',
+          status: 'SUCCESS',
+          ip_address: '192.168.1.101',
+          user_agent: 'Safari/17.0',
+        },
+      ];
+
+      for (const log of sampleLogs) {
+        await adapter.create(log);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to seed audit log mock data:', err);
+  }
+};
+
+// Seed data when module loads
+seedMockData();
 
 export const auditLogApi = {
   getAll: async (filters?: AuditLogFilters): Promise<AuditLog[]> => {

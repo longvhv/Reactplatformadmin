@@ -8,10 +8,19 @@ import { ModuleDefinition } from '../../core/ModuleRegistry';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Package } from 'lucide-react';
 
-// Lazy-loaded pages
-const ProductsPage = lazy(() => import('../../pages/ProductsPage'));
-const AddProductPage = lazy(() => import('../../pages/AddProductPage'));
-const EditProductPage = lazy(() => import('../../pages/EditProductPage'));
+// Lazy load pages
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const ProductsPage = lazy(() => 
+  import('../../app/(admin)/commerce/products/page')
+);
+
+const AddProductPage = lazy(() => 
+  import('../../app/(admin)/commerce/products/create/page')
+);
+
+const EditProductPage = lazy(() => 
+  import('../../app/(admin)/commerce/products/edit/[id]/page')
+);
 
 // Note: ProductDetailPage is full-screen (defined in App.tsx)
 

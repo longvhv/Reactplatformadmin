@@ -10,11 +10,21 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Settings } from 'lucide-react';
 
-// Lazy-loaded pages
-const SystemJobsPage = lazy(() => import('../../pages/SystemJobsPage'));
-const AddSystemJobPage = lazy(() => import('../../pages/AddSystemJobPage'));
-const EditSystemJobPage = lazy(() => import('../../pages/EditSystemJobPage'));
-const SystemJobDetailPage = lazy(() => import('../../pages/SystemJobDetailPage'));
+// Lazy load pages
+// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
+const SystemJobsPage = lazy(() => 
+  import('../../app/(admin)/platform/system-jobs/page')
+);
+
+const AddSystemJobPage = lazy(() => 
+  import('../../app/(admin)/platform/system-jobs/create/page')
+);
+const EditSystemJobPage = lazy(() => 
+  import('../../app/(admin)/platform/system-jobs/edit/[id]/page')
+);
+const SystemJobDetailPage = lazy(() => 
+  import('../../app/(admin)/platform/system-jobs/[id]/page')
+);
 
 export const SystemJobsModule: ModuleDefinition = {
   id: 'system-jobs',

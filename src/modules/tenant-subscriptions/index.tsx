@@ -10,9 +10,14 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { CreditCard } from 'lucide-react';
 
-const TenantSubscriptionsPage = lazy(() => import('../../pages/TenantSubscriptionsPage'));
-const AddSubscriptionPage = lazy(() => import('../../pages/AddSubscriptionPage'));
-const SubscriptionDetailPageFullscreen = lazy(() => import('../../pages/SubscriptionDetailPage'));
+const TenantSubscriptionsPage = lazy(() => 
+  import('../../app/(admin)/admin/tenants/subscriptions/page')
+);
+
+// Full-screen detail page (shows in App.tsx)
+const SubscriptionDetailPageFullscreen = lazy(() => 
+  import('../../app/(admin)/commerce/subscriptions/[id]/page')
+);
 
 export const TenantSubscriptionsModule: ModuleDefinition = {
   id: "tenant-subscriptions",
@@ -41,15 +46,6 @@ export const TenantSubscriptionsModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "subscriptions.title", // Translation key
-    },
-    {
-      path: "/commerce/tenant-subscriptions/create",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <AddSubscriptionPage />
-        </Suspense>
-      ),
-      title: "subscriptions.addSubscription",
     },
     {
       path: "/commerce/tenant-subscriptions/:id",

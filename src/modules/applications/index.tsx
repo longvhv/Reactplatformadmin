@@ -5,9 +5,10 @@ import { AppWindow } from 'lucide-react';
 
 /**
  * Lazy-load Applications Page
+ * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
 const ApplicationsPage = lazy(() =>
-  import('../../pages/ApplicationsPage')
+  import('../../app/(admin)/platform/applications/page')
 );
 
 /**
