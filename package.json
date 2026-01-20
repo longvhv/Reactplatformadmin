@@ -46,6 +46,7 @@
           "embla-carousel-react": "^8.6.0",
           "features": "*",
           "fs": "*",
+          "github.com": "*",
           "hono": "^4",
           "i18next": "*",
           "i18next-browser-languagedetector": "*",

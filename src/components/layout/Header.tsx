@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/providers/LanguageProvider";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useAuthContext } from "@/providers/AuthProvider";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { getCurrentTenant, getTenantName, getTenantTierLabel } from "@/lib/currentTenant";
+import type { Tenant } from "@/lib/currentTenant";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import {
   DropdownMenu,
@@ -25,11 +28,16 @@ export function Header({ toggleSidebar }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   const { logout } = useAuthContext();
+  const { displayName, initials, avatarUrl, loading: userLoading } = useCurrentUser();
   const [mounted, setMounted] = useState(false);
+  const [tenant, setTenant] = useState<Tenant | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     setMounted(true);
+    
+    // Load tenant info
+    getCurrentTenant().then(setTenant);
   }, []);
 
   if (!mounted) {
@@ -63,8 +71,12 @@ export function Header({ toggleSidebar }: HeaderProps) {
             <span className="text-white font-bold text-base">VH</span>
           </div>
           <div className="hidden md:flex flex-col">
-            <span className="font-bold text-base text-foreground">VHV Platform</span>
-            <span className="text-xs text-muted-foreground">Enterprise Admin</span>
+            <span className="font-bold text-base text-foreground">
+              {getTenantName(tenant)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {tenant ? getTenantTierLabel(tenant.tier) : 'Loading...'}
+            </span>
           </div>
         </div>
 
@@ -154,12 +166,12 @@ export function Header({ toggleSidebar }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-9 gap-2 px-2">
                 <Avatar className="h-7 w-7">
-                  <AvatarImage src="" alt="User" />
+                  <AvatarImage src={avatarUrl} alt="User" />
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    JD
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden md:inline-block text-sm">John Doe</span>
+                <span className="hidden md:inline-block text-sm">{displayName}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

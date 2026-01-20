@@ -23,6 +23,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { TenantMember } from '@/api/tenantMembersApi';
+import { useTranslation } from 'react-i18next';
 
 interface MemberDetailModalProps {
   isOpen: boolean;
@@ -31,6 +32,8 @@ interface MemberDetailModalProps {
 }
 
 export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModalProps) {
+  const { t } = useTranslation();
+
   if (!isOpen || !member) return null;
 
   const formatDate = (date?: string) => {
@@ -56,10 +59,10 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
 
   const getRoleBadge = () => {
     const config = {
-      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: 'Owner' },
-      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: 'Admin' },
-      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: 'Member' },
-      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: 'Viewer' },
+      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: t('common.owner') },
+      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: t('common.admin') },
+      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: t('common.member') },
+      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: t('common.viewer') },
     };
     const c = config[member.role];
     const Icon = c.icon;

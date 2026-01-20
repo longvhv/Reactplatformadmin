@@ -31,6 +31,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
+import { useTranslation } from 'react-i18next';
 import { AuditLogFilters, exportAuditLogs } from '@/api/auditLogApi';
 import { showToast } from '@/lib/toast';
 import { PageLayout } from '@/components/layout/PageLayout';
@@ -38,6 +39,7 @@ import { PageLayout } from '@/components/layout/PageLayout';
 function AuditLogsPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { i18n } = useTranslation();
 
   // Filters state
   const [filters, setFilters] = useState<AuditLogFilters>({
@@ -83,10 +85,10 @@ function AuditLogsPage() {
 
   // Stats
   const stats = statistics ? [
-    { label: 'Total Logs', value: total || 0, color: 'indigo' as const, icon: Activity },
-    { label: 'Success', value: statistics.success || 0, color: 'green' as const, icon: CheckCircle },
-    { label: 'Failed', value: statistics.failed || 0, color: 'red' as const, icon: XCircle },
-    { label: 'Warning', value: statistics.warning || 0, color: 'yellow' as const, icon: AlertTriangle },
+    { label: t('common.totalLogs'), value: total || 0, color: 'indigo' as const, icon: Activity },
+    { label: t('common.success'), value: statistics.success || 0, color: 'green' as const, icon: CheckCircle },
+    { label: t('common.failed'), value: statistics.failed || 0, color: 'red' as const, icon: XCircle },
+    { label: t('common.warning'), value: statistics.warning || 0, color: 'yellow' as const, icon: AlertTriangle },
   ] : [];
 
   if (loading && logs.length === 0) {
@@ -94,7 +96,7 @@ function AuditLogsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading audit logs...</p>
+          <p className="mt-4 text-gray-600">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -104,7 +106,7 @@ function AuditLogsPage() {
     <PageLayout
       icon={Shield}
       title={t('navigation.auditLogs')}
-      description="System activity and audit trail"
+      description={t('navigation.auditLogsDescription')}
       actions={
         <div className="flex items-center gap-2">
           <Button
@@ -114,7 +116,7 @@ function AuditLogsPage() {
             className="gap-2"
           >
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            {t('common.refresh')}
           </Button>
           <Button
             variant="outline"
@@ -123,7 +125,7 @@ function AuditLogsPage() {
             className="gap-2"
           >
             <Download className="w-4 h-4" />
-            Export
+            {t('common.export')}
           </Button>
         </div>
       }
@@ -165,7 +167,7 @@ function AuditLogsPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <Input
-              placeholder="Search logs by action, user, IP..."
+              placeholder={t('common.searchLogsPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -174,14 +176,14 @@ function AuditLogsPage() {
           </div>
           <Button onClick={handleSearch}>
             <Search className="w-4 h-4 mr-2" />
-            Search
+            {t('common.search')}
           </Button>
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="w-4 h-4 mr-2" />
-            Filters
+            {t('common.filter')}
           </Button>
         </div>
 
@@ -189,35 +191,34 @@ function AuditLogsPage() {
           <div className="pt-4 border-t">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="text-sm font-medium mb-2 block">Action</label>
+                <label className="text-sm font-medium mb-2 block">{t('common.action')}</label>
                 <select
                   className="w-full px-3 py-2 border rounded-md"
                   onChange={(e) => handleFilterChange('action', e.target.value || undefined)}
                 >
-                  <option value="">All Actions</option>
-                  <option value="CREATE">Create</option>
-                  <option value="UPDATE">Update</option>
-                  <option value="DELETE">Delete</option>
-                  <option value="LOGIN">Login</option>
-                  <option value="LOGOUT">Logout</option>
+                  <option value="">{t('common.allActions')}</option>
+                  <option value="CREATE">{t('common.create')}</option>
+                  <option value="UPDATE">{t('common.update')}</option>
+                  <option value="DELETE">{t('common.delete')}</option>
+                  <option value="LOGIN">{t('common.login')}</option>
+                  <option value="LOGOUT">{t('common.logout')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Status</label>
+                <label className="text-sm font-medium mb-2 block">{t('common.status')}</label>
                 <select
                   className="w-full px-3 py-2 border rounded-md"
                   onChange={(e) => handleFilterChange('status', e.target.value || undefined)}
                 >
-                  <option value="">All Status</option>
-                  <option value="SUCCESS">Success</option>
-                  <option value="FAILED">Failed</option>
-                  <option value="WARNING">Warning</option>
+                  <option value="">{t('common.allStatuses')}</option>
+                  <option value="SUCCESS">{t('common.success')}</option>
+                  <option value="FAILED">{t('common.failed')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Date Range</label>
+                <label className="text-sm font-medium mb-2 block">{t('common.dateRange')}</label>
                 <select
                   className="w-full px-3 py-2 border rounded-md"
                   onChange={(e) => {
@@ -231,11 +232,11 @@ function AuditLogsPage() {
                     }
                   }}
                 >
-                  <option value="">All Time</option>
-                  <option value="1">Last 24 hours</option>
-                  <option value="7">Last 7 days</option>
-                  <option value="30">Last 30 days</option>
-                  <option value="90">Last 90 days</option>
+                  <option value="">{t('common.allTime')}</option>
+                  <option value="1">{t('common.last24Hours')}</option>
+                  <option value="7">{t('common.last7Days')}</option>
+                  <option value="30">{t('common.last30Days')}</option>
+                  <option value="90">{t('common.last90Days')}</option>
                 </select>
               </div>
             </div>
@@ -243,7 +244,7 @@ function AuditLogsPage() {
         )}
 
         <p className="text-sm text-muted-foreground mt-4">
-          Showing {logs.length} of {total || 0} logs
+          {t('common.showing')} {logs.length} {t('common.of')} {total || 0} {t('common.totalLogs').toLowerCase()}
         </p>
       </Card>
 
@@ -262,7 +263,7 @@ function AuditLogsPage() {
             onClick={loadMore}
             disabled={loading}
           >
-            {loading ? 'Loading...' : 'Load More'}
+            {loading ? t('common.loading') : t('common.loadMore')}
           </Button>
         </div>
       )}

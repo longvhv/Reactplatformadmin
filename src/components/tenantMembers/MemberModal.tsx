@@ -228,10 +228,10 @@ export function MemberModal({ isOpen, onClose, onSave, member, tenantId }: Membe
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as MemberStatus })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               >
-                <option value="ACTIVE">Active</option>
-                <option value="ONBOARDING">Onboarding</option>
-                <option value="SUSPENDED">Suspended</option>
-                <option value="RESIGNED">Resigned</option>
+                <option value="ACTIVE">{t('common.active')}</option>
+                <option value="ONBOARDING">{t('common.onboarding')}</option>
+                <option value="SUSPENDED">{t('common.suspended')}</option>
+                <option value="OFFBOARDED">Offboarded</option>
               </select>
             </div>
           </div>

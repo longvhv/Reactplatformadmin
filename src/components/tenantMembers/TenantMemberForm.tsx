@@ -288,10 +288,10 @@ export function TenantMemberForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OWNER">Owner</SelectItem>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="MEMBER">Member</SelectItem>
-                  <SelectItem value="VIEWER">Viewer</SelectItem>
+                  <SelectItem value="OWNER">{t('common.owner')}</SelectItem>
+                  <SelectItem value="ADMIN">{t('common.admin')}</SelectItem>
+                  <SelectItem value="MEMBER">{t('common.member')}</SelectItem>
+                  <SelectItem value="VIEWER">{t('common.viewer')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -309,10 +309,10 @@ export function TenantMemberForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="ONBOARDING">Onboarding</SelectItem>
-                  <SelectItem value="SUSPENDED">Suspended</SelectItem>
-                  <SelectItem value="RESIGNED">Resigned</SelectItem>
+                  <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
+                  <SelectItem value="ONBOARDING">{t('common.onboarding')}</SelectItem>
+                  <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
+                  <SelectItem value="OFFBOARDED">Offboarded</SelectItem>
                 </SelectContent>
               </Select>
             </div>

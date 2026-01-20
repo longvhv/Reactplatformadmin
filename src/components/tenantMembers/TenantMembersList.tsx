@@ -96,18 +96,18 @@ export function TenantMembersList({
 
   // Get role badge color - DEPRECATED: Use StatusBadge
   const roleConfig = {
-    OWNER: { label: 'Owner', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-    ADMIN: { label: 'Admin', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-    MEMBER: { label: 'Member', color: 'bg-green-100 text-green-800 border-green-200' },
-    VIEWER: { label: 'Viewer', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+    OWNER: { label: t('common.owner'), color: 'bg-purple-100 text-purple-800 border-purple-200' },
+    ADMIN: { label: t('common.admin'), color: 'bg-blue-100 text-blue-800 border-blue-200' },
+    MEMBER: { label: t('common.member'), color: 'bg-green-100 text-green-800 border-green-200' },
+    VIEWER: { label: t('common.viewer'), color: 'bg-gray-100 text-gray-800 border-gray-200' },
   };
 
   // Get status badge color - DEPRECATED: Use StatusBadge
   const statusConfig = {
-    ACTIVE: { label: 'Active', color: 'bg-green-100 text-green-800 border-green-200' },
-    ONBOARDING: { label: 'Onboarding', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-    SUSPENDED: { label: 'Suspended', color: 'bg-orange-100 text-orange-800 border-orange-200' },
-    RESIGNED: { label: 'Resigned', color: 'bg-gray-100 text-gray-800 border-gray-200' },
+    ACTIVE: { label: t('common.active'), color: 'bg-green-100 text-green-800 border-green-200' },
+    ONBOARDING: { label: t('common.onboarding'), color: 'bg-blue-100 text-blue-800 border-blue-200' },
+    SUSPENDED: { label: t('common.suspended'), color: 'bg-orange-100 text-orange-800 border-orange-200' },
+    RESIGNED: { label: t('common.resigned'), color: 'bg-gray-100 text-gray-800 border-gray-200' },
   };
 
   // Format date
@@ -139,10 +139,10 @@ export function TenantMembersList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('common.all')}</SelectItem>
-              <SelectItem value="OWNER">Owner</SelectItem>
-              <SelectItem value="ADMIN">Admin</SelectItem>
-              <SelectItem value="MEMBER">Member</SelectItem>
-              <SelectItem value="VIEWER">Viewer</SelectItem>
+              <SelectItem value="OWNER">{t('common.owner')}</SelectItem>
+              <SelectItem value="ADMIN">{t('common.admin')}</SelectItem>
+              <SelectItem value="MEMBER">{t('common.member')}</SelectItem>
+              <SelectItem value="VIEWER">{t('common.viewer')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -153,10 +153,11 @@ export function TenantMembersList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t('common.all')}</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="ONBOARDING">Onboarding</SelectItem>
-              <SelectItem value="SUSPENDED">Suspended</SelectItem>
-              <SelectItem value="RESIGNED">Resigned</SelectItem>
+              <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
+              <SelectItem value="INVITED">Invited</SelectItem>
+              <SelectItem value="ONBOARDING">{t('common.onboarding')}</SelectItem>
+              <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
+              <SelectItem value="RESIGNED">{t('common.resigned')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

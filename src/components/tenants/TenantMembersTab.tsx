@@ -35,6 +35,7 @@ import {
 import { MemberModal } from '@/components/tenantMembers/MemberModal';
 import { MemberDetailModal } from '@/components/tenantMembers/MemberDetailModal';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface TenantMembersTabProps {
   tenantId: string;
@@ -206,12 +207,14 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
     }
   };
 
+  const { t } = useTranslation();
+
   const getRoleBadge = (role: MemberRole) => {
     const config = {
-      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: 'Owner' },
-      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: 'Admin' },
-      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: 'Member' },
-      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: 'Viewer' },
+      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: t('common.owner') },
+      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: t('common.admin') },
+      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: t('common.member') },
+      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: t('common.viewer') },
     };
     const c = config[role];
     const Icon = c.icon;
@@ -352,10 +355,10 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
             >
               <option value="all">Tất cả vai trò</option>
-              <option value="OWNER">Owner</option>
-              <option value="ADMIN">Admin</option>
-              <option value="MEMBER">Member</option>
-              <option value="VIEWER">Viewer</option>
+              <option value="OWNER">{t('common.owner')}</option>
+              <option value="ADMIN">{t('common.admin')}</option>
+              <option value="MEMBER">{t('common.member')}</option>
+              <option value="VIEWER">{t('common.viewer')}</option>
             </select>
           </div>
 

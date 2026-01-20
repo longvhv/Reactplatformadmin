@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Info } from 'lucide-react';
 import { TenantAppRoute, CreateRouteData, UpdateRouteData, SSLStatus, RouteScope } from '@/api/tenantAppRoutesApi';
 import { useTenantAppRoutesResolver } from '@/hooks/useTenantAppRoutesResolver';
+import { useTranslation } from 'react-i18next';
 
 interface AppRouteModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export function AppRouteModal({ isOpen, onClose, onSave, route, tenantId }: AppR
   const [saving, setSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const { validateRoute } = useTenantAppRoutesResolver();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (route) {
@@ -273,9 +275,9 @@ export function AppRouteModal({ isOpen, onClose, onSave, route, tenantId }: AppR
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="NONE">None</option>
-                <option value="PENDING">Pending</option>
-                <option value="ACTIVE">Active</option>
-                <option value="FAILED">Failed</option>
+                <option value="PENDING">{t('common.pending')}</option>
+                <option value="ACTIVE">{t('common.active')}</option>
+                <option value="FAILED">{t('common.failed')}</option>
               </select>
             </div>
           </div>

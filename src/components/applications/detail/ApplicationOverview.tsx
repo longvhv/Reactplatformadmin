@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { Application } from '@/data/applications';
+import { useTranslation } from 'react-i18next';
 
 interface ApplicationOverviewProps {
   application: Application;
@@ -29,6 +30,7 @@ export function ApplicationOverview({ application, onUpdate }: ApplicationOvervi
     description: application.description || '',
   });
   const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
 
   const handleSave = async () => {
     setSaving(true);
@@ -234,9 +236,9 @@ export function ApplicationOverview({ application, onUpdate }: ApplicationOvervi
           <p className="text-sm text-gray-500">Trạng thái</p>
           <p className="text-2xl font-bold text-gray-900 mt-2">
             {application.is_active ? (
-              <span className="text-green-600">Active</span>
+              <span className="text-green-600">{t('common.active')}</span>
             ) : (
-              <span className="text-gray-600">Inactive</span>
+              <span className="text-gray-600">{t('common.inactive')}</span>
             )}
           </p>
         </div>

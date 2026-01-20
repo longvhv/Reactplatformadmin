@@ -155,10 +155,10 @@ export function TemplateForm({ template, onSubmit, onCancel, loading }: Template
                 onChange={(e) => handleChange('status', e.target.value as TemplateStatus)}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
-                <option value="draft">Draft</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="archived">Archived</option>
+                <option value="draft">{t('common.draft')}</option>
+                <option value="active">{t('common.active')}</option>
+                <option value="inactive">{t('common.inactive')}</option>
+                <option value="archived">{t('common.archived')}</option>
               </select>
             </div>
           </div>

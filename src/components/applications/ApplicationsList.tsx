@@ -12,8 +12,10 @@ import {
   getApplicationStatusColor,
   getApplicationStatusLabel,
 } from '../../api/applicationsApi';
+import { useTranslation } from 'react-i18next';
 
 export function ApplicationsList() {
+  const { t } = useTranslation();
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(true);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   
@@ -94,9 +96,9 @@ export function ApplicationsList() {
               }
               className="px-3 py-1.5 border border-gray-300 rounded-md text-sm"
             >
-              <option value="all">All</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t('common.all')}</option>
+              <option value="active">{t('common.active')}</option>
+              <option value="inactive">{t('common.inactive')}</option>
             </select>
           </div>
 
@@ -256,23 +258,23 @@ export function ApplicationsList() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-600">Total Applications</div>
+          <div className="text-sm font-medium text-gray-600">{t('common.total')}</div>
           <div className="text-2xl font-bold text-gray-900 mt-1">{applications.length}</div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-600">Active</div>
+          <div className="text-sm font-medium text-gray-600">{t('common.active')}</div>
           <div className="text-2xl font-bold text-green-600 mt-1">
             {applications.filter((a) => a.is_active && !a.deleted_at).length}
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-600">Inactive</div>
+          <div className="text-sm font-medium text-gray-600">{t('common.inactive')}</div>
           <div className="text-2xl font-bold text-gray-600 mt-1">
             {applications.filter((a) => !a.is_active && !a.deleted_at).length}
           </div>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <div className="text-sm font-medium text-gray-600">Deleted</div>
+          <div className="text-sm font-medium text-gray-600">{t('common.deleted')}</div>
           <div className="text-2xl font-bold text-red-600 mt-1">
             {applications.filter((a) => a.deleted_at).length}
           </div>

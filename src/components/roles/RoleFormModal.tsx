@@ -19,7 +19,8 @@ import {
   Database,
   Key,
   FileText,
-  Globe
+  Globe,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -28,6 +29,7 @@ import {
   UpdateRoleRequest,
   RoleType
 } from '@/api/rolesApi';
+import { TenantSelect } from '@/components/common/TenantSelect';
 
 interface RoleFormModalProps {
   isOpen: boolean;
@@ -391,6 +393,28 @@ export function RoleFormModal({ isOpen, onClose, onSave, role, tenantId }: RoleF
                     </p>
                   )}
                 </div>
+
+                {/* Tenant Selector - Only show if NOT SYSTEM type */}
+                {formData.type !== 'SYSTEM' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Tenant <span className="text-red-500">*</span>
+                    </label>
+                    <TenantSelect
+                      value={formData.tenant_id}
+                      onChange={(tenantId) => setFormData({ ...formData, tenant_id: tenantId })}
+                      placeholder="Chọn tenant..."
+                      disabled={!!role} // Cannot change tenant when editing
+                      className="w-full"
+                    />
+                    {role && (
+                      <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        Không thể thay đổi tenant sau khi tạo vai trò
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Description */}
                 <div>

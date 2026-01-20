@@ -7,9 +7,9 @@
 
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { useRouter } from '@/components/shim/next-navigation';
-import { Plus, Search, Filter, Shield, Eye, MoreVertical, Lock, Edit, CheckCircle, Users } from 'lucide-react';
+import { Plus, Search, Filter, Shield, Eye, MoreVertical, Lock, Edit, CheckCircle, Users, Building2 } from 'lucide-react';
 import { useLanguage } from '@/providers/LanguageProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,8 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { TenantSelect } from '@/components/common/TenantSelect';
+import { getCurrentTenant } from '@/lib/currentTenant';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,9 +39,19 @@ function RolesPage() {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'SYSTEM' | 'CUSTOM'>('all');
+  const [tenantFilter, setTenantFilter] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
+
+  // Load current tenant as default filter
+  useEffect(() => {
+    getCurrentTenant().then(tenant => {
+      if (tenant) {
+        setTenantFilter(tenant._id);
+      }
+    });
+  }, []);
 
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -98,6 +110,9 @@ function RolesPage() {
 
     // Type filter
     if (typeFilter !== 'all' && role.type !== typeFilter) return false;
+
+    // Tenant filter
+    if (tenantFilter && role.tenant_id !== tenantFilter) return false;
 
     return true;
   });
@@ -200,12 +215,25 @@ function RolesPage() {
                 <option value="CUSTOM">Custom</option>
               </select>
 
+              <div className="min-w-[300px]">
+                <TenantSelect
+                  value={tenantFilter}
+                  onChange={setTenantFilter}
+                  placeholder="Lọc theo tenant..."
+                />
+              </div>
+
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setTypeFilter('all');
                   setSearchQuery('');
+                  getCurrentTenant().then(tenant => {
+                    if (tenant) {
+                      setTenantFilter(tenant._id);
+                    }
+                  });
                 }}
               >
                 {t('common.clearFilters')}
@@ -322,6 +350,7 @@ function RolesPage() {
         }}
         onSave={handleSave}
         role={editingRole}
+        tenantId={tenantFilter || DEFAULT_TENANT_ID}
       />
 
       {/* Confirm Dialog */}

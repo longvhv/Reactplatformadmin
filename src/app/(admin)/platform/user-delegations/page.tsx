@@ -14,6 +14,7 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import { useUserDelegations } from '@/hooks/useUserDelegations';
 import { UserDelegation, DelegationStatusHelper, DelegationScopeHelper } from '@/api/userDelegationsApi';
 import { showToast } from '@/lib/toast';
+import { useTranslation } from 'react-i18next';
 
 function UserDelegationsPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ function UserDelegationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'expired' | 'revoked'>('all');
   const [scopeFilter, setScopeFilter] = useState<'all' | string>('all');
+  const { t } = useTranslation();
 
   // Filter delegations
   const filteredDelegations = delegations.filter(delegation => {
@@ -57,11 +59,11 @@ function UserDelegationsPage() {
 
   const getStatusBadge = (status: string) => {
     const configs = {
-      active: { icon: CheckCircle, class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', label: 'Active' },
-      pending: { icon: Clock, class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300', label: 'Pending' },
-      expired: { icon: AlertCircle, class: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', label: 'Expired' },
-      revoked: { icon: XCircle, class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', label: 'Revoked' },
-      suspended: { icon: XCircle, class: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', label: 'Suspended' },
+      active: { icon: CheckCircle, class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', label: t('common.active') },
+      pending: { icon: Clock, class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300', label: t('common.pending') },
+      expired: { icon: AlertCircle, class: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', label: t('common.expired') },
+      revoked: { icon: XCircle, class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', label: t('common.revoked') },
+      suspended: { icon: XCircle, class: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', label: t('common.suspended') },
     };
     const config = configs[status as keyof typeof configs] || configs.pending;
     const Icon = config.icon;
@@ -181,10 +183,10 @@ function UserDelegationsPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 >
                   <option value="all">Tất cả</option>
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="expired">Expired</option>
-                  <option value="revoked">Revoked</option>
+                  <option value="active">{t('common.active')}</option>
+                  <option value="pending">{t('common.pending')}</option>
+                  <option value="expired">{t('common.expired')}</option>
+                  <option value="revoked">{t('common.revoked')}</option>
                 </select>
               </div>
               

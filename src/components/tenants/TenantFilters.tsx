@@ -6,6 +6,7 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { TenantStatus, TenantTier, DataRegion } from '@/data/tenants';
+import { useTranslation } from 'react-i18next';
 
 interface TenantFiltersProps {
   statusFilter: TenantStatus | 'all';
@@ -30,6 +31,8 @@ export function TenantFilters({
   onHierarchyChange,
   onClear,
 }: TenantFiltersProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       <Select value={statusFilter} onValueChange={(v: any) => onStatusChange(v)}>
@@ -37,11 +40,11 @@ export function TenantFilters({
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="TRIAL">Trial</SelectItem>
-          <SelectItem value="ACTIVE">Active</SelectItem>
-          <SelectItem value="SUSPENDED">Suspended</SelectItem>
-          <SelectItem value="CANCELLED">Cancelled</SelectItem>
+          <SelectItem value="all">{t('common.allStatuses')}</SelectItem>
+          <SelectItem value="TRIAL">{t('common.trial')}</SelectItem>
+          <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
+          <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
+          <SelectItem value="CANCELLED">{t('common.cancelled')}</SelectItem>
         </SelectContent>
       </Select>
 

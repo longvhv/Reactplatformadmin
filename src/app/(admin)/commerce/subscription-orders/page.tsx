@@ -168,12 +168,12 @@ function SubscriptionOrdersPage() {
 
   const getStatusBadge = (status: OrderStatus) => {
     const statusConfig = {
-      DRAFT: { label: 'Draft', color: 'bg-gray-100 text-gray-800' },
-      PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-      PAID: { label: 'Paid', color: 'bg-green-100 text-green-800' },
-      CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-800' },
-      FAILED: { label: 'Failed', color: 'bg-red-100 text-red-800' },
-      REFUNDED: { label: 'Refunded', color: 'bg-purple-100 text-purple-800' },
+      DRAFT: { label: t('common.draft'), color: 'bg-gray-100 text-gray-800' },
+      PENDING: { label: t('common.pending'), color: 'bg-yellow-100 text-yellow-800' },
+      PAID: { label: t('common.paid'), color: 'bg-green-100 text-green-800' },
+      CANCELLED: { label: t('common.cancelled'), color: 'bg-red-100 text-red-800' },
+      FAILED: { label: t('common.failed'), color: 'bg-red-100 text-red-800' },
+      REFUNDED: { label: t('common.refunded'), color: 'bg-purple-100 text-purple-800' },
     };
     const config = statusConfig[status] || statusConfig.DRAFT;
     return <Badge className={config.color}>{config.label}</Badge>;
@@ -250,13 +250,13 @@ function SubscriptionOrdersPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                <SelectItem value="FAILED">Failed</SelectItem>
-                <SelectItem value="REFUNDED">Refunded</SelectItem>
+                <SelectItem value="all">{t('common.allStatuses')}</SelectItem>
+                <SelectItem value="DRAFT">{t('common.draft')}</SelectItem>
+                <SelectItem value="PENDING">{t('common.pending')}</SelectItem>
+                <SelectItem value="PAID">{t('common.paid')}</SelectItem>
+                <SelectItem value="CANCELLED">{t('common.cancelled')}</SelectItem>
+                <SelectItem value="FAILED">{t('common.failed')}</SelectItem>
+                <SelectItem value="REFUNDED">{t('common.refunded')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

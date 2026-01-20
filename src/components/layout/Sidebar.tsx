@@ -10,6 +10,8 @@ import {
   Settings,
 } from 'lucide-react';
 import { ModuleRegistry } from '../../core/ModuleRegistry';
+import { getCurrentTenant, getTenantName } from '@/lib/currentTenant';
+import type { Tenant } from '@/lib/currentTenant';
 
 // Menu item type
 interface MenuItem {
@@ -59,6 +61,7 @@ export function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [modulesReady, setModulesReady] = useState(false);
   const [registryVersion, setRegistryVersion] = useState(0);
+  const [tenant, setTenant] = useState<Tenant | null>(null);
   
   // Wait for modules to be registered
   useEffect(() => {
@@ -71,6 +74,9 @@ export function Sidebar() {
     const timer = setTimeout(() => {
       setModulesReady(true);
     }, 100);
+    
+    // Load tenant info
+    getCurrentTenant().then(setTenant);
     
     return () => {
       clearTimeout(timer);
@@ -158,7 +164,9 @@ export function Sidebar() {
             <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600">
               <span className="text-white font-bold text-sm">VH</span>
             </div>
-            <span className="text-base font-semibold text-gray-900">VHV Platform</span>
+            <span className="text-base font-semibold text-gray-900">
+              {getTenantName(tenant)}
+            </span>
           </div>
           <button className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors">
             <ChevronLeft className="w-4 h-4" />

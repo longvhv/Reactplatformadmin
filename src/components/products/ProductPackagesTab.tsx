@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Package, Users, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 interface ProductPackagesTabProps {
   productId: string;
@@ -29,6 +30,7 @@ interface ProductPackage {
 export function ProductPackagesTab({ productId }: ProductPackagesTabProps) {
   const [packages, setPackages] = useState<ProductPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchPackages();
@@ -127,7 +129,7 @@ export function ProductPackagesTab({ productId }: ProductPackagesTabProps) {
                         Active
                       </Badge>
                     ) : (
-                      <Badge variant="secondary">Inactive</Badge>
+                      <Badge variant="secondary">{t('common.inactive')}</Badge>
                     )}
                   </TableCell>
 

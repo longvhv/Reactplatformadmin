@@ -34,6 +34,7 @@ import {
   type CreateCapabilityRequest,
 } from '@/api/appCapabilityApi';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ApplicationCapabilitiesProps {
   appId: string;
@@ -83,6 +84,7 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
+  const { t } = useTranslation();
 
   const handleAdd = async () => {
     try {
@@ -364,9 +366,9 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as CapabilityStatus })}
                   className="w-full px-3 py-2 border rounded-md"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="archived">Archived</option>
+                  <option value="active">{t('common.active')}</option>
+                  <option value="inactive">{t('common.inactive')}</option>
+                  <option value="archived">{t('common.archived')}</option>
                 </select>
               </div>
 
@@ -438,7 +440,7 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
           </p>
         </Card>
         <Card className="p-6">
-          <p className="text-sm text-gray-500">Active</p>
+          <p className="text-sm text-gray-500">{t('common.active')}</p>
           <p className="text-2xl font-bold text-green-600 mt-2">
             {activeCount}
           </p>
@@ -565,9 +567,9 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
                           onChange={(e) => setFormData({ ...formData, status: e.target.value as CapabilityStatus })}
                           className="w-full px-3 py-2 border rounded-md"
                         >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                          <option value="archived">Archived</option>
+                          <option value="active">{t('common.active')}</option>
+                          <option value="inactive">{t('common.inactive')}</option>
+                          <option value="archived">{t('common.archived')}</option>
                         </select>
                       </div>
 

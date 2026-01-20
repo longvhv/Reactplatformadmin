@@ -197,12 +197,12 @@ function SystemJobsPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="RUNNING">Running</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="FAILED">Failed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                <SelectItem value="all">{t('common.allStatuses')}</SelectItem>
+                <SelectItem value="PENDING">{t('common.pending')}</SelectItem>
+                <SelectItem value="RUNNING">{t('common.running')}</SelectItem>
+                <SelectItem value="COMPLETED">{t('common.completed')}</SelectItem>
+                <SelectItem value="FAILED">{t('common.failed')}</SelectItem>
+                <SelectItem value="CANCELLED">{t('common.cancelled')}</SelectItem>
               </SelectContent>
             </Select>
 

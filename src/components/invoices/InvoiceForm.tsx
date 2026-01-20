@@ -334,11 +334,10 @@ export const InvoiceForm: React.FC<InvoiceFormProps> = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="OPEN">Open</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-                <SelectItem value="VOID">Void</SelectItem>
-                <SelectItem value="UNCOLLECTIBLE">Uncollectible</SelectItem>
+                <SelectItem value="DRAFT">{t('common.draft')}</SelectItem>
+                <SelectItem value="OPEN">{t('common.open')}</SelectItem>
+                <SelectItem value="PAID">{t('common.paid')}</SelectItem>
+                <SelectItem value="VOID">{t('common.void')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

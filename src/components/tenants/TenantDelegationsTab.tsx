@@ -239,7 +239,7 @@ export function TenantDelegationsTab({ tenantId }: TenantDelegationsTabProps) {
               <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Active</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{t('common.active')}</p>
               <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                 {stats.by_status.active}
               </p>

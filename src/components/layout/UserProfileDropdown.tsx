@@ -6,6 +6,9 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useLanguage } from "../../providers/LanguageProvider";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuthContext } from "@/providers/AuthProvider";
+import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 
 interface UserProfileDropdownProps {
   theme: "light" | "dark" | "system";
@@ -30,13 +33,13 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  // Mock user data
-  const user = {
-    name: "Admin User",
-    email: "admin@vhvplatform.com",
-    role: "Administrator",
-    avatar: null,
-  };
+  // Get current user data
+  const { displayName, initials, avatarUrl, user: currentUser, profile } = useCurrentUser();
+  const { logout } = useAuthContext();
+
+  // User role from profile or metadata
+  const userRole = profile?.metadata?.role || currentUser?.user_metadata?.role || 'User';
+  const userEmail = currentUser?.email || profile?.email || 'user@example.com';
 
   // Click outside to close
   useEffect(() => {
@@ -102,11 +105,14 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
         className="hover:scale-105 active:scale-95 transition-all duration-150 gap-2 hidden sm:flex group"
         aria-label="User menu"
       >
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow duration-200 relative">
-          <User className="w-4 h-4 text-white" />
+        <Avatar className="w-7 h-7 shadow-sm group-hover:shadow-md transition-shadow duration-200">
+          <AvatarImage src={avatarUrl} alt={displayName} />
+          <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-xs">
+            {initials}
+          </AvatarFallback>
           <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-2 border-background" />
-        </div>
-        <span className="text-sm font-medium hidden lg:inline-block">Admin</span>
+        </Avatar>
+        <span className="text-sm font-medium hidden lg:inline-block">{displayName}</span>
       </Button>
 
       {/* Mobile Button */}
@@ -117,10 +123,13 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
         className="sm:hidden hover:scale-105 active:scale-95 transition-transform duration-150"
         aria-label="User menu"
       >
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm relative">
-          <User className="w-4 h-4 text-white" />
+        <Avatar className="w-7 h-7 shadow-sm">
+          <AvatarImage src={avatarUrl} alt={displayName} />
+          <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-xs">
+            {initials}
+          </AvatarFallback>
           <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success border-2 border-background" />
-        </div>
+        </Avatar>
       </Button>
 
       {isOpen && (
@@ -128,18 +137,21 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
           {/* User Info Header */}
           <div className="px-4 py-4 border-b border-border/40 bg-gradient-to-br from-primary/5 to-primary/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg relative">
-                <User className="w-6 h-6 text-white" />
+              <Avatar className="w-12 h-12 shadow-lg">
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white">
+                  {initials}
+                </AvatarFallback>
                 <div className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-success border-2 border-card" />
-              </div>
+              </Avatar>
               <div className="flex-1 min-w-0">
-                <h4 className="font-semibold truncate">{user.name}</h4>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                <h4 className="font-semibold truncate">{displayName}</h4>
+                <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
               </div>
             </div>
             <div className="mt-3 px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 flex items-center gap-2 w-fit">
               <Crown className="w-3 h-3 text-primary" />
-              <span className="text-xs font-medium text-primary">{user.role}</span>
+              <span className="text-xs font-medium text-primary">{userRole}</span>
             </div>
           </div>
 
@@ -198,7 +210,7 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
               <div className="px-2">
                 <button
                   onClick={() => {
-                    console.log("Sign out");
+                    logout();
                     setIsOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-destructive/10 text-destructive transition-all duration-150 group text-left"

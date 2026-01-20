@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 
 interface PackageSubscribersTabProps {
   packageId: string;
@@ -30,6 +31,7 @@ export function PackageSubscribersTab({ packageId }: PackageSubscribersTabProps)
   const [subscribers, setSubscribers] = useState<PackageSubscriber[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchSubscribers();
@@ -54,10 +56,10 @@ export function PackageSubscribersTab({ packageId }: PackageSubscribersTabProps)
 
   const getStatusBadge = (status: string) => {
     const configs: Record<string, { color: string; label: string }> = {
-      ACTIVE: { color: 'bg-green-100 text-green-800', label: 'Active' },
-      EXPIRED: { color: 'bg-gray-100 text-gray-800', label: 'Expired' },
-      CANCELLED: { color: 'bg-red-100 text-red-800', label: 'Cancelled' },
-      PAST_DUE: { color: 'bg-yellow-100 text-yellow-800', label: 'Past Due' },
+      ACTIVE: { color: 'bg-green-100 text-green-800', label: t('common.active') },
+      EXPIRED: { color: 'bg-gray-100 text-gray-800', label: t('common.expired') },
+      CANCELLED: { color: 'bg-red-100 text-red-800', label: t('common.cancelled') },
+      PAST_DUE: { color: 'bg-yellow-100 text-yellow-800', label: t('common.pastDue') },
     };
 
     const config = configs[status] || configs.ACTIVE;
@@ -87,11 +89,10 @@ export function PackageSubscribersTab({ packageId }: PackageSubscribersTabProps)
             onChange={(e) => setStatusFilter(e.target.value)}
             className="px-3 py-2 border rounded-lg text-sm"
           >
-            <option value="">Tất cả trạng thái</option>
-            <option value="ACTIVE">Active</option>
-            <option value="EXPIRED">Expired</option>
-            <option value="CANCELLED">Cancelled</option>
-            <option value="PAST_DUE">Past Due</option>
+            <option value="">{t('common.allStatuses')}</option>
+            <option value="ACTIVE">{t('common.active')}</option>
+            <option value="EXPIRED">{t('common.expired')}</option>
+            <option value="CANCELLED">{t('common.cancelled')}</option>
           </select>
           <Badge className="bg-blue-100 text-blue-800">
             {subscribers.length} khách hàng

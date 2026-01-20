@@ -22,6 +22,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { UserRole, CreateUserRoleData } from '../../api/userRolesApi';
+import { useTranslation } from 'react-i18next';
 
 interface UserRolesTableProps {
   userId?: string;
@@ -39,6 +40,7 @@ export function UserRolesTable({ userId, tenantId, showUserColumn = false }: Use
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<UserRole | undefined>();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   // Get scope icon
   const getScopeIcon = (scope: string) => {
@@ -247,17 +249,12 @@ export function UserRolesTable({ userId, tenantId, showUserColumn = false }: Use
                         {userRole.is_active && !expired ? (
                           <>
                             <CheckCircle className="w-4 h-4 text-green-600" />
-                            <span className="text-sm text-green-700">Active</span>
-                          </>
-                        ) : expired ? (
-                          <>
-                            <AlertCircle className="w-4 h-4 text-orange-600" />
-                            <span className="text-sm text-orange-700">Expired</span>
+                            <span className="text-sm text-green-700">{t('common.active')}</span>
                           </>
                         ) : (
                           <>
                             <XCircle className="w-4 h-4 text-gray-600" />
-                            <span className="text-sm text-gray-700">Inactive</span>
+                            <span className="text-sm text-gray-700">{t('common.inactive')}</span>
                           </>
                         )}
                       </div>

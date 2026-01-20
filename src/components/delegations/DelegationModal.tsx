@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { UserDelegation, CreateDelegationData, UpdateDelegationData } from '../../api/userDelegationsApi';
+import { useTranslation } from 'react-i18next';
 
 interface DelegationModalProps {
   isOpen: boolean;
@@ -102,14 +103,15 @@ export function DelegationModal({
 
   if (!isOpen) return null;
 
+  const { t } = useTranslation();
+
   const availableScopes = [
-    { value: 'admin', label: 'Admin' },
-    { value: 'manager', label: 'Manager' },
-    { value: 'editor', label: 'Editor' },
-    { value: 'viewer', label: 'Viewer' },
-    { value: 'approver', label: 'Approver' },
-    { value: 'reviewer', label: 'Reviewer' },
-    { value: 'auditor', label: 'Auditor' },
+    { value: 'admin', label: t('common.admin') },
+    { value: 'manager', label: t('common.manager') },
+    { value: 'editor', label: t('common.editor') },
+    { value: 'viewer', label: t('common.viewer') },
+    { value: 'approver', label: t('common.approver') },
+    { value: 'reviewer', label: t('common.reviewer') },
   ];
 
   return (
@@ -287,14 +289,14 @@ export function DelegationModal({
               disabled={saving}
               className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
-              {saving ? 'Saving...' : delegation ? 'Update' : 'Create'}
+              {saving ? t('common.saving') : delegation ? t('common.update') : t('common.create')}
             </button>
           </div>
         </form>

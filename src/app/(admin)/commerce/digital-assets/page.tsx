@@ -190,7 +190,7 @@ function DigitalAssetsPage() {
                 <SelectValue placeholder="Asset Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="all">{t('common.allTypes')}</SelectItem>
                 <SelectItem value="domain">Domain</SelectItem>
                 <SelectItem value="ssl">SSL Certificate</SelectItem>
                 <SelectItem value="license">License Key</SelectItem>
@@ -203,11 +203,11 @@ function DigitalAssetsPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="expired">Expired</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="all">{t('common.allStatuses')}</SelectItem>
+                <SelectItem value="active">{t('common.active')}</SelectItem>
+                <SelectItem value="pending">{t('common.pending')}</SelectItem>
+                <SelectItem value="expired">{t('common.expired')}</SelectItem>
+                <SelectItem value="suspended">{t('common.suspended')}</SelectItem>
               </SelectContent>
             </Select>
           </div>

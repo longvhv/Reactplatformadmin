@@ -1,592 +1,251 @@
-# 🚀 VHV Platform - Golang Backend API
+# VHV Platform - Golang Backend API
 
-Production-ready RESTful API backend cho VHV Platform, được xây dựng với Golang, PostgreSQL, và tuân thủ các best practices enterprise.
+Golang backend API cho VHV Platform - High-performance, scalable API server thay thế Supabase.
 
----
+## 🚀 Quick Start
 
-## 📋 **Tổng quan**
+### Prerequisites
 
-**VHV Platform Backend** là microservice API server viết bằng Golang, cung cấp:
+- Go 1.21 or higher
+- PostgreSQL 14+
+- Redis (optional, for caching)
+- Make (for using Makefile commands)
 
-- ✅ RESTful API với architecture chuẩn
-- ✅ Multi-tenancy support
-- ✅ Authentication & Authorization (JWT, OAuth2)
-- ✅ Role-Based Access Control (RBAC)
-- ✅ Soft delete & Audit trail
-- ✅ Database migration system
-- ✅ Comprehensive API documentation
-- ✅ Production-ready error handling
-- ✅ Rate limiting & Security headers
-- ✅ Metrics & Monitoring
+### Installation
 
----
-
-## 🏗️ **Architecture**
-
-```
-┌─────────────────────────────────────────────────┐
-│                  Client (React)                  │
-└────────────────────┬────────────────────────────┘
-                     │ HTTPS/JSON
-┌────────────────────▼────────────────────────────┐
-│           API Gateway / Load Balancer            │
-└────────────────────┬────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────┐
-│              Golang API Server                   │
-│  ┌─────────────────────────────────────────┐   │
-│  │         Handler Layer (HTTP)            │   │
-│  │  - Request parsing & validation         │   │
-│  │  - Response formatting                  │   │
-│  └──────────────────┬──────────────────────┘   │
-│  ┌──────────────────▼──────────────────────┐   │
-│  │      Service Layer (Business Logic)     │   │
-│  │  - Transaction management               │   │
-│  │  - Business rules enforcement           │   │
-│  └──────────────────┬──────────────────────┘   │
-│  ┌──────────────────▼──────────────────────┐   │
-│  │       Model Layer (Data Access)         │   │
-│  │  - Database queries                     │   │
-│  │  - Data validation                      │   │
-│  └─────────────────────────────────────────┘   │
-└────────────────────┬────────────────────────────┘
-                     │ SQL
-┌────────────────────▼────────────────────────────┐
-│              PostgreSQL Database                 │
-│  - Multi-tenant data isolation                  │
-│  - JSONB for flexible metadata                  │
-│  - Soft delete support                          │
-└─────────────────────────────────────────────────┘
+1. **Clone và setup:**
+```bash
+cd golang-backend
+make setup-dev
 ```
 
----
+2. **Configure environment:**
+```bash
+cp .env.example .env
+# Edit .env with your database credentials
+```
 
-## 📁 **Cấu trúc thư mục**
+3. **Run migrations:**
+```bash
+make migrate-up
+```
+
+4. **Start server:**
+```bash
+make run
+# hoặc với hot-reload:
+make dev
+```
+
+Server sẽ chạy tại `http://localhost:8080`
+
+## 📁 Project Structure
 
 ```
 golang-backend/
-├── api/                           # HTTP Handlers
-│   ├── announcements_handler.go   # Quản lý thông báo
-│   ├── applications_handler.go    # Quản lý ứng dụng
-│   ├── roles_handler.go           # Quản lý vai trò
-│   ├── tenant_api.go              # Tenant API router
-│   ├── tenant_detail_handler.go   # Chi tiết tenant
-│   ├── tenants_handler.go         # CRUD tenants
-│   └── users_handler.go           # Quản lý người dùng ⭐ NEW
-│
-├── models/                        # Data Models & DTOs
-│   └── user.go                    # User models ⭐ NEW
-│
-├── services/                      # Business Logic Layer
-│   └── user_service.go            # User service ⭐ NEW
-│
-├── migrations/                    # Database Migrations
-│   ├── 001_create_tenants.sql
-│   ├── 002_create_users.sql
-│   └── README.md
-│
-├── docs/                          # API Documentation
-│   └── USER_MANAGEMENT_API.md     # User API docs ⭐ NEW
-│
-├── config/                        # Configuration
-│   └── config.go
-│
-├── middleware/                    # HTTP Middlewares
-│   ├── auth.go
-│   ├── logging.go
-│   └── rate_limit.go
-│
-├── utils/                         # Utilities
-│   ├── validator.go
-│   ├── jwt.go
-│   └── crypto.go
-│
-├── main.go                        # Application entry point
-├── go.mod                         # Go modules
-├── go.sum
-└── README.md                      # This file
+├── cmd/api/              # Application entry point
+├── internal/             # Private application code
+│   ├── config/          # Configuration management
+│   ├── models/          # Data models (structs)
+│   ├── repository/      # Database operations
+│   ├── service/         # Business logic
+│   ├── handler/         # HTTP handlers (controllers)
+│   ├── middleware/      # HTTP middleware
+│   ├── validator/       # Validation logic
+│   └── utils/           # Utilities
+├── pkg/                  # Public libraries
+├── migrations/           # Database migrations
+├── docs/                 # Documentation
+├── scripts/              # Helper scripts
+└── test/                 # Tests
 ```
 
----
+## 🛠️ Available Commands
 
-## 🎯 **Modules đã hoàn thiện**
-
-### **✅ User Management** (Quản lý Người dùng)
-
-**Files:**
-- `api/users_handler.go` - HTTP handlers
-- `models/user.go` - Data models & DTOs
-- `services/user_service.go` - Business logic
-- `docs/USER_MANAGEMENT_API.md` - API documentation
-
-**Features:**
-- ✅ CRUD operations (Create, Read, Update, Delete)
-- ✅ User search & filtering
-- ✅ Password management (hashing, change password)
-- ✅ Email verification
-- ✅ Multi-Factor Authentication (MFA/2FA)
-- ✅ Bulk operations
-- ✅ User statistics
-- ✅ Soft delete
-- ✅ Pagination
-
-**Endpoints:**
-```
-GET    /api/users                 - List users
-GET    /api/users/{id}            - Get user by ID
-GET    /api/users/email/{email}   - Get user by email
-POST   /api/users                 - Create user
-PATCH  /api/users/{id}            - Update user
-DELETE /api/users/{id}            - Delete user (soft)
-GET    /api/users/search          - Search users
-PATCH  /api/users/{id}/password   - Change password
-POST   /api/users/{id}/verify     - Verify email
-PATCH  /api/users/{id}/mfa        - Toggle MFA
-POST   /api/users/bulk            - Bulk actions
-```
-
----
-
-### **✅ Tenant Management** (Quản lý Tổ chức)
-
-**Features:**
-- Multi-tenant architecture
-- Tenant isolation
-- Subscription management
-
----
-
-### **✅ Roles & Permissions** (Vai trò & Quyền hạn)
-
-**Features:**
-- RBAC (Role-Based Access Control)
-- Permission management
-- User-role assignment
-
----
-
-### **✅ Announcements** (Thông báo hệ thống)
-
-**Features:**
-- System-wide announcements
-- User notifications
-
----
-
-### **✅ Applications** (Quản lý Ứng dụng)
-
-**Features:**
-- Application registry
-- API keys management
-
----
-
-## 🔧 **Technology Stack**
-
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| **Go** | 1.21+ | Programming language |
-| **PostgreSQL** | 14+ | Primary database |
-| **Gorilla Mux** | Latest | HTTP router |
-| **GORM** | Latest | ORM (optional) |
-| **JWT** | Latest | Authentication tokens |
-| **Bcrypt** | Latest | Password hashing |
-| **UUID** | Latest | Unique identifiers |
-| **Validator** | v10 | Input validation |
-
----
-
-## 🚀 **Installation & Setup**
-
-### **Prerequisites:**
-
+### Development
 ```bash
-# Go 1.21 or higher
-go version
-
-# PostgreSQL 14+
-psql --version
-
-# Environment variables
-export DB_HOST=localhost
-export DB_PORT=5432
-export DB_NAME=vhvplatform
-export DB_USER=postgres
-export DB_PASSWORD=your_password
-export JWT_SECRET=your_jwt_secret
-export PORT=8080
+make help           # Show all available commands
+make init           # Initialize project
+make deps           # Download dependencies
+make build          # Build binary
+make run            # Run application
+make dev            # Run with hot-reload
 ```
 
-### **1. Clone Repository**
-
+### Testing
 ```bash
-git clone https://github.com/your-org/vhvplatform.git
-cd vhvplatform/golang-backend
+make test           # Run all tests
+make test-unit      # Run unit tests only
+make test-integration  # Run integration tests
+make coverage       # Generate coverage report
+make benchmark      # Run benchmarks
 ```
 
-### **2. Install Dependencies**
-
+### Code Quality
 ```bash
-go mod download
+make lint           # Run linter
+make fmt            # Format code
+make vet            # Run go vet
+make check          # Run lint + vet + test
 ```
 
-### **3. Setup Database**
-
+### Database
 ```bash
-# Create database
-createdb vhvplatform
-
-# Run migrations
-psql -U postgres -d vhvplatform -f migrations/001_create_tenants.sql
-psql -U postgres -d vhvplatform -f migrations/002_create_users.sql
+make migrate-create name=migration_name  # Create new migration
+make migrate-up     # Run migrations
+make migrate-down   # Rollback last migration
+make migrate-reset  # Reset all migrations
 ```
 
-### **4. Run Server**
-
+### Docker
 ```bash
-# Development
-go run main.go
-
-# Production
-go build -o vhvplatform-api
-./vhvplatform-api
+make docker-build   # Build Docker image
+make docker-run     # Run in Docker container
+make docker-compose-up    # Start all services
+make docker-compose-down  # Stop all services
 ```
 
-Server will start on `http://localhost:8080`
+### Migration from golang-api
+```bash
+make merge-golang-api  # Merge golang-api handlers into this project
+```
 
----
+## 📚 API Documentation
 
-## 🧪 **Testing**
+### Health Check
+```bash
+GET /health
+```
 
-### **Run Tests:**
+### Tenants API
+```bash
+GET    /api/v1/tenants           # List all tenants
+GET    /api/v1/tenants/:id       # Get tenant by ID
+POST   /api/v1/tenants           # Create tenant
+PATCH  /api/v1/tenants/:id       # Update tenant
+DELETE /api/v1/tenants/:id       # Delete tenant
+```
 
+### Users API
+```bash
+GET    /api/v1/users             # List all users
+GET    /api/v1/users/:id         # Get user by ID
+POST   /api/v1/users             # Create user
+PATCH  /api/v1/users/:id         # Update user
+DELETE /api/v1/users/:id         # Delete user
+```
+
+### Roles API
+```bash
+GET    /api/v1/roles             # List all roles
+GET    /api/v1/roles/:id         # Get role by ID
+POST   /api/v1/roles             # Create role
+PATCH  /api/v1/roles/:id         # Update role
+DELETE /api/v1/roles/:id         # Delete role
+```
+
+**Full API documentation:** [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+# Server
+PORT=8080
+ENV=development
+
+# Database
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_NAME=vhv_platform
+DB_SSL_MODE=disable
+
+# JWT
+JWT_SECRET=your_jwt_secret
+JWT_EXPIRY=24h
+
+# CORS
+CORS_ORIGINS=http://localhost:3000
+```
+
+## 🧪 Testing
+
+### Run Tests
 ```bash
 # All tests
-go test ./...
+make test
 
-# Specific package
-go test ./services
+# Unit tests only
+make test-unit
+
+# Integration tests
+make test-integration
 
 # With coverage
-go test -cover ./...
-
-# Verbose
-go test -v ./...
+make coverage
 ```
 
-### **API Testing with cURL:**
-
-```bash
-# Create user
-curl -X POST http://localhost:8080/api/users \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "SecurePass123!",
-    "full_name": "Test User"
-  }'
-
-# List users
-curl -X GET "http://localhost:8080/api/users?page=1&limit=10"
-
-# Get user by ID
-curl -X GET http://localhost:8080/api/users/{id}
-```
-
----
-
-## 📊 **Database Schema**
-
-### **Key Tables:**
-
-```sql
--- Global Users (Toàn hệ thống)
-CREATE TABLE users (
-  _id UUID PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255),
-  full_name TEXT NOT NULL,
-  status VARCHAR(20) DEFAULT 'ACTIVE',
-  ...
-);
-
--- Tenants (Tổ chức)
-CREATE TABLE tenants (
-  _id UUID PRIMARY KEY,
-  code VARCHAR(100) UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  status VARCHAR(20) DEFAULT 'TRIAL',
-  ...
-);
-
--- Tenant Members (Nhân viên thuộc Tổ chức)
-CREATE TABLE tenant_members (
-  _id UUID PRIMARY KEY,
-  tenant_id UUID REFERENCES tenants(_id),
-  user_id UUID REFERENCES users(_id),
-  role VARCHAR(50),
-  ...
-);
-```
-
-**Database Standards:**
-- Primary key: `_id` (UUID)
-- Timestamps: `created_at`, `updated_at`
-- Soft delete: `deleted_at`
-- Multi-tenancy: `tenant_id` in most tables
-- Metadata: JSONB fields for flexibility
-
----
-
-## 🔒 **Security**
-
-### **Authentication:**
-- JWT tokens (Access + Refresh)
-- Bcrypt password hashing (cost: 10)
-- Session management
-
-### **Authorization:**
-- Role-Based Access Control (RBAC)
-- Permission checks on endpoints
-- Tenant isolation
-
-### **Input Validation:**
-- Struct validation with `validator/v10`
-- SQL injection prevention (prepared statements)
-- XSS protection
-
-### **Security Headers:**
+### Example Test
 ```go
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-X-XSS-Protection: 1; mode=block
-Strict-Transport-Security: max-age=31536000
+func TestTenantService_Create(t *testing.T) {
+    service := setupTestService()
+    
+    tenant := &models.Tenant{
+        Code: "test",
+        Name: "Test Tenant",
+        Tier: "FREE",
+    }
+    
+    err := service.Create(context.Background(), tenant)
+    assert.NoError(t, err)
+}
 ```
 
----
+## 📊 Performance
 
-## 📈 **Performance**
+Target metrics:
+- **Response Time**: < 100ms (p95)
+- **Throughput**: > 1000 req/s
+- **Memory**: < 500MB
+- **CPU**: < 50%
 
-### **Optimization:**
-- Database connection pooling
-- Query optimization with indexes
-- Prepared statements
-- GZIP compression
-- Response caching (Redis - optional)
+## 🔄 Migration from Supabase
 
-### **Rate Limiting:**
-- 100 requests/minute per user
-- Configurable per endpoint
-- IP-based fallback
+See [MIGRATION_PLAN.md](MIGRATION_PLAN.md) for detailed migration strategy.
 
-### **Monitoring:**
-- Request logging
-- Error tracking
-- Performance metrics
-- Health check endpoint: `/health`
+### Dual-Stack Approach
+1. Implement Golang API alongside Supabase
+2. Use feature flags to switch between backends
+3. Migrate module by module
+4. Validate each migration
+5. Gradual rollout
 
----
+## 📖 Additional Documentation
 
-## 🔄 **Database Migrations**
+- [Migration Plan](MIGRATION_PLAN.md) - Complete migration strategy
+- [API Documentation](docs/API_DOCUMENTATION.md) - Full API reference
+- [Setup Guide](docs/SETUP.md) - Detailed setup instructions
+- [Architecture](docs/ARCHITECTURE.md) - System architecture
 
-```bash
-# Create new migration
-cat > migrations/003_create_orders.sql << EOF
--- UP
-CREATE TABLE orders (...);
+## 🤝 Contributing
 
--- DOWN
-DROP TABLE orders;
-EOF
-
-# Apply migrations
-psql -U postgres -d vhvplatform -f migrations/003_create_orders.sql
-```
-
-**Migration Guidelines:**
-- Always include UP and DOWN scripts
-- Use transaction blocks
-- Test on staging first
-- Document breaking changes
-
----
-
-## 📖 **API Documentation**
-
-Full API documentation available in:
-
-- [User Management API](./docs/USER_MANAGEMENT_API.md)
-- [Tenant Management API](./docs/TENANT_MANAGEMENT_API.md)
-- [Authentication API](./docs/AUTH_API.md)
-- [RBAC API](./docs/RBAC_API.md)
-
-**Swagger/OpenAPI:**  
-Coming soon - Generate from code annotations
-
----
-
-## 🛠️ **Development Workflow**
-
-### **1. Feature Development:**
-
-```bash
-# Create feature branch
-git checkout -b feature/new-feature
-
-# Make changes
-# - Update models in models/
-# - Add business logic in services/
-# - Create handlers in api/
-# - Write tests
-
-# Test
-go test ./...
-
-# Commit
-git commit -m "feat: add new feature"
-
-# Push
-git push origin feature/new-feature
-```
-
-### **2. Code Quality:**
-
-```bash
-# Format code
-go fmt ./...
-
-# Lint
-golangci-lint run
-
-# Vet
-go vet ./...
-
-# Security scan
-gosec ./...
-```
-
-### **3. Pre-commit Checklist:**
-
-- [ ] All tests pass
-- [ ] Code formatted (`go fmt`)
-- [ ] No linter warnings
-- [ ] Documentation updated
-- [ ] Migration scripts (if DB changes)
-- [ ] API docs updated
-
----
-
-## 🐛 **Troubleshooting**
-
-### **Common Issues:**
-
-**1. Database connection failed:**
-```bash
-# Check PostgreSQL is running
-sudo systemctl status postgresql
-
-# Verify credentials
-psql -U postgres -d vhvplatform
-```
-
-**2. Port already in use:**
-```bash
-# Find process using port 8080
-lsof -i :8080
-
-# Kill process
-kill -9 <PID>
-```
-
-**3. Migration failed:**
-```bash
-# Rollback migration
-psql -U postgres -d vhvplatform -c "DROP TABLE IF EXISTS users CASCADE;"
-
-# Re-run
-psql -U postgres -d vhvplatform -f migrations/002_create_users.sql
-```
-
----
-
-## 📝 **Contributing**
-
-### **Code Style:**
-- Follow [Effective Go](https://golang.org/doc/effective_go)
-- Use meaningful variable names
-- Comment exported functions
-- Keep functions < 50 lines
-- Follow SonarQube standards
-
-### **Commit Messages:**
-```
-feat: Add user authentication
-fix: Fix password hashing issue
-docs: Update API documentation
-refactor: Simplify user service
-test: Add tests for user CRUD
-```
-
-### **Pull Request Process:**
-1. Create feature branch
-2. Make changes with tests
+1. Follow Go best practices
+2. Write tests for new features
 3. Update documentation
-4. Pass all CI checks
-5. Request review
-6. Merge after approval
+4. Run `make check` before committing
+
+## 📝 License
+
+Proprietary - VHV Platform
+
+## 👥 Team
+
+VHV Platform Development Team
 
 ---
 
-## 📚 **Resources**
-
-- [Golang Official Docs](https://golang.org/doc/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Gorilla Mux Guide](https://github.com/gorilla/mux)
-- [JWT Best Practices](https://jwt.io/)
-- [Database Schema Standards](../DATABASE_SCHEMA_STANDARD.md)
-
----
-
-## 🎯 **Roadmap**
-
-### **Phase 1: Core APIs** ✅ (Current)
-- [x] User Management
-- [x] Tenant Management
-- [x] Roles & Permissions
-- [x] Announcements
-- [x] Applications
-
-### **Phase 2: Advanced Features** (Q1 2026)
-- [ ] OAuth2 integration
-- [ ] WebSocket support
-- [ ] File upload/download
-- [ ] Email notifications
-- [ ] SMS verification
-
-### **Phase 3: Optimization** (Q2 2026)
-- [ ] Redis caching
-- [ ] GraphQL support
-- [ ] gRPC endpoints
-- [ ] Microservices architecture
-- [ ] Kubernetes deployment
-
----
-
-## 📞 **Support**
-
-- **Email:** support@vhvplatform.com
-- **Slack:** #vhv-backend-dev
-- **Issues:** GitHub Issues
-- **Wiki:** Internal Confluence
-
----
-
-## 📄 **License**
-
-Copyright © 2026 VHV Platform. All rights reserved.
-
----
-
-**Version:** 1.0.0  
-**Last Updated:** January 15, 2026  
-**Maintained by:** Backend Team
+**Last Updated**: 2026-01-20  
+**Version**: 1.0.0

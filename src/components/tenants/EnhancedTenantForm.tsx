@@ -473,9 +473,9 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
                     <Select value={formData.status} onValueChange={(v) => handleChange("status", v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="TRIAL">Trial</SelectItem>
-                        <SelectItem value="ACTIVE">Active</SelectItem>
-                        <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                        <SelectItem value="TRIAL">{t('common.trial')}</SelectItem>
+                        <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
+                        <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
                         <SelectItem value="CANCELLED">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>

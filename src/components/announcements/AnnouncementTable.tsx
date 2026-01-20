@@ -99,10 +99,10 @@ export function AnnouncementTable({
                   onChange={(e) => onToggleStatus(announcement._id!, e.target.value)}
                   className="text-xs rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="expired">Expired</option>
-                  <option value="archived">Archived</option>
+                  <option value="draft">{t('common.draft')}</option>
+                  <option value="active">{t('common.active')}</option>
+                  <option value="expired">{t('common.expired')}</option>
+                  <option value="archived">{t('common.archived')}</option>
                 </select>
               </td>
               <td className="px-4 py-3">

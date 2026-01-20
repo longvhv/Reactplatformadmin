@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   FileText,
@@ -62,25 +63,25 @@ interface TenantTabGroup {
 }
 
 // Tab groups configuration
-const TENANT_TAB_GROUPS: TenantTabGroup[] = [
+const getTenantTabGroups = (t: any): TenantTabGroup[] => [
   {
     id: 'overview',
-    label: 'Overview & Info',
+    label: t('navigation.overviewAndInfo'),
     icon: <LayoutDashboard className="w-4 h-4" />,
     defaultExpanded: true,
     tabs: [
       {
-        label: 'Overview',
+        label: t('navigation.overview'),
         path: 'overview',
         icon: <LayoutDashboard className="w-4 h-4" />,
       },
       {
-        label: 'Details',
+        label: t('navigation.details'),
         path: 'details',
         icon: <FileText className="w-4 h-4" />,
       },
       {
-        label: 'Activity',
+        label: t('navigation.activity'),
         path: 'activity',
         icon: <Activity className="w-4 h-4" />,
       },
@@ -88,27 +89,27 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'configuration',
-    label: 'Configuration',
+    label: t('navigation.configuration'),
     icon: <Settings className="w-4 h-4" />,
     defaultExpanded: true,
     tabs: [
       {
-        label: 'Settings',
+        label: t('navigation.settings'),
         path: 'settings',
         icon: <Settings className="w-4 h-4" />,
       },
       {
-        label: 'Features',
+        label: t('navigation.features'),
         path: 'features',
         icon: <Sliders className="w-4 h-4" />,
       },
       {
-        label: 'Branding',
+        label: t('navigation.branding'),
         path: 'branding',
         icon: <Palette className="w-4 h-4" />,
       },
       {
-        label: 'Domains',
+        label: t('navigation.domains'),
         path: 'domains',
         icon: <Globe className="w-4 h-4" />,
       },
@@ -116,32 +117,32 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'users',
-    label: 'Users & Access',
+    label: t('navigation.usersAndAccess'),
     icon: <Users className="w-4 h-4" />,
     defaultExpanded: true,
     tabs: [
       {
-        label: 'Members',
+        label: t('navigation.members'),
         path: 'members',
         icon: <UserCircle className="w-4 h-4" />,
       },
       {
-        label: 'Roles',
+        label: t('navigation.roles'),
         path: 'roles',
         icon: <Shield className="w-4 h-4" />,
       },
       {
-        label: 'User Groups',
+        label: t('navigation.userGroups'),
         path: 'user-groups',
         icon: <Users className="w-4 h-4" />,
       },
       {
-        label: 'Delegations',
+        label: t('navigation.delegations'),
         path: 'delegations',
         icon: <UserCircle className="w-4 h-4" />,
       },
       {
-        label: 'SSO Config',
+        label: t('navigation.ssoConfig'),
         path: 'sso',
         icon: <Key className="w-4 h-4" />,
       },
@@ -149,17 +150,17 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'organization',
-    label: 'Organization',
+    label: t('navigation.organization'),
     icon: <Building2 className="w-4 h-4" />,
     defaultExpanded: true,
     tabs: [
       {
-        label: 'Departments',
+        label: t('navigation.departments'),
         path: 'departments',
         icon: <Building2 className="w-4 h-4" />,
       },
       {
-        label: 'Locations',
+        label: t('navigation.locations'),
         path: 'locations',
         icon: <Globe className="w-4 h-4" />,
       },
@@ -167,27 +168,27 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'resources',
-    label: 'Platform Resources',
+    label: t('navigation.platformResources'),
     icon: <Target className="w-4 h-4" />,
     defaultExpanded: false,
     tabs: [
       {
-        label: 'Applications',
+        label: t('navigation.applications'),
         path: 'applications',
         icon: <Target className="w-4 h-4" />,
       },
       {
-        label: 'App Routes',
+        label: t('navigation.appRoutes'),
         path: 'routes',
         icon: <Route className="w-4 h-4" />,
       },
       {
-        label: 'Rate Limits',
+        label: t('navigation.rateLimits'),
         path: 'rate-limits',
         icon: <Clock className="w-4 h-4" />,
       },
       {
-        label: 'Storage',
+        label: t('navigation.storage'),
         path: 'storage',
         icon: <HardDrive className="w-4 h-4" />,
         status: 'planned',
@@ -196,28 +197,28 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'billing',
-    label: 'Billing & Commerce',
+    label: t('navigation.billingAndCommerce'),
     icon: <ShoppingCart className="w-4 h-4" />,
     defaultExpanded: false,
     tabs: [
       {
-        label: 'Subscription',
+        label: t('navigation.subscription'),
         path: 'subscription',
         icon: <RefreshCcw className="w-4 h-4" />,
       },
       {
-        label: 'Orders',
+        label: t('navigation.orders'),
         path: 'orders',
         icon: <ShoppingCart className="w-4 h-4" />,
       },
       {
-        label: 'Invoices',
+        label: t('navigation.invoices'),
         path: 'invoices',
         icon: <Receipt className="w-4 h-4" />,
         status: 'planned',
       },
       {
-        label: 'Usage & Billing',
+        label: t('navigation.usageAndBilling'),
         path: 'usage',
         icon: <BarChart3 className="w-4 h-4" />,
         status: 'planned',
@@ -226,23 +227,23 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'integrations',
-    label: 'Integrations & API',
+    label: t('navigation.integrationsAndApi'),
     icon: <Plug className="w-4 h-4" />,
     defaultExpanded: false,
     tabs: [
       {
-        label: 'Webhooks',
+        label: t('navigation.webhooks'),
         path: 'webhooks',
         icon: <Webhook className="w-4 h-4" />,
       },
       {
-        label: 'API Keys',
+        label: t('navigation.apiKeys'),
         path: 'api-keys',
         icon: <KeyRound className="w-4 h-4" />,
         status: 'planned',
       },
       {
-        label: 'Connected Apps',
+        label: t('navigation.connectedApps'),
         path: 'integrations',
         icon: <Plug className="w-4 h-4" />,
         status: 'planned',
@@ -251,24 +252,24 @@ const TENANT_TAB_GROUPS: TenantTabGroup[] = [
   },
   {
     id: 'analytics',
-    label: 'Analytics & Monitoring',
+    label: t('navigation.analyticsAndMonitoring'),
     icon: <TrendingUp className="w-4 h-4" />,
     defaultExpanded: false,
     tabs: [
       {
-        label: 'Analytics',
+        label: t('navigation.analytics'),
         path: 'analytics',
         icon: <TrendingUp className="w-4 h-4" />,
         status: 'planned',
       },
       {
-        label: 'Audit Logs',
+        label: t('navigation.auditLogs'),
         path: 'audit-logs',
         icon: <FileSearch className="w-4 h-4" />,
         status: 'planned',
       },
       {
-        label: 'API Activity',
+        label: t('navigation.apiActivity'),
         path: 'api-logs',
         icon: <Radio className="w-4 h-4" />,
         status: 'planned',
@@ -288,6 +289,7 @@ interface TenantDetailSidebarProps {
 export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
   const location = useLocation();
   const { tenant_id } = useParams();
+  const { t } = useTranslation();
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   // Initialize expanded state from localStorage or defaults
@@ -298,7 +300,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
     } else {
       // Set default expanded state
       const defaultState: Record<string, boolean> = {};
-      TENANT_TAB_GROUPS.forEach((group) => {
+      getTenantTabGroups(t).forEach((group) => {
         defaultState[group.id] = group.defaultExpanded ?? false;
       });
       setExpandedGroups(defaultState);
@@ -319,7 +321,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
 
   const expandAll = () => {
     const allExpanded: Record<string, boolean> = {};
-    TENANT_TAB_GROUPS.forEach((group) => {
+    getTenantTabGroups(t).forEach((group) => {
       allExpanded[group.id] = true;
     });
     setExpandedGroups(allExpanded);
@@ -327,7 +329,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
 
   const collapseAll = () => {
     const allCollapsed: Record<string, boolean> = {};
-    TENANT_TAB_GROUPS.forEach((group) => {
+    getTenantTabGroups(t).forEach((group) => {
       allCollapsed[group.id] = false;
     });
     setExpandedGroups(allCollapsed);
@@ -363,8 +365,8 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
     }
   };
 
-  const allExpanded = TENANT_TAB_GROUPS.every((group) => expandedGroups[group.id]);
-  const allCollapsed = TENANT_TAB_GROUPS.every((group) => !expandedGroups[group.id]);
+  const allExpanded = getTenantTabGroups(t).every((group) => expandedGroups[group.id]);
+  const allCollapsed = getTenantTabGroups(t).every((group) => !expandedGroups[group.id]);
 
   return (
     <aside className="w-72 bg-white border-r border-gray-200 flex flex-col h-full overflow-y-auto">
@@ -375,7 +377,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Tenants</span>
+          <span>{t('common.back')} to {t('navigation.tenants')}</span>
         </Link>
       </div>
 
@@ -426,7 +428,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
         </div>
 
         {/* Tab groups */}
-        {TENANT_TAB_GROUPS.map((group, index) => {
+        {getTenantTabGroups(t).map((group, index) => {
           const isExpanded = expandedGroups[group.id] ?? group.defaultExpanded;
           const hasActiveTab = group.tabs.some((tab) => isActiveTab(tab.path));
           const needsDivider = index === 4; // Before Platform Resources group
@@ -534,7 +536,7 @@ export function TenantDetailSidebar({ tenant }: TenantDetailSidebarProps) {
           className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
         >
           <Settings className="w-4 h-4" />
-          <span>Tenant Settings</span>
+          <span>{t('navigation.tenantSettings')}</span>
         </Link>
       </div>
     </aside>

@@ -1508,6 +1508,10 @@
     min-width: 200px;
   }
 
+  .min-w-\[300px\] {
+    min-width: 300px;
+  }
+
   .min-w-\[320px\] {
     min-width: 320px;
   }

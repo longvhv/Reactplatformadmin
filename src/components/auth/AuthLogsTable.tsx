@@ -23,6 +23,8 @@ import {
   RefreshCw,
 } from 'lucide-react';
 
+import { useTranslation } from 'react-i18next';
+
 interface AuthLogsTableProps {
   userId?: string;
   tenantId?: string;
@@ -45,6 +47,8 @@ export function AuthLogsTable({
   });
 
   const { logs, stats, loading, refresh } = useAuthLogs(filters);
+
+  const { t } = useTranslation();
 
   // Get status icon
   const getStatusIcon = (status: string) => {
@@ -208,9 +212,9 @@ export function AuthLogsTable({
               className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="success">Success</option>
-              <option value="failed">Failed</option>
-              <option value="blocked">Blocked</option>
+              <option value="success">{t('common.success')}</option>
+              <option value="failed">{t('common.failed')}</option>
+              <option value="blocked">{t('common.blocked')}</option>
             </select>
             <button
               onClick={refresh}

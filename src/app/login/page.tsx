@@ -27,7 +27,23 @@ function LoginPage() {
       showToast.success('Thành công', 'Đăng nhập thành công!');
       router.push('/admin/dashboard');
     } catch (error: any) {
-      showToast.error('Lỗi', error.message || 'Có lỗi xảy ra');
+      console.error('Login error:', error);
+      
+      // Check if it's a "user not found" or credentials error
+      const errorMessage = error.message || 'Có lỗi xảy ra';
+      
+      if (errorMessage.includes('Tài khoản không tồn tại') || 
+          errorMessage.includes('Invalid login credentials')) {
+        showToast.error(
+          'Tài khoản chưa được khởi tạo', 
+          'Vui lòng truy cập trang /setup để khởi tạo hệ thống',
+          {
+            duration: 8000,
+          }
+        );
+      } else {
+        showToast.error('Lỗi', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -106,6 +122,23 @@ function LoginPage() {
             <p>Tài khoản mặc định:</p>
             <p className="font-mono mt-1">admin@saas.coquan.vn</p>
             <p className="font-mono">Vhv@2026</p>
+            <p className="text-xs text-amber-600 mt-2">
+              🔓 Bypass Mode: Chỉ cần email đúng là login được
+            </p>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500 mb-2">
+                Lần đầu sử dụng? Cần khởi tạo hệ thống?
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/setup')}
+                className="text-xs"
+              >
+                Đi tới trang Setup
+              </Button>
+            </div>
           </div>
         </Card>
       </div>
