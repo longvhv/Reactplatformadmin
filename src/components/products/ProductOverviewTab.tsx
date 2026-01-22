@@ -4,10 +4,10 @@
  * ✅ FIXED 2026-01-14: Updated to match new Product schema
  */
 
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { Calendar, Clock, DollarSign, Tag, Package, TrendingUp, Award } from 'lucide-react';
-import { Product } from '@/api/productsApi';
+import { Product } from '../../api/productsApi';
 
 interface ProductOverviewTabProps {
   productId: string;

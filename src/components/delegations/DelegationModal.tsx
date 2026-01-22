@@ -4,14 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { UserDelegation, CreateDelegationData, UpdateDelegationData } from '../../api/userDelegationsApi';
+import { X, AlertCircle } from 'lucide-react';
+import { UserDelegation, CreateDelegationRequest, UpdateDelegationRequest, DelegationScope } from '../../api/userDelegationsApi';
 import { useTranslation } from 'react-i18next';
 
 interface DelegationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: CreateDelegationData | UpdateDelegationData) => Promise<void>;
+  onSave: (data: CreateDelegationRequest | UpdateDelegationRequest) => Promise<void>;
   delegation?: UserDelegation | null;
   users: Array<{ _id: string; email: string; full_name?: string }>;
   tenants?: Array<{ _id: string; name: string }>;
@@ -35,7 +35,7 @@ export function DelegationModal({
   fixedDelegateId,
   fixedTenantId,
 }: DelegationModalProps) {
-  const [formData, setFormData] = useState<Partial<CreateDelegationData>>({
+  const [formData, setFormData] = useState<Partial<CreateDelegationRequest>>({
     delegator_id: fixedDelegatorId || '',
     delegate_id: fixedDelegateId || '',
     tenant_id: fixedTenantId || undefined,
@@ -49,6 +49,7 @@ export function DelegationModal({
   });
 
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (delegation) {
@@ -60,8 +61,8 @@ export function DelegationModal({
         permissions: delegation.permissions || [],
         reason: delegation.reason,
         notes: delegation.notes,
-        start_date: delegation.start_date.slice(0, 16),
-        end_date: delegation.end_date?.slice(0, 16) || '',
+        start_date: delegation.start_date ? new Date(delegation.start_date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        end_date: delegation.end_date ? new Date(delegation.end_date).toISOString().slice(0, 16) : '',
         auto_expire: delegation.auto_expire,
       });
     } else {
@@ -78,24 +79,52 @@ export function DelegationModal({
         auto_expire: true,
       });
     }
-  }, [delegation, fixedDelegatorId, fixedDelegateId, fixedTenantId]);
+    setError(null);
+  }, [delegation, fixedDelegatorId, fixedDelegateId, fixedTenantId, isOpen]);
+
+  const validate = () => {
+    if (!formData.delegator_id) return 'Vui lòng chọn người ủy quyền';
+    if (!formData.delegate_id) return 'Vui lòng chọn người được ủy quyền';
+    if (formData.delegator_id === formData.delegate_id) return 'Người ủy quyền và người được ủy quyền không thể là một';
+    if (!formData.scope) return 'Vui lòng chọn phạm vi ủy quyền';
+    if (!formData.start_date) return 'Vui lòng chọn ngày bắt đầu';
+    
+    if (formData.end_date && formData.start_date) {
+      if (new Date(formData.end_date) <= new Date(formData.start_date)) {
+        return 'Ngày kết thúc phải sau ngày bắt đầu';
+      }
+    }
+    
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setSaving(true);
+    setError(null);
+    
     try {
-      // Sanitize form data to prevent empty string timestamps
+      // Sanitize form data
       const sanitizedData = {
         ...formData,
-        // Convert empty string to undefined/null for optional timestamp fields
-        end_date: formData.end_date && formData.end_date.trim() !== '' ? formData.end_date : undefined,
+        end_date: formData.end_date && formData.end_date.trim() !== '' 
+          ? new Date(formData.end_date).toISOString() 
+          : undefined,
+        start_date: new Date(formData.start_date!).toISOString(),
       };
       
       await onSave(sanitizedData as CreateDelegationRequest);
       onClose();
     } catch (err) {
       console.error('Error saving delegation:', err);
-      alert(err instanceof Error ? err.message : 'Failed to save delegation');
+      setError(err instanceof Error ? err.message : 'Failed to save delegation');
     } finally {
       setSaving(false);
     }
@@ -105,21 +134,23 @@ export function DelegationModal({
 
   const { t } = useTranslation();
 
-  const availableScopes = [
-    { value: 'admin', label: t('common.admin') },
-    { value: 'manager', label: t('common.manager') },
-    { value: 'editor', label: t('common.editor') },
-    { value: 'viewer', label: t('common.viewer') },
-    { value: 'approver', label: t('common.approver') },
-    { value: 'reviewer', label: t('common.reviewer') },
+  const availableScopes: { value: DelegationScope; label: string }[] = [
+    { value: 'admin', label: 'Admin (Quản trị viên)' },
+    { value: 'manager', label: 'Manager (Quản lý)' },
+    { value: 'editor', label: 'Editor (Biên tập viên)' },
+    { value: 'viewer', label: 'Viewer (Người xem)' },
+    { value: 'approver', label: 'Approver (Người phê duyệt)' },
+    { value: 'reviewer', label: 'Reviewer (Người đánh giá)' },
+    { value: 'auditor', label: 'Auditor (Kiểm toán viên)' },
+    { value: 'custom', label: 'Custom (Tùy chỉnh)' },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-gray-900">
-            {delegation ? 'Edit Delegation' : 'Create Delegation'}
+            {delegation ? 'Sửa thông tin ủy quyền' : 'Tạo ủy quyền mới'}
           </h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
             <X className="w-5 h-5" />
@@ -127,23 +158,30 @@ export function DelegationModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+              <AlertCircle className="w-5 h-5" />
+              <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Delegator */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delegator *
+                Người ủy quyền *
               </label>
               <select
                 value={formData.delegator_id}
                 onChange={(e) => setFormData({ ...formData, delegator_id: e.target.value })}
-                disabled={!!fixedDelegatorId || mode === 'delegate'}
+                disabled={!!fixedDelegatorId || mode === 'delegate' || !!delegation}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">Select delegator</option>
+                <option value="">Chọn người ủy quyền</option>
                 {users.map(user => (
                   <option key={user._id} value={user._id}>
-                    {user.full_name || user.email}
+                    {user.full_name || user.email} ({user.email})
                   </option>
                 ))}
               </select>
@@ -152,21 +190,24 @@ export function DelegationModal({
             {/* Delegate */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delegate *
+                Người được ủy quyền *
               </label>
               <select
                 value={formData.delegate_id}
                 onChange={(e) => setFormData({ ...formData, delegate_id: e.target.value })}
-                disabled={!!fixedDelegateId || mode === 'delegator'}
+                disabled={!!fixedDelegateId || mode === 'delegator' || !!delegation}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">Select delegate</option>
-                {users.filter(u => u._id !== formData.delegator_id).map(user => (
-                  <option key={user._id} value={user._id}>
-                    {user.full_name || user.email}
-                  </option>
-                ))}
+                <option value="">Chọn người được ủy quyền</option>
+                {users
+                  .filter(u => u._id !== formData.delegator_id)
+                  .map(user => (
+                    <option key={user._id} value={user._id}>
+                      {user.full_name || user.email} ({user.email})
+                    </option>
+                  ))
+                }
               </select>
             </div>
           </div>
@@ -175,15 +216,15 @@ export function DelegationModal({
           {tenants.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tenant (Optional)
+                Tenant (Tổ chức)
               </label>
               <select
                 value={formData.tenant_id || ''}
                 onChange={(e) => setFormData({ ...formData, tenant_id: e.target.value || undefined })}
                 disabled={!!fixedTenantId}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
-                <option value="">All tenants</option>
+                <option value="">Tất cả / Global</option>
                 {tenants.map(tenant => (
                   <option key={tenant._id} value={tenant._id}>
                     {tenant.name}
@@ -196,13 +237,13 @@ export function DelegationModal({
           {/* Scope */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Scope *
+              Phạm vi ủy quyền *
             </label>
             <select
               value={formData.scope}
-              onChange={(e) => setFormData({ ...formData, scope: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, scope: e.target.value as DelegationScope })}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
               {availableScopes.map(scope => (
                 <option key={scope.value} value={scope.value}>
@@ -213,57 +254,59 @@ export function DelegationModal({
           </div>
 
           {/* Date range */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date *
+                Ngày bắt đầu *
               </label>
               <input
                 type="datetime-local"
                 value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
+                Ngày kết thúc
               </label>
               <input
                 type="datetime-local"
                 value={formData.end_date}
                 onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
+              <p className="text-xs text-gray-500 mt-1">Để trống nếu không có thời hạn</p>
             </div>
           </div>
 
           {/* Reason */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason
+              Lý do ủy quyền
             </label>
             <input
               type="text"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              placeholder="e.g., Nghỉ phép, công tác..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Ví dụ: Nghỉ phép, công tác, hỗ trợ dự án..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notes
+              Ghi chú
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="Thông tin bổ sung..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
@@ -274,29 +317,29 @@ export function DelegationModal({
               checked={formData.auto_expire}
               onChange={(e) => setFormData({ ...formData, auto_expire: e.target.checked })}
               id="auto_expire"
-              className="rounded"
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
             />
-            <label htmlFor="auto_expire" className="text-sm text-gray-700">
-              Auto-expire when end date is reached
+            <label htmlFor="auto_expire" className="text-sm text-gray-700 select-none cursor-pointer">
+              Tự động hết hạn khi đến ngày kết thúc
             </label>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          <div className="flex items-center justify-end gap-3 pt-6 border-t bg-white sticky bottom-0">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
             >
-              {t('common.cancel')}
+              Hủy
             </button>
             <button
               type="submit"
               disabled={saving}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
-              {saving ? t('common.saving') : delegation ? t('common.update') : t('common.create')}
+              {saving ? 'Đang lưu...' : delegation ? 'Cập nhật' : 'Tạo mới'}
             </button>
           </div>
         </form>

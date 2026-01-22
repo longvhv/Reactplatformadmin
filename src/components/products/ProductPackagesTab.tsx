@@ -3,12 +3,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Package, Users, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from '../shim/next-navigation';
 import { useTranslation } from 'react-i18next';
 
 interface ProductPackagesTabProps {

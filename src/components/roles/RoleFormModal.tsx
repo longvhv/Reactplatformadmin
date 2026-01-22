@@ -22,14 +22,14 @@ import {
   Globe,
   Building2
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { 
   Role, 
   CreateRoleRequest, 
   UpdateRoleRequest,
   RoleType
-} from '@/api/rolesApi';
-import { TenantSelect } from '@/components/common/TenantSelect';
+} from '../../api/rolesApi';
+import { TenantSelect } from '../common/TenantSelect';
 
 interface RoleFormModalProps {
   isOpen: boolean;

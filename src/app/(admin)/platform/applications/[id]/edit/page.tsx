@@ -5,18 +5,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { useParams } from 'react-router-dom'; // Or Next.js params if migrated
-import { Server } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { applicationsApi, Application } from '@/api/applicationsApi';
-import { ApplicationForm } from '@/components/applications/ApplicationForm';
-import { showToast } from '@/lib/toast';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { Package } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { useLanguage } from '../../../../../../providers/LanguageProvider';
+import { ApplicationForm } from '../../../../../../components/applications/ApplicationForm';
+import { applicationsApi, Application } from '../../../../../../api/applicationsApi';
 
-function EditApplicationPage({ params }: { params?: { id: string } }) {
+function EditApplicationPage() {
   const router = useRouter();
-  // Support both Next.js props and React Router params (during migration)
-  const id = params?.id; 
+  const params = useParams(); // ✅ Use hook
+  const id = params.id;
   
   const [loading, setLoading] = useState(false);
   const [initialData, setInitialData] = useState<Application | null>(null);
@@ -54,7 +53,7 @@ function EditApplicationPage({ params }: { params?: { id: string } }) {
 
   if (!initialData) {
     return (
-        <FormPageLayout mode="edit" title="Edit Application" description="Manage application details" icon={Server} backPath="/platform/applications" backLabel="Back">
+        <FormPageLayout mode="edit" title="Edit Application" description="Manage application details" icon={Package} backPath="/platform/applications" backLabel="Back">
             <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
@@ -63,7 +62,7 @@ function EditApplicationPage({ params }: { params?: { id: string } }) {
   }
 
   return (
-    <FormPageLayout mode="edit" title="Edit Application" description={`Edit details for ${initialData.name}`} icon={Server} backPath="/platform/applications" backLabel="Back">
+    <FormPageLayout mode="edit" title="Edit Application" description={`Edit details for ${initialData.name}`} icon={Package} backPath="/platform/applications" backLabel="Back">
       <ApplicationForm 
         initialData={initialData} 
         onSubmit={handleSubmit} 

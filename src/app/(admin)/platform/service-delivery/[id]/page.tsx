@@ -4,13 +4,13 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
 import { Truck, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { serviceDeliveryApi } from '@/api/serviceDeliveryApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../../components/ui/button';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { serviceDeliveryApi } from '../../../../../api/serviceDeliveryApi';
+import { showToast } from '../../../../../lib/toast';
 
 function ServiceDeliveryDetailPage() {
   const router = useRouter();

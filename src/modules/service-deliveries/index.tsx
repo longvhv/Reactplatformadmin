@@ -11,16 +11,16 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Truck } from 'lucide-react';
 
 const ServiceDeliveriesPage = lazy(() => 
-  import('../../app/(admin)/platform/service-deliveries/page')
+  import('../../app/(admin)/platform/service-deliveries/page').then(m => ({ default: m.default }))
 );
 const ServiceDeliveryDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/service-deliveries/[id]/page')
+  import('../../app/(admin)/platform/service-deliveries/[id]/page').then(m => ({ default: m.default }))
 );
 const AddServiceDeliveryPage = lazy(() => 
-  import('../../app/(admin)/platform/service-delivery/add/page')
+  import('../../app/(admin)/platform/service-delivery/add/page').then(m => ({ default: m.default }))
 );
 const EditServiceDeliveryPage = lazy(() => 
-  import('../../app/(admin)/platform/service-delivery/edit/[id]/page')
+  import('../../app/(admin)/platform/service-delivery/edit/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const ServiceDeliveriesModule: ModuleDefinition = {
@@ -88,3 +88,5 @@ export const ServiceDeliveriesModule: ModuleDefinition = {
     console.log('🧹 Service Deliveries module cleaned up');
   },
 };
+
+export default ServiceDeliveriesModule;

@@ -1,16 +1,13 @@
 /**
  * useTenantSettings Hook
- * Manages tenant settings (part of tenant object)
+ * Manages tenant settings operations
  * 
  * MIGRATED: Now uses DataClient abstraction layer
- * - Easy to switch between Supabase and Golang API
- * - Consistent pattern across all hooks
- * - Type-safe with generics
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useDataClient } from './useDataClient';
-import type { Tenant } from '@/data/tenants';
+import type { Tenant } from '../data/tenants';
 
 // Settings type extracted from Tenant
 type TenantSettings = NonNullable<Tenant['settings']>;

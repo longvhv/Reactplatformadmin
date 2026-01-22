@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, Clock, Activity, AlertCircle, CheckCircle, Database, Zap } from 'lucide-react';
-import { apiUsageLogsApi, ApiUsageStats } from '@/api/apiUsageLogsApi';
+import { apiUsageLogsApi, ApiUsageStats } from '../../api/apiUsageLogsApi';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface TenantApiUsageTabProps {

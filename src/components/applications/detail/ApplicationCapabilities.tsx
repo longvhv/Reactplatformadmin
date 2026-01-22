@@ -23,50 +23,25 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { useCapabilities } from '@/hooks/useCapabilities';
+import { Button } from '../../ui/button';
+import { Badge } from '../../ui/badge';
+import { Card } from '../../ui/card';
+import { useCapabilities } from '../../../hooks/useCapabilities';
 import { 
   type CapabilityType, 
   type CapabilityStatus,
+  type AppCapability,
   type CreateCapabilityRequest,
-} from '@/api/appCapabilityApi';
-import { toast } from 'sonner';
+  type UpdateCapabilityRequest,
+} from '../../../api/appCapabilityApi';
+import { CapabilityForm } from '../../capabilities/CapabilityForm';
+import { toast } from 'sonner@2.0.3';
 import { useTranslation } from 'react-i18next';
 
 interface ApplicationCapabilitiesProps {
   appId: string;
   tenantId?: string;
 }
-
-interface FormData {
-  code: string;
-  name: string;
-  type: CapabilityType;
-  description: string;
-  display_order: string;
-  is_required: boolean;
-  status: CapabilityStatus;
-  // For default_value
-  enabled: boolean;
-  value: string;
-  unit: string;
-}
-
-const INITIAL_FORM_DATA: FormData = {
-  code: '',
-  name: '',
-  type: 'FEATURE',
-  description: '',
-  display_order: '0',
-  is_required: false,
-  status: 'active',
-  enabled: false,
-  value: '0',
-  unit: '',
-};
 
 export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabilitiesProps) {
   const { 
@@ -83,101 +58,56 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
   
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
   const { t } = useTranslation();
 
-  const handleAdd = async () => {
+  const handleFormSubmit = async (data: Partial<AppCapability>) => {
     try {
-      // Validate
-      if (!formData.code || !formData.name) {
-        toast.error('Vui lòng điền đầy đủ thông tin bắt buộc');
-        return;
+      if (editingId) {
+        // Update
+        const currentCap = capabilities.find(c => c._id === editingId);
+        if (!currentCap) return;
+
+        const updateData: UpdateCapabilityRequest = {
+          name: data.name,
+          description: data.description,
+          type: data.type,
+          default_value: data.default_value,
+          display_order: data.display_order,
+          is_required: data.is_required,
+          status: data.status,
+          validation_rules: data.validation_rules,
+          metadata: data.metadata,
+          version: currentCap.version,
+        };
+
+        await updateCapability(editingId, updateData);
+        setEditingId(null);
+        toast.success('Cập nhật khả năng thành công');
+      } else {
+        // Create
+        const createData: CreateCapabilityRequest = {
+          tenant_id: tenantId || '',
+          app_id: appId,
+          code: data.code!,
+          name: data.name!,
+          description: data.description,
+          type: data.type!,
+          default_value: data.default_value!,
+          display_order: data.display_order || 0,
+          is_required: data.is_required || false,
+          validation_rules: data.validation_rules || {},
+          status: data.status || 'active',
+          metadata: data.metadata || {},
+        };
+
+        await createCapability(createData);
+        setShowAddForm(false);
+        toast.success('Tạo khả năng mới thành công');
       }
-
-      // Build default_value based on type
-      const default_value = formData.type === 'FEATURE'
-        ? { enabled: formData.enabled }
-        : { 
-            value: parseInt(formData.value) || 0,
-            unit: formData.unit || undefined,
-          };
-
-      const data: CreateCapabilityRequest = {
-        tenant_id: tenantId || '',
-        app_id: appId,
-        code: formData.code,
-        name: formData.name,
-        description: formData.description || undefined,
-        type: formData.type,
-        default_value,
-        display_order: parseInt(formData.display_order) || 0,
-        is_required: formData.is_required,
-        validation_rules: {},
-        status: formData.status,
-        metadata: {},
-      };
-
-      await createCapability(data);
-      
-      setShowAddForm(false);
-      setFormData(INITIAL_FORM_DATA);
-    } catch (err) {
-      console.error('Failed to create capability:', err);
+    } catch (err: any) {
+      console.error('Failed to save capability:', err);
+      toast.error('Lỗi lưu khả năng', err.message);
     }
-  };
-
-  const handleEdit = (cap: any) => {
-    setEditingId(cap._id);
-    setFormData({
-      code: cap.code,
-      name: cap.name,
-      type: cap.type,
-      description: cap.description || '',
-      display_order: cap.display_order?.toString() || '0',
-      is_required: cap.is_required || false,
-      status: cap.status || 'active',
-      enabled: cap.default_value?.enabled || false,
-      value: cap.default_value?.value?.toString() || '0',
-      unit: cap.default_value?.unit || '',
-    });
-  };
-
-  const handleUpdate = async () => {
-    if (!editingId) return;
-    
-    const cap = capabilities.find(c => c._id === editingId);
-    if (!cap) return;
-
-    try {
-      // Build default_value based on type
-      const default_value = formData.type === 'FEATURE'
-        ? { enabled: formData.enabled }
-        : { 
-            value: parseInt(formData.value) || 0,
-            unit: formData.unit || undefined,
-          };
-
-      await updateCapability(editingId, {
-        name: formData.name,
-        description: formData.description || undefined,
-        type: formData.type,
-        default_value,
-        display_order: parseInt(formData.display_order) || 0,
-        is_required: formData.is_required,
-        status: formData.status,
-        version: cap.version,
-      });
-
-      setEditingId(null);
-      setFormData(INITIAL_FORM_DATA);
-    } catch (err) {
-      console.error('Failed to update capability:', err);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setFormData(INITIAL_FORM_DATA);
   };
 
   const handleDelete = async (id: string) => {
@@ -185,8 +115,10 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
     
     try {
       await deleteCapability(id);
+      toast.success('Đã xóa khả năng');
     } catch (err) {
       console.error('Failed to delete capability:', err);
+      toast.error('Lỗi xóa', 'Không thể xóa khả năng này');
     }
   };
 
@@ -195,8 +127,10 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
     
     try {
       await changeStatus(id, newStatus, version);
+      toast.success(`Đã ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} khả năng`);
     } catch (err) {
       console.error('Failed to toggle status:', err);
+      toast.error('Lỗi cập nhật trạng thái');
     }
   };
 
@@ -255,7 +189,10 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
           </div>
           <Button
             size="sm"
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              setShowAddForm(!showAddForm);
+              setEditingId(null);
+            }}
             className="gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -267,154 +204,11 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
         {showAddForm && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
             <h3 className="font-medium mb-4">Thêm khả năng mới</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mã khả năng (lowercase) *
-                </label>
-                <Input
-                  value={formData.code}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase() })}
-                  placeholder="max_users"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tên hiển thị *
-                </label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Maximum Users"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Loại *
-                </label>
-                <select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value as CapabilityType })}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="FEATURE">Feature (Tính năng)</option>
-                  <option value="LIMIT">Limit (Giới hạn)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Thứ tự hiển thị
-                </label>
-                <Input
-                  type="number"
-                  value={formData.display_order}
-                  onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-
-              {/* Default Value - conditional based on type */}
-              {formData.type === 'FEATURE' ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mặc định bật?
-                  </label>
-                  <select
-                    value={formData.enabled ? 'true' : 'false'}
-                    onChange={(e) => setFormData({ ...formData, enabled: e.target.value === 'true' })}
-                    className="w-full px-3 py-2 border rounded-md"
-                  >
-                    <option value="false">Disabled</option>
-                    <option value="true">Enabled</option>
-                  </select>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Giá trị mặc định
-                    </label>
-                    <Input
-                      type="number"
-                      value={formData.value}
-                      onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                      placeholder="100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Đơn vị
-                    </label>
-                    <Input
-                      value={formData.unit}
-                      onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                      placeholder="users, MB, requests..."
-                    />
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trạng thái
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as CapabilityStatus })}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="active">{t('common.active')}</option>
-                  <option value="inactive">{t('common.inactive')}</option>
-                  <option value="archived">{t('common.archived')}</option>
-                </select>
-              </div>
-
-              <div className="flex items-center">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_required}
-                    onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium text-gray-700">
-                    Bắt buộc?
-                  </span>
-                </label>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mô tả
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-md"
-                  rows={2}
-                  placeholder="Mô tả khả năng..."
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <Button size="sm" onClick={handleAdd}>
-                Thêm
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setShowAddForm(false);
-                  setFormData(INITIAL_FORM_DATA);
-                }}
-              >
-                Hủy
-              </Button>
-            </div>
+            <CapabilityForm
+              appId={appId}
+              onSubmit={handleFormSubmit}
+              onCancel={() => setShowAddForm(false)}
+            />
           </div>
         )}
       </Card>
@@ -470,148 +264,15 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
             return (
               <Card key={cap._id} className="p-6">
                 {isEditing ? (
-                  // Edit Form - Same as Add Form but with Update button
+                  // Edit Form
                   <div className="space-y-4">
                     <h3 className="font-medium mb-4">Chỉnh sửa khả năng</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Mã khả năng (read-only)
-                        </label>
-                        <Input
-                          value={formData.code}
-                          disabled
-                          className="bg-gray-50"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Tên hiển thị *
-                        </label>
-                        <Input
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Loại *
-                        </label>
-                        <select
-                          value={formData.type}
-                          onChange={(e) => setFormData({ ...formData, type: e.target.value as CapabilityType })}
-                          className="w-full px-3 py-2 border rounded-md"
-                        >
-                          <option value="FEATURE">Feature (Tính năng)</option>
-                          <option value="LIMIT">Limit (Giới hạn)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Thứ tự hiển thị
-                        </label>
-                        <Input
-                          type="number"
-                          value={formData.display_order}
-                          onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
-                        />
-                      </div>
-
-                      {formData.type === 'FEATURE' ? (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Mặc định bật?
-                          </label>
-                          <select
-                            value={formData.enabled ? 'true' : 'false'}
-                            onChange={(e) => setFormData({ ...formData, enabled: e.target.value === 'true' })}
-                            className="w-full px-3 py-2 border rounded-md"
-                          >
-                            <option value="false">Disabled</option>
-                            <option value="true">Enabled</option>
-                          </select>
-                        </div>
-                      ) : (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Giá trị mặc định
-                            </label>
-                            <Input
-                              type="number"
-                              value={formData.value}
-                              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Đơn vị
-                            </label>
-                            <Input
-                              value={formData.unit}
-                              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-                            />
-                          </div>
-                        </>
-                      )}
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Trạng thái
-                        </label>
-                        <select
-                          value={formData.status}
-                          onChange={(e) => setFormData({ ...formData, status: e.target.value as CapabilityStatus })}
-                          className="w-full px-3 py-2 border rounded-md"
-                        >
-                          <option value="active">{t('common.active')}</option>
-                          <option value="inactive">{t('common.inactive')}</option>
-                          <option value="archived">{t('common.archived')}</option>
-                        </select>
-                      </div>
-
-                      <div className="flex items-center">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.is_required}
-                            onChange={(e) => setFormData({ ...formData, is_required: e.target.checked })}
-                            className="w-4 h-4"
-                          />
-                          <span className="text-sm font-medium text-gray-700">
-                            Bắt buộc?
-                          </span>
-                        </label>
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Mô tả
-                        </label>
-                        <textarea
-                          value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          className="w-full px-3 py-2 border rounded-md"
-                          rows={2}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={handleUpdate}>
-                        Cập nhật
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleCancelEdit}
-                      >
-                        Hủy
-                      </Button>
-                    </div>
+                    <CapabilityForm
+                      appId={appId}
+                      capability={cap}
+                      onSubmit={handleFormSubmit}
+                      onCancel={() => setEditingId(null)}
+                    />
                   </div>
                 ) : (
                   // Display Mode
@@ -663,7 +324,10 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleEdit(cap)}
+                        onClick={() => {
+                          setEditingId(cap._id);
+                          setShowAddForm(false);
+                        }}
                         title="Chỉnh sửa"
                         className="hover:bg-blue-50 hover:text-blue-600"
                       >

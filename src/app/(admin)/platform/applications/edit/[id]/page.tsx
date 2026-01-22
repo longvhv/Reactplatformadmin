@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Server } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { applicationsApi } from '@/api/applicationsApi';
-import { ApplicationForm } from '@/components/applications/ApplicationForm';
-import { showToast } from '@/lib/toast';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
+import { Box } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { useLanguage } from '../../../../../../providers/LanguageProvider';
+import { ApplicationForm } from '../../../../../../components/applications/ApplicationForm';
+import { showToast } from '../../../../../../lib/toast';
 
 function EditApplicationPage() {
   const params = useParams();
@@ -51,7 +51,7 @@ function EditApplicationPage() {
   if (appLoading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   return (
-    <FormPageLayout mode="edit" title="Edit Application" description="Update application settings" icon={Server} backPath="/platform/applications" backLabel="Back">
+    <FormPageLayout mode="edit" title="Edit Application" description="Update application settings" icon={Box} backPath="/platform/applications" backLabel="Back">
       <ApplicationForm initialData={app} onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/applications')} />
     </FormPageLayout>
   );

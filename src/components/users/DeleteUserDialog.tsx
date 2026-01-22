@@ -1,6 +1,6 @@
 'use client';
 
-import { useLanguage } from '@/providers/LanguageProvider';
+import { useLanguage } from '../../providers/LanguageProvider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '../ui/alert-dialog';
 import { AlertCircle } from 'lucide-react';
 
 interface DeleteUserDialogProps {

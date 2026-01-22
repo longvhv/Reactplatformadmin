@@ -5,11 +5,11 @@
 
 import { useNavigate } from 'react-router';
 import { ArrowLeft, Save, Building2, MapPin, CreditCard, Settings } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTenantForm } from '@/hooks/useTenantForm';
-import type { Tenant } from '@/data/tenants';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { Button } from '../ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { useTenantForm } from '../../hooks/useTenantForm';
+import type { Tenant } from '../../data/tenants';
 
 // Import sub-components
 import { BasicInfoTab } from './form-tabs/BasicInfoTab';

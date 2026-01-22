@@ -17,7 +17,7 @@ import {
   Clock,
   Package
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Card } from '../ui/card';
 
 interface TenantStatsProps {
   tenantId: string;

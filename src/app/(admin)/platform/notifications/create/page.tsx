@@ -6,14 +6,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Bell } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { notificationsApi } from '@/api/notificationsApi';
-import { NotificationForm } from '@/components/notifications/NotificationForm';
-import { showToast } from '@/lib/toast';
+import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { Bell, Plus } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { notificationsApi } from '../../../../../../api/notificationsApi';
+import { NotificationForm } from '../../../../../../components/notifications/NotificationForm';
+import { showToast } from '../../../../../../lib/toast';
 
-function AddNotificationPage() {
+function CreateNotificationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -48,5 +48,5 @@ function AddNotificationPage() {
   );
 }
 
-export { AddNotificationPage };
-export default AddNotificationPage;
+export { CreateNotificationPage };
+export default CreateNotificationPage;

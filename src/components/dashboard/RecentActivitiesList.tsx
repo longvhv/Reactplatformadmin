@@ -3,8 +3,8 @@
  * Displays recent system activities with timeline layout
  */
 
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { 
   UserPlus, 
   Building2, 
@@ -14,7 +14,7 @@ import {
   Settings,
   LucideIcon
 } from 'lucide-react';
-import type { Activity } from '@/services/dashboardService';
+import type { Activity } from '../../services/dashboardService';
 import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS, ja, ko, es, zhCN } from 'date-fns/locale';
 

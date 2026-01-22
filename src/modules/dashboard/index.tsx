@@ -8,7 +8,7 @@ import { LayoutDashboard, BarChart3, PieChart, TrendingUp, Activity } from "luci
  * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
 const DashboardPage = lazy(() => 
-  import("../../app/(admin)/admin/dashboard/page")
+  import("../../app/(admin)/admin/dashboard/page").then(m => ({ default: m.default }))
 );
 
 /**
@@ -46,3 +46,5 @@ export const DashboardModule: ModuleConfig = {
     },
   ],
 };
+
+export default DashboardModule;

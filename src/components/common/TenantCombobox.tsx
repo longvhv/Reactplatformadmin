@@ -6,8 +6,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Check, ChevronsUpDown, Search, Building2 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
-import { Button } from '@/components/ui/button';
+import { cn } from '../ui/utils';
+import { Button } from '../ui/button';
 import {
   Command,
   CommandEmpty,
@@ -15,14 +15,14 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '../ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { tenantsApi, Tenant } from '@/api/tenantsApi';
-import { useLanguage } from '@/providers/LanguageProvider';
+} from '../ui/popover';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { useLanguage } from '../../providers/LanguageProvider';
 
 interface TenantComboboxProps {
   value?: string | null;

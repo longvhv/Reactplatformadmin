@@ -5,15 +5,15 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Box, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { productTypesApi, ProductType } from '@/api/productTypesApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { Box, Edit, Trash2 } from 'lucide-react';
+import { Button } from '../../../../../../components/ui/button';
+import { productTypesApi, ProductType } from '../../../../../../api/productTypesApi';
+import { showToast } from '../../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../../../components/ui/dropdown-menu';
 
 function ProductTypeDetailPage() {
   const params = useParams();

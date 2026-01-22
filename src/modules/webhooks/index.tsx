@@ -11,16 +11,16 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Webhook } from 'lucide-react';
 
 const WebhooksPage = lazy(() => 
-  import('../../app/(admin)/platform/webhooks/page')
+  import('../../app/(admin)/platform/webhooks/page').then(m => ({ default: m.default }))
 );
 const AddWebhookPage = lazy(() => 
-  import('../../app/(admin)/platform/webhooks/add/page')
+  import('../../app/(admin)/platform/webhooks/add/page').then(m => ({ default: m.default }))
 );
 const EditWebhookPage = lazy(() => 
-  import('../../app/(admin)/platform/webhooks/edit/[id]/page')
+  import('../../app/(admin)/platform/webhooks/edit/[id]/page').then(m => ({ default: m.default }))
 );
 const WebhookDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/webhooks/[id]/page')
+  import('../../app/(admin)/platform/webhooks/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const WebhooksModule: ModuleDefinition = {

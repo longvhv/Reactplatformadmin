@@ -3,7 +3,7 @@
  * Billing management tab - Stub
  */
 
-import type { Tenant } from '@/data/tenants';
+import type { Tenant } from '../../data/tenants';
 
 interface TenantBillingProps {
   tenantId: string;

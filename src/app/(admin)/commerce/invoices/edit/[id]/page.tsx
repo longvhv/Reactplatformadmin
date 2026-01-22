@@ -1,46 +1,89 @@
 /**
- * Invoices Edit Form
+ * Invoice Edit Page
  * ✅ MIGRATED from /pages/commerce/invoices/edit/[id].tsx
  */
 'use client';
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
-import { FileText, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { invoicesApi } from '@/api/invoicesApi';
-import { showToast } from '@/lib/toast';
 
-function InvoicesEditPage() {
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { Receipt, Loader2 } from 'lucide-react';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { EnhancedInvoiceForm } from '../../../../../../components/invoices/EnhancedInvoiceForm';
+import { invoiceApi, UpdateInvoiceRequest, Invoice } from '../../../../../../api/invoiceApi';
+import { showToast } from '../../../../../../lib/toast';
+
+function EditInvoicePage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
-  const [formData, setFormData] = useState({ invoice_number: '', amount: '', customer: '' });
+  
+  const [invoice, setInvoice] = useState<Invoice | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { if (id) loadData(); }, [id]);
-  const loadData = async () => { try { const data = await invoicesApi.getById(id); setFormData(data); } catch (error: any) { showToast.error('Error', 'Failed to load'); } finally { setLoading(false); } };
+  useEffect(() => {
+    if (id) {
+      loadData();
+    }
+  }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const loadData = async () => {
+    try {
+      const data = await invoiceApi.getById(id);
+      setInvoice(data);
+    } catch (error: any) {
+      console.error('Failed to load invoice:', error);
+      showToast.error('Lỗi', 'Không thể tải thông tin hóa đơn');
+      router.push('/commerce/invoices');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (data: any) => {
     try {
       setSaving(true);
-      await invoicesApi.update(id, formData);
-      showToast.success('Success', 'Updated successfully');
+      await invoiceApi.update(id, data as UpdateInvoiceRequest);
+      showToast.success('Thành công', 'Đã cập nhật hóa đơn');
       router.push('/commerce/invoices');
     } catch (error: any) {
-      showToast.error('Error', error.message || 'Failed to update');
+      console.error('Failed to update invoice:', error);
+      throw error;
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div></div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
-  return <Fragment><PageLayout icon={FileText} title="Edit Invoice" description="Update invoice"><Card className="p-6"><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-sm font-medium mb-2">Invoice Number</label><Input value={formData.invoice_number} onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Amount</label><Input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Customer</label><Input value={formData.customer} onChange={(e) => setFormData({ ...formData, customer: e.target.value })} required /></div><div className="flex gap-2 pt-4"><Button type="submit" disabled={saving}><Save className="w-4 h-4 mr-2" />{saving ? 'Saving...' : 'Save'}</Button><Button type="button" variant="outline" onClick={() => router.push('/commerce/invoices')}>Cancel</Button></div></form></Card></PageLayout></Fragment>;
+  if (!invoice) {
+    return null; // Should redirect in useEffect
+  }
+
+  return (
+    <Fragment>
+      <PageLayout
+        icon={Receipt}
+        title={`Cập nhật hóa đơn: ${invoice.invoice_number}`}
+        description="Chỉnh sửa thông tin hóa đơn"
+      >
+        <EnhancedInvoiceForm 
+          initialData={invoice}
+          isEdit={true}
+          onSubmit={handleSubmit}
+          loading={saving}
+          onCancel={() => router.push('/commerce/invoices')}
+        />
+      </PageLayout>
+    </Fragment>
+  );
 }
-export { InvoicesEditPage };
-export default InvoicesEditPage;
+
+export { EditInvoicePage };
+export default EditInvoicePage;

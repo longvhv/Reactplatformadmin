@@ -13,17 +13,17 @@ import { Activity } from 'lucide-react';
 // Lazy-loaded pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const TrafficLogsPage = lazy(() => 
-  import('../../app/(admin)/platform/traffic-logs/page')
+  import('../../app/(admin)/platform/traffic-logs/page').then(m => ({ default: m.default }))
 );
 
 const TrafficLogDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/traffic-logs/[id]/page')
+  import('../../app/(admin)/platform/traffic-logs/[id]/page').then(m => ({ default: m.default }))
 );
 const TrafficLogsAnalyticsPage = lazy(() => 
-  import('../../app/(admin)/platform/traffic-logs/analytics/page')
+  import('../../app/(admin)/platform/traffic-logs/analytics/page').then(m => ({ default: m.default }))
 );
 const AddTrafficLogPage = lazy(() => 
-  import('../../app/(admin)/platform/traffic-logs/create/page')
+  import('../../app/(admin)/platform/traffic-logs/create/page').then(m => ({ default: m.default }))
 );
 
 export const TrafficLogsModule: ModuleDefinition = {
@@ -84,3 +84,5 @@ export const TrafficLogsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default TrafficLogsModule;

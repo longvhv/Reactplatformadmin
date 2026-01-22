@@ -1,2 +1,2 @@
-import PermissionsPage from '@/app/(admin)/admin/permissions/page';
+import PermissionsPage from './app/(admin)/platform/permissions/page';
 export default PermissionsPage;

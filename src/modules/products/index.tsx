@@ -11,15 +11,15 @@ import { Package } from 'lucide-react';
 // Lazy load pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const ProductsPage = lazy(() => 
-  import('../../app/(admin)/commerce/products/page')
+  import('../../app/(admin)/commerce/products/page').then(m => ({ default: m.default }))
 );
 
 const AddProductPage = lazy(() => 
-  import('../../app/(admin)/commerce/products/create/page')
+  import('../../app/(admin)/commerce/products/create/page').then(m => ({ default: m.default }))
 );
 
 const EditProductPage = lazy(() => 
-  import('../../app/(admin)/commerce/products/edit/[id]/page')
+  import('../../app/(admin)/commerce/products/edit/[id]/page').then(m => ({ default: m.default }))
 );
 
 // Note: ProductDetailPage is full-screen (defined in App.tsx)
@@ -79,3 +79,5 @@ export const ProductsModule: ModuleDefinition = {
     // Note: /commerce/products/:id is full-screen (defined in App.tsx)
   ],
 };
+
+export default ProductsModule;

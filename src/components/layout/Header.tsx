@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Menu, X, Search, Bell, User, Settings, LogOut, BookOpen, FileCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { useTheme } from "@/providers/ThemeProvider";
-import { useAuthContext } from "@/providers/AuthProvider";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { getCurrentTenant, getTenantName, getTenantTierLabel } from "@/lib/currentTenant";
-import type { Tenant } from "@/lib/currentTenant";
-import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { Button } from "../ui/button";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { useTheme } from "../../providers/ThemeProvider";
+import { useAuthContext } from "../../providers/AuthProvider";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { getCurrentTenant, getTenantName, getTenantTierLabel } from "../../lib/currentTenant";
+import type { Tenant } from "../../lib/currentTenant";
+import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,9 +16,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+} from "../ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Badge } from "../ui/badge";
 
 interface HeaderProps {
   toggleSidebar?: () => void;

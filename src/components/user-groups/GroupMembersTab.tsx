@@ -7,12 +7,12 @@
 
 import { useState, useEffect } from 'react';
 import { Users, UserPlus, X, Mail, Briefcase, Search, UserCog, Edit, Calendar, Check, Star, Shield } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -20,10 +20,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { UserGroup } from '@/api/userGroupsApi';
-import { TenantMember } from '@/api/tenantMembersApi';
-import { groupMembersApi, GroupMember } from '@/api/groupMembersApi';
+} from '../ui/dialog';
+import { UserGroup } from '../../api/userGroupsApi';
+import { TenantMember } from '../../api/tenantMembersApi';
+import { groupMembersApi, GroupMember } from '../../api/groupMembersApi';
 import { toast } from 'sonner@2.0.3';
 
 export interface GroupMembersTabProps {
@@ -574,6 +574,7 @@ function EditGroupMemberDialog({
       await groupMembersApi.update(membership._id, {
         role_in_group: role || undefined,
         is_primary: isPrimary,
+        version: membership.version,
       });
 
       // Special handling: if isPrimary changed to true, we might need to use setPrimaryGroup

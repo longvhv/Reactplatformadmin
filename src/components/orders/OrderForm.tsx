@@ -5,28 +5,31 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Order, CreateOrderRequest, ItemSnapshot, BillingInfo } from '../../api/ordersApi';
+import { Order, CreateOrderRequest, UpdateOrderRequest, LineItem, BillingInfo } from '../../api/ordersApi';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select } from '../ui/select';
 import { Textarea } from '../ui/textarea';
-import { Plus, Trash2, Save, X } from 'lucide-react';
+import { Save, X } from 'lucide-react';
+import { LineItemsEditor } from './LineItemsEditor';
 
 interface OrderFormProps {
   order?: Partial<Order>;
-  onSubmit: (data: CreateOrderRequest) => void;
+  onSubmit: (data: CreateOrderRequest | UpdateOrderRequest) => void;
   onCancel: () => void;
   loading?: boolean;
 }
 
 export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps) {
   const { t } = useLanguage();
+  const [tenants, setTenants] = useState<Tenant[]>([]);
   
   // Form state
   const [formData, setFormData] = useState({
-    tenant_id: order?.tenant_id || '00000000-0000-0000-0000-000000000001',
+    tenant_id: order?.tenant_id || '',
     order_number: order?.order_number || '',
     po_number: order?.po_number || '',
     type: order?.type || 'NEW' as const,
@@ -42,9 +45,17 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
   });
 
   // Items state
-  const [items, setItems] = useState<ItemSnapshot[]>(
+  const [items, setItems] = useState<LineItem[]>(
     order?.items_snapshot || [
-      { product_id: '', name: '', price: 0, qty: 1 }
+      { 
+        item_type: 'PRODUCT',
+        id: '', 
+        name: '', 
+        price: 0, 
+        quantity: 1,
+        product_type: 'OTHER',
+        metadata: {}
+      }
     ]
   );
 
@@ -60,9 +71,24 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
     }
   );
 
+  useEffect(() => {
+    const loadTenants = async () => {
+      try {
+        const data = await tenantsApi.getAll();
+        setTenants(data);
+        if (!formData.tenant_id && data.length > 0) {
+          setFormData(prev => ({ ...prev, tenant_id: data[0]._id }));
+        }
+      } catch (err) {
+        console.error('Failed to load tenants', err);
+      }
+    };
+    loadTenants();
+  }, []);
+
   // Auto-calculate amounts
   useEffect(() => {
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const tax = Number(formData.tax_amount) || 0;
     const discount = Number(formData.discount_amount) || 0;
     const credit = Number(formData.credit_applied) || 0;
@@ -91,31 +117,11 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
     }));
   };
 
-  const handleItemChange = (index: number, field: keyof ItemSnapshot, value: any) => {
-    const newItems = [...items];
-    newItems[index] = {
-      ...newItems[index],
-      [field]: field === 'price' || field === 'qty' ? Number(value) : value,
-    };
-    setItems(newItems);
-  };
-
-  const addItem = () => {
-    setItems([...items, { product_id: '', name: '', price: 0, qty: 1 }]);
-  };
-
-  const removeItem = (index: number) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const submitData: CreateOrderRequest = {
-      tenant_id: formData.tenant_id,
-      order_number: formData.order_number,
+    // Base data
+    const commonData = {
       po_number: formData.po_number || undefined,
       type: formData.type,
       status: formData.status,
@@ -131,7 +137,22 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
       payment_ref_id: formData.payment_ref_id || undefined,
     };
 
-    onSubmit(submitData);
+    if (order && order._id) {
+      // Update
+      const updateData: UpdateOrderRequest = {
+        ...commonData,
+        version: order.version || 1,
+      };
+      onSubmit(updateData);
+    } else {
+      // Create
+      const createData: CreateOrderRequest = {
+        ...commonData,
+        tenant_id: formData.tenant_id,
+        order_number: formData.order_number,
+      };
+      onSubmit(createData);
+    }
   };
 
   return (
@@ -143,6 +164,24 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
+            <Label htmlFor="tenant_id">Khách hàng (Tenant) *</Label>
+            <select
+              id="tenant_id"
+              name="tenant_id"
+              value={formData.tenant_id}
+              onChange={handleChange}
+              required
+              disabled={!!order} // Disable if editing
+              className="w-full mt-2 px-3 py-2 border border-input rounded-lg bg-background"
+            >
+              <option value="">-- Chọn khách hàng --</option>
+              {tenants.map(t => (
+                <option key={t._id} value={t._id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <Label htmlFor="order_number">Mã đơn hàng *</Label>
             <Input
               id="order_number"
@@ -150,12 +189,15 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
               value={formData.order_number}
               onChange={handleChange}
               required
+              readOnly={!!order} // Readonly if editing
               placeholder="ORD-2026-001"
               className="mt-2"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Mã đơn hàng phải unique trong hệ thống
-            </p>
+            {!order && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Mã đơn hàng phải unique trong hệ thống
+              </p>
+            )}
           </div>
 
           <div>
@@ -228,90 +270,11 @@ export function OrderForm({ order, onSubmit, onCancel, loading }: OrderFormProps
 
       {/* II. ITEMS */}
       <div className="bg-card p-6 rounded-lg border border-border shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-foreground">
-            II. Sản phẩm / Dịch vụ
-          </h3>
-          <Button type="button" onClick={addItem} size="sm" variant="outline">
-            <Plus className="w-4 h-4 mr-1" />
-            Thêm item
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          {items.map((item, index) => (
-            <div key={index} className="p-4 bg-muted/50 rounded-lg border border-border">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div className="md:col-span-4">
-                  <Label htmlFor={`item_name_${index}`}>Tên sản phẩm *</Label>
-                  <Input
-                    id={`item_name_${index}`}
-                    value={item.name}
-                    onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                    required
-                    placeholder="Gói Pro..."
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div className="md:col-span-3">
-                  <Label htmlFor={`item_product_id_${index}`}>Product ID</Label>
-                  <Input
-                    id={`item_product_id_${index}`}
-                    value={item.product_id}
-                    onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
-                    placeholder="prod_xxx"
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <Label htmlFor={`item_price_${index}`}>Đơn giá *</Label>
-                  <Input
-                    id={`item_price_${index}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.price}
-                    onChange={(e) => handleItemChange(index, 'price', e.target.value)}
-                    required
-                    className="mt-1 font-mono"
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <Label htmlFor={`item_qty_${index}`}>Số lượng *</Label>
-                  <Input
-                    id={`item_qty_${index}`}
-                    type="number"
-                    min="1"
-                    value={item.qty}
-                    onChange={(e) => handleItemChange(index, 'qty', e.target.value)}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                
-                <div className="md:col-span-1 flex items-end">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeItem(index)}
-                    disabled={items.length === 1}
-                    className="w-full hover:bg-red-50 dark:hover:bg-red-900/20"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="mt-2 text-sm font-semibold text-right text-foreground">
-                Thành tiền: {(item.price * item.qty).toLocaleString()} {formData.currency_code}
-              </div>
-            </div>
-          ))}
-        </div>
+        <LineItemsEditor 
+          items={items} 
+          onChange={setItems} 
+          disabled={loading}
+        />
       </div>
 
       {/* III. FINANCIAL DETAILS */}

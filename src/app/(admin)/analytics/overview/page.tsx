@@ -5,10 +5,10 @@
 'use client';
 import { Fragment, useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, DollarSign } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { analyticsApi } from '@/api/analyticsApi';
-import { showToast } from '@/lib/toast';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { analyticsApi } from '../../../../api/analyticsApi';
+import { showToast } from '../../../../lib/toast';
 
 function AnalyticsOverviewPage() {
   const [data, setData] = useState<any>(null);

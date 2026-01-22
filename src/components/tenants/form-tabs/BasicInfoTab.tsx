@@ -5,10 +5,10 @@
  */
 
 import { Building2, Globe, Mail, Phone, User, MapPin } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { useLanguage } from '../../../providers/LanguageProvider';
+import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
+import { Textarea } from '../../ui/textarea';
 
 interface BasicInfoTabProps {
   formData: any;

@@ -14,7 +14,7 @@ import {
   TrendingUp,
   AlertTriangle,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
+import { Card } from '../ui/card';
 
 interface UserStatsTabProps {
   userId: string;

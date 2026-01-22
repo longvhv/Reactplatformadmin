@@ -10,27 +10,33 @@ import {
   Mail,
   Plus,
   Trash2,
-  Copy,
   Check,
   AlertTriangle,
-  Send,
   RefreshCw,
-  XCircle,
   CheckCircle,
   Clock,
   Ban,
   Link as LinkIcon,
-  Users,
   Calendar,
   Filter,
+  Edit,
 } from 'lucide-react';
 import {
-  tenantInvitationsService,
+  tenantInvitationsApi,
   TenantInvitation,
   InvitationStatus,
-} from '../../services/tenantInvitationsService';
+  CreateInvitationRequest,
+  UpdateInvitationRequest,
+  getStatusColor,
+  getStatusLabel,
+  formatTimeUntilExpiry,
+  formatTimeSinceCreation,
+} from '../../api/tenantInvitationsApi';
+import { TenantInvitationForm } from '../tenant-invitations/TenantInvitationForm';
+import { ShowInvitationLinkModal } from '../tenant-invitations/ShowInvitationLinkModal';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { toast } from 'sonner@2.0.3';
 
 interface TenantInvitationsTabProps {
   tenantId: string;
@@ -43,10 +49,14 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
   const [invitations, setInvitations] = useState<TenantInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showInvitationLinkModal, setShowInvitationLinkModal] = useState(false);
   const [selectedInvitation, setSelectedInvitation] = useState<TenantInvitation | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [editingInvitation, setEditingInvitation] = useState<TenantInvitation | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  
   const [filterStatus, setFilterStatus] = useState<InvitationStatus | 'ALL'>('ALL');
 
   // Load invitations
@@ -54,10 +64,10 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const data = await tenantInvitationsService.getByTenantId(tenantId);
+      const data = await tenantInvitationsApi.getByTenant(tenantId);
       setInvitations(data);
     } catch (err) {
-      setError(t('invitations.fetchError'));
+      setError(t('invitations.fetchError') || 'Failed to fetch invitations');
       console.error('Error loading invitations:', err);
     } finally {
       setLoading(false);
@@ -70,28 +80,66 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
     }
   }, [tenantId]);
 
+  // Handle create submit
+  const handleCreateSubmit = async (data: CreateInvitationRequest | UpdateInvitationRequest) => {
+    try {
+      setSubmitting(true);
+      const newInvitation = await tenantInvitationsApi.create(data as CreateInvitationRequest);
+      
+      toast.success(t('common.success') || 'Invitation sent successfully');
+      setShowCreateModal(false);
+      setSelectedInvitation(newInvitation);
+      setShowInvitationLinkModal(true);
+      loadInvitations();
+    } catch (err: any) {
+      toast.error(t('common.error') || 'Error', { description: err.message || 'Failed to send invitation' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle update submit
+  const handleUpdateSubmit = async (data: CreateInvitationRequest | UpdateInvitationRequest) => {
+    if (!editingInvitation) return;
+    
+    try {
+      setSubmitting(true);
+      await tenantInvitationsApi.update(editingInvitation._id, data as UpdateInvitationRequest);
+      
+      toast.success(t('common.success') || 'Invitation updated successfully');
+      setEditingInvitation(null);
+      loadInvitations();
+    } catch (err: any) {
+      toast.error(t('common.error') || 'Error', { description: err.message || 'Failed to update invitation' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Handle delete
   const handleDelete = async (id: string, email: string) => {
-    if (!confirm(t('invitations.confirmDelete', { email }))) return;
+    if (!confirm(t('invitations.confirmDelete', { email }) || `Are you sure you want to delete invitation for ${email}?`)) return;
 
     try {
-      await tenantInvitationsService.delete(id);
+      await tenantInvitationsApi.delete(id);
       await loadInvitations();
+      toast.success(t('common.success') || 'Invitation deleted successfully');
     } catch (err) {
-      alert(t('invitations.deleteError'));
+      toast.error(t('common.error') || 'Error', { description: 'Failed to delete invitation' });
       console.error('Error deleting invitation:', err);
     }
   };
 
   // Handle revoke
   const handleRevoke = async (id: string, email: string) => {
-    if (!confirm(t('invitations.confirmRevoke', { email }))) return;
+    if (!confirm(t('invitations.confirmRevoke', { email }) || `Are you sure you want to revoke invitation for ${email}?`)) return;
 
     try {
-      await tenantInvitationsService.revoke(id);
+      await tenantInvitationsApi.revoke(id);
       await loadInvitations();
+      toast.success(t('common.success') || 'Invitation revoked successfully');
     } catch (err) {
-      alert(t('invitations.revokeError'));
+      toast.error(t('common.error') || 'Error', { description: 'Failed to revoke invitation' });
       console.error('Error revoking invitation:', err);
     }
   };
@@ -99,12 +147,13 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
   // Handle resend
   const handleResend = async (id: string) => {
     try {
-      const newInvitation = await tenantInvitationsService.resend(id);
+      const newInvitation = await tenantInvitationsApi.resend(id);
       setSelectedInvitation(newInvitation);
       setShowInvitationLinkModal(true);
       await loadInvitations();
+      toast.success(t('common.success') || 'Invitation resent successfully');
     } catch (err: any) {
-      alert(err.message || t('invitations.resendError'));
+      toast.error(t('common.error') || 'Error', { description: err.message || 'Failed to resend invitation' });
       console.error('Error resending invitation:', err);
     }
   };
@@ -115,16 +164,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
     setShowInvitationLinkModal(true);
   };
 
-  // Copy to clipboard
-  const copyToClipboard = (text: string, id?: string) => {
-    navigator.clipboard.writeText(text);
-    if (id) {
-      setCopiedId(id);
-      setTimeout(() => setCopiedId(null), 2000);
-    }
-  };
-
-  if (loading) {
+  if (loading && !invitations.length) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -160,10 +200,10 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">
-            {t('invitations.title')}
+            {t('invitations.title') || 'Invitations'}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            {t('invitations.subtitle')}
+            {t('invitations.subtitle') || 'Manage email-based invitations for tenant members.'}
           </p>
         </div>
         <Button
@@ -171,7 +211,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          {t('invitations.sendInvitation')}
+          {t('invitations.sendInvitation') || 'Send Invitation'}
         </Button>
       </div>
 
@@ -181,10 +221,10 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
           <Mail className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
             <p className="font-medium text-blue-900">
-              {t('invitations.howInvitationsWork')}
+              {t('invitations.howInvitationsWork') || 'How invitations work'}
             </p>
             <p className="text-sm text-blue-700 mt-1">
-              {t('invitations.invitationsDescription')}
+              {t('invitations.invitationsDescription') || 'Invite members by email. They will receive a link to join your tenant. You can assign roles and departments.'}
             </p>
           </div>
         </div>
@@ -199,7 +239,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                 <Mail className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('invitations.totalInvitations')}</p>
+                <p className="text-sm text-gray-500">{t('invitations.totalInvitations') || 'Total'}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
             </div>
@@ -211,7 +251,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                 <Clock className="h-5 w-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('invitations.pending')}</p>
+                <p className="text-sm text-gray-500">{t('invitations.pending') || 'Pending'}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.pending}</p>
               </div>
             </div>
@@ -223,7 +263,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                 <CheckCircle className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('invitations.accepted')}</p>
+                <p className="text-sm text-gray-500">{t('invitations.accepted') || 'Accepted'}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.accepted}</p>
               </div>
             </div>
@@ -235,7 +275,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                 <Calendar className="h-5 w-5 text-gray-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('invitations.expired')}</p>
+                <p className="text-sm text-gray-500">{t('invitations.expired') || 'Expired'}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.expired}</p>
               </div>
             </div>
@@ -247,7 +287,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                 <Ban className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('invitations.revoked')}</p>
+                <p className="text-sm text-gray-500">{t('invitations.revoked') || 'Revoked'}</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.revoked}</p>
               </div>
             </div>
@@ -264,14 +304,14 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
             onChange={(e) => setFilterStatus(e.target.value as InvitationStatus | 'ALL')}
             className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="ALL">{t('invitations.allStatuses')}</option>
-            <option value="PENDING">{t('invitations.pending')}</option>
-            <option value="ACCEPTED">{t('invitations.accepted')}</option>
-            <option value="EXPIRED">{t('invitations.expired')}</option>
-            <option value="REVOKED">{t('invitations.revoked')}</option>
+            <option value="ALL">{t('invitations.allStatuses') || 'All Statuses'}</option>
+            <option value="PENDING">{t('invitations.pending') || 'Pending'}</option>
+            <option value="ACCEPTED">{t('invitations.accepted') || 'Accepted'}</option>
+            <option value="EXPIRED">{t('invitations.expired') || 'Expired'}</option>
+            <option value="REVOKED">{t('invitations.revoked') || 'Revoked'}</option>
           </select>
           <span className="text-sm text-gray-500">
-            {filteredInvitations.length} {t('invitations.results')}
+            {filteredInvitations.length} {t('invitations.results') || 'results'}
           </span>
         </div>
       )}
@@ -284,26 +324,27 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('invitations.email')}
+                    {t('invitations.email') || 'Email'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('invitations.status')}
+                    {t('invitations.status') || 'Status'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('invitations.expiresAt')}
+                    {t('invitations.expiresAt') || 'Expires At'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('invitations.invitedAt')}
+                    {t('invitations.invitedAt') || 'Invited At'}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('common.actions')}
+                    {t('common.actions') || 'Actions'}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredInvitations.map((invitation) => {
-                  const statusColor = tenantInvitationsService.getStatusColor(invitation.status);
+                  const statusColor = getStatusColor(invitation.status);
                   const isExpired = new Date(invitation.expires_at) < new Date() && invitation.status === 'PENDING';
+                  const effectiveStatus = isExpired ? 'EXPIRED' : invitation.status;
                   
                   return (
                     <tr key={invitation._id} className="hover:bg-gray-50 transition-colors">
@@ -314,45 +355,33 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                         </div>
                         {invitation.role_ids && invitation.role_ids.length > 0 && (
                           <p className="text-xs text-gray-500 mt-1 ml-6">
-                            {invitation.role_ids.length} role(s) assigned
+                            {invitation.role_ids.join(', ')}
                           </p>
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {isExpired ? (
-                          <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-                            <Calendar className="h-3 w-3" />
-                            {t('invitations.expired')}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant={
-                              statusColor === 'green' ? 'success' :
-                              statusColor === 'yellow' ? 'warning' :
-                              statusColor === 'red' ? 'destructive' :
-                              'secondary'
-                            }
-                            className="flex items-center gap-1 w-fit"
-                          >
-                            {invitation.status === 'PENDING' && <Clock className="h-3 w-3" />}
-                            {invitation.status === 'ACCEPTED' && <CheckCircle className="h-3 w-3" />}
-                            {invitation.status === 'EXPIRED' && <Calendar className="h-3 w-3" />}
-                            {invitation.status === 'REVOKED' && <Ban className="h-3 w-3" />}
-                            {tenantInvitationsService.getStatusDisplay(invitation.status)}
-                          </Badge>
-                        )}
+                        <Badge
+                          variant="outline"
+                          className={`${statusColor} flex items-center gap-1 w-fit`}
+                        >
+                          {effectiveStatus === 'PENDING' && <Clock className="h-3 w-3" />}
+                          {effectiveStatus === 'ACCEPTED' && <CheckCircle className="h-3 w-3" />}
+                          {effectiveStatus === 'EXPIRED' && <Calendar className="h-3 w-3" />}
+                          {effectiveStatus === 'REVOKED' && <Ban className="h-3 w-3" />}
+                          {getStatusLabel(effectiveStatus as InvitationStatus)}
+                        </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <div className="flex items-center gap-1 text-gray-600">
                           <Calendar className="h-3 w-3" />
-                          {tenantInvitationsService.getTimeUntilExpiry(invitation.expires_at)}
+                          {formatTimeUntilExpiry(invitation.expires_at)}
                         </div>
                         <p className="text-xs text-gray-400 mt-1">
                           {new Date(invitation.expires_at).toLocaleDateString()}
                         </p>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
-                        {tenantInvitationsService.getTimeSinceCreation(invitation.created_at)}
+                        {formatTimeSinceCreation(invitation.created_at)}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
@@ -361,15 +390,23 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                               <button
                                 onClick={() => handleShowLink(invitation)}
                                 className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                                title={t('invitations.showLink')}
+                                title={t('invitations.showLink') || 'Show Link'}
                               >
                                 <LinkIcon className="h-4 w-4" />
                               </button>
                               <span className="text-gray-300">|</span>
                               <button
+                                onClick={() => setEditingInvitation(invitation)}
+                                className="text-gray-600 hover:text-gray-800 text-sm font-medium"
+                                title={t('common.edit') || 'Edit'}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <span className="text-gray-300">|</span>
+                              <button
                                 onClick={() => handleResend(invitation._id)}
                                 className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                                title={t('invitations.resend')}
+                                title={t('invitations.resend') || 'Resend'}
                               >
                                 <RefreshCw className="h-4 w-4" />
                               </button>
@@ -377,7 +414,7 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                               <button
                                 onClick={() => handleRevoke(invitation._id, invitation.email)}
                                 className="text-orange-600 hover:text-orange-800 text-sm font-medium"
-                                title={t('invitations.revoke')}
+                                title={t('invitations.revoke') || 'Revoke'}
                               >
                                 <Ban className="h-4 w-4" />
                               </button>
@@ -387,18 +424,18 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
                             <button
                               onClick={() => handleResend(invitation._id)}
                               className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                              title={t('invitations.resend')}
+                              title={t('invitations.resend') || 'Resend'}
                             >
                               <RefreshCw className="h-4 w-4" />
                             </button>
                           )}
-                          {(invitation.status === 'ACCEPTED' || invitation.status === 'REVOKED' || invitation.status === 'EXPIRED') && (
+                          {(invitation.status === 'ACCEPTED' || invitation.status === 'REVOKED' || isExpired || invitation.status === 'EXPIRED') && (
                             <>
-                              {invitation.status !== 'EXPIRED' && <span className="text-gray-300">|</span>}
+                              {(invitation.status === 'ACCEPTED' || invitation.status === 'REVOKED') && <span className="text-gray-300">|</span>}
                               <button
                                 onClick={() => handleDelete(invitation._id, invitation.email)}
                                 className="text-red-600 hover:text-red-800"
-                                title={t('invitations.delete')}
+                                title={t('invitations.delete') || 'Delete'}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -418,30 +455,36 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
           <Mail className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500 mb-4">
             {filterStatus === 'ALL' 
-              ? t('invitations.noInvitations') 
-              : t('invitations.noInvitationsWithStatus', { status: filterStatus.toLowerCase() })}
+              ? (t('invitations.noInvitations') || 'No invitations found.')
+              : (t('invitations.noInvitationsWithStatus', { status: filterStatus.toLowerCase() }) || `No ${filterStatus.toLowerCase()} invitations found.`)}
           </p>
           {filterStatus === 'ALL' && (
             <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              {t('invitations.sendFirstInvitation')}
+              {t('invitations.sendFirstInvitation') || 'Send First Invitation'}
             </Button>
           )}
         </div>
       )}
 
-      {/* Create Invitation Modal */}
-      {showCreateModal && (
-        <CreateInvitationModal
-          tenantId={tenantId}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={(invitation) => {
-            setShowCreateModal(false);
-            setSelectedInvitation(invitation);
-            setShowInvitationLinkModal(true);
-            loadInvitations();
-          }}
-        />
+      {/* Unified Modal Container */}
+      {(showCreateModal || editingInvitation) && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <TenantInvitationForm 
+                tenantId={tenantId}
+                initialData={editingInvitation || undefined}
+                onSubmit={editingInvitation ? handleUpdateSubmit : handleCreateSubmit}
+                onCancel={() => {
+                  setShowCreateModal(false);
+                  setEditingInvitation(null);
+                }}
+                loading={submitting}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Show Invitation Link Modal */}
@@ -454,235 +497,6 @@ export const TenantInvitationsTab: React.FC<TenantInvitationsTabProps> = ({
           }}
         />
       )}
-    </div>
-  );
-};
-
-// Create Invitation Modal Component
-interface CreateInvitationModalProps {
-  tenantId: string;
-  onClose: () => void;
-  onSuccess: (invitation: TenantInvitation) => void;
-}
-
-const CreateInvitationModal: React.FC<CreateInvitationModalProps> = ({
-  tenantId,
-  onClose,
-  onSuccess,
-}) => {
-  const { t } = useTranslation();
-  const [email, setEmail] = useState('');
-  const [expiresInDays, setExpiresInDays] = useState(7);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!email.trim()) {
-      setError(t('invitations.emailRequired'));
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      const invitation = await tenantInvitationsService.create({
-        tenant_id: tenantId,
-        email: email.trim(),
-        expires_in_days: expiresInDays,
-      });
-
-      onSuccess(invitation);
-    } catch (err: any) {
-      setError(err.message || t('invitations.createError'));
-      console.error('Error creating invitation:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {t('invitations.sendInvitation')}
-        </h3>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invitations.email')}
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('invitations.emailPlaceholder')}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {/* Expiry */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('invitations.expiresIn')}
-            </label>
-            <select
-              value={expiresInDays}
-              onChange={(e) => setExpiresInDays(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value={1}>1 {t('invitations.day')}</option>
-              <option value={3}>3 {t('invitations.days')}</option>
-              <option value={7}>7 {t('invitations.days')}</option>
-              <option value={14}>14 {t('invitations.days')}</option>
-              <option value={30}>30 {t('invitations.days')}</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={submitting} className="flex-1">
-              {submitting ? t('common.sending') : t('common.send')}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Show Invitation Link Modal
-interface ShowInvitationLinkModalProps {
-  invitation: TenantInvitation;
-  onClose: () => void;
-}
-
-const ShowInvitationLinkModal: React.FC<ShowInvitationLinkModalProps> = ({ 
-  invitation, 
-  onClose 
-}) => {
-  const { t } = useTranslation();
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [copiedToken, setCopiedToken] = useState(false);
-
-  const link = tenantInvitationsService.getInvitationLink(invitation);
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(link.url);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
-
-  const copyToken = () => {
-    navigator.clipboard.writeText(link.token);
-    setCopiedToken(true);
-    setTimeout(() => setCopiedToken(false), 2000);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
-            {t('invitations.invitationLink')}
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          {/* Warning */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-yellow-900">
-                  {t('invitations.shareSecurely')}
-                </p>
-                <p className="text-sm text-yellow-700 mt-1">
-                  {t('invitations.shareSecurelyMessage')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Invitation URL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('invitations.invitationUrl')}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={link.url}
-                readOnly
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm"
-              />
-              <Button onClick={copyLink} variant="outline">
-                {copiedLink ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
-          {/* Token */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('invitations.token')}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={link.token}
-                readOnly
-                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm"
-              />
-              <Button onClick={copyToken} variant="outline">
-                {copiedToken ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('invitations.email')}:</span>
-              <span className="text-sm font-medium text-gray-900">{invitation.email}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('invitations.expiresAt')}:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {new Date(invitation.expires_at).toLocaleString()}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('invitations.validFor')}:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {tenantInvitationsService.getTimeUntilExpiry(invitation.expires_at)}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button onClick={copyLink} variant="outline" className="flex-1">
-              <Copy className="h-4 w-4 mr-2" />
-              {t('invitations.copyLink')}
-            </Button>
-            <Button onClick={onClose} className="flex-1">
-              {t('common.close')}
-            </Button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

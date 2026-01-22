@@ -5,16 +5,16 @@
 
 import { useState } from 'react';
 import { ChevronRight, ChevronDown, Building2, Network } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import type { Tenant } from '@/data/tenants';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import type { Tenant } from '../../data/tenants';
 import { 
   getHierarchyDepth, 
   isRootTenant, 
   tenantStatusColors, 
   tenantTierColors 
-} from '@/utils/tenant-utils';
+} from '../../utils/tenant-utils';
 
 interface TenantNode extends Tenant {
   children?: TenantNode[];

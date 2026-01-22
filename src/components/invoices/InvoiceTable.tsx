@@ -66,7 +66,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         <h3 className="mt-2 text-sm font-medium text-gray-900">{t('invoices.noInvoices')}</h3>
         <p className="mt-1 text-sm text-gray-500">{t('invoices.noInvoicesDescription')}</p>
         <div className="mt-6">
-          <Button onClick={() => navigate('/commerce/subscription-invoices/add')}>
+          <Button onClick={() => navigate('/subscriptions/invoices/add')}>
             {t('invoices.addInvoice')}
           </Button>
         </div>
@@ -111,7 +111,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <FileText className="h-5 w-5 text-indigo-600 mr-2" />
                     <div>
                       <button
-                        onClick={() => navigate(`/commerce/subscription-invoices/${invoice._id}`)}
+                        onClick={() => navigate(`/subscriptions/invoices/${invoice._id}`)}
                         className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                       >
                         {invoice.invoice_number}
@@ -185,7 +185,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => navigate(`/commerce/subscription-invoices/edit/${invoice._id}`)}
+                      onClick={() => navigate(`/subscriptions/invoices/edit/${invoice._id}`)}
                       title={t('common.edit')}
                     >
                       <Pencil className="h-4 w-4" />

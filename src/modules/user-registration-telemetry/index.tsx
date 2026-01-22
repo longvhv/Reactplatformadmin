@@ -13,16 +13,16 @@ import { BarChart3 } from 'lucide-react';
 // Lazy-loaded pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const UserRegistrationTelemetryPage = lazy(() => 
-  import('../../app/(admin)/platform/user-registrations/page')
+  import('../../app/(admin)/platform/user-registrations/page').then(m => ({ default: m.default }))
 );
 const AddUserRegistrationPage = lazy(() => 
-  import('../../app/(admin)/platform/user-registrations/add/page')
+  import('../../app/(admin)/platform/user-registrations/add/page').then(m => ({ default: m.default }))
 );
 const EditUserRegistrationPage = lazy(() => 
-  import('../../app/(admin)/platform/user-registrations/edit/[id]/page')
+  import('../../app/(admin)/platform/user-registrations/edit/[id]/page').then(m => ({ default: m.default }))
 );
 const UserRegistrationDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/user-registrations/[id]/page')
+  import('../../app/(admin)/platform/user-registrations/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const UserRegistrationTelemetryModule: ModuleDefinition = {
@@ -83,3 +83,5 @@ export const UserRegistrationTelemetryModule: ModuleDefinition = {
     },
   ],
 };
+
+export default UserRegistrationTelemetryModule;

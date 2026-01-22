@@ -2,6 +2,7 @@
  * TenantApiKeysTab Component
  * Manages API keys for tenant with security best practices
  * Design inspired by Stripe/GitHub/Vercel API key management
+ * ✅ Updated 2026-01-20: Added Edit functionality and Optimistic Locking support
  */
 
 import React, { useState, useEffect } from 'react';
@@ -14,21 +15,19 @@ import {
   Check,
   AlertTriangle,
   Clock,
-  Calendar,
-  Eye,
-  EyeOff,
   Shield,
   RefreshCw,
-  Globe,
   Activity,
-  MoreVertical,
+  Edit,
 } from 'lucide-react';
 import {
   apiKeysService,
   ApiKey,
   GeneratedApiKey,
-  AVAILABLE_SCOPES,
+  CreateApiKeyInput,
+  UpdateApiKeyInput,
 } from '../../services/apiKeysService';
+import { ApiKeyForm } from '../api-keys/ApiKeyForm';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 
@@ -41,9 +40,14 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingKey, setEditingKey] = useState<ApiKey | null>(null);
   const [showKeyModal, setShowKeyModal] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<GeneratedApiKey | null>(null);
+  
+  const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Load API keys
@@ -54,7 +58,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
       const data = await apiKeysService.getByTenantId(tenantId);
       setKeys(data);
     } catch (err) {
-      setError(t('apiKeys.fetchError'));
+      setError(t('apiKeys.fetchError') || 'Failed to fetch API keys');
       console.error('Error loading API keys:', err);
     } finally {
       setLoading(false);
@@ -67,22 +71,58 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
     }
   }, [tenantId]);
 
+  // Handle create
+  const handleCreateSubmit = async (data: CreateApiKeyInput | UpdateApiKeyInput) => {
+    try {
+      setSubmitting(true);
+      // It's a create input
+      const key = await apiKeysService.create(data as CreateApiKeyInput);
+      
+      setShowCreateModal(false);
+      setGeneratedKey(key);
+      setShowKeyModal(true);
+      loadKeys();
+    } catch (err: any) {
+      alert(err.message || t('apiKeys.createError') || 'Failed to create API key');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Handle update
+  const handleUpdateSubmit = async (data: CreateApiKeyInput | UpdateApiKeyInput) => {
+    if (!editingKey) return;
+    
+    try {
+      setSubmitting(true);
+      // It's an update input
+      await apiKeysService.update(editingKey._id, data as UpdateApiKeyInput);
+      
+      setEditingKey(null);
+      loadKeys();
+    } catch (err: any) {
+      alert(err.message || t('apiKeys.updateError') || 'Failed to update API key');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Handle delete
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(t('apiKeys.confirmRevoke', { name }))) return;
+    if (!confirm(t('apiKeys.confirmRevoke', { name }) || `Are you sure you want to revoke key "${name}"?`)) return;
 
     try {
       await apiKeysService.delete(id);
       await loadKeys();
     } catch (err) {
-      alert(t('apiKeys.revokeError'));
+      alert(t('apiKeys.revokeError') || 'Failed to revoke API key');
       console.error('Error deleting API key:', err);
     }
   };
 
   // Handle rotate
   const handleRotate = async (id: string, name: string) => {
-    if (!confirm(t('apiKeys.confirmRotate', { name }))) return;
+    if (!confirm(t('apiKeys.confirmRotate', { name }) || `Are you sure you want to rotate key "${name}"? The old key will be deleted immediately.`)) return;
 
     try {
       const newKey = await apiKeysService.rotateKey(id);
@@ -90,7 +130,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
       setShowKeyModal(true);
       await loadKeys();
     } catch (err) {
-      alert(t('apiKeys.rotateError'));
+      alert(t('apiKeys.rotateError') || 'Failed to rotate API key');
       console.error('Error rotating API key:', err);
     }
   };
@@ -113,7 +153,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
   // Get expiration badge
   const getExpirationBadge = (expiresAt?: string) => {
     if (!expiresAt) {
-      return <Badge variant="secondary">{t('apiKeys.neverExpires')}</Badge>;
+      return <Badge variant="secondary">{t('apiKeys.neverExpires') || 'Never expires'}</Badge>;
     }
 
     const expired = isExpired(expiresAt);
@@ -121,28 +161,28 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
 
     if (expired) {
       return (
-        <Badge variant="danger" className="flex items-center gap-1">
+        <Badge variant="destructive" className="flex items-center gap-1">
           <AlertTriangle className="h-3 w-3" />
-          {t('apiKeys.expired')}
+          {t('apiKeys.expired') || 'Expired'}
         </Badge>
       );
     } else if (daysUntil && daysUntil <= 7) {
       return (
-        <Badge variant="warning" className="flex items-center gap-1">
+        <Badge variant="warning" className="flex items-center gap-1 bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200">
           <Clock className="h-3 w-3" />
-          {t('apiKeys.expiresSoon', { days: daysUntil })}
+          {t('apiKeys.expiresSoon', { days: daysUntil }) || `Expires in ${daysUntil} days`}
         </Badge>
       );
     } else {
       return (
-        <Badge variant="success">
-          {daysUntil} {t('apiKeys.daysLeft')}
+        <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+          {daysUntil} {t('apiKeys.daysLeft') || 'days left'}
         </Badge>
       );
     }
   };
 
-  if (loading) {
+  if (loading && !keys.length) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -167,15 +207,15 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">{t('apiKeys.title')}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t('apiKeys.subtitle')}</p>
+          <h2 className="text-xl font-semibold text-gray-900">{t('apiKeys.title') || 'API Keys'}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t('apiKeys.subtitle') || 'Manage access tokens for your applications.'}</p>
         </div>
         <Button
           onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          {t('apiKeys.createKey')}
+          {t('apiKeys.createKey') || 'Create New Key'}
         </Button>
       </div>
 
@@ -184,8 +224,10 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
         <div className="flex items-start gap-3">
           <Shield className="h-5 w-5 text-yellow-600 mt-0.5" />
           <div>
-            <p className="font-medium text-yellow-900">{t('apiKeys.securityWarning')}</p>
-            <p className="text-sm text-yellow-700 mt-1">{t('apiKeys.securityWarningMessage')}</p>
+            <p className="font-medium text-yellow-900">{t('apiKeys.securityWarning') || 'Keep your keys secure'}</p>
+            <p className="text-sm text-yellow-700 mt-1">
+              {t('apiKeys.securityWarningMessage') || 'Your API keys carry many privileges, so be sure to keep them secure! Do not share your secret API keys in publicly accessible areas such as GitHub, client-side code, and so forth.'}
+            </p>
           </div>
         </div>
       </div>
@@ -199,7 +241,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                 <Key className="h-5 w-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('apiKeys.totalKeys')}</p>
+                <p className="text-sm text-gray-500">{t('apiKeys.totalKeys') || 'Total Keys'}</p>
                 <p className="text-2xl font-bold text-gray-900">{keys.length}</p>
               </div>
             </div>
@@ -211,7 +253,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                 <Check className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('apiKeys.active')}</p>
+                <p className="text-sm text-gray-500">{t('apiKeys.active') || 'Active'}</p>
                 <p className="text-2xl font-bold text-gray-900">{activeKeys.length}</p>
               </div>
             </div>
@@ -223,7 +265,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('apiKeys.expired')}</p>
+                <p className="text-sm text-gray-500">{t('apiKeys.expired') || 'Expired'}</p>
                 <p className="text-2xl font-bold text-gray-900">{expiredKeys.length}</p>
               </div>
             </div>
@@ -235,7 +277,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                 <Activity className="h-5 w-5 text-gray-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('apiKeys.neverUsed')}</p>
+                <p className="text-sm text-gray-500">{t('apiKeys.neverUsed') || 'Never Used'}</p>
                 <p className="text-2xl font-bold text-gray-900">{neverUsedKeys.length}</p>
               </div>
             </div>
@@ -251,22 +293,22 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('apiKeys.name')}
+                    {t('apiKeys.name') || 'Name'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('apiKeys.key')}
+                    {t('apiKeys.key') || 'Key'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('apiKeys.scopes')}
+                    {t('apiKeys.scopes') || 'Scopes'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('apiKeys.expiration')}
+                    {t('apiKeys.expiration') || 'Expiration'}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('apiKeys.lastUsed')}
+                    {t('apiKeys.lastUsed') || 'Last Used'}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('common.actions')}
+                    {t('common.actions') || 'Actions'}
                   </th>
                 </tr>
               </thead>
@@ -286,7 +328,8 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                         </code>
                         <button
                           onClick={() => copyToClipboard(key.key_prefix, key._id)}
-                          className="text-gray-400 hover:text-gray-600"
+                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                          title="Copy prefix"
                         >
                           {copiedId === key._id ? (
                             <Check className="h-4 w-4 text-green-600" />
@@ -299,19 +342,21 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
                         {key.scopes.length > 0 ? (
-                          key.scopes.slice(0, 2).map((scope, idx) => (
-                            <Badge key={idx} variant="secondary" className="text-xs">
-                              {scope}
-                            </Badge>
-                          ))
+                          <>
+                            {key.scopes.slice(0, 2).map((scope, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs font-mono">
+                                {scope}
+                              </Badge>
+                            ))}
+                            {key.scopes.length > 2 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{key.scopes.length - 2}
+                              </Badge>
+                            )}
+                          </>
                         ) : (
                           <Badge variant="secondary" className="text-xs">
-                            {t('apiKeys.noScopes')}
-                          </Badge>
-                        )}
-                        {key.scopes.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{key.scopes.length - 2}
+                            {t('apiKeys.noScopes') || 'No scopes'}
                           </Badge>
                         )}
                       </div>
@@ -326,23 +371,31 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                           {new Date(key.last_used_at).toLocaleDateString()}
                         </div>
                       ) : (
-                        <span className="text-gray-400">{t('apiKeys.never')}</span>
+                        <span className="text-gray-400">{t('apiKeys.never') || 'Never'}</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                         <button
+                          onClick={() => setEditingKey(key)}
+                          className="text-gray-600 hover:text-indigo-600 text-sm font-medium p-1 rounded hover:bg-indigo-50 transition-colors"
+                          title={t('common.edit') || 'Edit'}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <span className="text-gray-300">|</span>
                         <button
                           onClick={() => handleRotate(key._id, key.name)}
-                          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                          title={t('apiKeys.rotate')}
+                          className="text-indigo-600 hover:text-indigo-800 text-sm font-medium p-1 rounded hover:bg-indigo-50 transition-colors"
+                          title={t('apiKeys.rotate') || 'Rotate Key'}
                         >
                           <RefreshCw className="h-4 w-4" />
                         </button>
                         <span className="text-gray-300">|</span>
                         <button
                           onClick={() => handleDelete(key._id, key.name)}
-                          className="text-red-600 hover:text-red-800"
-                          title={t('apiKeys.revoke')}
+                          className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                          title={t('apiKeys.revoke') || 'Revoke Key'}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -357,26 +410,32 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
       ) : (
         <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
           <Key className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 mb-4">{t('apiKeys.noKeys')}</p>
+          <p className="text-gray-500 mb-4">{t('apiKeys.noKeys') || 'No API keys found for this tenant.'}</p>
           <Button onClick={() => setShowCreateModal(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            {t('apiKeys.createFirstKey')}
+            {t('apiKeys.createFirstKey') || 'Create Your First Key'}
           </Button>
         </div>
       )}
 
-      {/* Create API Key Modal */}
-      {showCreateModal && (
-        <CreateApiKeyModal
-          tenantId={tenantId}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={(key) => {
-            setShowCreateModal(false);
-            setGeneratedKey(key);
-            setShowKeyModal(true);
-            loadKeys();
-          }}
-        />
+      {/* Unified Modal Container */}
+      {(showCreateModal || editingKey) && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <ApiKeyForm 
+                tenantId={tenantId}
+                initialData={editingKey || undefined}
+                onSubmit={editingKey ? handleUpdateSubmit : handleCreateSubmit}
+                onCancel={() => {
+                  setShowCreateModal(false);
+                  setEditingKey(null);
+                }}
+                loading={submitting}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Show API Key Modal (one-time display) */}
@@ -393,180 +452,6 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
   );
 };
 
-// Create API Key Modal Component
-interface CreateApiKeyModalProps {
-  tenantId: string;
-  onClose: () => void;
-  onSuccess: (key: GeneratedApiKey) => void;
-}
-
-const CreateApiKeyModal: React.FC<CreateApiKeyModalProps> = ({
-  tenantId,
-  onClose,
-  onSuccess,
-}) => {
-  const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
-  const [allowedIps, setAllowedIps] = useState('');
-  const [expiresInDays, setExpiresInDays] = useState<number | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleScopeToggle = (scope: string) => {
-    setSelectedScopes(prev =>
-      prev.includes(scope)
-        ? prev.filter(s => s !== scope)
-        : [...prev, scope]
-    );
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!name.trim()) {
-      setError(t('apiKeys.nameRequired'));
-      return;
-    }
-
-    if (selectedScopes.length === 0) {
-      setError(t('apiKeys.scopesRequired'));
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-
-      // Parse IPs
-      const ipsArray = allowedIps
-        .split(',')
-        .map(ip => ip.trim())
-        .filter(ip => ip.length > 0);
-
-      // Calculate expiration
-      let expiresAt: string | undefined;
-      if (expiresInDays !== null && expiresInDays > 0) {
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + expiresInDays);
-        expiresAt = expiry.toISOString();
-      }
-
-      const key = await apiKeysService.create({
-        tenant_id: tenantId,
-        name: name.trim(),
-        scopes: selectedScopes,
-        allowed_ips: ipsArray.length > 0 ? ipsArray : undefined,
-        expires_at: expiresAt,
-      });
-
-      onSuccess(key);
-    } catch (err: any) {
-      setError(err.message || t('apiKeys.createError'));
-      console.error('Error creating API key:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          {t('apiKeys.createKey')}
-        </h3>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('apiKeys.keyName')}
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t('apiKeys.keyNamePlaceholder')}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          {/* Scopes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('apiKeys.permissions')}
-            </label>
-            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-              {AVAILABLE_SCOPES.map((scope) => (
-                <label key={scope} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedScopes.includes(scope)}
-                    onChange={() => handleScopeToggle(scope)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-gray-700">
-                    {apiKeysService.getScopeDisplayName(scope)}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Allowed IPs */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('apiKeys.allowedIps')} ({t('common.optional')})
-            </label>
-            <input
-              type="text"
-              value={allowedIps}
-              onChange={(e) => setAllowedIps(e.target.value)}
-              placeholder="192.168.1.0/24, 10.0.0.1"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">{t('apiKeys.allowedIpsHint')}</p>
-          </div>
-
-          {/* Expiration */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('apiKeys.expiresIn')} ({t('common.optional')})
-            </label>
-            <select
-              value={expiresInDays || ''}
-              onChange={(e) => setExpiresInDays(e.target.value ? parseInt(e.target.value) : null)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">{t('apiKeys.neverExpires')}</option>
-              <option value="7">7 {t('apiKeys.days')}</option>
-              <option value="30">30 {t('apiKeys.days')}</option>
-              <option value="90">90 {t('apiKeys.days')}</option>
-              <option value="180">180 {t('apiKeys.days')}</option>
-              <option value="365">365 {t('apiKeys.days')}</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-              {t('common.cancel')}
-            </Button>
-            <Button type="submit" disabled={submitting} className="flex-1">
-              {submitting ? t('common.creating') : t('common.create')}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 // Show API Key Modal (one-time display)
 interface ShowApiKeyModalProps {
   generatedKey: GeneratedApiKey;
@@ -576,7 +461,9 @@ interface ShowApiKeyModalProps {
 const ShowApiKeyModal: React.FC<ShowApiKeyModalProps> = ({ generatedKey, onClose }) => {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const [showKey, setShowKey] = useState(true);
+  
+  // We don't hide the key initially because it's a one-time show
+  // But we can add a toggle if needed. For now, show it clearly.
 
   const copyKey = () => {
     navigator.clipboard.writeText(generatedKey.plainKey);
@@ -585,80 +472,58 @@ const ShowApiKeyModal: React.FC<ShowApiKeyModalProps> = ({ generatedKey, onClose
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{t('apiKeys.keyCreated')}</h3>
-        </div>
-
-        <div className="space-y-4">
-          {/* Warning */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div>
-                <p className="font-medium text-yellow-900">{t('apiKeys.oneTimeWarning')}</p>
-                <p className="text-sm text-yellow-700 mt-1">
-                  {t('apiKeys.oneTimeWarningMessage')}
-                </p>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="bg-green-100 p-2 rounded-full">
+                <Check className="h-5 w-5 text-green-600" />
               </div>
+              <h3 className="text-lg font-semibold text-gray-900">{t('apiKeys.keyCreated') || 'API Key Created'}</h3>
             </div>
           </div>
 
-          {/* API Key Display */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {t('apiKeys.yourApiKey')}
-            </label>
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <input
-                  type={showKey ? 'text' : 'password'}
-                  value={generatedKey.plainKey}
-                  readOnly
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm pr-10"
-                />
+          <div className="space-y-4">
+            {/* Warning */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-medium mb-1">{t('apiKeys.saveKeyWarning') || 'Save this key immediately!'}</p>
+                  <p>{t('apiKeys.saveKeyDescription') || 'This is the only time we will show you the full API key. Make sure to copy it and store it in a secure location.'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Display */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {generatedKey.apiKey.name}
+              </label>
+              <div className="relative group">
+                <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-sm break-all text-gray-800 pr-12">
+                  {generatedKey.plainKey}
+                </div>
                 <button
-                  onClick={() => setShowKey(!showKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={copyKey}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-indigo-600 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+                  title="Copy to clipboard"
                 >
-                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {copied ? (
+                    <Check className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <Copy className="h-5 w-5" />
+                  )}
                 </button>
               </div>
-              <Button onClick={copyKey} variant="outline">
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button onClick={onClose} className="w-full sm:w-auto">
+                {t('common.done') || 'I have saved the key'}
               </Button>
             </div>
-          </div>
-
-          {/* Key Details */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('apiKeys.name')}:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {generatedKey.apiKey.name}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">{t('apiKeys.scopes')}:</span>
-              <span className="text-sm font-medium text-gray-900">
-                {generatedKey.apiKey.scopes.length} {t('apiKeys.permissions').toLowerCase()}
-              </span>
-            </div>
-            {generatedKey.apiKey.expires_at && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">{t('apiKeys.expires')}:</span>
-                <span className="text-sm font-medium text-gray-900">
-                  {new Date(generatedKey.apiKey.expires_at).toLocaleDateString()}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button onClick={onClose} className="flex-1">
-              {t('common.close')}
-            </Button>
           </div>
         </div>
       </div>

@@ -20,9 +20,9 @@ import {
   ArrowRight,
   type LucideIcon
 } from 'lucide-react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Card } from '@/components/ui/card';
-import { MENU_GROUPS } from '@/constants/menu-config';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Card } from '../../../../components/ui/card';
+import { MENU_GROUPS } from '../../../../constants/menu-config';
 
 interface QuickStat {
   label: string;

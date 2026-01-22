@@ -7,6 +7,7 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
+import { getSupabaseClient } from '../lib/supabase';
 
 // ==================== TYPE HELPERS ====================
 
@@ -226,46 +227,128 @@ export interface MfaMethodFilters extends BaseFilters {
 
 // ==================== ADAPTER & API ====================
 
-const adapter = createAdapter<UserMfaMethod, CreateMfaMethodRequest, UpdateMfaMethodRequest>(
-  'user_mfa_methods',
-  '/user-mfa-methods',
-  true  // ✅ FIX: Enable soft delete filtering
-);
-
 export const userMfaMethodsApi = {
   // Basic CRUD
-  getAll: (filters?: MfaMethodFilters) => adapter.getAll(filters),
-  getById: (id: string) => adapter.getById(id),
-  create: (data: CreateMfaMethodRequest) => adapter.create(data),
-  update: (id: string, data: UpdateMfaMethodRequest) => adapter.update(id, data),
-  delete: (id: string) => adapter.delete(id),
+  
+  getAll: async (filters: MfaMethodFilters = {}): Promise<UserMfaMethod[]> => {
+    const supabase = getSupabaseClient();
+    let query = supabase.from('user_mfa_methods').select('*');
+
+    if (filters.user_id) query = query.eq('user_id', filters.user_id);
+    if (filters.method_type) query = query.eq('method_type', filters.method_type);
+    if (filters.status) query = query.eq('status', filters.status);
+    if (filters.is_verified !== undefined) query = query.eq('is_verified', filters.is_verified);
+    if (filters.is_primary !== undefined) query = query.eq('is_primary', filters.is_primary);
+    if (filters.is_enforced !== undefined) query = query.eq('is_enforced', filters.is_enforced);
+    
+    if (!filters.include_deleted) {
+      query = query.is('deleted_at', null);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    
+    return data as UserMfaMethod[];
+  },
+
+  getById: async (id: string): Promise<UserMfaMethod> => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.from('user_mfa_methods').select('*').eq('_id', id).single();
+    if (error) throw new Error(error.message);
+    return data as UserMfaMethod;
+  },
+
+  create: async (data: CreateMfaMethodRequest): Promise<UserMfaMethod> => {
+    const supabase = getSupabaseClient();
+    const _id = crypto.randomUUID();
+    
+    const row = {
+      _id,
+      ...data,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      version: 1,
+    };
+
+    const { data: created, error } = await supabase.from('user_mfa_methods').insert([row]).select().single();
+    if (error) throw new Error(error.message);
+    return created as UserMfaMethod;
+  },
+
+  update: async (id: string, data: UpdateMfaMethodRequest): Promise<UserMfaMethod> => {
+    const supabase = getSupabaseClient();
+    
+    // Get current version if not provided
+    let currentVersion = data.version;
+    if (!currentVersion) {
+        const { data: current, error: fetchError } = await supabase
+            .from('user_mfa_methods')
+            .select('version')
+            .eq('_id', id)
+            .single();
+            
+        if (fetchError || !current) {
+            throw new Error(`MFA method not found: ${fetchError?.message || 'Unknown error'}`);
+        }
+        currentVersion = current.version;
+    }
+
+    const updateData = {
+      ...data,
+      updated_at: new Date().toISOString(),
+      version: currentVersion + 1,
+    };
+    
+    // Remove version from data to avoid updating it twice or incorrectly
+    delete (updateData as any).version; 
+
+    const { data: updated, error } = await supabase
+      .from('user_mfa_methods')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error('Concurrent modification detected. Please refresh and try again.');
+
+    return updated as UserMfaMethod;
+  },
+
+  delete: async (id: string, deleted_by?: string): Promise<void> => {
+    await userMfaMethodsApi.softDelete(id, deleted_by);
+  },
+  
+  // ... Rest of the methods will use these base methods or need overrides
+
 
   /**
    * Get all MFA methods for a user
    */
   getByUserId: async (userId: string, includeDeleted: boolean = false): Promise<UserMfaMethod[]> => {
-    return adapter.getAll({ user_id: userId, include_deleted: includeDeleted });
+    return userMfaMethodsApi.getAll({ user_id: userId, include_deleted: includeDeleted });
   },
 
   /**
    * Get active MFA methods for a user
    */
   getActiveByUserId: async (userId: string): Promise<UserMfaMethod[]> => {
-    return adapter.getAll({ user_id: userId, status: 'ACTIVE' });
+    return userMfaMethodsApi.getAll({ user_id: userId, status: 'ACTIVE' });
   },
 
   /**
    * Get verified MFA methods for a user
    */
   getVerifiedByUserId: async (userId: string): Promise<UserMfaMethod[]> => {
-    return adapter.getAll({ user_id: userId, is_verified: true });
+    return userMfaMethodsApi.getAll({ user_id: userId, is_verified: true });
   },
 
   /**
    * Get primary MFA method for a user
    */
   getPrimaryByUserId: async (userId: string): Promise<UserMfaMethod | null> => {
-    const methods = await adapter.getAll({ user_id: userId, is_primary: true, status: 'ACTIVE' });
+    const methods = await userMfaMethodsApi.getAll({ user_id: userId, is_primary: true, status: 'ACTIVE' });
     return methods[0] || null;
   },
 
@@ -273,14 +356,14 @@ export const userMfaMethodsApi = {
    * Get enforced MFA methods for a user
    */
   getEnforcedByUserId: async (userId: string): Promise<UserMfaMethod[]> => {
-    return adapter.getAll({ user_id: userId, is_enforced: true });
+    return userMfaMethodsApi.getAll({ user_id: userId, is_enforced: true });
   },
 
   /**
    * Get methods by type
    */
   getByType: async (userId: string, methodType: MfaMethodType): Promise<UserMfaMethod[]> => {
-    return adapter.getAll({ user_id: userId, method_type: methodType });
+    return userMfaMethodsApi.getAll({ user_id: userId, method_type: methodType });
   },
 
   /**
@@ -288,8 +371,8 @@ export const userMfaMethodsApi = {
    */
   setPrimary: async (id: string): Promise<UserMfaMethod> => {
     // First, unset all other primary methods for this user
-    const method = await adapter.getById(id);
-    const otherMethods = await adapter.getAll({ 
+    const method = await userMfaMethodsApi.getById(id);
+    const otherMethods = await userMfaMethodsApi.getAll({ 
       user_id: method.user_id,
       is_primary: true,
     });
@@ -298,18 +381,18 @@ export const userMfaMethodsApi = {
     await Promise.all(
       otherMethods
         .filter(m => m._id !== id)
-        .map(m => adapter.update(m._id, { is_primary: false }))
+        .map(m => userMfaMethodsApi.update(m._id, { is_primary: false }))
     );
     
     // Set this method as primary
-    return adapter.update(id, { is_primary: true });
+    return userMfaMethodsApi.update(id, { is_primary: true });
   },
 
   /**
    * Verify method
    */
   verify: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       is_verified: true,
       status: 'ACTIVE',
       last_verified_at: new Date().toISOString(),
@@ -320,7 +403,7 @@ export const userMfaMethodsApi = {
    * Suspend method
    */
   suspend: async (id: string, reason?: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       status: 'SUSPENDED',
       metadata: { suspension_reason: reason },
     });
@@ -330,7 +413,7 @@ export const userMfaMethodsApi = {
    * Revoke method
    */
   revoke: async (id: string, reason?: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       status: 'REVOKED',
       metadata: { revocation_reason: reason },
     });
@@ -340,29 +423,29 @@ export const userMfaMethodsApi = {
    * Activate method
    */
   activate: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, { status: 'ACTIVE' });
+    return userMfaMethodsApi.update(id, { status: 'ACTIVE' });
   },
 
   /**
    * Enforce method (require for login)
    */
   enforce: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, { is_enforced: true });
+    return userMfaMethodsApi.update(id, { is_enforced: true });
   },
 
   /**
    * Unenforce method
    */
   unenforce: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, { is_enforced: false });
+    return userMfaMethodsApi.update(id, { is_enforced: false });
   },
 
   /**
    * Record successful verification
    */
   recordSuccess: async (id: string): Promise<UserMfaMethod> => {
-    const method = await adapter.getById(id);
-    return adapter.update(id, {
+    const method = await userMfaMethodsApi.getById(id);
+    return userMfaMethodsApi.update(id, {
       last_used_at: new Date().toISOString(),
       success_count: (method.success_count || 0) + 1,
     });
@@ -372,8 +455,8 @@ export const userMfaMethodsApi = {
    * Record failed verification
    */
   recordFailure: async (id: string): Promise<UserMfaMethod> => {
-    const method = await adapter.getById(id);
-    return adapter.update(id, {
+    const method = await userMfaMethodsApi.getById(id);
+    return userMfaMethodsApi.update(id, {
       failure_count: (method.failure_count || 0) + 1,
     });
   },
@@ -382,10 +465,10 @@ export const userMfaMethodsApi = {
    * Use backup code
    */
   useBackupCode: async (id: string): Promise<UserMfaMethod> => {
-    const method = await adapter.getById(id);
+    const method = await userMfaMethodsApi.getById(id);
     const used = (method.backup_codes_used || 0) + 1;
     
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       backup_codes_used: used,
       last_used_at: new Date().toISOString(),
       success_count: (method.success_count || 0) + 1,
@@ -396,7 +479,7 @@ export const userMfaMethodsApi = {
    * Regenerate backup codes
    */
   regenerateBackupCodes: async (id: string, encryptedCodes: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       backup_codes_encrypted: encryptedCodes,
       backup_codes_used: 0,
       backup_codes_total: 10,
@@ -407,7 +490,7 @@ export const userMfaMethodsApi = {
    * Soft delete (set deleted_at)
    */
   softDelete: async (id: string, deleted_by?: string): Promise<void> => {
-    await adapter.update(id, {
+    await userMfaMethodsApi.update(id, {
       deleted_at: new Date().toISOString(),
       deleted_by,
       status: 'REVOKED',
@@ -418,14 +501,16 @@ export const userMfaMethodsApi = {
    * Hard delete (permanently remove from database)
    */
   hardDelete: async (id: string): Promise<void> => {
-    return adapter.delete(id);
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.from('user_mfa_methods').delete().eq('_id', id);
+    if (error) throw new Error(error.message);
   },
 
   /**
    * Restore soft-deleted method
    */
   restore: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       deleted_at: undefined,
       deleted_by: undefined,
       status: 'INACTIVE',
@@ -441,7 +526,7 @@ export const userMfaMethodsApi = {
     backup_codes_encrypted: string;
     device_name?: string;
   }): Promise<UserMfaMethod> => {
-    return adapter.create({
+    return userMfaMethodsApi.create({
       user_id: userId,
       method_type: 'TOTP',
       method_name: data.method_name || 'Authenticator App',
@@ -451,7 +536,6 @@ export const userMfaMethodsApi = {
       status: 'PENDING',
       is_verified: false,
       backup_codes_total: 10,
-      backup_codes_used: 0,
     });
   },
 
@@ -459,7 +543,7 @@ export const userMfaMethodsApi = {
    * Setup SMS method
    */
   setupSMS: async (userId: string, phoneNumber: string, methodName?: string): Promise<UserMfaMethod> => {
-    return adapter.create({
+    return userMfaMethodsApi.create({
       user_id: userId,
       method_type: 'SMS',
       method_name: methodName || 'SMS Authentication',
@@ -474,7 +558,7 @@ export const userMfaMethodsApi = {
    * Verify SMS phone number
    */
   verifySMSPhone: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       sms_phone_verified: true,
       is_verified: true,
       status: 'ACTIVE',
@@ -486,7 +570,7 @@ export const userMfaMethodsApi = {
    * Setup Email method
    */
   setupEmail: async (userId: string, email: string, methodName?: string): Promise<UserMfaMethod> => {
-    return adapter.create({
+    return userMfaMethodsApi.create({
       user_id: userId,
       method_type: 'EMAIL',
       method_name: methodName || 'Email Authentication',
@@ -501,7 +585,7 @@ export const userMfaMethodsApi = {
    * Verify email address
    */
   verifyEmail: async (id: string): Promise<UserMfaMethod> => {
-    return adapter.update(id, {
+    return userMfaMethodsApi.update(id, {
       email_verified: true,
       is_verified: true,
       status: 'ACTIVE',
@@ -518,7 +602,7 @@ export const userMfaMethodsApi = {
     device_type?: string;
     backup_codes_encrypted?: string;
   }): Promise<UserMfaMethod> => {
-    return adapter.create({
+    return userMfaMethodsApi.create({
       user_id: userId,
       method_type: 'WEBAUTHN',
       method_name: data.method_name || 'Security Key',
@@ -528,7 +612,6 @@ export const userMfaMethodsApi = {
       status: 'PENDING',
       is_verified: false,
       backup_codes_total: data.backup_codes_encrypted ? 10 : 0,
-      backup_codes_used: 0,
     });
   },
 
@@ -546,7 +629,7 @@ export const userMfaMethodsApi = {
     total_failures: number;
     last_used?: string;
   }> => {
-    const methods = await adapter.getAll({ user_id: userId });
+    const methods = await userMfaMethodsApi.getAll({ user_id: userId });
 
     const byType: Record<string, number> = {};
     methods.forEach(m => {
@@ -580,7 +663,7 @@ export const userMfaMethodsApi = {
    * Check if user has MFA enabled
    */
   hasMfaEnabled: async (userId: string): Promise<boolean> => {
-    const methods = await adapter.getAll({ 
+    const methods = await userMfaMethodsApi.getAll({ 
       user_id: userId, 
       status: 'ACTIVE',
       is_verified: true,
@@ -592,7 +675,7 @@ export const userMfaMethodsApi = {
    * Check if user has enforced MFA
    */
   hasEnforcedMfa: async (userId: string): Promise<boolean> => {
-    const methods = await adapter.getAll({ 
+    const methods = await userMfaMethodsApi.getAll({ 
       user_id: userId,
       is_enforced: true,
       status: 'ACTIVE',
@@ -604,7 +687,7 @@ export const userMfaMethodsApi = {
    * Get available backup codes count
    */
   getBackupCodesAvailable: async (id: string): Promise<number> => {
-    const method = await adapter.getById(id);
+    const method = await userMfaMethodsApi.getById(id);
     const total = method.backup_codes_total || 0;
     const used = method.backup_codes_used || 0;
     return total - used;
@@ -623,14 +706,14 @@ export const userMfaMethodsApi = {
    * Remove method (prevent last method removal)
    */
   removeMethod: async (userId: string, methodId: string): Promise<void> => {
-    const activeMethods = await adapter.getAll({
+    const activeMethods = await userMfaMethodsApi.getAll({
       user_id: userId,
       status: 'ACTIVE',
       is_verified: true,
     });
 
     // Allow removal if not the last active method or if not enforced
-    const method = await adapter.getById(methodId);
+    const method = await userMfaMethodsApi.getById(methodId);
     const hasOtherActiveMethods = activeMethods.filter(m => m._id !== methodId).length > 0;
     
     if (!hasOtherActiveMethods && method.is_enforced) {

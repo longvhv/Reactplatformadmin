@@ -2,31 +2,17 @@
  * Manager Assignment Dialog
  * Select manager from tenant_members for a department
  * 
- * ✅ CREATED 2026-01-15: Department manager assignment
+ * ✅ UPDATED 2026-01-21: Uses EnrichedTenantMember
  */
 
 import { useState, useEffect } from 'react';
 import { UserCog, Search, X, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Department } from '@/api/departmentsApi';
-
-/**
- * Tenant Member Interface (minimal)
- * TODO: Import from tenantMembersApi when available
- */
-export interface TenantMember {
-  _id: string;
-  user_id: string;
-  tenant_id: string;
-  email?: string;
-  full_name?: string;
-  position?: string;
-  department_id?: string;
-  is_active: boolean;
-}
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Badge } from '../ui/badge';
+import { Card } from '../ui/card';
+import { Department } from '../../api/departmentsApi';
+import { TenantMember, EnrichedTenantMember } from '../../api/tenantMembersApi';
 
 export interface ManagerAssignmentDialogProps {
   department: Department;
@@ -51,25 +37,36 @@ export function ManagerAssignmentDialog({
   const [filteredMembers, setFilteredMembers] = useState<TenantMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<TenantMember | null>(currentManager || null);
 
+  // Helper to get display name safely
+  const getDisplayName = (member: TenantMember) => {
+    // Cast to any or EnrichedTenantMember if checking for 'user' property
+    const enriched = member as EnrichedTenantMember;
+    return enriched.user?.full_name || enriched.internal_email || enriched.employee_code || 'Unknown';
+  };
+
+  const getEmail = (member: TenantMember) => {
+    const enriched = member as EnrichedTenantMember;
+    return enriched.user?.email || enriched.internal_email || '';
+  };
+
   // Filter members based on search query
   useEffect(() => {
     const query = searchQuery.toLowerCase();
     const filtered = members.filter(member => {
       // Only show active members
-      if (!member.is_active) return false;
+      if (member.status !== 'ACTIVE') return false;
 
-      // Search by name, email, or position
-      const matchesName = member.full_name?.toLowerCase().includes(query);
-      const matchesEmail = member.email?.toLowerCase().includes(query);
-      const matchesPosition = member.position?.toLowerCase().includes(query);
+      const name = getDisplayName(member).toLowerCase();
+      const email = getEmail(member).toLowerCase();
+      const jobTitle = member.job_title?.toLowerCase() || '';
 
-      return matchesName || matchesEmail || matchesPosition;
+      return name.includes(query) || email.includes(query) || jobTitle.includes(query);
     });
 
     // Sort by name
     filtered.sort((a, b) => {
-      const nameA = a.full_name || a.email || '';
-      const nameB = b.full_name || b.email || '';
+      const nameA = getDisplayName(a);
+      const nameB = getDisplayName(b);
       return nameA.localeCompare(nameB);
     });
 
@@ -137,11 +134,11 @@ export function ManagerAssignmentDialog({
                   Trưởng phòng hiện tại
                 </p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
-                  {currentManager.full_name || currentManager.email || 'N/A'}
+                  {getDisplayName(currentManager)}
                 </p>
-                {currentManager.position && (
+                {currentManager.job_title && (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {currentManager.position}
+                    {currentManager.job_title}
                   </p>
                 )}
               </div>
@@ -189,6 +186,8 @@ export function ManagerAssignmentDialog({
               {filteredMembers.map((member) => {
                 const isSelected = selectedMember?._id === member._id;
                 const isCurrent = currentManager?._id === member._id;
+                const displayName = getDisplayName(member);
+                const email = getEmail(member);
 
                 return (
                   <button
@@ -206,7 +205,7 @@ export function ManagerAssignmentDialog({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-semibold text-gray-900 dark:text-white">
-                            {member.full_name || member.email || 'N/A'}
+                            {displayName}
                           </p>
                           {isCurrent && (
                             <Badge variant="secondary" className="text-xs">
@@ -214,14 +213,14 @@ export function ManagerAssignmentDialog({
                             </Badge>
                           )}
                         </div>
-                        {member.email && (
+                        {email && (
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            {member.email}
+                            {email}
                           </p>
                         )}
-                        {member.position && (
+                        {member.job_title && (
                           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                            {member.position}
+                            {member.job_title}
                           </p>
                         )}
                       </div>
@@ -246,7 +245,7 @@ export function ManagerAssignmentDialog({
             {filteredMembers.length} thành viên
             {selectedMember && selectedMember._id !== currentManager?._id && (
               <span className="ml-2 text-indigo-600 dark:text-indigo-400">
-                • {selectedMember.full_name || selectedMember.email} được chọn
+                • {getDisplayName(selectedMember)} được chọn
               </span>
             )}
           </div>

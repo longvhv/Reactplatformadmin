@@ -5,15 +5,15 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Package, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { servicePackagesApi, ServicePackage } from '@/api/servicePackagesApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { Package, Edit, Trash2 } from 'lucide-react';
+import { Button } from '../../../../../../components/ui/button';
+import { servicePackagesApi, ServicePackage } from '../../../../api/servicePackagesApi';
+import { showToast } from '../../../../lib/toast';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu';
 
 function ServicePackageDetailPage() {
   const params = useParams();
@@ -40,8 +40,9 @@ function ServicePackageDetailPage() {
   };
 
   const handleDelete = async () => {
+    if (!pkg) return;
     try {
-      await servicePackagesApi.delete(id);
+      await servicePackagesApi.delete(id, pkg.version);
       showToast.success('Success', 'Service package deleted');
       router.push('/platform/service-packages');
     } catch (error: any) {
@@ -67,20 +68,33 @@ function ServicePackageDetailPage() {
 
   return (
     <>
-      <PageLayout icon={Package} title={pkg.name} description={pkg.description || 'Service package details'} backButton={{ label: 'Back', onClick: () => router.push('/platform/service-packages') }}
+      <PageLayout icon={Package} title={pkg.package_name} description={pkg.description || 'Service package details'} backButton={{ label: 'Back', onClick: () => router.push('/platform/service-packages') }}
         actions={<DropdownMenu><DropdownMenuTrigger asChild><Button variant="outline" size="sm"><MoreVertical className="w-4 h-4" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end"><DropdownMenuItem onClick={() => router.push(`/platform/service-packages/edit/${id}`)}><Edit className="w-4 h-4 mr-2" />Edit</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600"><Trash2 className="w-4 h-4 mr-2" />Delete</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}
       >
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
           <dl className="space-y-4">
-            <div><dt className="text-sm text-gray-600 mb-1">Package Name</dt><dd className="font-medium">{pkg.name}</dd></div>
+            <div><dt className="text-sm text-gray-600 mb-1">Package Name</dt><dd className="font-medium">{pkg.package_name}</dd></div>
+            <div><dt className="text-sm text-gray-600 mb-1">Package Code</dt><dd className="font-mono">{pkg.package_code}</dd></div>
             <div><dt className="text-sm text-gray-600 mb-1">Description</dt><dd>{pkg.description || 'N/A'}</dd></div>
-            <div><dt className="text-sm text-gray-600 mb-1">Price</dt><dd className="font-medium">${pkg.price?.toFixed(2) || '0.00'}</dd></div>
+            <div><dt className="text-sm text-gray-600 mb-1">Price</dt><dd className="font-medium">{pkg.price?.toFixed(2)} {pkg.currency}</dd></div>
+            <div><dt className="text-sm text-gray-600 mb-1">Billing Cycle</dt><dd>{pkg.billing_cycle}</dd></div>
+            <div><dt className="text-sm text-gray-600 mb-1">Status</dt><dd><span className={`px-2 py-1 rounded text-xs ${pkg.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{pkg.is_active ? 'Active' : 'Inactive'}</span></dd></div>
           </dl>
+          
+          <div className="mt-6">
+            <h3 className="font-medium mb-3">Features Config</h3>
+            <pre className="bg-gray-50 p-4 rounded text-xs overflow-auto">{JSON.stringify(pkg.features_config, null, 2)}</pre>
+          </div>
+          
+          <div className="mt-6">
+            <h3 className="font-medium mb-3">Limits Config</h3>
+            <pre className="bg-gray-50 p-4 rounded text-xs overflow-auto">{JSON.stringify(pkg.limits_config, null, 2)}</pre>
+          </div>
         </div>
       </PageLayout>
-      <ConfirmDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} title="Delete Service Package" description={`Delete "${pkg.name}"?`} onConfirm={handleDelete} variant="destructive" />
+      <ConfirmDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} title="Delete Service Package" description={`Delete "${pkg.package_name}"?`} onConfirm={handleDelete} variant="destructive" />
     </>
   );
 }

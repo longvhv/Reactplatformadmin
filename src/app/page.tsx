@@ -3,8 +3,8 @@
  */
 'use client';
 import { useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { supabase } from '@/utils/supabase/client';
+import { useRouter } from '../components/shim/next-navigation';
+import { supabase } from '../utils/supabase/client';
 
 export default function RootPage() {
   const router = useRouter();

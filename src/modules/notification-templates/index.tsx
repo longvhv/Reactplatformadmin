@@ -10,8 +10,10 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Mail } from 'lucide-react';
 
-// Lazy-loaded pages
-const NotificationTemplatesPage = lazy(() => import('../../app/(admin)/notification-templates/page'));
+// Lazy-loaded pages (App Router)
+const NotificationTemplatesPage = lazy(() => import('../../app/(admin)/platform/notification-templates/page').then(m => ({ default: m.default })));
+const CreateNotificationTemplatePage = lazy(() => import('../../app/(admin)/platform/notification-templates/create/page').then(m => ({ default: m.default })));
+const EditNotificationTemplatePage = lazy(() => import('../../app/(admin)/platform/notification-templates/edit/[id]/page').then(m => ({ default: m.default })));
 
 export const NotificationTemplatesModule: ModuleDefinition = {
   id: 'notification-templates',
@@ -32,6 +34,24 @@ export const NotificationTemplatesModule: ModuleDefinition = {
       ),
       title: 'notificationTemplates.menu',
     },
+    {
+      path: '/platform/notification-templates/create',
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <CreateNotificationTemplatePage />
+        </Suspense>
+      ),
+      title: 'notificationTemplates.add',
+    },
+    {
+      path: '/platform/notification-templates/edit/:id',
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <EditNotificationTemplatePage />
+        </Suspense>
+      ),
+      title: 'notificationTemplates.edit',
+    },
   ],
   
   menuItems: [
@@ -44,3 +64,5 @@ export const NotificationTemplatesModule: ModuleDefinition = {
     },
   ],
 };
+
+export default NotificationTemplatesModule;

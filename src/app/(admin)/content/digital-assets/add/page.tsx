@@ -4,14 +4,14 @@
  */
 'use client';
 import { Fragment, useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { Image, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { digitalAssetsApi } from '@/api/digitalAssetsApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { digitalAssetsApi } from '../../../../api/digitalAssetsApi';
+import { showToast } from '../../../../lib/toast';
 
 function DigitalAssetsAddPage() {
   const router = useRouter();

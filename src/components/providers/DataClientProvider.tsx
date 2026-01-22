@@ -6,8 +6,8 @@
  */
 
 import { useEffect } from 'react';
-import { DataClientFactory } from '@/lib/data-client';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { DataClientFactory } from '../../lib/data-client';
+import { projectId, publicAnonKey } from '../../utils/supabase/info';
 
 export function DataClientProvider({ children }: { children: React.ReactNode }) {
   // Initialize in useEffect to ensure it runs on client-side only

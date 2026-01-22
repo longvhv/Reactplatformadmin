@@ -1,16 +1,16 @@
 /**
  * Tenant Member Form Component
  * Create/Edit tenant member with validation
+ * ✅ Fully aligned with tenant_members schema
  */
 
 import { useState, useEffect } from 'react';
-import { useLanguage } from '../../providers/LanguageProvider';
-import { UserPlus, Save, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Save, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
-import { Card } from '../ui/card';
 import {
   Select,
   SelectContent,
@@ -26,7 +26,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
-import { MemberRole, MemberStatus, TenantMemberFormData as ApiFormData } from '../../api/tenantMembersApi';
+import { 
+  MemberRole, 
+  MemberStatus, 
+  TenantMemberFormData as ApiFormData 
+} from '../../api/tenantMembersApi';
 
 // ============================================
 // TYPES
@@ -43,7 +47,6 @@ interface TenantMemberFormProps {
   onClose: () => void;
   onSubmit: (data: ApiFormData) => Promise<void>;
   initialData?: Partial<ApiFormData>;
-  tenants?: Array<{ _id: string; name: string; code: string }>;
   users?: Array<{ _id: string; name: string; email: string }>;
   managers?: Array<{ _id: string; user_name: string }>;
   mode?: 'create' | 'edit';
@@ -58,12 +61,11 @@ export function TenantMemberForm({
   onClose,
   onSubmit,
   initialData,
-  tenants = [],
   users = [],
   managers = [],
   mode = 'create',
 }: TenantMemberFormProps) {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -76,7 +78,7 @@ export function TenantMemberForm({
     manager_id: initialData?.manager_id || '',
     role: initialData?.role || 'MEMBER',
     status: initialData?.status || 'ACTIVE',
-    joined_at: initialData?.joined_at || '',
+    joined_at: initialData?.joined_at || new Date().toISOString(),
     permissions: initialData?.permissions || [],
     metadata: initialData?.metadata || {},
     permissionsString: JSON.stringify(initialData?.permissions || [], null, 2),
@@ -95,7 +97,7 @@ export function TenantMemberForm({
         manager_id: initialData?.manager_id || '',
         role: initialData?.role || 'MEMBER',
         status: initialData?.status || 'ACTIVE',
-        joined_at: initialData?.joined_at || '',
+        joined_at: initialData?.joined_at || new Date().toISOString(),
         permissions: initialData?.permissions || [],
         metadata: initialData?.metadata || {},
         permissionsString: JSON.stringify(initialData?.permissions || [], null, 2),
@@ -110,15 +112,15 @@ export function TenantMemberForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.tenant_id) {
-      newErrors.tenant_id = t('validation.required');
+      newErrors.tenant_id = t('validation.required') || 'Required';
     }
 
     if (!formData.user_id) {
-      newErrors.user_id = t('validation.required');
+      newErrors.user_id = t('validation.required') || 'Required';
     }
 
     if (formData.internal_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.internal_email)) {
-      newErrors.internal_email = t('validation.invalidEmail');
+      newErrors.internal_email = t('validation.invalidEmail') || 'Invalid email';
     }
 
     // Validate JSON fields
@@ -170,7 +172,7 @@ export function TenantMemberForm({
       delete (submitData as any).metadataString;
 
       await onSubmit(submitData);
-      onClose();
+      // Don't close here, parent handles it
     } catch (error) {
       console.error('Failed to submit form:', error);
     } finally {
@@ -196,7 +198,7 @@ export function TenantMemberForm({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? t('tenantMembers.addMember') : t('tenantMembers.editMember')}
+            {mode === 'create' ? (t('tenantMembers.addMember') || 'Add Member') : (t('tenantMembers.editMember') || 'Edit Member')}
           </DialogTitle>
           <DialogDescription>
             {mode === 'create' 
@@ -207,39 +209,12 @@ export function TenantMemberForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Tenant Selection (only for create mode) */}
-          {mode === 'create' && (
-            <div className="space-y-2">
-              <Label htmlFor="tenant_id">
-                Tenant <span className="text-red-500">*</span>
-              </Label>
-              <Select 
-                value={formData.tenant_id} 
-                onValueChange={(value) => handleChange('tenant_id', value)}
-              >
-                <SelectTrigger className={errors.tenant_id ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select tenant" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tenants.map(tenant => (
-                    <SelectItem key={tenant._id} value={tenant._id}>
-                      {tenant.name} ({tenant.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.tenant_id && (
-                <p className="text-sm text-red-500">{errors.tenant_id}</p>
-              )}
-            </div>
-          )}
-
-          {/* User Selection (only for create mode) */}
-          {mode === 'create' && (
-            <div className="space-y-2">
-              <Label htmlFor="user_id">
-                User <span className="text-red-500">*</span>
-              </Label>
+          {/* User Selection (only for create mode, non-editable in edit mode) */}
+          <div className="space-y-2">
+            <Label htmlFor="user_id">
+              User <span className="text-red-500">*</span>
+            </Label>
+            {mode === 'create' ? (
               <Select 
                 value={formData.user_id} 
                 onValueChange={(value) => handleChange('user_id', value)}
@@ -255,11 +230,17 @@ export function TenantMemberForm({
                   ))}
                 </SelectContent>
               </Select>
-              {errors.user_id && (
-                <p className="text-sm text-red-500">{errors.user_id}</p>
-              )}
-            </div>
-          )}
+            ) : (
+              <Input 
+                value={users.find(u => u._id === formData.user_id)?.name || formData.user_id} 
+                disabled 
+                className="bg-gray-100"
+              />
+            )}
+            {errors.user_id && (
+              <p className="text-sm text-red-500">{errors.user_id}</p>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Employee Code */}
@@ -315,10 +296,10 @@ export function TenantMemberForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="OWNER">{t('common.owner')}</SelectItem>
-                  <SelectItem value="ADMIN">{t('common.admin')}</SelectItem>
-                  <SelectItem value="MEMBER">{t('common.member')}</SelectItem>
-                  <SelectItem value="VIEWER">{t('common.viewer')}</SelectItem>
+                  <SelectItem value="OWNER">{t('common.owner') || 'Owner'}</SelectItem>
+                  <SelectItem value="ADMIN">{t('common.admin') || 'Admin'}</SelectItem>
+                  <SelectItem value="MEMBER">{t('common.member') || 'Member'}</SelectItem>
+                  <SelectItem value="VIEWER">{t('common.viewer') || 'Viewer'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -336,37 +317,35 @@ export function TenantMemberForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ACTIVE">{t('common.active')}</SelectItem>
-                  <SelectItem value="ONBOARDING">{t('common.onboarding')}</SelectItem>
-                  <SelectItem value="SUSPENDED">{t('common.suspended')}</SelectItem>
-                  <SelectItem value="RESIGNED">{t('common.resigned')}</SelectItem>
+                  <SelectItem value="ACTIVE">{t('common.active') || 'Active'}</SelectItem>
+                  <SelectItem value="ONBOARDING">{t('common.onboarding') || 'Onboarding'}</SelectItem>
+                  <SelectItem value="SUSPENDED">{t('common.suspended') || 'Suspended'}</SelectItem>
+                  <SelectItem value="RESIGNED">{t('common.resigned') || 'Resigned'}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {/* Manager */}
-          {managers.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="manager_id">Manager</Label>
-              <Select 
-                value={formData.manager_id || 'none'} 
-                onValueChange={(value) => handleChange('manager_id', value === 'none' ? undefined : value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select manager" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Manager</SelectItem>
-                  {managers.map(manager => (
-                    <SelectItem key={manager._id} value={manager._id}>
-                      {manager.user_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="manager_id">Manager</Label>
+            <Select 
+              value={formData.manager_id || 'none'} 
+              onValueChange={(value) => handleChange('manager_id', value === 'none' ? undefined : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select manager" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">-- No Manager --</SelectItem>
+                {managers.map(manager => (
+                  <SelectItem key={manager._id} value={manager._id}>
+                    {manager.user_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             {/* Joined Date */}
@@ -416,7 +395,7 @@ export function TenantMemberForm({
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               <X className="w-4 h-4 mr-2" />
-              {t('common.cancel')}
+              {t('common.cancel') || 'Cancel'}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
@@ -424,7 +403,7 @@ export function TenantMemberForm({
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              {mode === 'create' ? t('common.create') : t('common.save')}
+              {mode === 'create' ? (t('common.create') || 'Create') : (t('common.save') || 'Save')}
             </Button>
           </DialogFooter>
         </form>

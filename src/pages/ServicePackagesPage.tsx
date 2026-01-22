@@ -1,2 +1,2 @@
-import ServicePackagesPage from '@/app/(admin)/service-packages/page';
+import ServicePackagesPage from './app/(admin)/service-packages/page';
 export default ServicePackagesPage;

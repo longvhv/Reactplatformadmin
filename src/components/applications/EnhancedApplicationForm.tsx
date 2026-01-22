@@ -12,14 +12,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Save, AppWindow, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Application } from "@/api/applicationsApi";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Switch } from "../ui/switch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Application } from "../../api/applicationsApi";
 
 interface EnhancedApplicationFormProps {
   initialData?: Partial<Application>;

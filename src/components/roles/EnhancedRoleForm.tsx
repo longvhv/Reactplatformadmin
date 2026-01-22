@@ -15,19 +15,19 @@ import {
   CreateRoleRequest, 
   UpdateRoleRequest, 
   RoleType 
-} from '@/api/rolesApi';
-import { tenantsApi, Tenant } from '@/api/tenantsApi';
-import { permissionsApi, Permission } from '@/api/permissionsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
+} from '../../api/rolesApi';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { permissionsApi, Permission } from '../../api/permissionsApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Checkbox } from '../ui/checkbox';
+import { ScrollArea } from '../ui/scroll-area';
 import { Save, X, Shield, Lock } from 'lucide-react';
-import { showToast } from '@/lib/toast';
+import { showToast } from '../../lib/toast';
 
 interface EnhancedRoleFormProps {
   initialData?: Partial<Role>;
@@ -141,7 +141,11 @@ export function EnhancedRoleForm({
     if (!validateForm()) return;
 
     try {
-      await onSubmit(formData as CreateRoleRequest);
+      const payload = { ...formData };
+      if (isEdit && initialData?.version) {
+        (payload as any).version = initialData.version;
+      }
+      await onSubmit(payload as CreateRoleRequest | UpdateRoleRequest);
     } catch (error: any) {
       console.error("Submit error:", error);
       showToast.error("Lỗi", error.message || "Có lỗi xảy ra");

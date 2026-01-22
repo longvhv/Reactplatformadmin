@@ -1,2 +1,2 @@
-import UserDelegationsPage from '@/app/(admin)/platform/user-delegations/page';
+import UserDelegationsPage from '../app/(admin)/platform/user-delegations/page';
 export default UserDelegationsPage;

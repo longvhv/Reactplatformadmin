@@ -1,7 +1,7 @@
 import { Building2, Crown, ArrowLeft, Settings, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
 
 interface TenantHeaderProps {
   tenant: {

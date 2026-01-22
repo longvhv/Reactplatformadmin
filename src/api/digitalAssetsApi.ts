@@ -283,14 +283,21 @@ export const digitalAssetsApi = {
    * Create new asset with validation and defaults
    */
   create: async (data: CreateAssetRequest): Promise<TenantDigitalAsset> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
     // Validate before creation
     const validation = digitalAssetsApi.validate(data);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
+    // Generate UUID
+    const _id = crypto.randomUUID();
+
     // Apply defaults
     const requestData = {
+      _id,
       status: 'PENDING' as AssetStatus, // default
       auto_renew: true, // default
       asset_metadata: {}, // default
@@ -298,21 +305,67 @@ export const digitalAssetsApi = {
       ...data,
     };
 
-    return adapter.create(requestData);
+    const { data: created, error } = await supabase
+      .from('tenant_digital_assets')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create asset: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**
    * PUT /digital-assets/:id
-   * Update asset with validation
+   * Update asset with validation and Optimistic Locking
    */
   update: async (id: string, data: UpdateAssetRequest): Promise<TenantDigitalAsset> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
     // Validate before update
     const validation = digitalAssetsApi.validate(data);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    return adapter.update(id, data);
+    // Get current version for optimistic locking
+    const { data: current, error: fetchError } = await supabase
+      .from('tenant_digital_assets')
+      .select('version')
+      .eq('_id', id)
+      .single();
+
+    if (fetchError || !current) {
+      throw new Error(`Asset not found: ${fetchError?.message || 'Unknown error'}`);
+    }
+
+    const updateData = {
+      ...data,
+      updated_at: new Date().toISOString(),
+      version: current.version + 1,
+    };
+
+    const { data: updated, error } = await supabase
+      .from('tenant_digital_assets')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', current.version)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update asset: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**

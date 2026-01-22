@@ -9,7 +9,7 @@ import { Shield } from "lucide-react";
 // Lazy load the list page
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const AuthLogsPage = lazy(() => 
-  import('../../app/(admin)/admin/auth-logs/page')
+  import('../../app/(admin)/admin/auth-logs/page').then(m => ({ default: m.default }))
 );
 
 /**
@@ -44,3 +44,5 @@ export const AuthLogsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default AuthLogsModule;

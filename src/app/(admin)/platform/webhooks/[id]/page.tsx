@@ -4,13 +4,13 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
 import { Webhook, Edit, Trash2, Send } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { webhooksApi } from '@/api/webhooksApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../../components/ui/button';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { webhooksApi } from '../../../../../api/webhooksApi';
+import { showToast } from '../../../../../lib/toast';
 
 function WebhookDetailPage() {
   const router = useRouter();

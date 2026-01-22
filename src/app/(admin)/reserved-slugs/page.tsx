@@ -1,19 +1,19 @@
 /**
  * Reserved Slugs Page
- * Trang quản lý các slug được bảo lưu
+ * Trang quản lý các slug đã được đặt trước
  * ✅ CREATED: 2026-01-20
  */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Shield, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { showToast } from '@/lib/toast';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Shield, Plus, Search } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
+import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
 
 interface ReservedSlug {
   _id: string;
@@ -35,7 +35,7 @@ function ReservedSlugsPage() {
   const fetchReservedSlugs = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/reserved-slugs`, {
+      const response = await fetch(`${baseUrl}/api/core/reserved-slugs`, {
         headers: {
           'Authorization': `Bearer ${publicAnonKey}`,
           'Content-Type': 'application/json',

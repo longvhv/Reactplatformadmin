@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../components/shim/next-navigation';
 
 export default function AdminRootPage() {
   const router = useRouter();

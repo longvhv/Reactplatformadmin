@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { CreditCard, CheckCircle, Clock, XCircle } from 'lucide-react';
-import { OrderWithDetails, formatCurrency, formatDate } from '@/api/ordersApi';
+import { OrderWithDetails, formatCurrency, formatDate } from '../../api/ordersApi';
 
 interface OrderPaymentTabProps {
   order: OrderWithDetails;

@@ -8,7 +8,7 @@ import { Users } from "lucide-react";
  * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
 const TenantMembersPage = lazy(() => 
-  import("../../app/(admin)/admin/tenant-members/page")
+  import("../../app/(admin)/admin/tenant-members/page").then(m => ({ default: m.default }))
 );
 
 /**
@@ -36,3 +36,5 @@ export const TenantMembersModule: ModuleDefinition = {
     },
   ],
 };
+
+export default TenantMembersModule;

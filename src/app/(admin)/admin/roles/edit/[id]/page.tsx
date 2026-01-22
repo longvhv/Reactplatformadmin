@@ -1,68 +1,82 @@
 /**
  * Edit Role Page
- * Edit existing role
- * ✅ MIGRATED: Using Next.js shim for navigation
+ * ✅ MIGRATED from /pages/roles/edit/[id].tsx
+ * Allows editing existing role with permissions and assignments
  */
 
 'use client';
 
 import React, { useState } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Shield } from 'lucide-react';
-import { rolesApi } from '@/api/rolesApi';
-import { EnhancedRoleForm } from '@/components/roles/EnhancedRoleForm';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { showToast } from '@/lib/toast';
-import { useRole } from '@/hooks/useRole';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
+import { Shield, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { RoleForm } from '../../../../../components/roles/RoleForm';
+import { useRole } from '../../../../../hooks/useRole';
+import { UpdateRoleRequest } from '../../../../../api/rolesApi';
+import { showToast } from '../../../../../lib/toast';
 
-function EditRolePage() {
+export default function EditRolePage() {
+  const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
-  const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  
-  const { role, loading: roleLoading } = useRole(id);
+  const { role, loading: fetching, updateRole, refresh } = useRole(id);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (data: any) => {
-    setLoading(true);
+  const handleSubmit = async (data: UpdateRoleRequest | any) => {
+    setSubmitting(true);
     try {
-      await rolesApi.update(id, data);
-      showToast.success('Thành công', 'Đã cập nhật vai trò');
-      router.push('/admin/roles');
+      await updateRole(data);
+      await refresh();
+      showToast.success('Success', 'Role updated successfully');
+      router.push(`/admin/roles/${id}`);
     } catch (error: any) {
-      console.error('Error updating role:', error);
-      showToast.error('Lỗi', 'Không thể cập nhật: ' + error.message);
+      console.error('Failed to update role:', error);
+      showToast.error('Error', error.message || 'Failed to update role');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (roleLoading) {
+  if (fetching) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (!role) {
+     return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-gray-500">Role not found</p>
+        <Button variant="link" onClick={() => router.push('/admin/roles')}>
+          Back to List
+        </Button>
       </div>
     );
   }
 
   return (
-    <FormPageLayout
-      mode="edit"
-      title="Chỉnh Sửa Vai Trò"
-      description="Cập nhật thông tin và quyền hạn"
+    <PageLayout
       icon={Shield}
-      backPath="/admin/roles"
-      backLabel="Danh sách vai trò"
+      title="Edit Role"
+      description={`Edit configuration for: ${role.name}`}
+      actions={
+        <Button variant="outline" onClick={() => router.push(`/admin/roles/${id}`)}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Detail
+        </Button>
+      }
     >
-      <EnhancedRoleForm 
-        initialData={role}
-        onSubmit={handleSubmit} 
-        loading={loading}
-        onCancel={() => router.push('/admin/roles')}
-      />
-    </FormPageLayout>
+      <div className="max-w-4xl mx-auto">
+        <RoleForm
+          role={role}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push(`/admin/roles/${id}`)}
+          isLoading={submitting}
+        />
+      </div>
+    </PageLayout>
   );
 }
-
-export { EditRolePage };
-export default EditRolePage;

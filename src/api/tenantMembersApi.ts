@@ -3,6 +3,7 @@
  * Uses Adapter pattern - Ready for Golang migration
  * 
  * Database: tenant_members (Global Table)
+ * ✅ ENHANCED: Includes user details via join
  */
 
 import { createAdapter, BaseFilters } from './adapters';
@@ -36,13 +37,19 @@ export interface TenantMember {
   version: number;
 }
 
-// Enhanced type with joined data (for UI display)
+// Enhanced type with joined data
 export interface EnrichedTenantMember extends TenantMember {
-  user_name?: string;
-  user_email?: string;
-  user_avatar?: string;
-  tenant_name?: string;
-  manager_name?: string;
+  user?: {
+    full_name: string;
+    email: string;
+    avatar_url?: string;
+  };
+  manager?: {
+    _id: string;
+    user?: {
+      full_name: string;
+    };
+  };
 }
 
 export interface CreateTenantMemberRequest {
@@ -82,7 +89,6 @@ export interface TenantMemberFilters extends BaseFilters {
   employee_code?: string;
 }
 
-// For backward compatibility and form usage
 export interface TenantMemberFormData {
   tenant_id: string;
   user_id: string;
@@ -129,22 +135,130 @@ export const tenantMembersApi = {
   /**
    * GET /tenant-members/:id
    */
-  getById: async (id: string): Promise<TenantMember> => {
-    return adapter.getById(id);
+  getById: async (id: string): Promise<EnrichedTenantMember> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+    
+    // Fetch with joins
+    const { data, error } = await supabase
+      .from('tenant_members')
+      .select(`
+        *,
+        user:users!user_id(full_name, email, avatar_url),
+        manager:tenant_members!manager_id(
+          _id,
+          user:users!user_id(full_name)
+        )
+      `)
+      .eq('_id', id)
+      .single();
+      
+    if (error || !data) {
+      // Fallback to adapter if join fails or just simple get
+      return adapter.getById(id) as Promise<EnrichedTenantMember>;
+    }
+    
+    return data as EnrichedTenantMember;
   },
 
   /**
    * POST /tenant-members
    */
   create: async (data: CreateTenantMemberRequest): Promise<TenantMember> => {
-    return adapter.create(data);
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Generate UUID
+    const _id = crypto.randomUUID();
+
+    // Prepare data
+    const requestData = {
+      _id,
+      tenant_id: data.tenant_id,
+      user_id: data.user_id,
+      employee_code: data.employee_code || null,
+      internal_email: data.internal_email || null,
+      job_title: data.job_title || null,
+      manager_id: data.manager_id || null,
+      role: data.role || 'MEMBER',
+      status: data.status || 'ACTIVE',
+      joined_at: data.joined_at || null,
+      permissions: data.permissions || [],
+      metadata: data.metadata || {},
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: created, error } = await supabase
+      .from('tenant_members')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create tenant member: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**
    * PATCH /tenant-members/:id
    */
   update: async (id: string, data: UpdateTenantMemberRequest): Promise<TenantMember> => {
-    return adapter.update(id, data);
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Optimistic locking logic
+    let currentVersion = data.version;
+
+    if (!currentVersion) {
+        const { data: current, error: fetchError } = await supabase
+            .from('tenant_members')
+            .select('version')
+            .eq('_id', id)
+            .single();
+            
+        if (fetchError || !current) {
+            throw new Error(`Tenant member not found: ${fetchError?.message || 'Unknown error'}`);
+        }
+        currentVersion = current.version;
+    }
+
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+      version: currentVersion + 1,
+    };
+
+    if (data.employee_code !== undefined) updateData.employee_code = data.employee_code;
+    if (data.internal_email !== undefined) updateData.internal_email = data.internal_email;
+    if (data.job_title !== undefined) updateData.job_title = data.job_title;
+    if (data.manager_id !== undefined) updateData.manager_id = data.manager_id;
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.joined_at !== undefined) updateData.joined_at = data.joined_at;
+    if (data.left_at !== undefined) updateData.left_at = data.left_at;
+    if (data.permissions !== undefined) updateData.permissions = data.permissions;
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+
+    const { data: updated, error } = await supabase
+      .from('tenant_members')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update tenant member: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**
@@ -156,8 +270,32 @@ export const tenantMembersApi = {
 
   // Helper methods
   
-  getByTenant: async (tenantId: string): Promise<TenantMember[]> => {
-    return adapter.getAll({ tenant_id: tenantId });
+  getByTenant: async (tenantId: string): Promise<EnrichedTenantMember[]> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+    
+    // Join with users and manager details
+    // Note: 'users!user_id' specifies the foreign key relationship
+    // 'tenant_members!manager_id' specifies self-referencing relationship
+    const { data, error } = await supabase
+      .from('tenant_members')
+      .select(`
+        *,
+        user:users!user_id(full_name, email, avatar_url),
+        manager:tenant_members!manager_id(
+          _id,
+          user:users!user_id(full_name)
+        )
+      `)
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.warn('Failed to fetch enriched members, falling back to simple fetch', error);
+      return adapter.getAll({ tenant_id: tenantId }) as Promise<EnrichedTenantMember[]>;
+    }
+    
+    return (data || []) as EnrichedTenantMember[];
   },
 
   getByUser: async (userId: string): Promise<TenantMember[]> => {
@@ -165,28 +303,20 @@ export const tenantMembersApi = {
   },
 
   changeStatus: async (id: string, status: MemberStatus, version: number): Promise<TenantMember> => {
-    return adapter.update(id, { status, version });
+    return tenantMembersApi.update(id, { status, version });
   },
 
   changeRole: async (id: string, role: MemberRole, version: number): Promise<TenantMember> => {
-    return adapter.update(id, { role, version });
+    return tenantMembersApi.update(id, { role, version });
   },
 
   // These fetch methods are used for dropdowns in the UI
-  // In a real app, these should probably be in their respective APIs
   fetchTenants: async () => {
     const { tenantsApi } = await import('./tenantsApi');
     return tenantsApi.getAll();
   },
   
   fetchUsers: async () => {
-    // This assumes there's a usersApi or similar. 
-    // If not, we might need to implement a basic one or use the existing mock behavior if valid.
-    // Given the previous file used a direct fetch, let's try to locate usersApi or simulate it.
-    // For now, I'll assume we can import it or use a placeholder. 
-    // The previous code had `fetchUsers` inside `tenantMembersApi`.
-    // Let's implement it via adapter if possible, or keep the fetch if no adapter for users exists yet.
-    // Since users is a global table, it should have an API.
     try {
         const { usersApi } = await import('./usersApi');
         return usersApi.getAll();

@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { ShoppingCart } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { ordersApi } from '@/api/ordersApi';
-import { OrderForm } from '@/components/orders/OrderForm';
-import { showToast } from '@/lib/toast';
+import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { ShoppingCart, Plus } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { ordersApi, CreateOrderRequest } from '../../../../../../api/ordersApi';
+import { OrderForm } from '../../../../../../components/orders/OrderForm';
+import { showToast } from '../../../../../../lib/toast';
 
 function AddOrderPage() {
   const router = useRouter();
@@ -20,7 +20,7 @@ function AddOrderPage() {
   const handleSubmit = async (data: any) => {
     setLoading(true);
     try {
-      await ordersApi.create(data);
+      await ordersApi.create(data as CreateOrderRequest);
       showToast.success('Success', 'Order created');
       router.push('/commerce/subscription-orders');
     } catch (error: any) {

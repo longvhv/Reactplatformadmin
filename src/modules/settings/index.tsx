@@ -44,3 +44,5 @@ export const SettingsModule: ModuleConfig = {
     } as any,
   ],
 };
+
+export default SettingsModule;

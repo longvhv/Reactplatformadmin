@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
 import { ShoppingCart } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { ordersApi, Order } from '@/api/ordersApi';
-import { OrderForm } from '@/components/orders/OrderForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { useLanguage } from '../../../../../../providers/LanguageProvider';
+import { OrderForm } from '../../../../../../components/orders/OrderForm';
+import { ordersApi, Order, UpdateOrderRequest } from '../../../../../../api/ordersApi';
 
 function EditOrderPage() {
   const params = useParams();
@@ -40,7 +40,8 @@ function EditOrderPage() {
   const handleSubmit = async (data: any) => {
     setLoading(true);
     try {
-      await ordersApi.update(id, data);
+      // Cast data to UpdateOrderRequest
+      await ordersApi.update(id, data as UpdateOrderRequest);
       showToast.success('Success', 'Order updated');
       router.push('/commerce/subscription-orders');
     } catch (error: any) {
@@ -68,7 +69,7 @@ function EditOrderPage() {
       backLabel="Back to Orders"
     >
       <OrderForm
-        initialData={order}
+        order={order || undefined}
         onSubmit={handleSubmit}
         loading={loading}
         onCancel={() => router.push('/commerce/subscription-orders')}

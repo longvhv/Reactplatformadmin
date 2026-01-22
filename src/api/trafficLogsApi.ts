@@ -6,7 +6,7 @@
  * Schema: telemetry.traffic_logs
  */
 
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '../utils/supabase/client';
 
 export interface TrafficLog {
   _id: string;

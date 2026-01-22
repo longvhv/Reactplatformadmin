@@ -8,6 +8,10 @@
  * - Fix device_type enum (lowercase)
  * - Fix field name: last_seen_at → last_used_at
  * - Display additional device info (model, manufacturer, versions, status)
+ * 
+ * ✅ ENHANCED 2026-01-20:
+ * - Added Add/Edit functionality via DeviceModal
+ * - Added manual location input support
  */
 
 import { useState, useEffect } from 'react';
@@ -24,10 +28,12 @@ import {
   Shield,
   MapPin,
   AlertCircle,
+  Plus,
+  Edit2,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import {
   Table,
   TableBody,
@@ -35,9 +41,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { userDevicesApi, type UserDevice, type DeviceType } from '@/api/userDevicesApi';
+} from '../ui/table';
+import { userDevicesApi, type UserDevice, type DeviceType, type CreateDeviceRequest, type UpdateDeviceRequest } from '../../api/userDevicesApi';
 import { toast } from 'sonner';
+import { DeviceModal } from './DeviceModal';
 
 interface UserDevicesTabProps {
   userId: string;
@@ -46,6 +53,10 @@ interface UserDevicesTabProps {
 export function UserDevicesTab({ userId }: UserDevicesTabProps) {
   const [devices, setDevices] = useState<UserDevice[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<UserDevice | null>(null);
 
   useEffect(() => {
     fetchDevices();
@@ -65,6 +76,35 @@ export function UserDevicesTab({ userId }: UserDevicesTabProps) {
       toast.error('Không thể tải devices');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddDevice = () => {
+    setSelectedDevice(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditDevice = (device: UserDevice) => {
+    setSelectedDevice(device);
+    setIsModalOpen(true);
+  };
+
+  const handleSaveDevice = async (data: CreateDeviceRequest | UpdateDeviceRequest) => {
+    try {
+      if (selectedDevice) {
+        // Update
+        await userDevicesApi.update(selectedDevice._id, data as UpdateDeviceRequest);
+        toast.success('ã cập nhật thiết bị');
+      } else {
+        // Create
+        await userDevicesApi.create(data as CreateDeviceRequest);
+        toast.success('Đã thêm thiết bị mới');
+      }
+      await fetchDevices();
+    } catch (error) {
+      console.error('Error saving device:', error);
+      toast.error('Có lỗi xảy ra khi lưu thiết bị');
+      throw error; // Re-throw for modal to handle
     }
   };
 
@@ -182,6 +222,10 @@ export function UserDevicesTab({ userId }: UserDevicesTabProps) {
             Quản lý các thiết bị đã đăng ký
           </p>
         </div>
+        <Button onClick={handleAddDevice} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Thêm thiết bị
+        </Button>
       </div>
 
       {/* Stats */}
@@ -291,6 +335,14 @@ export function UserDevicesTab({ userId }: UserDevicesTabProps) {
                               Active now
                             </Badge>
                           )}
+                          {device.location && (device.location.city || device.location.country) && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                              <MapPin className="w-3 h-3" />
+                              <span>
+                                {[device.location.city, device.location.country].filter(Boolean).join(', ')}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -368,15 +420,24 @@ export function UserDevicesTab({ userId }: UserDevicesTabProps) {
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveDevice(device._id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Xóa
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditDevice(device)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveDevice(device._id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -399,6 +460,14 @@ export function UserDevicesTab({ userId }: UserDevicesTabProps) {
           </div>
         </div>
       </Card>
+
+      <DeviceModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveDevice}
+        device={selectedDevice}
+        userId={userId}
+      />
     </div>
   );
 }

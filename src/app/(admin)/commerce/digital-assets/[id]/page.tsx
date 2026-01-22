@@ -6,19 +6,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Shield, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { digitalAssetsApi, DigitalAsset } from '@/api/digitalAssetsApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
+import { Package, ArrowLeft, MoreVertical, Edit, Trash2, Lock, Unlock } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { digitalAssetsApi, DigitalAsset } from '../../../../../api/digitalAssetsApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../../components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../../components/ui/dialog';
 
 function DigitalAssetDetailPage() {
   const params = useParams();

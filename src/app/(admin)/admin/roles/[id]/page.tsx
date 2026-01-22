@@ -1,48 +1,47 @@
 /**
- * RoleDetailPage Component
- * Chi tiết vai trò với quản lý quyền - Under 500 lines
+ * Role Detail Page
+ * Displays comprehensive role information with tabs for permissions and users
  * ✅ MIGRATED: Using Next.js shim for navigation
- * ✅ PageLayout for consistent UI/UX
- * ✅ DropdownMenu + ConfirmDialog + Toast
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
 import { 
   ArrowLeft, 
-  Shield,
+  Shield, 
+  Users, 
+  Edit, 
+  Trash2, 
+  Settings,
   Lock,
+  User,
+  Info,
   MoreVertical,
-  Edit,
-  Trash2,
-  Users,
-  Activity,
-  Plus,
-  X,
-  Search,
-  Mail,
-  UserX,
+  UserCheck,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
   Clock
 } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { useRole } from '@/hooks/useRole';
-import { usePermissions } from '@/hooks/usePermissions';
-import { userRolesApi, UserRole } from '@/api/userRolesApi';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { showToast } from '@/lib/toast';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Badge } from '../../../../../components/ui/badge';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { useRole } from '../../../../../hooks/useRole';
+import { usePermissions } from '../../../../../hooks/usePermissions';
+import { userRolesApi, UserRole } from '../../../../../api/userRolesApi';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { showToast } from '../../../../../lib/toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../../components/ui/dropdown-menu';
 
 function RoleDetailPage() {
   const params = useParams();

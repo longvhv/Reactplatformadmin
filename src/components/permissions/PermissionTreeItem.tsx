@@ -4,8 +4,9 @@
  */
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { PermissionNode } from '../../api/permissionsApi';
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -17,22 +18,12 @@ import {
   Plus,
 } from 'lucide-react';
 
-interface Permission {
-  _id: string;
-  code: string;
-  name: string;
-  description?: string;
-  is_group: boolean;
-  path: string;
-  children?: Permission[];
-}
-
 interface PermissionTreeItemProps {
-  permission: Permission;
+  permission: PermissionNode;
   level?: number;
-  onEdit: (permission: Permission) => void;
-  onDelete: (permission: Permission) => void;
-  onAddChild: (parentPermission: Permission) => void;
+  onEdit: (permission: PermissionNode) => void;
+  onDelete: (permission: PermissionNode) => void;
+  onAddChild: (parentPermission: PermissionNode) => void;
 }
 
 export function PermissionTreeItem({ 

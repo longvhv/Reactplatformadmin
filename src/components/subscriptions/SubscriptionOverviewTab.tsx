@@ -1,10 +1,10 @@
 /**
- * SubscriptionOverviewTab - Subscription overview information
+ * SubscriptionOverviewTab - Display subscription overview
  */
 
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, DollarSign, Package, Building2, Zap } from 'lucide-react';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Calendar, CreditCard, Package, Building2 } from 'lucide-react';
 import { Link } from 'react-router';
 
 interface SubscriptionOverviewTabProps {
@@ -47,7 +47,7 @@ export function SubscriptionOverviewTab({ subscriptionId, subscription: sub }: S
         <Card className="p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-indigo-50">
-              <DollarSign className="w-6 h-6 text-indigo-600" />
+              <CreditCard className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Giá trị</p>
@@ -76,7 +76,7 @@ export function SubscriptionOverviewTab({ subscriptionId, subscription: sub }: S
         <Card className="p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-orange-50">
-              <Clock className="w-6 h-6 text-orange-600" />
+              <CreditCard className="w-6 h-6 text-orange-600" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Đã hoạt động</p>
@@ -91,7 +91,7 @@ export function SubscriptionOverviewTab({ subscriptionId, subscription: sub }: S
         <Card className="p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-purple-50">
-              <Zap className="w-6 h-6 text-purple-600" />
+              <CreditCard className="w-6 h-6 text-purple-600" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Apps</p>
@@ -211,7 +211,7 @@ export function SubscriptionOverviewTab({ subscriptionId, subscription: sub }: S
 
           {sub.days_remaining !== undefined && (
             <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
+              <CreditCard className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-gray-900">Còn lại</p>
                 <p className={`text-sm font-semibold ${

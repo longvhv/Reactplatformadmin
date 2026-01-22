@@ -60,7 +60,7 @@ export function TenantSSOConfigsTab({ tenantId }: TenantSSOConfigsTabProps) {
     if (!confirm(`Delete SSO config "${config.name}"? This action cannot be undone.`)) return;
 
     try {
-      await deleteConfig(config._id);
+      await deleteConfig(config._id, config.version);
       toast.success('SSO config deleted successfully');
     } catch (err: any) {
       toast.error(err.message || 'Failed to delete config');

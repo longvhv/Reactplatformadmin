@@ -4,8 +4,9 @@
  * Manages applications assigned to tenants
  */
 
-import { createAdapter, BaseFilters } from './adapters';
-import { supabase } from '@/utils/supabase/client';
+import { getSupabaseClient } from '../lib/supabase';
+import { supabase } from '../utils/supabase/client';
+import { BaseFilters } from './adapters';
 
 // ==================== TYPES ====================
 
@@ -62,6 +63,7 @@ export interface UpdateTenantApplicationRequest {
   max_users?: number;
   expires_at?: string;
   settings?: Record<string, any>;
+  version?: number; // Optional for optimistic locking
 }
 
 export interface TenantApplicationFilters extends BaseFilters {
@@ -84,14 +86,6 @@ export interface TenantApplicationStatistics {
   total_max_users: number;
 }
 
-// ==================== ADAPTER ====================
-
-const adapter = createAdapter<TenantApplication, CreateTenantApplicationRequest, UpdateTenantApplicationRequest>(
-  'tenant_applications',
-  '/tenant-applications',
-  true // Has soft delete
-);
-
 // ==================== API CLIENT ====================
 
 export const tenantApplicationsApi = {
@@ -100,11 +94,12 @@ export const tenantApplicationsApi = {
    * Fetch tenant applications with filters
    */
   getAll: async (filters?: TenantApplicationFilters): Promise<TenantApplication[]> => {
+    const supabase = getSupabaseClient();
     let query = supabase
       .from('tenant_applications')
       .select(`
         *,
-        application:applications(name, description)
+        application:applications(name, description, icon_url)
       `)
       .order('created_at', { ascending: false });
 
@@ -155,7 +150,27 @@ export const tenantApplicationsApi = {
    * GET /tenant-applications/:id
    */
   getById: async (id: string): Promise<TenantApplication> => {
-    return adapter.getById(id);
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('tenant_applications')
+      .select(`
+        *,
+        application:applications(name, description, icon_url)
+      `)
+      .eq('_id', id)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to fetch tenant application: ${error.message}`);
+    }
+
+    return {
+      ...data,
+      id: data._id,
+      app_name: data.application?.name,
+      app_description: data.application?.description,
+      app_icon: data.application?.icon_url
+    };
   },
 
   /**
@@ -163,30 +178,197 @@ export const tenantApplicationsApi = {
    * Create new tenant application
    */
   create: async (data: CreateTenantApplicationRequest): Promise<TenantApplication> => {
-    return adapter.create(data);
+    const supabase = getSupabaseClient();
+    const _id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const requestData = {
+      _id,
+      ...data,
+      is_active: data.is_active ?? true,
+      created_at: now,
+      updated_at: now,
+      version: 1,
+      // created_by: // TODO: Get from context or passed in
+    };
+
+    const { data: created, error } = await supabase
+      .from('tenant_applications')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create tenant application: ${error.message}`);
+    }
+
+    return { ...created, id: created._id };
   },
 
   /**
    * PUT /tenant-applications/:id
-   * Update tenant application
+   * Update tenant application with optimistic locking
    */
   update: async (id: string, data: UpdateTenantApplicationRequest): Promise<TenantApplication> => {
-    return adapter.update(id, data);
+    const supabase = getSupabaseClient();
+
+    // 1. Get current version if not provided
+    let currentVersion = data.version;
+    if (currentVersion === undefined) {
+      const { data: current, error: fetchError } = await supabase
+        .from('tenant_applications')
+        .select('version')
+        .eq('_id', id)
+        .single();
+      
+      if (fetchError || !current) {
+        throw new Error('Tenant application not found');
+      }
+      currentVersion = current.version;
+    }
+
+    const nextVersion = currentVersion + 1;
+    const now = new Date().toISOString();
+
+    // Remove version from data to avoid sending it as update field (except we use it for check)
+    const { version, ...updateFields } = data;
+
+    const { data: updated, error } = await supabase
+      .from('tenant_applications')
+      .update({
+        ...updateFields,
+        updated_at: now,
+        version: nextVersion,
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update tenant application: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return { ...updated, id: updated._id };
   },
 
   /**
    * DELETE /tenant-applications/:id
    * Soft delete tenant application
    */
-  delete: async (id: string): Promise<void> => {
-    return adapter.delete(id);
+  delete: async (id: string, deletedBy?: string, version?: number): Promise<void> => {
+    const supabase = getSupabaseClient();
+
+    // 1. Get current version if not provided
+    let currentVersion = version;
+    if (currentVersion === undefined) {
+      const { data: current, error: fetchError } = await supabase
+        .from('tenant_applications')
+        .select('version')
+        .eq('_id', id)
+        .single();
+      
+      if (fetchError || !current) {
+         return; // Already deleted or not found
+      }
+      currentVersion = current.version;
+    }
+
+    const nextVersion = currentVersion + 1;
+
+    const { error } = await supabase
+      .from('tenant_applications')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deletedBy || null,
+        updated_at: new Date().toISOString(),
+        version: nextVersion,
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion);
+
+    if (error) {
+      throw new Error(`Failed to delete tenant application: ${error.message}`);
+    }
+  },
+
+  /**
+   * Soft delete tenant application (alias for delete)
+   */
+  softDelete: async (id: string, deletedBy?: string): Promise<void> => {
+    return tenantApplicationsApi.delete(id, deletedBy);
+  },
+
+  /**
+   * Permanently delete tenant application (hard delete)
+   */
+  hardDelete: async (id: string): Promise<void> => {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.from('tenant_applications').delete().eq('_id', id);
+    if (error) throw new Error(`Failed to hard delete tenant application: ${error.message}`);
+  },
+
+  /**
+   * Restore soft-deleted tenant application
+   */
+  restore: async (id: string): Promise<TenantApplication> => {
+    const supabase = getSupabaseClient();
+    
+    // Get current version (even if deleted)
+    const { data: current, error: fetchError } = await supabase
+      .from('tenant_applications')
+      .select('version')
+      .eq('_id', id)
+      .single();
+
+    if (fetchError || !current) throw new Error('Tenant application not found');
+
+    const nextVersion = current.version + 1;
+
+    const { data: restored, error } = await supabase
+      .from('tenant_applications')
+      .update({
+        deleted_at: null,
+        deleted_by: null,
+        updated_at: new Date().toISOString(),
+        version: nextVersion
+      })
+      .eq('_id', id)
+      .eq('version', current.version)
+      .select()
+      .single();
+      
+    if (error) throw new Error(`Failed to restore tenant application: ${error.message}`);
+    return { ...restored, id: restored._id };
+  },
+
+  /**
+   * Get only deleted tenant applications
+   */
+  getDeleted: async (): Promise<TenantApplication[]> => {
+    return tenantApplicationsApi.getAll({ include_deleted: true }).then(apps => apps.filter(app => app.deleted_at !== null));
   },
 
   /**
    * POST /tenant-applications/:id/activate
    * Activate application
    */
-  activate: async (id: string): Promise<TenantApplication> => {
+  activate: async (id: string, version?: number): Promise<TenantApplication> => {
+    return tenantApplicationsApi.update(id, {
+      is_active: true,
+      version,
+      // We can also set activated_at/deactivated_at manually if needed, 
+      // but strictly speaking update() handles generic fields.
+      // Let's add specific logic here if we want to set timestamps:
+    } as UpdateTenantApplicationRequest);
+    
+    // Actually, let's allow passing timestamps via update request or handle them here.
+    // For consistency with original code:
+    /*
     const { data, error } = await supabase
       .from('tenant_applications')
       .update({
@@ -194,14 +376,36 @@ export const tenantApplicationsApi = {
         activated_at: new Date().toISOString(),
         deactivated_at: null,
         updated_at: new Date().toISOString(),
+      }) ...
+    */
+   
+    // Let's reimplement properly with optimistic locking
+    const supabase = getSupabaseClient();
+    
+    let currentVersion = version;
+    if (currentVersion === undefined) {
+       const { data: current } = await supabase.from('tenant_applications').select('version').eq('_id', id).single();
+       if (current) currentVersion = current.version;
+    }
+
+    if (currentVersion === undefined) throw new Error('Application not found');
+
+    const { data, error } = await supabase
+      .from('tenant_applications')
+      .update({
+        is_active: true,
+        activated_at: new Date().toISOString(),
+        deactivated_at: null,
+        updated_at: new Date().toISOString(),
+        version: currentVersion + 1
       })
       .eq('_id', id)
+      .eq('version', currentVersion)
       .select()
       .single();
 
-    if (error || !data) {
-      throw new Error(`Failed to activate application: ${error?.message || 'Unknown error'}`);
-    }
+    if (error) throw new Error(`Failed to activate: ${error.message}`);
+    if (!data) throw new Error('Concurrent modification detected');
 
     return { ...data, id: data._id };
   },
@@ -210,21 +414,32 @@ export const tenantApplicationsApi = {
    * POST /tenant-applications/:id/deactivate
    * Deactivate application
    */
-  deactivate: async (id: string): Promise<TenantApplication> => {
+  deactivate: async (id: string, version?: number): Promise<TenantApplication> => {
+    const supabase = getSupabaseClient();
+    
+    let currentVersion = version;
+    if (currentVersion === undefined) {
+       const { data: current } = await supabase.from('tenant_applications').select('version').eq('_id', id).single();
+       if (current) currentVersion = current.version;
+    }
+
+    if (currentVersion === undefined) throw new Error('Application not found');
+
     const { data, error } = await supabase
       .from('tenant_applications')
       .update({
         is_active: false,
         deactivated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        version: currentVersion + 1
       })
       .eq('_id', id)
+      .eq('version', currentVersion)
       .select()
       .single();
 
-    if (error || !data) {
-      throw new Error(`Failed to deactivate application: ${error?.message || 'Unknown error'}`);
-    }
+    if (error) throw new Error(`Failed to deactivate: ${error.message}`);
+    if (!data) throw new Error('Concurrent modification detected');
 
     return { ...data, id: data._id };
   },

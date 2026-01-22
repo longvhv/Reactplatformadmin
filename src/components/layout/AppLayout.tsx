@@ -10,14 +10,14 @@ import {
   Search,
   X,
 } from "lucide-react";
-import { useTheme } from "@/providers/ThemeProvider";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useTheme } from "../../providers/ThemeProvider";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { Header } from "./Header";
 import { Breadcrumb } from "./Breadcrumb";
 import { ModuleRegistry } from "../../core/ModuleRegistry.tsx";
-import { MENU_GROUPS as STATIC_MENU_GROUPS } from "@/constants/menu-config";
+import { MENU_GROUPS as STATIC_MENU_GROUPS } from "../../constants/menu-config";
 
 // Memoized Navigation Item
 const NavigationItem = memo(({ route, icon, name, isPinned, onTogglePin }: {

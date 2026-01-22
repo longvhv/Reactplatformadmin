@@ -11,16 +11,16 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Shield } from 'lucide-react';
 
 const ReservedSlugsPage = lazy(() => 
-  import('../../app/(admin)/platform/reserved-slugs/page')
+  import('../../app/(admin)/reserved-slugs/page').then(m => ({ default: m.default }))
 );
 const AddReservedSlugPage = lazy(() => 
-  import('../../app/(admin)/platform/reserved-slugs/create/page')
+  import('../../app/(admin)/platform/reserved-slugs/create/page').then(m => ({ default: m.default }))
 );
 const EditReservedSlugPage = lazy(() => 
-  import('../../app/(admin)/platform/reserved-slugs/edit/[id]/page')
+  import('../../app/(admin)/platform/reserved-slugs/edit/[id]/page').then(m => ({ default: m.default }))
 );
 const ReservedSlugDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/reserved-slugs/[id]/page')
+  import('../../app/(admin)/platform/reserved-slugs/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const ReservedSlugsModule: ModuleDefinition = {

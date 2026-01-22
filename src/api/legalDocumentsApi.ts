@@ -64,6 +64,8 @@ export interface CreateLegalDocumentData {
   
   // ✅ FIXED 2026-01-15: Audit compliance
   created_by?: string;            // User who creates the document
+  published_by?: string;          // User who publishes (if status is published)
+  published_at?: string;          // Publish timestamp (if status is published)
 }
 
 export interface UpdateLegalDocumentData {

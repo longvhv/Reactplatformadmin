@@ -7,17 +7,17 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { webhooksApi } from '@/api/webhooksApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { webhooksApi } from '../../../../api/webhooksApi';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../components/common/StatisticsCards';
 import { Plus, Search, Webhook, CheckCircle, XCircle, Activity } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { showToast } from '../../../../lib/toast';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
 function WebhooksPage() {
   const router = useRouter();

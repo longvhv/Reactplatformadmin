@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Box } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { productTypesApi } from '@/api/productTypesApi';
-import { ProductTypeForm } from '@/components/product-types/ProductTypeForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { productTypesApi } from '../../../../api/productTypesApi';
+import { ProductTypeForm } from '../../../../components/product-types/ProductTypeForm';
+import { showToast } from '../../../../lib/toast';
 
 function AddProductTypePage() {
   const router = useRouter();

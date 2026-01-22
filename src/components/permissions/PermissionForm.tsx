@@ -9,23 +9,23 @@ import {
   Permission,
   CreatePermissionRequest,
   UpdatePermissionRequest,
-} from '@/api/permissionsApi';
-import { useApplications } from '@/hooks/useApplications';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '../../api/permissionsApi';
+import { useApplications } from '../../hooks/useApplications';
+import { usePermissions } from '../../hooks/usePermissions';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Checkbox } from '../ui/checkbox';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '../ui/select';
 import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface PermissionFormProps {
   initialData?: Permission | null;

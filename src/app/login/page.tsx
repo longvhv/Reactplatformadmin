@@ -3,13 +3,13 @@
  */
 'use client';
 import { Fragment, useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../components/shim/next-navigation';
 import { Lock, Mail } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { showToast } from '@/lib/toast';
-import { useAuthContext } from '@/providers/AuthProvider';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Card } from '../../components/ui/card';
+import { showToast } from '../../lib/toast';
+import { useAuthContext } from '../../providers/AuthProvider';
 
 function LoginPage() {
   const router = useRouter();

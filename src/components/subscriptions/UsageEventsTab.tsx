@@ -25,11 +25,11 @@ import {
   getEventTypeLabel,
   getEventTypeColor,
   formatQuantity,
-} from '@/api/usageEventsApi';
-import { formatDate } from '@/lib/format';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+} from '../../api/usageEventsApi';
+import { formatDate } from '../../lib/format';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
 
 interface UsageEventsTabProps {
   subscriptionId: string;

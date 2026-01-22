@@ -5,12 +5,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Shield } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { PermissionForm } from '@/components/permissions/PermissionForm';
-import { usePermissions } from '@/hooks/usePermissions';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { PermissionForm } from '../../../../../components/permissions/PermissionForm';
+import { usePermissions } from '../../../../../hooks/usePermissions';
+import { showToast } from '../../../../../lib/toast';
 
 export default function CreatePermissionPage() {
   const router = useRouter();

@@ -4,11 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Textarea } from '../ui/textarea';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -16,26 +16,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '../ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '../ui/select';
 import { Loader2 } from 'lucide-react';
-
-interface Permission {
-  _id?: string;
-  code: string;
-  name: string;
-  description?: string;
-  is_group: boolean;
-  parent_code?: string | null;
-  app_code: string;
-  version?: number;
-}
+import { Permission } from '../../api/permissionsApi';
 
 interface PermissionFormDialogProps {
   open: boolean;
@@ -57,12 +47,16 @@ export function PermissionFormDialog({
   onSubmit,
 }: PermissionFormDialogProps) {
   const [formData, setFormData] = useState<Permission>({
+    _id: '',
     code: '',
     name: '',
     description: '',
     is_group: false,
     parent_code: null,
     app_code: appCode,
+    created_at: '',
+    updated_at: '',
+    version: 0
   });
   const [loading, setLoading] = useState(false);
 
@@ -74,12 +68,16 @@ export function PermissionFormDialog({
       });
     } else {
       setFormData({
+        _id: '',
         code: '',
         name: '',
         description: '',
         is_group: false,
         parent_code: parentCode || null,
         app_code: appCode,
+        created_at: '',
+        updated_at: '',
+        version: 0
       });
     }
   }, [permission, appCode, parentCode, open]);
@@ -202,6 +200,30 @@ export function PermissionFormDialog({
                 rows={3}
               />
             </div>
+            {/* Audit Info (Read Only) */}
+            {permission && (
+              <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 pt-2 border-t">
+                <div>
+                  <span className="font-medium">Tạo bởi:</span>{' '}
+                  {permission.created_by || 'System'}
+                </div>
+                <div>
+                  <span className="font-medium">Tạo lúc:</span>{' '}
+                  {permission.created_at ? new Date(permission.created_at).toLocaleString('vi-VN') : 'N/A'}
+                </div>
+                <div>
+                  <span className="font-medium">Cập nhật:</span>{' '}
+                  {permission.updated_by || 'System'}
+                </div>
+                <div>
+                  <span className="font-medium">Sửa lúc:</span>{' '}
+                  {permission.updated_at ? new Date(permission.updated_at).toLocaleString('vi-VN') : 'N/A'}
+                </div>
+                <div>
+                  <span className="font-medium">Version:</span> {permission.version}
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

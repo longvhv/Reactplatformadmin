@@ -5,19 +5,19 @@
  */
 
 import React from 'react';
-import { Product } from '../../api/productsApi';
+import { SaasProduct } from '../../api/saasProductsApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Edit2, Trash2, Star, Copy } from 'lucide-react';
 import { useLanguage } from '../../providers/LanguageProvider';
 
 interface ProductTableProps {
-  products: Product[];
-  onEdit?: (product: Product) => void;
-  onDelete?: (product: Product) => void;
-  onView?: (product: Product) => void;
-  onDuplicate?: (product: Product) => void;
-  onToggleFeatured?: (product: Product) => void;
+  products: SaasProduct[];
+  onEdit?: (product: SaasProduct) => void;
+  onDelete?: (product: SaasProduct) => void;
+  onView?: (product: SaasProduct) => void;
+  onDuplicate?: (product: SaasProduct) => void;
+  onToggleFeatured?: (product: SaasProduct) => void;
   loading?: boolean;
 }
 

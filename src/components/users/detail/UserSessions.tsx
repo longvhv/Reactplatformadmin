@@ -13,8 +13,8 @@ import {
   LogOut,
   Trash2
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useUserSessions } from '@/hooks/useUserSessions';
+import { Button } from '../../ui/button';
+import { useUserSessions } from '../../../hooks/useUserSessions';
 
 interface UserSessionsProps {
   userId: string;

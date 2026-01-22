@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, XCircle, Clock, TrendingUp, TrendingDown, Activity, Info, BarChart3 } from 'lucide-react';
-import { Webhook } from '@/api/webhooksApi';
-import { webhookDeliveryLogsApi, DeliveryStats } from '@/api/webhookDeliveryLogsApi';
+import { Webhook } from '../../api/webhooksApi';
+import { webhookDeliveryLogsApi, DeliveryStats } from '../../api/webhookDeliveryLogsApi';
 import { WebhookStatsTab } from './WebhookStatsTab';
 
 interface WebhookDetailModalProps {

@@ -85,7 +85,14 @@ export function useSaasProductTypes(options: UseSaasProductTypesOptions = {}) {
   const deleteProductType = async (id: string) => {
     try {
       console.log('[useSaasProductTypes] Deleting product type:', id);
-      await saasProductTypesApi.delete(id);
+      
+      // Find current item to get version
+      const current = productTypes.find(p => p._id === id);
+      if (!current) {
+        throw new Error('Product type not found in local state');
+      }
+
+      await saasProductTypesApi.delete(id, current.version);
       console.log('[useSaasProductTypes] Deleted product type:', id);
       
       // Remove from local state
@@ -100,7 +107,14 @@ export function useSaasProductTypes(options: UseSaasProductTypesOptions = {}) {
   const activateProductType = async (id: string) => {
     try {
       console.log('[useSaasProductTypes] Activating product type:', id);
-      const updated = await saasProductTypesApi.activate(id);
+      
+      const current = productTypes.find(p => p._id === id);
+      if (!current) throw new Error('Product type not found');
+
+      const updated = await saasProductTypesApi.update(id, {
+        is_active: true,
+        version: current.version
+      });
       console.log('[useSaasProductTypes] Activated product type:', updated);
       
       // Update local state
@@ -117,7 +131,14 @@ export function useSaasProductTypes(options: UseSaasProductTypesOptions = {}) {
   const deactivateProductType = async (id: string) => {
     try {
       console.log('[useSaasProductTypes] Deactivating product type:', id);
-      const updated = await saasProductTypesApi.deactivate(id);
+      
+      const current = productTypes.find(p => p._id === id);
+      if (!current) throw new Error('Product type not found');
+
+      const updated = await saasProductTypesApi.update(id, {
+        is_active: false,
+        version: current.version
+      });
       console.log('[useSaasProductTypes] Deactivated product type:', updated);
       
       // Update local state

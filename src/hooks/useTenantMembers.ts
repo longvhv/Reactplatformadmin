@@ -133,7 +133,8 @@ export function useTenantMembers(
 
       if (filters?.role) queryFilters.role = filters.role;
       if (filters?.status) queryFilters.status = filters.status;
-      if (filters?.search) queryFilters.search = filters.search;
+      // ✅ Skip search filter - it's not a database column
+      // Search should be handled by backend or via text search on specific columns
 
       // Query using DataClient
       const result = await dataClient.query<TenantMember>('tenant_members', {

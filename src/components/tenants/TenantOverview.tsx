@@ -8,8 +8,8 @@ import {
   Building2, Globe, MapPin, Shield, CreditCard, Calendar, 
   Users, Database, Activity, Code, Package, TrendingUp 
 } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import type { Tenant } from "@/data/tenants";
+import { useLanguage } from "../../providers/LanguageProvider";
+import type { Tenant } from "../../data/tenants";
 
 interface TenantOverviewProps {
   tenant: Tenant;

@@ -15,18 +15,18 @@
 
 import { useState, useEffect } from "react";
 import { Save, AlertTriangle, Calendar, Database, FileCode, Tag } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TenantDigitalAsset, CreateAssetRequest, UpdateAssetRequest, AssetType, AssetStatus, digitalAssetsApi } from "@/api/digitalAssetsApi";
-import { ordersApi, Order } from "@/api/ordersApi";
-import { showToast } from "@/lib/toast";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
+import { Textarea } from "../ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { TenantDigitalAsset, CreateAssetRequest, UpdateAssetRequest, AssetType, AssetStatus, digitalAssetsApi } from "../../api/digitalAssetsApi";
+import { ordersApi, Order } from "../../api/ordersApi";
+import { showToast } from "../../lib/toast";
 
 interface EnhancedTenantDigitalAssetFormProps {
   initialData?: Partial<TenantDigitalAsset>;

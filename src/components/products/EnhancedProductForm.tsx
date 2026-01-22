@@ -11,7 +11,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Product, CreateProductRequest, UpdateProductRequest } from '../../api/productsApi';
+import { SaasProduct, CreateSaasProductRequest, UpdateSaasProductRequest } from '../../api/saasProductsApi';
+import { saasProductTypesApi } from '../../api/saasProductTypesApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -20,15 +21,15 @@ import { Switch } from '../ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { AlertCircle, Plus, Trash2, Package, Save } from 'lucide-react';
-import { showToast } from '@/lib/toast';
+import { showToast } from '../../lib/toast';
 
 type BillingCycle = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY' | 'LIFETIME';
 type ProductStatus = 'active' | 'inactive' | 'archived';
 
 interface EnhancedProductFormProps {
-  product?: Product | null;
+  product?: SaasProduct | null;
   tenantId: string;
-  onSubmit: (data: CreateProductRequest | UpdateProductRequest) => Promise<void>;
+  onSubmit: (data: CreateSaasProductRequest | UpdateSaasProductRequest) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -57,6 +58,7 @@ const CURRENCIES = [
 export function EnhancedProductForm({ product, tenantId, onSubmit, onCancel, loading }: EnhancedProductFormProps) {
   const [activeTab, setActiveTab] = useState('general');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [productTypes, setProductTypes] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
     code: '',
@@ -76,6 +78,17 @@ export function EnhancedProductForm({ product, tenantId, onSubmit, onCancel, loa
   const [limits, setLimits] = useState<Array<{ key: string; value: string }>>([]);
 
   useEffect(() => {
+    // Fetch product types
+    const fetchProductTypes = async () => {
+      try {
+        const types = await saasProductTypesApi.getAll({ is_active: true });
+        setProductTypes(types);
+      } catch (error) {
+        console.error('Failed to fetch product types:', error);
+      }
+    };
+    fetchProductTypes();
+
     if (product) {
       setFormData({
         code: product.code,
@@ -189,14 +202,14 @@ export function EnhancedProductForm({ product, tenantId, onSubmit, onCancel, loa
 
       if (product) {
         // Update
-        const updateData: UpdateProductRequest = {
+        const updateData: UpdateSaasProductRequest = {
           ...commonData,
           version: product.version,
         };
         await onSubmit(updateData);
       } else {
         // Create
-        const createData: CreateProductRequest = {
+        const createData: CreateSaasProductRequest = {
           tenant_id: tenantId,
           ...commonData,
         };
@@ -303,12 +316,22 @@ export function EnhancedProductForm({ product, tenantId, onSubmit, onCancel, loa
 
               <div className="space-y-2">
                 <Label htmlFor="product_type_code">Loại sản phẩm (Mã)</Label>
-                <Input
+                <select
                   id="product_type_code"
                   value={formData.product_type_code}
                   onChange={(e) => setFormData({ ...formData, product_type_code: e.target.value })}
-                  placeholder="vd: LICENSE, SUBSCRIPTION, SERVICE"
-                />
+                  className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  <option value="">-- Chọn loại sản phẩm --</option>
+                  {productTypes.map((type) => (
+                    <option key={type.code} value={type.code}>
+                      {type.name} ({type.code})
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Chọn loại sản phẩm từ danh sách đã cấu hình.
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -549,6 +572,23 @@ export function EnhancedProductForm({ product, tenantId, onSubmit, onCancel, loa
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Audit Info (Read Only) */}
+      {product && (
+        <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 pt-4 border-t">
+          <div>
+            <span className="font-medium">Tạo lúc:</span>{' '}
+            {product.created_at ? new Date(product.created_at).toLocaleString('vi-VN') : 'N/A'}
+          </div>
+          <div>
+            <span className="font-medium">Cập nhật:</span>{' '}
+            {product.updated_at ? new Date(product.updated_at).toLocaleString('vi-VN') : 'N/A'}
+          </div>
+          <div>
+            <span className="font-medium">Version:</span> {product.version}
+          </div>
+        </div>
+      )}
 
       {/* Footer Actions */}
       <div className="flex items-center justify-end gap-4 pt-4 border-t">

@@ -1,6 +1,7 @@
 /**
  * MemberDetailModal Component
  * Modal for viewing tenant member details
+ * ✅ Fully aligned with tenant_members schema and EnrichedTenantMember
  */
 
 import React from 'react';
@@ -19,16 +20,14 @@ import {
   Users,
   Eye,
   FileText,
-  UserCheck,
-  TrendingUp,
 } from 'lucide-react';
-import { TenantMember } from '@/api/tenantMembersApi';
-import { useTranslation } from 'react-i18next';
+import { EnrichedTenantMember } from '../../api/tenantMembersApi';
+import { useTranslation } from '../../providers/LanguageProvider';
 
 interface MemberDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  member: TenantMember | null;
+  member: EnrichedTenantMember | null;
 }
 
 export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModalProps) {
@@ -52,17 +51,17 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
     const endDate = member.left_at ? new Date(member.left_at) : new Date();
     const days = Math.floor((endDate.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (days < 30) return `${days} ngày`;
-    if (days < 365) return `${Math.floor(days / 30)} tháng`;
-    return `${Math.floor(days / 365)} năm ${Math.floor((days % 365) / 30)} tháng`;
+    if (days < 30) return `${days} days`;
+    if (days < 365) return `${Math.floor(days / 30)} months`;
+    return `${Math.floor(days / 365)} years ${Math.floor((days % 365) / 30)} months`;
   };
 
   const getRoleBadge = () => {
     const config = {
-      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: t('common.owner') },
-      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: t('common.admin') },
-      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: t('common.member') },
-      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: t('common.viewer') },
+      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: t('common.owner') || 'Owner' },
+      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: t('common.admin') || 'Admin' },
+      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: t('common.member') || 'Member' },
+      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: t('common.viewer') || 'Viewer' },
     };
     const c = config[member.role];
     const Icon = c.icon;
@@ -98,8 +97,12 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex-1">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl font-semibold">
-                {member.user?.full_name?.charAt(0) || '?'}
+              <div className="w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl font-semibold overflow-hidden">
+                {member.user?.avatar_url ? (
+                  <img src={member.user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  member.user?.full_name?.charAt(0) || '?'
+                )}
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
@@ -124,18 +127,18 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-blue-600 text-sm mb-1">
                 <Calendar className="w-4 h-4" />
-                Thời Gian
+                Tenure
               </div>
               <p className="text-2xl font-bold text-blue-700">{calculateTenure()}</p>
-              <p className="text-xs text-blue-600 mt-1">Tenure</p>
+              <p className="text-xs text-blue-600 mt-1">Duration</p>
             </div>
             <div className="bg-purple-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-purple-600 text-sm mb-1">
                 <Shield className="w-4 h-4" />
-                Quyền Hạn
+                Permissions
               </div>
-              <p className="text-2xl font-bold text-purple-700">{member.permissions.length}</p>
-              <p className="text-xs text-purple-600 mt-1">Permissions</p>
+              <p className="text-2xl font-bold text-purple-700">{member.permissions?.length || 0}</p>
+              <p className="text-xs text-purple-600 mt-1">Explicit Grants</p>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
               <div className="flex items-center gap-2 text-green-600 text-sm mb-1">
@@ -151,21 +154,21 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
           <div className="border border-gray-200 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <Briefcase className="w-4 h-4" />
-              Thông Tin Nhân Viên
+              Employee Information
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-gray-500 uppercase">Mã Nhân Viên</label>
+                <label className="text-xs text-gray-500 uppercase">Employee Code</label>
                 <p className="text-sm font-medium text-gray-900 mt-1">
                   {member.employee_code || '-'}
                 </p>
               </div>
               <div>
-                <label className="text-xs text-gray-500 uppercase">Email Nội Bộ</label>
+                <label className="text-xs text-gray-500 uppercase">Internal Email</label>
                 <p className="text-sm text-gray-900 mt-1">{member.internal_email || '-'}</p>
               </div>
               <div>
-                <label className="text-xs text-gray-500 uppercase">Chức Vụ</label>
+                <label className="text-xs text-gray-500 uppercase">Job Title</label>
                 <p className="text-sm text-gray-900 mt-1">{member.job_title || '-'}</p>
               </div>
               <div>
@@ -173,10 +176,7 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
                 <p className="text-sm text-gray-900 mt-1">
                   {member.manager ? (
                     <span>
-                      {member.manager.full_name}
-                      {member.manager.employee_code && (
-                        <span className="text-gray-500 ml-1">({member.manager.employee_code})</span>
-                      )}
+                      {member.manager.user?.full_name || 'Unknown'}
                     </span>
                   ) : (
                     '-'
@@ -190,7 +190,7 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
           <div className="border border-gray-200 rounded-lg p-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
               <User className="w-4 h-4" />
-              Thông Tin User
+              System User
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -198,18 +198,8 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
                 <p className="text-sm font-mono text-gray-900 mt-1 break-all">{member.user_id}</p>
               </div>
               <div>
-                <label className="text-xs text-gray-500 uppercase">Display Name</label>
-                <p className="text-sm text-gray-900 mt-1">{member.user?.display_name || '-'}</p>
-              </div>
-              <div>
                 <label className="text-xs text-gray-500 uppercase">Email</label>
                 <p className="text-sm text-gray-900 mt-1">{member.user?.email || '-'}</p>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 uppercase">Last Login</label>
-                <p className="text-sm text-gray-900 mt-1">
-                  {member.user?.last_login_at ? formatDate(member.user.last_login_at) : 'Never'}
-                </p>
               </div>
             </div>
           </div>
@@ -223,24 +213,21 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Ngày Tham Gia</p>
-                  <p className="text-xs text-gray-500">Joined At</p>
+                  <p className="text-sm font-medium text-gray-900">Joined At</p>
                 </div>
                 <p className="text-sm text-gray-900">{formatDateOnly(member.joined_at)}</p>
               </div>
               {member.left_at && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <div>
-                    <p className="text-sm font-medium text-red-900">Ngày Rời Đi</p>
-                    <p className="text-xs text-red-500">Left At</p>
+                    <p className="text-sm font-medium text-red-900">Left At</p>
                   </div>
                   <p className="text-sm text-red-900">{formatDateOnly(member.left_at)}</p>
                 </div>
               )}
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Thời Gian Làm Việc</p>
-                  <p className="text-xs text-gray-500">Tenure</p>
+                  <p className="text-sm font-medium text-gray-900">Tenure</p>
                 </div>
                 <p className="text-sm font-semibold text-indigo-600">{calculateTenure()}</p>
               </div>
@@ -252,7 +239,7 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
             <div className="border border-gray-200 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                Quyền Hạn ({member.permissions.length})
+                Permissions ({member.permissions.length})
               </h3>
               <div className="flex flex-wrap gap-2">
                 {member.permissions.map((perm, index) => (
@@ -292,30 +279,12 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
                 <label className="text-xs text-gray-500 uppercase">Updated At</label>
                 <p className="text-sm text-gray-900 mt-1">{formatDate(member.updated_at)}</p>
               </div>
-              {member.created_by && (
-                <div>
-                  <label className="text-xs text-gray-500 uppercase">Created By</label>
-                  <p className="text-sm font-mono text-gray-900 mt-1 break-all">{member.created_by}</p>
-                </div>
-              )}
-              {member.updated_by && (
-                <div>
-                  <label className="text-xs text-gray-500 uppercase">Updated By</label>
-                  <p className="text-sm font-mono text-gray-900 mt-1 break-all">{member.updated_by}</p>
-                </div>
-              )}
               {member.deleted_at && (
                 <>
                   <div>
                     <label className="text-xs text-red-500 uppercase">Deleted At</label>
                     <p className="text-sm text-red-900 mt-1">{formatDate(member.deleted_at)}</p>
                   </div>
-                  {member.deleted_by && (
-                    <div>
-                      <label className="text-xs text-red-500 uppercase">Deleted By</label>
-                      <p className="text-sm font-mono text-red-900 mt-1 break-all">{member.deleted_by}</p>
-                    </div>
-                  )}
                 </>
               )}
               <div>
@@ -337,10 +306,6 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
                 <label className="text-xs text-gray-500 uppercase">Tenant ID</label>
                 <p className="text-xs font-mono text-gray-900 mt-1 break-all">{member.tenant_id}</p>
               </div>
-              <div>
-                <label className="text-xs text-gray-500 uppercase">User ID</label>
-                <p className="text-xs font-mono text-gray-900 mt-1 break-all">{member.user_id}</p>
-              </div>
               {member.manager_id && (
                 <div>
                   <label className="text-xs text-gray-500 uppercase">Manager ID</label>
@@ -357,12 +322,10 @@ export function MemberDetailModal({ isOpen, onClose, member }: MemberDetailModal
             onClick={onClose}
             className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>
     </div>
   );
 }
-
-export default MemberDetailModal;

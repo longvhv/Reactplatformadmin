@@ -1,10 +1,10 @@
 /**
- * SubscriptionHistoryTab - Display subscription history and events
+ * SubscriptionHistoryTab - Display subscription history
  */
 
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Check, XCircle, RefreshCw, Play } from 'lucide-react';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Clock, Calendar, User } from 'lucide-react';
 
 interface SubscriptionHistoryTabProps {
   subscriptionId: string;
@@ -33,8 +33,8 @@ export function SubscriptionHistoryTab({ subscriptionId }: SubscriptionHistoryTa
 
   const getEventIcon = (type: string) => {
     const icons: Record<string, JSX.Element> = {
-      CREATED: <Play className="w-5 h-5 text-blue-600" />,
-      ACTIVATED: <Check className="w-5 h-5 text-green-600" />,
+      CREATED: <Clock className="w-5 h-5 text-blue-600" />,
+      ACTIVATED: <User className="w-5 h-5 text-green-600" />,
       RENEWED: <RefreshCw className="w-5 h-5 text-purple-600" />,
       CANCELLED: <XCircle className="w-5 h-5 text-red-600" />,
     };

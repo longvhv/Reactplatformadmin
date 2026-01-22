@@ -5,13 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   TenantMember,
   CreateTenantMemberRequest,
   UpdateTenantMemberRequest,
   MemberRole,
   MemberStatus,
-} from '@/api/tenantMembersApi';
+} from '../../api/tenantMembersApi';
 
 interface MemberModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface MemberModalProps {
 }
 
 export function MemberModal({ isOpen, onClose, onSave, member, tenantId }: MemberModalProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<Partial<CreateTenantMemberRequest>>({
     tenant_id: tenantId,
     user_id: '',
@@ -83,7 +85,14 @@ export function MemberModal({ isOpen, onClose, onSave, member, tenantId }: Membe
       if (!cleanData.manager_id) delete cleanData.manager_id;
       if (!cleanData.joined_at) delete cleanData.joined_at;
 
-      await onSave(cleanData);
+      if (member) {
+        await onSave({
+          ...cleanData,
+          version: member.version
+        } as UpdateTenantMemberRequest);
+      } else {
+        await onSave(cleanData as CreateTenantMemberRequest);
+      }
       onClose();
     } catch (error) {
       console.error('Error saving member:', error);
@@ -231,7 +240,7 @@ export function MemberModal({ isOpen, onClose, onSave, member, tenantId }: Membe
                 <option value="ACTIVE">{t('common.active')}</option>
                 <option value="ONBOARDING">{t('common.onboarding')}</option>
                 <option value="SUSPENDED">{t('common.suspended')}</option>
-                <option value="OFFBOARDED">Offboarded</option>
+                <option value="RESIGNED">Resigned</option>
               </select>
             </div>
           </div>

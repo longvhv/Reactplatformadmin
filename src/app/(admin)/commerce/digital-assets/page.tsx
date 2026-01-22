@@ -8,29 +8,44 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import {
+  Package,
+  Plus,
+  Search,
+  Download,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Key,
+  Shield,
+  Globe,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Lock,
+  Unlock,
+} from 'lucide-react';
 import {
   digitalAssetsApi,
   DigitalAsset,
-  getAssetTypeLabel,
-  getAssetTypeColor,
-  getAssetStatusLabel,
-  getAssetStatusColor,
-  isAssetExpiringSoon,
-  getDaysUntilExpiry,
-} from '@/api/digitalAssetsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, RefreshCw, Shield, AlertTriangle, CheckCircle, Calendar, Package } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+  DigitalAssetType,
+  DigitalAssetStatus,
+  CreateDigitalAssetRequest,
+  UpdateDigitalAssetRequest,
+} from '../../../../../api/digitalAssetsApi';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
+import { Badge } from '../../../../../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../../../../components/ui/dialog';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
 
 interface AssetStats {
   total: number;
@@ -86,8 +101,7 @@ function DigitalAssetsPage() {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(asset => 
         asset.name.toLowerCase().includes(term) ||
-        asset.asset_value?.toLowerCase().includes(term) ||
-        asset.notes?.toLowerCase().includes(term)
+        asset.asset_type?.toLowerCase().includes(term)
       );
     }
 
@@ -107,9 +121,9 @@ function DigitalAssetsPage() {
   const calculateStats = () => {
     const newStats: AssetStats = {
       total: assets.length,
-      active: assets.filter(a => a.status === 'active').length,
-      pending: assets.filter(a => a.status === 'pending').length,
-      expired: assets.filter(a => a.status === 'expired').length,
+      active: assets.filter(a => a.status === 'ACTIVE').length,
+      pending: assets.filter(a => a.status === 'PENDING').length,
+      expired: assets.filter(a => a.status === 'EXPIRED').length,
       expiringSoon: assets.filter(a => isAssetExpiringSoon(a)).length,
     };
     setStats(newStats);
@@ -138,8 +152,8 @@ function DigitalAssetsPage() {
   const statsCards = stats ? [
     { label: 'Total Assets', value: stats.total, color: 'indigo' as const, icon: Package },
     { label: 'Active', value: stats.active, color: 'green' as const, icon: CheckCircle },
-    { label: 'Expiring Soon', value: stats.expiringSoon, color: 'yellow' as const, icon: AlertTriangle },
-    { label: 'Expired', value: stats.expired, color: 'red' as const, icon: Calendar },
+    { label: 'Expiring Soon', value: stats.expiringSoon, color: 'yellow' as const, icon: AlertCircle },
+    { label: 'Expired', value: stats.expired, color: 'red' as const, icon: Lock },
   ] : [];
 
   return (
@@ -191,10 +205,12 @@ function DigitalAssetsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('common.allTypes')}</SelectItem>
-                <SelectItem value="domain">Domain</SelectItem>
-                <SelectItem value="ssl">SSL Certificate</SelectItem>
-                <SelectItem value="license">License Key</SelectItem>
-                <SelectItem value="api_key">API Key</SelectItem>
+                <SelectItem value="DOMAIN">Domain</SelectItem>
+                <SelectItem value="SSL">SSL Certificate</SelectItem>
+                <SelectItem value="LICENSE_KEY">License Key</SelectItem>
+                <SelectItem value="SOFTWARE">Software</SelectItem>
+                <SelectItem value="SUBSCRIPTION">Subscription</SelectItem>
+                <SelectItem value="OTHER">Other</SelectItem>
               </SelectContent>
             </Select>
 
@@ -204,10 +220,12 @@ function DigitalAssetsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t('common.allStatuses')}</SelectItem>
-                <SelectItem value="active">{t('common.active')}</SelectItem>
-                <SelectItem value="pending">{t('common.pending')}</SelectItem>
-                <SelectItem value="expired">{t('common.expired')}</SelectItem>
-                <SelectItem value="suspended">{t('common.suspended')}</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="PROVISIONING">Provisioning</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="EXPIRED">Expired</SelectItem>
+                <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                <SelectItem value="TRANSFERRING">Transferring</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -251,7 +269,7 @@ function DigitalAssetsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {asset.asset_value}
+                          {asset.name}
                         </code>
                       </td>
                       <td className="py-3 px-4">
@@ -260,10 +278,10 @@ function DigitalAssetsPage() {
                         </Badge>
                       </td>
                       <td className="py-3 px-4">
-                        {asset.expiry_date ? (
+                        {asset.expires_at ? (
                           <div className="flex items-center gap-1">
                             {expiringSoon && (
-                              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                              <AlertCircle className="w-4 h-4 text-yellow-600" />
                             )}
                             <span className={expiringSoon ? 'text-yellow-600' : ''}>
                               {daysLeft !== null ? `${daysLeft} days` : 'N/A'}

@@ -9,7 +9,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
 import { 
   ArrowLeft, 
   Building2, 
@@ -36,49 +36,52 @@ import {
   Link2,
   Globe,
   Mail,
-  Package
+  Package,
+  Box
 } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useTenant } from '@/hooks/useTenant';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { isValidDetailId, getReservedKeywordRedirect } from '@/lib/route-guards';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { Button } from '../../../../../components/ui/button';
+import { Badge } from '../../../../../components/ui/badge';
+import { useTenant } from '../../../../../hooks/useTenant';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { isValidDetailId, getReservedKeywordRedirect } from '../../../../../lib/route-guards';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { TenantDetailView } from '@/components/tenants/TenantDetailView';
-import { TenantAppRoutesTab } from '@/components/tenants/TenantAppRoutesTab';
-import { TenantRateLimitsTab } from '@/components/tenants/TenantRateLimitsTab';
-import { TenantWebhooksTab } from '@/components/tenants/TenantWebhooksTab';
-import { TenantRoutingSlugsTab } from '@/components/tenants/TenantRoutingSlugsTab';
-import { TenantMembersTab } from '@/components/tenants/TenantMembersTab';
-import { TenantRolesTab } from '@/components/tenants/TenantRolesTab';
-import { TenantDepartmentsTab } from '@/components/tenants/TenantDepartmentsTab';
-import { TenantUserGroupsTab } from '@/components/tenants/TenantUserGroupsTab';
-import { TenantDelegationsTab } from '@/components/tenants/TenantDelegationsTab';
-import { TenantLocationsTab } from '@/components/tenants/TenantLocationsTab';
-import { TenantSSOConfigsTab } from '@/components/tenants/TenantSSOConfigsTab';
-import { TenantActivity } from '@/components/tenants/TenantActivity';
-import { TenantStats } from '@/components/tenants/TenantStats';
-import { RevenueStatistics } from '@/components/tenant/RevenueStatistics';
-import { TenantDomainsTab } from '@/components/tenants/TenantDomainsTab';
-import { TenantApiKeysTab } from '@/components/tenants/TenantApiKeysTab';
-import { TenantServiceAccountsTab } from '@/components/tenants/TenantServiceAccountsTab';
-import { TenantInvitationsTab } from '@/components/tenants/TenantInvitationsTab';
-import { TenantApplicationsTab } from '@/components/tenants/TenantApplicationsTab';
-import { TenantApiUsageTab } from '@/components/tenants/TenantApiUsageTab';
-import type { TenantStatus } from '@/data/tenants';
+} from '../../../../../components/ui/dropdown-menu';
+import { TenantDetailView } from '../../../../../components/tenants/TenantDetailView';
+import { TenantAppRoutesTab } from '../../../../../components/tenants/TenantAppRoutesTab';
+import { TenantRateLimitsTab } from '../../../../../components/tenants/TenantRateLimitsTab';
+import { TenantWebhooksTab } from '../../../../../components/tenants/TenantWebhooksTab';
+import { TenantRoutingSlugsTab } from '../../../../../components/tenants/TenantRoutingSlugsTab';
+import { TenantMembersTab } from '../../../../../components/tenants/TenantMembersTab';
+import { TenantRolesTab } from '../../../../../components/tenants/TenantRolesTab';
+import { TenantDepartmentsTab } from '../../../../../components/tenants/TenantDepartmentsTab';
+import { TenantUserGroupsTab } from '../../../../../components/tenants/TenantUserGroupsTab';
+import { TenantDelegationsTab } from '../../../../../components/tenants/TenantDelegationsTab';
+import { TenantLocationsTab } from '../../../../../components/tenants/TenantLocationsTab';
+import { TenantSSOConfigsTab } from '../../../../../components/tenants/TenantSSOConfigsTab';
+import { TenantActivity } from '../../../../../components/tenants/TenantActivity';
+import { TenantStats } from '../../../../../components/tenants/TenantStats';
+import { RevenueStatistics } from '../../../../../components/tenant/RevenueStatistics';
+import { TenantDomainsTab } from '../../../../../components/tenants/TenantDomainsTab';
+import { TenantDigitalAssetsTab } from '../../../../../components/tenants/TenantDigitalAssetsTab';
+import { TenantApiKeysTab } from '../../../../../components/tenants/TenantApiKeysTab';
+import { TenantServiceAccountsTab } from '../../../../../components/tenants/TenantServiceAccountsTab';
+import { TenantInvitationsTab } from '../../../../../components/tenants/TenantInvitationsTab';
+import { TenantApplicationsTab } from '../../../../../components/tenants/TenantApplicationsTab';
+import { TenantServiceDeliveriesTab } from '../../../../../components/tenants/TenantServiceDeliveriesTab';
+import { TenantApiUsageTab } from '../../../../../components/tenants/TenantApiUsageTab';
+import type { TenantStatus } from '../../../../../data/tenants';
 import { 
   tenantStatusColors, 
   tenantTierColors,
   tierNames,
   statusNames 
-} from '@/utils/tenant-utils';
+} from '../../../../../utils/tenant-utils';
 
 type TabType = 
   | 'overview' 
@@ -97,10 +100,12 @@ type TabType =
   | 'stats'
   | 'revenue'
   | 'domains'
+  | 'digital-assets'
   | 'api-keys'
   | 'service-accounts'
   | 'invitations'
   | 'applications'
+  | 'service-deliveries'
   | 'api-usage';
 
 function TenantDetailPage() {
@@ -199,10 +204,12 @@ function TenantDetailPage() {
         { id: 'webhooks', label: 'Webhooks', icon: Webhook, badge: null },
         { id: 'sso-configs', label: 'SSO Configs', icon: Key, badge: null },
         { id: 'domains', label: 'Domains', icon: Globe, badge: null },
+        { id: 'digital-assets', label: 'Digital Assets', icon: Package, badge: null },
         { id: 'api-keys', label: 'API Keys', icon: GitBranch, badge: null },
         { id: 'service-accounts', label: 'Service Accounts', icon: UserCog, badge: null },
         { id: 'invitations', label: 'Invitations', icon: Mail, badge: null },
         { id: 'applications', label: 'Applications', icon: Package, badge: null },
+        { id: 'service-deliveries', label: 'Service Deliveries', icon: Box, badge: null },
         { id: 'api-usage', label: 'API Usage', icon: Link2, badge: null },
       ]
     },
@@ -275,6 +282,8 @@ function TenantDetailPage() {
         return <RevenueStatistics tenantId={tenant._id} />;
       case 'domains':
         return <TenantDomainsTab tenantId={tenant._id} />;
+      case 'digital-assets':
+        return <TenantDigitalAssetsTab tenantId={tenant._id} />;
       case 'api-keys':
         return <TenantApiKeysTab tenantId={tenant._id} />;
       case 'service-accounts':
@@ -283,6 +292,8 @@ function TenantDetailPage() {
         return <TenantInvitationsTab tenantId={tenant._id} />;
       case 'applications':
         return <TenantApplicationsTab tenantId={tenant._id} />;
+      case 'service-deliveries':
+        return <TenantServiceDeliveriesTab tenantId={tenant._id} />;
       case 'api-usage':
         return <TenantApiUsageTab tenantId={tenant._id} />;
       default:

@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { applicationsApi, Application } from '@/api/applicationsApi';
-import { appCapabilityApi, AppCapability } from '@/api/appCapabilityApi';
+import { applicationsApi, Application } from '../api/applicationsApi';
+import { appCapabilitiesApi, AppCapability } from '../api/appCapabilitiesApi';
 import { toast } from 'sonner@2.0.3';
 
 interface ApplicationWithCapabilities extends Application {
@@ -27,7 +27,7 @@ export function useApplicationWithCapabilities(code?: string) {
       const app = await applicationsApi.getById(appCode);
       
       // Then fetch its capabilities
-      const capabilities = await appCapabilityApi.getAll({
+      const capabilities = await appCapabilitiesApi.getAll({
         app_id: app._id,
       });
       

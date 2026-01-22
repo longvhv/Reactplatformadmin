@@ -13,19 +13,19 @@
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useRouter } from "../shim/next-navigation";
 import { Save, AlertTriangle, ArrowLeft, Clock, Activity, Settings, CalendarClock } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SystemJob, CreateJobRequest, UpdateJobRequest, systemJobsApi, validateCronExpression, parseCronExpression } from "@/api/systemJobsApi";
-import { showToast } from "@/lib/toast";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Switch } from "../ui/switch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { SystemJob, CreateJobRequest, UpdateJobRequest, systemJobsApi, validateCronExpression, parseCronExpression } from "../../api/systemJobsApi";
+import { showToast } from "../../lib/toast";
 
 interface EnhancedSystemJobFormProps {
   initialData?: Partial<SystemJob>;
@@ -78,7 +78,7 @@ export function EnhancedSystemJobForm({
   onCancel
 }: EnhancedSystemJobFormProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("general");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -383,7 +383,7 @@ export function EnhancedSystemJobForm({
         <Button
           type="button"
           variant="outline"
-          onClick={onCancel || (() => navigate("/platform/system-jobs"))}
+          onClick={onCancel || (() => router.push("/platform/system-jobs"))}
           disabled={loading}
         >
           Hủy bỏ

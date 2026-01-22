@@ -1,26 +1,30 @@
 /**
  * WebhookForm Component
  * Reusable form for creating/editing webhooks
- * Under 500 lines, follows DRY principle
+ * Includes tenant selection, event filtering, and metadata
  */
 
-import React, { useState } from 'react';
-import { Webhook, CreateWebhookRequest, UpdateWebhookRequest } from '@/api/webhooksApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React, { useState, useEffect } from 'react';
+import { Webhook, CreateWebhookRequest, UpdateWebhookRequest } from '../../api/webhooksApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { 
   Webhook as WebhookIcon, 
   Link as LinkIcon, 
-  Key, 
   Shield, 
   Clock,
   Zap,
   Tag,
   Settings,
-  AlertCircle
+  AlertCircle,
+  Database,
+  FileJson
 } from 'lucide-react';
-import { DEFAULT_TENANT_ID } from '@/constants/tenant-constants';
+import { DEFAULT_TENANT_ID } from '../../constants/tenant-constants';
+import { useTenants } from '../../hooks/useTenants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Textarea } from '../ui/textarea';
 
 interface WebhookFormProps {
   initialData?: Webhook;
@@ -51,6 +55,8 @@ const COMMON_EVENTS = [
 ];
 
 export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }: WebhookFormProps) {
+  const { tenants } = useTenants();
+  
   const [formData, setFormData] = useState({
     tenant_id: initialData?.tenant_id || DEFAULT_TENANT_ID,
     name: initialData?.name || '',
@@ -58,8 +64,10 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
     url: initialData?.url || '',
     method: initialData?.method || 'POST' as const,
     event_types: initialData?.event_types || [],
+    event_filter: initialData?.event_filter ? JSON.stringify(initialData.event_filter, null, 2) : '',
+    secret_key: initialData?.secret_key || '',
     auth_type: initialData?.auth_type || 'none' as const,
-    auth_config: initialData?.auth_config || {},
+    auth_config: initialData?.auth_config ? JSON.stringify(initialData.auth_config, null, 2) : '',
     headers: initialData?.headers || {},
     timeout_ms: initialData?.timeout_ms || 30000,
     retry_config: {
@@ -71,6 +79,8 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
     rate_limit: initialData?.rate_limit || 100,
     priority: initialData?.priority || 0,
     tags: initialData?.tags || [],
+    metadata: initialData?.metadata ? JSON.stringify(initialData.metadata, null, 2) : '',
+    is_active: initialData?.is_active ?? true,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -166,6 +176,22 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
       newErrors.timeout_ms = 'Timeout phải từ 1000ms đến 300000ms';
     }
 
+    // Validate JSON fields
+    const validateJson = (field: string, value: string) => {
+      if (!value) return true;
+      try {
+        JSON.parse(value);
+        return true;
+      } catch {
+        newErrors[field] = 'Invalid JSON format';
+        return false;
+      }
+    };
+
+    validateJson('event_filter', formData.event_filter);
+    validateJson('auth_config', formData.auth_config);
+    validateJson('metadata', formData.metadata);
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -175,9 +201,13 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
     
     if (!validate()) return;
 
-    const submitData = {
+    const submitData: any = {
       ...formData,
       event_types: Array.from(selectedEvents),
+      event_filter: formData.event_filter ? JSON.parse(formData.event_filter) : undefined,
+      auth_config: formData.auth_config ? JSON.parse(formData.auth_config) : undefined,
+      metadata: formData.metadata ? JSON.parse(formData.metadata) : undefined,
+      secret_key: formData.secret_key || undefined,
     };
 
     await onSubmit(submitData);
@@ -194,38 +224,90 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
           </h2>
         </div>
 
-        <div className="space-y-4">
-          {/* Name */}
-          <div>
-            <Label htmlFor="name">
-              Tên webhook <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="vd: User Notification Webhook"
-              className={errors.name ? 'border-red-500' : ''}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.name}
-              </p>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            {/* Tenant Selection */}
+            {mode === 'create' && tenants.length > 0 && (
+              <div>
+                <Label htmlFor="tenant_id">Tenant</Label>
+                <Select
+                  value={formData.tenant_id}
+                  onValueChange={(value) => handleChange('tenant_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select tenant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tenants.map((tenant) => (
+                      <SelectItem key={tenant._id} value={tenant._id}>
+                        {tenant.name} ({tenant.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             )}
+
+            {/* Name */}
+            <div>
+              <Label htmlFor="name">
+                Tên webhook <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                placeholder="vd: User Notification Webhook"
+                className={errors.name ? 'border-red-500' : ''}
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {errors.name}
+                </p>
+              )}
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description">Mô tả</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleChange('description', e.target.value)}
+                placeholder="Mô tả chi tiết về webhook này..."
+                rows={3}
+              />
+            </div>
           </div>
 
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Mô tả</Label>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Mô tả chi tiết về webhook này..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+          <div className="space-y-4">
+            {/* Is Active */}
+            <div className="flex items-center gap-2 p-4 border rounded-lg bg-gray-50 dark:bg-gray-700/50">
+               <input
+                type="checkbox"
+                id="is_active"
+                checked={formData.is_active}
+                onChange={(e) => handleChange('is_active', e.target.checked)}
+                className="w-4 h-4 text-indigo-600 rounded"
+              />
+              <Label htmlFor="is_active" className="cursor-pointer">Kích hoạt webhook này</Label>
+            </div>
+
+            {/* Secret Key */}
+            <div>
+              <Label htmlFor="secret_key">Secret Key (HMAC)</Label>
+              <Input
+                id="secret_key"
+                value={formData.secret_key}
+                onChange={(e) => handleChange('secret_key', e.target.value)}
+                placeholder="Optional: Used for signature verification"
+                type="password"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Leave empty to auto-generate or if not using HMAC signatures.
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -240,42 +322,47 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
         </div>
 
         <div className="space-y-4">
-          {/* URL */}
-          <div>
-            <Label htmlFor="url">
-              Target URL <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="url"
-              type="url"
-              value={formData.url}
-              onChange={(e) => handleChange('url', e.target.value)}
-              placeholder="https://example.com/webhooks/handler"
-              className={errors.url ? 'border-red-500' : ''}
-            />
-            {errors.url && (
-              <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {errors.url}
-              </p>
-            )}
-          </div>
+          <div className="grid md:grid-cols-4 gap-4">
+            {/* Method */}
+            <div className="md:col-span-1">
+              <Label htmlFor="method">HTTP Method</Label>
+              <Select
+                value={formData.method}
+                onValueChange={(value) => handleChange('method', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="POST">POST</SelectItem>
+                  <SelectItem value="GET">GET</SelectItem>
+                  <SelectItem value="PUT">PUT</SelectItem>
+                  <SelectItem value="PATCH">PATCH</SelectItem>
+                  <SelectItem value="DELETE">DELETE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          {/* Method */}
-          <div>
-            <Label htmlFor="method">HTTP Method</Label>
-            <select
-              id="method"
-              value={formData.method}
-              onChange={(e) => handleChange('method', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="POST">POST</option>
-              <option value="GET">GET</option>
-              <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
-              <option value="DELETE">DELETE</option>
-            </select>
+            {/* URL */}
+            <div className="md:col-span-3">
+              <Label htmlFor="url">
+                Target URL <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="url"
+                type="url"
+                value={formData.url}
+                onChange={(e) => handleChange('url', e.target.value)}
+                placeholder="https://example.com/webhooks/handler"
+                className={errors.url ? 'border-red-500' : ''}
+              />
+              {errors.url && (
+                <p className="text-sm text-red-500 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {errors.url}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -296,27 +383,27 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
           </p>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
           {COMMON_EVENTS.map(event => (
             <label
               key={event}
-              className="flex items-center gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="flex items-center gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <input
                 type="checkbox"
                 checked={selectedEvents.has(event)}
                 onChange={() => toggleEvent(event)}
-                className="rounded"
+                className="rounded text-indigo-600"
               />
-              <span className="text-sm text-gray-900 dark:text-white">{event}</span>
+              <span className="text-sm text-gray-900 dark:text-white break-all">{event}</span>
             </label>
           ))}
         </div>
 
         {/* Custom Event */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 max-w-md mb-6">
           <Input
-            placeholder="Custom event (vd: custom.event.type)"
+            placeholder="Custom event (e.g. custom.event.type)"
             value={customEvent}
             onChange={(e) => setCustomEvent(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomEvent())}
@@ -326,23 +413,23 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
           </Button>
         </div>
 
-        {/* Selected Events */}
+        {/* Selected Events Summary */}
         {selectedEvents.size > 0 && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Đã chọn {selectedEvents.size} events:
+          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Selected Events ({selectedEvents.size}):
             </p>
             <div className="flex flex-wrap gap-2">
               {Array.from(selectedEvents).map(event => (
                 <span
                   key={event}
-                  className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 text-xs rounded flex items-center gap-1"
+                  className="px-2 py-1 bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-800 text-indigo-800 dark:text-indigo-300 text-xs rounded flex items-center gap-1 shadow-sm"
                 >
                   {event}
                   <button
                     type="button"
                     onClick={() => toggleEvent(event)}
-                    className="hover:text-indigo-600 dark:hover:text-indigo-400"
+                    className="hover:text-red-600 dark:hover:text-red-400 ml-1"
                   >
                     ×
                   </button>
@@ -351,6 +438,26 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
             </div>
           </div>
         )}
+
+        {/* Event Filter (JSON) */}
+        <div className="mt-6">
+            <Label htmlFor="event_filter" className="flex items-center gap-2">
+                <FileJson className="w-4 h-4" />
+                Event Filter (JSON)
+            </Label>
+            <Textarea
+                id="event_filter"
+                value={formData.event_filter}
+                onChange={(e) => handleChange('event_filter', e.target.value)}
+                placeholder='{"source": "mobile_app"}'
+                className={`font-mono mt-2 ${errors.event_filter ? 'border-red-500' : ''}`}
+                rows={4}
+            />
+            {errors.event_filter && (
+                <p className="text-sm text-red-500 mt-1">{errors.event_filter}</p>
+            )}
+             <p className="text-xs text-gray-500 mt-1">Optional: Filter events based on payload properties using JSON logic.</p>
+        </div>
       </div>
 
       {/* Authentication */}
@@ -362,30 +469,55 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
           </h2>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <Label htmlFor="auth_type">Loại xác thực</Label>
-            <select
-              id="auth_type"
+            <Select
               value={formData.auth_type}
-              onChange={(e) => handleChange('auth_type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              onValueChange={(value) => handleChange('auth_type', value)}
             >
-              <option value="none">None</option>
-              <option value="basic">Basic Auth</option>
-              <option value="bearer">Bearer Token</option>
-              <option value="api_key">API Key</option>
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="Auth Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="basic">Basic Auth</SelectItem>
+                <SelectItem value="bearer">Bearer Token</SelectItem>
+                <SelectItem value="api_key">API Key</SelectItem>
+                <SelectItem value="oauth2">OAuth 2.0</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Auth Config (JSON) */}
+          {formData.auth_type !== 'none' && (
+              <div>
+                <Label htmlFor="auth_config" className="flex items-center gap-2">
+                    <FileJson className="w-4 h-4" />
+                    Auth Config (JSON)
+                </Label>
+                <Textarea
+                    id="auth_config"
+                    value={formData.auth_config}
+                    onChange={(e) => handleChange('auth_config', e.target.value)}
+                    placeholder='{"username": "user", "password": "..."}'
+                    className={`font-mono mt-2 ${errors.auth_config ? 'border-red-500' : ''}`}
+                    rows={4}
+                />
+                 {errors.auth_config && (
+                    <p className="text-sm text-red-500 mt-1">{errors.auth_config}</p>
+                )}
+              </div>
+          )}
 
           {/* Custom Headers */}
           <div>
             <Label>Custom Headers</Label>
-            <div className="space-y-2">
+            <div className="space-y-3 mt-2">
               {Object.entries(formData.headers).map(([key, value]) => (
                 <div key={key} className="flex items-center gap-2">
-                  <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded text-sm">
-                    {key}: {value}
+                  <code className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono break-all">
+                    {key}: {value as string}
                   </code>
                   <Button
                     type="button"
@@ -399,14 +531,16 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               ))}
               <div className="flex gap-2">
                 <Input
-                  placeholder="Header key"
+                  placeholder="Header Key"
                   value={customHeader.key}
                   onChange={(e) => setCustomHeader(prev => ({ ...prev, key: e.target.value }))}
+                  className="flex-1"
                 />
                 <Input
-                  placeholder="Header value"
+                  placeholder="Header Value"
                   value={customHeader.value}
                   onChange={(e) => setCustomHeader(prev => ({ ...prev, value: e.target.value }))}
+                  className="flex-1"
                 />
                 <Button type="button" onClick={addCustomHeader} variant="outline">
                   Thêm
@@ -426,7 +560,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Timeout */}
           <div>
             <Label htmlFor="timeout_ms">
@@ -439,7 +573,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               onChange={(e) => handleChange('timeout_ms', parseInt(e.target.value))}
               min={1000}
               max={300000}
-              className={errors.timeout_ms ? 'border-red-500' : ''}
+              className={`mt-1 ${errors.timeout_ms ? 'border-red-500' : ''}`}
             />
             {errors.timeout_ms && (
               <p className="text-sm text-red-500 mt-1">{errors.timeout_ms}</p>
@@ -456,6 +590,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               onChange={(e) => handleRetryConfigChange('max_retries', parseInt(e.target.value))}
               min={0}
               max={10}
+              className="mt-1"
             />
           </div>
 
@@ -468,6 +603,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               value={formData.retry_config.retry_delay}
               onChange={(e) => handleRetryConfigChange('retry_delay', parseInt(e.target.value))}
               min={100}
+              className="mt-1"
             />
           </div>
 
@@ -482,6 +618,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               onChange={(e) => handleRetryConfigChange('backoff_multiplier', parseFloat(e.target.value))}
               min={1}
               max={5}
+              className="mt-1"
             />
           </div>
 
@@ -495,6 +632,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               onChange={(e) => handleChange('batch_size', parseInt(e.target.value))}
               min={1}
               max={1000}
+              className="mt-1"
             />
           </div>
 
@@ -507,6 +645,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               value={formData.rate_limit}
               onChange={(e) => handleChange('rate_limit', parseInt(e.target.value))}
               min={1}
+              className="mt-1"
             />
           </div>
 
@@ -520,11 +659,39 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
               onChange={(e) => handleChange('priority', parseInt(e.target.value))}
               min={0}
               max={10}
+              className="mt-1"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               0 = lowest, 10 = highest
             </p>
           </div>
+        </div>
+      </div>
+      
+       {/* Metadata */}
+       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Database className="w-5 h-5 text-indigo-600" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Metadata
+          </h2>
+        </div>
+         <div>
+            <Label htmlFor="metadata" className="flex items-center gap-2">
+                <FileJson className="w-4 h-4" />
+                JSON Metadata
+            </Label>
+            <Textarea
+                id="metadata"
+                value={formData.metadata}
+                onChange={(e) => handleChange('metadata', e.target.value)}
+                placeholder='{"source": "internal", "version": "1.0"}'
+                className={`font-mono mt-2 ${errors.metadata ? 'border-red-500' : ''}`}
+                rows={3}
+            />
+            {errors.metadata && (
+                <p className="text-sm text-red-500 mt-1">{errors.metadata}</p>
+            )}
         </div>
       </div>
 
@@ -538,9 +705,9 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
         </div>
 
         <div className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex gap-2 max-w-md">
             <Input
-              placeholder="Thêm tag (vd: production, critical)"
+              placeholder="Add tag (e.g. production, critical)"
               value={customTag}
               onChange={(e) => setCustomTag(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
@@ -561,7 +728,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
                   <button
                     type="button"
                     onClick={() => removeTag(tag)}
-                    className="hover:text-red-600"
+                    className="hover:text-red-600 ml-1"
                   >
                     ×
                   </button>
@@ -573,7 +740,7 @@ export function WebhookForm({ initialData, onSubmit, onCancel, isLoading, mode }
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-900 p-4 border-t border-gray-200 dark:border-gray-800">
         <Button
           type="button"
           variant="outline"

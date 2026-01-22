@@ -10,7 +10,7 @@ import type { Module } from '../../core/ModuleRegistry';
 import { MapPin } from 'lucide-react';
 
 // ✅ Lazy load page components for code splitting
-const LocationTypesPage = lazy(() => import('../../app/(admin)/location-types/page'));
+const LocationTypesPage = lazy(() => import('../../app/(admin)/location-types/page').then(m => ({ default: m.default })));
 
 export const LocationTypesModule: Module = {
   id: 'location-types',

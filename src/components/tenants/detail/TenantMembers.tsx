@@ -14,9 +14,9 @@ import {
   Shield,
   Trash2
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useTenantMembers } from '@/hooks/useTenantMembers';
+import { Button } from '../../ui/button';
+import { Input } from '../../ui/input';
+import { useTenantMembers } from '../../../hooks/useTenantMembers';
 
 interface TenantMembersProps {
   tenantId: string;

@@ -8,19 +8,19 @@ import { Building2, Plus, Edit, Eye } from "lucide-react";
  * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
 const TenantsPage = lazy(() => 
-  import("../../app/(admin)/admin/tenants/page")
+  import("../../app/(admin)/admin/tenants/page").then(m => ({ default: m.default }))
 );
 
 const TenantDetailPage = lazy(() => 
-  import("../../app/(admin)/admin/tenants/[id]/page")
+  import("../../app/(admin)/admin/tenants/[id]/page").then(m => ({ default: m.default }))
 );
 
 const AddTenantPage = lazy(() => 
-  import("../../app/(admin)/admin/tenants/create/page")
+  import("../../app/(admin)/admin/tenants/create/page").then(m => ({ default: m.default }))
 );
 
 const EditTenantPage = lazy(() => 
-  import("../../app/(admin)/admin/tenants/edit/[id]/page")
+  import("../../app/(admin)/admin/tenants/edit/[id]/page").then(m => ({ default: m.default }))
 );
 
 /**
@@ -83,3 +83,5 @@ export const TenantsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default TenantsModule;

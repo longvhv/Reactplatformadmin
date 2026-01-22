@@ -5,11 +5,11 @@
 
 import { Edit, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import type { Tenant } from '@/data/tenants';
-import { tenantStatusColors, tenantTierColors } from '@/utils/tenant-utils';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import type { Tenant } from '../../data/tenants';
+import { tenantStatusColors, tenantTierColors } from '../../utils/tenant-utils';
 
 interface TenantGridProps {
   tenants: Tenant[];

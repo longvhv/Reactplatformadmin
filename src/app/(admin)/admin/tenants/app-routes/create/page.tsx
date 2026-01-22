@@ -1,48 +1,39 @@
 /**
  * Add Tenant App Route Page
- * ✅ MIGRATED: Using Next.js shim for navigation
+ * Page for creating a new tenant app route
  */
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Route } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { tenantAppRoutesApi } from '@/api/tenantAppRoutesApi';
-import { TenantAppRouteForm } from '@/components/tenant-app-routes/TenantAppRouteForm';
-import { showToast } from '@/lib/toast';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { tenantAppRoutesApi } from '../../../../../api/tenantAppRoutesApi';
+import { EnhancedTenantAppRouteForm } from '../../../../../components/tenant-app-routes/EnhancedTenantAppRouteForm';
+import { showToast } from '../../../../../lib/toast';
+import { DEFAULT_TENANT_ID } from '../../../../../constants/tenant-constants';
 
 function AddTenantAppRoutePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (data: any) => {
-    setLoading(true);
     try {
       await tenantAppRoutesApi.create(data);
       showToast.success('Success', 'App route created');
-      router.push('/admin/tenants/app-routes');
+      router.back();
     } catch (error: any) {
       showToast.error('Error', error.message || 'Failed to create app route');
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <FormPageLayout
-      mode="add"
-      title="Add Tenant App Route"
-      description="Configure custom routing for tenant applications"
-      icon={Route}
-      backPath="/admin/tenants/app-routes"
-      backLabel="Back to App Routes"
+      title="Add App Route"
+      description="Configure a new application route"
     >
-      <TenantAppRouteForm
+      <EnhancedTenantAppRouteForm
+        tenantId={DEFAULT_TENANT_ID} // Or get from context/params if needed
         onSubmit={handleSubmit}
-        loading={loading}
-        onCancel={() => router.push('/admin/tenants/app-routes')}
+        onCancel={() => router.back()}
       />
     </FormPageLayout>
   );

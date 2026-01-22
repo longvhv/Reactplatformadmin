@@ -11,24 +11,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '../ui/select';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
+} from '../ui/accordion';
 import {
   TenantSSOConfig,
   CreateSSOConfigRequest,
@@ -36,7 +36,7 @@ import {
   SSOProvider,
   SSOConfigStatus,
   SSOProviderHelper,
-} from '@/api/tenantSSOConfigsApi';
+} from '../../api/tenantSSOConfigsApi';
 import { toast } from 'sonner@2.0.3';
 import { Shield, Save, X } from 'lucide-react';
 
@@ -234,10 +234,11 @@ export function SSOConfigDialog({
         secretToSend = null;
       }
       
-      if (isEditing) {
+      if (isEditing && config) {
         await onSave({
           ...commonData,
           client_secret: secretToSend,
+          version: config.version,
         } as UpdateSSOConfigRequest);
       } else {
         await onSave({

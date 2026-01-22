@@ -3,11 +3,11 @@ import {
   Building2, Edit, Trash2, ExternalLink, Users, Database, 
   Shield, MapPin, CreditCard, Calendar, Network 
 } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Progress } from "../ui/progress";
+import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { 
   Tenant, 
   tenantStatusColors, 
@@ -15,7 +15,7 @@ import {
   complianceLevelColors,
   dataRegionColors,
   billingTypeColors
-} from "@/data/tenants";
+} from "../../data/tenants";
 
 interface EnhancedTenantCardProps {
   tenant: Tenant;

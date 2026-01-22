@@ -7,14 +7,14 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { Box, Plus, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { productTypesApi } from '@/api/productTypesApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { productTypesApi } from '../../../../api/productTypesApi';
+import { showToast } from '../../../../lib/toast';
 
 function ProductTypesPage() {
   const router = useRouter();

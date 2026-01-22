@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
-import { CurrentUser, getCurrentUser } from '@/lib/currentUser';
-import { getDataClient } from '@/lib/data-client';
-import { DataClientFactory } from '@/lib/data-client/DataClientFactory';
+import { supabase } from '../lib/supabase';
+import { CurrentUser, getCurrentUser } from '../lib/currentUser';
+import { getDataClient } from '../lib/data-client';
+import { DataClientFactory } from '../lib/data-client/DataClientFactory';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -129,26 +129,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Subscribe to auth changes (Supabase only)
     // For Golang, we rely on state updates in login/logout methods
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        const config = DataClientFactory.getConfig();
-        if (config?.type === 'golang-api') return; // Ignore Supabase events if in Golang mode
+    // ✅ FIX: Make sure subscription is properly initialized before accessing it
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    
+    try {
+      const authListener = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          const config = DataClientFactory.getConfig();
+          if (config?.type === 'golang-api') return; // Ignore Supabase events if in Golang mode
 
-        console.log('Auth state changed:', event);
-        
-        if (session?.user) {
-          setIsAuthenticated(true);
-          const currentUser = await getCurrentUser();
-          setUser(currentUser);
-        } else {
-          setIsAuthenticated(false);
-          setUser(null);
+          console.log('Auth state changed:', event);
+          
+          if (session?.user) {
+            setIsAuthenticated(true);
+            const currentUser = await getCurrentUser();
+            setUser(currentUser);
+          } else {
+            setIsAuthenticated(false);
+            setUser(null);
+          }
         }
-      }
-    );
+      );
+      
+      // Store the subscription
+      authSubscription = authListener.data.subscription;
+    } catch (error) {
+      console.error('Error setting up auth listener:', error);
+    }
 
     return () => {
-      subscription.unsubscribe();
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
   }, []);
 

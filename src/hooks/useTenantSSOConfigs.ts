@@ -76,9 +76,9 @@ export function useTenantSSOConfigs(filters?: SSOConfigFilters) {
   };
 
   // Delete config
-  const deleteConfig = async (id: string): Promise<void> => {
+  const deleteConfig = async (id: string, version?: number): Promise<void> => {
     try {
-      await tenantSSOConfigsApi.delete(id);
+      await tenantSSOConfigsApi.delete(id, undefined, version);
       await fetchConfigs();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete SSO config';

@@ -8,7 +8,7 @@ import { Database, Trash2, RefreshCw, CheckCircle, XCircle, Loader2 } from 'luci
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 interface SeedStatus {
   tenants: {

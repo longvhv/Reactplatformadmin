@@ -4,6 +4,7 @@
       "version": "0.1.0",
       "private": true,
       "dependencies": {
+          "@hookform/resolvers": "*",
           "@jsr/supabase__supabase-js": "^2.49.8",
           "@next/bundle-analyzer": "*",
           "@radix-ui/react-accordion": "^1.2.3",
@@ -49,6 +50,7 @@
           "lucide-react": "^0.487.0",
           "mermaid": "*",
           "next": "*",
+          "next-i18next": "*",
           "next-themes": "^0.4.6",
           "path": "*",
           "react": "^18.3.1",
@@ -64,7 +66,8 @@
           "tailwind-merge": "*",
           "time": "*",
           "vaul": "^1.1.2",
-          "web-vitals": "*"
+          "web-vitals": "*",
+          "zod": "*"
       },
       "devDependencies": {
           "@types/node": "^20.10.0",

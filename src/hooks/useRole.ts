@@ -1,86 +1,66 @@
 /**
  * useRole Hook
  * Hook for managing single role
+ * 
+ * ✅ REFACTORED 2026-01-20: Uses rolesApi directly
  */
 
-import { useState, useEffect } from 'react';
-import { Role } from '../api/rolesApi';
+import { useState, useEffect, useCallback } from 'react';
+import { rolesApi, Role, UpdateRoleRequest } from '../api/rolesApi';
 
-export function useRole(id?: string) {
+export function useRole(id: string | undefined) {
   const [role, setRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadRole = async () => {
+  const fetchRole = useCallback(async () => {
     if (!id || id === 'new') return;
     
     setLoading(true);
     setError(null);
-    
     try {
-      // Mock data
-      const mockRole: Role = {
-        _id: id,
-        tenant_id: 'tenant-1',
-        name: 'HR Manager',
-        description: 'Human Resources Manager with full HR access',
-        type: 'CUSTOM',
-        permission_codes: [
-          'HRM:USER:VIEW',
-          'HRM:USER:CREATE',
-          'HRM:USER:UPDATE',
-          'HRM:DEPARTMENT:VIEW',
-          'HRM:ATTENDANCE:VIEW',
-        ],
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        version: 2,
-      };
-
-      setRole(mockRole);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load role');
+      const data = await rolesApi.getById(id);
+      setRole(data);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to fetch role');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const updateRole = async (data: Partial<Role>) => {
-    if (!role) return;
-    
+  useEffect(() => {
+    fetchRole();
+  }, [fetchRole]);
+
+  const updateRole = async (data: UpdateRoleRequest) => {
+    if (!id || !role) return;
     try {
-      const updated = {
-        ...role,
-        ...data,
-        updated_at: new Date().toISOString(),
-        version: role.version + 1,
-      };
+      const updated = await rolesApi.update(id, data);
       setRole(updated);
-    } catch (err) {
-      throw new Error('Failed to update role');
+      return updated;
+    } catch (err: any) {
+      throw new Error(err?.message || 'Failed to update role');
     }
   };
 
   const deleteRole = async () => {
+    if (!id) return;
     try {
-      // Mock delete
+      await rolesApi.delete(id);
       setRole(null);
-    } catch (err) {
-      throw new Error('Failed to delete role');
+    } catch (err: any) {
+      throw new Error(err?.message || 'Failed to delete role');
     }
   };
-
-  useEffect(() => {
-    if (id && id !== 'new') {
-      loadRole();
-    }
-  }, [id]);
 
   return {
     role,
     loading,
     error,
+    refresh: fetchRole,
     updateRole,
-    deleteRole,
+    deleteRole
   };
 }
+
+export default useRole;

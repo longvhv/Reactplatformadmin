@@ -189,8 +189,39 @@ export const userGroupsApi = {
     if (!data.name || data.name.trim().length === 0) {
       throw new Error('User group name is required');
     }
+
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    const _id = crypto.randomUUID();
+
+    const requestData = {
+      _id,
+      tenant_id: data.tenant_id,
+      code: data.code,
+      name: data.name,
+      description: data.description || null,
+      group_type: data.group_type || null,
+      status: data.status || 'ACTIVE',
+      order: data.order || 0,
+      metadata: data.metadata || {},
+      created_by: data.created_by || null,
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
     
-    return adapter.create(data);
+    const { data: created, error } = await supabase
+      .from('user_groups')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create user group: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**
@@ -206,8 +237,57 @@ export const userGroupsApi = {
     if (data.name !== undefined && data.name.trim().length === 0) {
       throw new Error('User group name cannot be empty');
     }
-    
-    return adapter.update(id, data);
+
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Get current version if not provided
+    let currentVersion = data.version;
+
+    if (!currentVersion) {
+        const { data: current, error: fetchError } = await supabase
+            .from('user_groups')
+            .select('version')
+            .eq('_id', id)
+            .single();
+            
+        if (fetchError || !current) {
+            throw new Error(`User group not found: ${fetchError?.message || 'Unknown error'}`);
+        }
+        currentVersion = current.version;
+    }
+
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+      version: currentVersion + 1,
+    };
+
+    if (data.code !== undefined) updateData.code = data.code;
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.group_type !== undefined) updateData.group_type = data.group_type;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.order !== undefined) updateData.order = data.order;
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+    if (data.updated_by !== undefined) updateData.updated_by = data.updated_by;
+
+    const { data: updated, error } = await supabase
+      .from('user_groups')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update user group: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**
@@ -215,12 +295,44 @@ export const userGroupsApi = {
    * Sets deleted_at to current timestamp
    */
   delete: async (id: string, deleted_by?: string, version?: number): Promise<void> => {
-    // Soft delete: set deleted_at
-    await adapter.update(id, {
-      deleted_at: new Date().toISOString(),
-      deleted_by,
-      version,
-    } as any);
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Get current version if not provided
+    let currentVersion = version;
+    if (!currentVersion) {
+        const { data: current, error: fetchError } = await supabase
+            .from('user_groups')
+            .select('version')
+            .eq('_id', id)
+            .single();
+        
+        if (fetchError || !current) {
+             if (fetchError) throw new Error(fetchError.message);
+             return;
+        }
+        currentVersion = current.version;
+    }
+
+    const { error, data } = await supabase
+      .from('user_groups')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deleted_by || null,
+        version: currentVersion + 1
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to delete user group: ${error.message}`);
+    }
+    
+    if (!data) {
+        throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
   },
 
   /**
@@ -235,11 +347,37 @@ export const userGroupsApi = {
    * Restore soft-deleted group
    */
   restore: async (id: string, version?: number): Promise<UserGroup> => {
-    return adapter.update(id, {
-      deleted_at: undefined,
-      deleted_by: undefined,
-      version,
-    } as any);
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    let currentVersion = version;
+    if (!currentVersion) {
+        const { data: current, error } = await supabase
+            .from('user_groups')
+            .select('version')
+            .eq('_id', id)
+            .single();
+        if (error || !current) throw new Error(`User group not found: ${error?.message}`);
+        currentVersion = current.version;
+    }
+    
+    const { data: updated, error } = await supabase
+      .from('user_groups')
+      .update({
+        deleted_at: null,
+        deleted_by: null,
+        updated_at: new Date().toISOString(),
+        version: currentVersion + 1
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to restore user group: ${error.message}`);
+    if (!updated) throw new Error('Concurrent modification detected.');
+    
+    return updated;
   },
 
   /**
@@ -276,10 +414,17 @@ export const userGroupsApi = {
    * Update group status
    */
   updateStatus: async (id: string, status: UserGroupStatus, updated_by?: string, version?: number): Promise<UserGroup> => {
-    return adapter.update(id, {
+    // If version is not provided, fetch it first to ensure safe update
+    let currentVersion = version;
+    if (!currentVersion) {
+        const group = await userGroupsApi.getById(id);
+        currentVersion = group.version;
+    }
+
+    return userGroupsApi.update(id, {
       status,
       updated_by,
-      version,
+      version: currentVersion,
     });
   },
 
@@ -287,10 +432,16 @@ export const userGroupsApi = {
    * Archive group (set status to ARCHIVED)
    */
   archive: async (id: string, updated_by?: string, version?: number): Promise<UserGroup> => {
-    return adapter.update(id, {
+    let currentVersion = version;
+    if (!currentVersion) {
+        const group = await userGroupsApi.getById(id);
+        currentVersion = group.version;
+    }
+
+    return userGroupsApi.update(id, {
       status: 'ARCHIVED',
       updated_by,
-      version,
+      version: currentVersion,
     });
   },
 
@@ -298,10 +449,16 @@ export const userGroupsApi = {
    * Activate group (set status to ACTIVE)
    */
   activate: async (id: string, updated_by?: string, version?: number): Promise<UserGroup> => {
-    return adapter.update(id, {
+    let currentVersion = version;
+    if (!currentVersion) {
+        const group = await userGroupsApi.getById(id);
+        currentVersion = group.version;
+    }
+
+    return userGroupsApi.update(id, {
       status: 'ACTIVE',
       updated_by,
-      version,
+      version: currentVersion,
     });
   },
 
@@ -309,7 +466,13 @@ export const userGroupsApi = {
    * Update group order
    */
   updateOrder: async (id: string, order: number, version?: number): Promise<UserGroup> => {
-    return adapter.update(id, { order, version });
+    let currentVersion = version;
+    if (!currentVersion) {
+        const group = await userGroupsApi.getById(id);
+        currentVersion = group.version;
+    }
+
+    return userGroupsApi.update(id, { order, version: currentVersion });
   },
 
   /**
@@ -388,7 +551,7 @@ export const userGroupsApi = {
   clone: async (id: string, newCode: string, newName?: string): Promise<UserGroup> => {
     const original = await adapter.getById(id);
     
-    return adapter.create({
+    return userGroupsApi.create({
       tenant_id: original.tenant_id,
       code: newCode,
       name: newName || `${original.name} (Copy)`,
@@ -405,9 +568,15 @@ export const userGroupsApi = {
    * Bulk update status
    */
   bulkUpdateStatus: async (ids: string[], status: UserGroupStatus, updated_by?: string): Promise<void> => {
-    // Note: Bulk operations usually don't support version checks individually unless passed as map
+    // Use promise all to update individually with version checks implicitly handled by updateStatus logic
     await Promise.all(
-      ids.map(id => adapter.update(id, { status, updated_by }))
+      ids.map(async id => {
+        try {
+            await userGroupsApi.updateStatus(id, status, updated_by);
+        } catch (e) {
+            console.error(`Failed to update status for group ${id}`, e);
+        }
+      })
     );
   },
 
@@ -415,9 +584,14 @@ export const userGroupsApi = {
    * Bulk delete (soft delete)
    */
   bulkDelete: async (ids: string[], deleted_by?: string): Promise<void> => {
-    const deleted_at = new Date().toISOString();
     await Promise.all(
-      ids.map(id => adapter.update(id, { deleted_at, deleted_by } as any))
+      ids.map(async id => {
+        try {
+            await userGroupsApi.delete(id, deleted_by);
+        } catch (e) {
+            console.error(`Failed to delete group ${id}`, e);
+        }
+      })
     );
   },
 

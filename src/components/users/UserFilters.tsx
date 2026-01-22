@@ -1,7 +1,7 @@
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Search, Filter, X } from 'lucide-react';
 
 interface UserFiltersProps {

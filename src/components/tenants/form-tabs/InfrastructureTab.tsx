@@ -5,9 +5,9 @@
  */
 
 import { MapPin, Shield, Clock, Network } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLanguage } from '../../../providers/LanguageProvider';
+import { Label } from '../../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select';
 
 interface InfrastructureTabProps {
   formData: any;

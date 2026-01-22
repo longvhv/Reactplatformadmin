@@ -9,41 +9,43 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { 
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
+import {
+  CreditCard,
   ArrowLeft,
-  ChevronRight,
-  Package,
-  Settings,
-  BarChart3,
-  Info,
   MoreVertical,
   Edit,
   Trash2,
-  Power,
-  PowerOff,
+  Activity,
+  User,
   Calendar,
   DollarSign,
-  CheckCircle2,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
   XCircle,
+  RefreshCw,
+  Loader2,
+  TrendingDown,
+  Package2,
   Clock,
-  AlertTriangle,
-  Shield,
-  Code2,
-  Activity,
+  PlayCircle,
+  PauseCircle,
+  StopCircle,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { subscriptionApi, TenantSubscription } from '@/api/subscriptionApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { Button } from '../../../../../../components/ui/button';
+import { subscriptionApi, TenantSubscription } from '../../../../../../api/subscriptionApi';
+import { showToast } from '../../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../../components/common/ConfirmDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { UsageEventsTab } from '@/components/subscriptions/UsageEventsTab';
-import { PageLayout } from '@/components/layout/PageLayout';
+  DropdownMenuSeparator,
+} from '../../../../../../components/ui/dropdown-menu';
+import { UsageEventsTab } from '../../../../../../components/subscriptions/UsageEventsTab';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
 
 function SubscriptionDetailPage() {
   const params = useParams();
@@ -113,7 +115,7 @@ function SubscriptionDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Package2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Subscription Not Found</h2>
           <Button onClick={() => router.push('/commerce/subscriptions')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -127,7 +129,7 @@ function SubscriptionDetailPage() {
   return (
     <>
       <PageLayout
-        icon={Package}
+        icon={Package2}
         title={subscription.product_name || 'Subscription Details'}
         description={`Tenant: ${subscription.tenant_name || 'N/A'}`}
         backButton={{
@@ -149,12 +151,12 @@ function SubscriptionDetailPage() {
               <DropdownMenuItem onClick={handleToggleStatus}>
                 {subscription.status === 'ACTIVE' ? (
                   <>
-                    <PowerOff className="w-4 h-4 mr-2" />
+                    <PauseCircle className="w-4 h-4 mr-2" />
                     Suspend
                   </>
                 ) : (
                   <>
-                    <Power className="w-4 h-4 mr-2" />
+                    <PlayCircle className="w-4 h-4 mr-2" />
                     Activate
                   </>
                 )}

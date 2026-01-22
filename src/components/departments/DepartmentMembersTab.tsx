@@ -2,18 +2,18 @@
  * DepartmentMembersTab Component
  * Display and manage members of a department
  * 
- * ✅ CREATED 2026-01-15: Department members management
- * ✅ UPDATED 2026-01-20: Added edit functionality and improved assignment
+ * ✅ UPDATED 2026-01-21: Strictly adheres to department_members schema
+ * ✅ USES: department_members table for roles, is_primary, joined_at
  */
 
 import { useState, useEffect } from 'react';
 import { Users, UserPlus, X, Mail, Briefcase, Search, UserCog, Edit, Calendar, Check, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -21,25 +21,24 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Department } from '@/api/departmentsApi';
-import { TenantMember } from '@/api/tenantMembersApi';
-import { departmentMembersApi, DepartmentMember } from '@/api/departmentMembersApi';
-import { AuditTrailCompact } from '@/components/common/AuditTrail';
+} from '../ui/dialog';
+import { Department } from '../../api/departmentsApi';
+import { TenantMember } from '../../api/tenantMembersApi';
+import { departmentMembersApi, EnrichedDepartmentMember } from '../../api/departmentMembersApi';
 import { toast } from 'sonner@2.0.3';
 
 export interface DepartmentMembersTabProps {
   department: Department;
   members: TenantMember[]; // These are the member profiles
   allMembers?: TenantMember[]; // All tenant members for assignment
-  onAssignMembers?: (memberIds: string[]) => Promise<void>; // Legacy prop, we might use internal logic now
+  onAssignMembers?: (memberIds: string[]) => Promise<void>; // Legacy prop
   onRemoveMember?: (memberId: string) => Promise<void>;
   onRefresh?: () => void;
   loading?: boolean;
 }
 
 interface EnrichedMember extends TenantMember {
-  membership?: DepartmentMember;
+  membership?: EnrichedDepartmentMember;
 }
 
 export function DepartmentMembersTab({
@@ -59,16 +58,17 @@ export function DepartmentMembersTab({
   const [editingMember, setEditingMember] = useState<EnrichedMember | null>(null);
   const [loadingMemberships, setLoadingMemberships] = useState(false);
 
-  // Load membership details to get role, is_primary, etc.
+  // Load membership details from department_members table
   useEffect(() => {
     const loadMemberships = async () => {
       if (!department._id) return;
       
       try {
         setLoadingMemberships(true);
+        // This returns DepartmentMember[] objects which contain: is_primary, role_in_department, joined_at
         const memberships = await departmentMembersApi.getByDepartment(department._id);
         
-        // Merge membership data with member profiles
+        // Merge membership data with tenant member profiles
         const enriched = members.map(member => {
           const membership = memberships.find(m => m.tenant_member_id === member._id);
           return {
@@ -92,11 +92,10 @@ export function DepartmentMembersTab({
   useEffect(() => {
     const query = searchQuery.toLowerCase();
     const filtered = enrichedMembers.filter(member => {
-      const matchesName = member.full_name?.toLowerCase().includes(query);
-      const matchesEmail = member.email?.toLowerCase().includes(query);
-      const matchesPosition = member.position?.toLowerCase().includes(query);
+      const matchesName = member.user?.full_name?.toLowerCase().includes(query) || member.full_name?.toLowerCase().includes(query);
+      const matchesEmail = member.user?.email?.toLowerCase().includes(query) || member.internal_email?.toLowerCase().includes(query);
       const matchesRole = member.membership?.role_in_department?.toLowerCase().includes(query);
-      return matchesName || matchesEmail || matchesPosition || matchesRole;
+      return matchesName || matchesEmail || matchesRole;
     });
 
     // Sort: Manager first, then Primary, then Name
@@ -109,8 +108,8 @@ export function DepartmentMembersTab({
       const isPrimaryB = b.membership?.is_primary;
       if (isPrimaryA !== isPrimaryB) return isPrimaryA ? -1 : 1;
       
-      const nameA = a.full_name || a.email || '';
-      const nameB = b.full_name || b.email || '';
+      const nameA = a.user?.full_name || a.full_name || '';
+      const nameB = b.user?.full_name || b.full_name || '';
       return nameA.localeCompare(nameB);
     });
 
@@ -124,7 +123,6 @@ export function DepartmentMembersTab({
       if (onRemoveMember) {
         await onRemoveMember(memberId);
       } else {
-        // Fallback internal implementation
         await departmentMembersApi.removeMember(department._id, memberId);
         toast.success('Đã xóa thành viên khỏi phòng ban');
         if (onRefresh) onRefresh();
@@ -182,7 +180,7 @@ export function DepartmentMembersTab({
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
         <Input
           type="text"
-          placeholder="Tìm theo tên, email, chức vụ hoặc vai trò..."
+          placeholder="Tìm theo tên, email, hoặc vai trò..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -212,104 +210,105 @@ export function DepartmentMembersTab({
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredMembers.map((member) => (
-            <Card key={member._id} className="p-4 transition-shadow hover:shadow-md">
-              <div className="flex items-start justify-between">
-                {/* Member Info */}
-                <div className="flex items-start gap-4 flex-1">
-                  {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
-                      {(member.full_name || member.email || '?')[0].toUpperCase()}
-                    </div>
-                    {isManager(member._id) && (
-                      <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-white p-1 rounded-full border-2 border-white dark:border-gray-800" title="Trưởng phòng">
-                        <UserCog className="w-3 h-3" />
-                      </div>
-                    )}
-                  </div>
+          {filteredMembers.map((member) => {
+            const displayName = member.user?.full_name || member.full_name || 'N/A';
+            const displayEmail = member.user?.email || member.internal_email || '';
+            const jobTitle = member.job_title || 'N/A';
 
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-gray-900 dark:text-white">
-                        {member.full_name || 'N/A'}
-                      </h4>
+            return (
+              <Card key={member._id} className="p-4 transition-shadow hover:shadow-md">
+                <div className="flex items-start justify-between">
+                  {/* Member Info */}
+                  <div className="flex items-start gap-4 flex-1">
+                    {/* Avatar */}
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg flex-shrink-0">
+                        {displayName.charAt(0).toUpperCase()}
+                      </div>
                       {isManager(member._id) && (
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
-                          Trưởng phòng
-                        </Badge>
-                      )}
-                      {member.membership?.is_primary && (
-                        <Badge variant="outline" className="border-indigo-500 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20">
-                          <Star className="w-3 h-3 mr-1 fill-current" />
-                          Chính
-                        </Badge>
-                      )}
-                      {member.membership?.role_in_department && (
-                        <Badge variant="secondary">
-                          {member.membership.role_in_department}
-                        </Badge>
+                        <div className="absolute -bottom-1 -right-1 bg-yellow-400 text-white p-1 rounded-full border-2 border-white dark:border-gray-800" title="Trưởng phòng">
+                          <UserCog className="w-3 h-3" />
+                        </div>
                       )}
                     </div>
 
-                    {/* Email */}
-                    {member.email && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-1">
-                        <Mail className="w-3.5 h-3.5" />
-                        <span>{member.email}</span>
+                    {/* Details */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                          {displayName}
+                        </h4>
+                        {isManager(member._id) && (
+                          <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20">
+                            Trưởng phòng
+                          </Badge>
+                        )}
+                        {member.membership?.is_primary && (
+                          <Badge variant="outline" className="border-indigo-500 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20">
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            Chính
+                          </Badge>
+                        )}
+                        {member.membership?.role_in_department && (
+                          <Badge variant="secondary">
+                            {member.membership.role_in_department}
+                          </Badge>
+                        )}
                       </div>
-                    )}
 
-                    {/* Position & Joined */}
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      {member.position && (
+                      {/* Email */}
+                      {displayEmail && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 mb-1">
+                          <Mail className="w-3.5 h-3.5" />
+                          <span>{displayEmail}</span>
+                        </div>
+                      )}
+
+                      {/* Position & Joined */}
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400 mb-2">
                         <div className="flex items-center gap-1">
                           <Briefcase className="w-3.5 h-3.5" />
-                          <span>{member.position}</span>
+                          <span>{jobTitle}</span>
                         </div>
-                      )}
-                      {member.membership?.joined_at && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5" />
-                          <span>Tham gia: {new Date(member.membership.joined_at).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      )}
+                        {member.membership?.joined_at && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>Tham gia: {new Date(member.membership.joined_at).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    {/* Audit Trail */}
-                    {/* <AuditTrailCompact data={member.membership || member} className="mt-2" /> */}
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditClick(member)}
-                    className="text-gray-600 hover:text-indigo-600"
-                    title="Chỉnh sửa vai trò"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  
-                  {onRemoveMember && (
+                  {/* Actions */}
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleRemoveMember(member._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      disabled={isManager(member._id)}
-                      title={isManager(member._id) ? 'Không thể xóa trưởng phòng' : 'Xóa khỏi phòng ban'}
+                      onClick={() => handleEditClick(member)}
+                      className="text-gray-600 hover:text-indigo-600"
+                      title="Chỉnh sửa vai trò"
                     >
-                      <X className="w-4 h-4" />
+                      <Edit className="w-4 h-4" />
                     </Button>
-                  )}
+                    
+                    {onRemoveMember && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveMember(member._id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        disabled={isManager(member._id)}
+                        title={isManager(member._id) ? 'Không thể xóa trưởng phòng' : 'Xóa khỏi phòng ban'}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -375,16 +374,18 @@ function AssignMembersDialog({
   // Filter available members (not already in department)
   const currentMemberIds = new Set(currentMembers.map(m => m._id));
   const availableMembers = allMembers.filter(
-    m => !currentMemberIds.has(m._id) && m.is_active
+    m => !currentMemberIds.has(m._id) && m.status === 'ACTIVE'
   );
 
   // Filter by search query
   const filteredMembers = availableMembers.filter(member => {
     const query = searchQuery.toLowerCase();
-    const matchesName = member.full_name?.toLowerCase().includes(query);
-    const matchesEmail = member.email?.toLowerCase().includes(query);
-    const matchesPosition = member.position?.toLowerCase().includes(query);
-    return matchesName || matchesEmail || matchesPosition;
+    const displayName = member.user?.full_name || member.full_name || '';
+    const email = member.user?.email || member.internal_email || '';
+    
+    const matchesName = displayName.toLowerCase().includes(query);
+    const matchesEmail = email.toLowerCase().includes(query);
+    return matchesName || matchesEmail;
   });
 
   const toggleMember = (memberId: string) => {
@@ -463,6 +464,8 @@ function AssignMembersDialog({
                 <div className="space-y-2">
                   {filteredMembers.map((member) => {
                     const isSelected = selectedMemberIds.has(member._id);
+                    const displayName = member.user?.full_name || member.full_name || 'N/A';
+                    const email = member.user?.email || member.internal_email || '';
 
                     return (
                       <div
@@ -487,15 +490,15 @@ function AssignMembersDialog({
                         </div>
 
                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold">
-                          {(member.full_name || member.email || '?')[0].toUpperCase()}
+                          {displayName.charAt(0).toUpperCase()}
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {member.full_name || 'N/A'}
+                            {displayName}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
-                            {member.email}
+                            {email}
                           </p>
                         </div>
                       </div>
@@ -574,7 +577,7 @@ function AssignMembersDialog({
 interface EditMemberDialogProps {
   department: Department;
   member: TenantMember;
-  membership: DepartmentMember;
+  membership: EnrichedDepartmentMember;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -599,15 +602,22 @@ function EditMemberDialog({
     try {
       setSubmitting(true);
       
+      // If setting as primary, we should use setPrimaryDepartment helper or custom logic.
+      // But simple update also works if the API handles unset (which it doesn't automatically for simple update).
+      // If isPrimary changed to true, we might want to call setPrimaryDepartment.
+      if (isPrimary && !membership.is_primary) {
+          await departmentMembersApi.setPrimaryDepartment(member._id, department._id);
+          // If we also changed role/joined_at, we need another update, or setPrimaryDepartment accepts these?
+          // Currently setPrimaryDepartment only sets primary.
+          // Let's do a follow-up update for other fields.
+      }
+
       await departmentMembersApi.update(membership._id, {
         role_in_department: role || undefined,
         is_primary: isPrimary,
         joined_at: new Date(joinedAt).toISOString(),
         version: membership.version, // Use version for optimistic locking
       });
-
-      // Special handling if isPrimary changed to true, we might want to update local state logic or UI
-      // but API handles unsetting others.
 
       toast.success('Đã cập nhật thông tin thành viên');
       onSuccess();
@@ -619,13 +629,15 @@ function EditMemberDialog({
     }
   };
 
+  const displayName = member.user?.full_name || member.full_name || 'N/A';
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Chỉnh sửa thành viên</DialogTitle>
           <DialogDescription>
-            Cập nhật thông tin của {member.full_name} trong {department.name}
+            Cập nhật thông tin của {displayName} trong {department.name}
           </DialogDescription>
         </DialogHeader>
 

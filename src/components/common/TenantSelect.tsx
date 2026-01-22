@@ -5,21 +5,21 @@
 
 import { useState, useEffect } from 'react';
 import { Check, ChevronsUpDown, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import {
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-} from '@/components/ui/command';
+} from '../ui/command';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { tenantsApi, Tenant } from '@/api/tenantsApi';
-import { cn } from '@/components/ui/utils';
+} from '../ui/popover';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { cn } from '../ui/utils';
 
 interface TenantSelectProps {
   value?: string;

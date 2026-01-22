@@ -1,6 +1,12 @@
 /**
  * SubscriptionForm Component
  * Form for creating and editing tenant subscriptions
+ * 
+ * ✅ UPDATED 2026-01-20:
+ * - Integrated with Service Packages (Plans)
+ * - Integrated with Tenants
+ * - Auto-fill pricing and limits from selected plan
+ * - Strict type checking with tenantSubscriptionsApi
  */
 
 import React, { useState, useEffect } from 'react';
@@ -9,22 +15,26 @@ import {
   SubscriptionStatus, 
   BillingCycle, 
   PaymentStatus,
-  generateSubscriptionNumber 
+  generateSubscriptionNumber,
+  CreateSubscriptionRequest,
+  UpdateSubscriptionRequest
 } from '../../api/tenantSubscriptionsApi';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { packagesApi, Package } from '../../api/packagesApi';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { 
-  CreditCard, Calendar, DollarSign, Users, HardDrive,
-  Save, X, Sparkles, AlertCircle 
+  CreditCard, Calendar, DollarSign, Users,
+  Save, X, Sparkles, Loader2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 
 interface SubscriptionFormProps {
   subscription?: TenantSubscription;
-  onSubmit: (data: Partial<TenantSubscription>) => void;
+  onSubmit: (data: any) => void;
   onCancel: () => void;
   loading?: boolean;
 }
@@ -36,13 +46,20 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
   loading = false,
 }) => {
   const { t } = useLanguage();
-  const [formData, setFormData] = useState<Partial<TenantSubscription>>({
+  
+  // Data Sources
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const [formData, setFormData] = useState<Partial<CreateSubscriptionRequest>>({
     tenant_id: '',
+    plan_id: '',
     subscription_number: '',
     subscription_name: '',
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    status: 'pending' as SubscriptionStatus,
+    status: 'active' as SubscriptionStatus,
     billing_cycle: 'monthly' as BillingCycle,
     payment_status: 'unpaid' as PaymentStatus,
     auto_renew: true,
@@ -65,9 +82,33 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Load Tenants and Packages
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoadingData(true);
+        const [tenantsData, packagesData] = await Promise.all([
+          tenantsApi.getAll(),
+          packagesApi.getAll({ status: 'ACTIVE' })
+        ]);
+        setTenants(tenantsData);
+        setPackages(packagesData);
+      } catch (err) {
+        console.error('Failed to load form data:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Initialize Form Data
   useEffect(() => {
     if (subscription) {
-      setFormData(subscription);
+      setFormData({
+        ...subscription,
+        plan_id: subscription.plan_id || '', // Ensure string for select
+      });
     } else {
       generateSubscriptionNumber().then(number => {
         setFormData(prev => ({ ...prev, subscription_number: number }));
@@ -94,40 +135,53 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               type === 'number' ? parseFloat(value) || 0 : value,
     }));
 
-    // Clear error when user starts typing
+    // Clear error
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handlePackageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const packageId = e.target.value;
+    const selectedPkg = packages.find(p => p._id === packageId);
+
+    if (selectedPkg) {
+      setFormData(prev => ({
+        ...prev,
+        plan_id: selectedPkg._id,
+        plan_name: selectedPkg.name,
+        base_price: selectedPkg.price_amount,
+        currency: selectedPkg.currency_code,
+        billing_cycle: (selectedPkg.billing_cycle?.toLowerCase() || 'monthly') as BillingCycle,
+        max_users: selectedPkg.features?.max_users || prev.max_users,
+        max_storage_gb: selectedPkg.features?.max_storage || prev.max_storage_gb,
+        is_trial: !!selectedPkg.features?.trial_days,
+        trial_end_date: selectedPkg.features?.trial_days 
+          ? new Date(Date.now() + selectedPkg.features.trial_days * 24 * 60 * 60 * 1000).toISOString().split('T')[0] 
+          : prev.trial_end_date
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, plan_id: '' }));
     }
   };
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.subscription_name?.trim()) {
-      newErrors.subscription_name = t('subscriptions.errors.nameRequired');
-    }
-    if (!formData.subscription_number?.trim()) {
-      newErrors.subscription_number = t('subscriptions.errors.numberRequired');
-    }
-    if (!formData.tenant_id?.trim()) {
-      newErrors.tenant_id = t('subscriptions.errors.tenantRequired');
-    }
-    if (!formData.start_date) {
-      newErrors.start_date = t('subscriptions.errors.startDateRequired');
-    }
-    if (!formData.end_date) {
-      newErrors.end_date = t('subscriptions.errors.endDateRequired');
-    }
+    if (!formData.subscription_name?.trim()) newErrors.subscription_name = t('subscriptions.errors.nameRequired');
+    if (!formData.subscription_number?.trim()) newErrors.subscription_number = t('subscriptions.errors.numberRequired');
+    if (!formData.tenant_id?.trim()) newErrors.tenant_id = t('subscriptions.errors.tenantRequired');
+    if (!formData.start_date) newErrors.start_date = t('subscriptions.errors.startDateRequired');
+    if (!formData.end_date) newErrors.end_date = t('subscriptions.errors.endDateRequired');
+    
     if (formData.start_date && formData.end_date && formData.start_date > formData.end_date) {
       newErrors.end_date = t('subscriptions.errors.endDateInvalid');
     }
-    if (formData.base_price < 0) {
-      newErrors.base_price = t('subscriptions.errors.priceInvalid');
-    }
-    if (formData.max_users <= 0) {
-      newErrors.max_users = t('subscriptions.errors.maxUsersInvalid');
-    }
-    if (formData.current_users > formData.max_users) {
+    
+    if ((formData.base_price || 0) < 0) newErrors.base_price = t('subscriptions.errors.priceInvalid');
+    if ((formData.max_users || 0) <= 0) newErrors.max_users = t('subscriptions.errors.maxUsersInvalid');
+    
+    if ((formData.current_users || 0) > (formData.max_users || 1)) {
       newErrors.current_users = t('subscriptions.errors.currentUsersExceeded');
     }
 
@@ -138,9 +192,24 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
-      onSubmit(formData);
+      const submitData = {
+        ...formData,
+        // Ensure plan_id is strictly null if empty string
+        plan_id: formData.plan_id || null,
+      };
+      
+      if (subscription) {
+        // Include version for optimistic locking
+        (submitData as any).version = subscription.version;
+      }
+      
+      onSubmit(submitData);
     }
   };
+
+  if (loadingData) {
+    return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -165,9 +234,27 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 disabled
                 className="bg-gray-50"
               />
-              {errors.subscription_number && (
-                <p className="text-red-600 text-sm mt-1">{errors.subscription_number}</p>
-              )}
+            </div>
+
+            {/* Tenant Selection */}
+            <div>
+              <Label htmlFor="tenant_id">{t('subscriptions.tenant')} *</Label>
+              <select
+                id="tenant_id"
+                name="tenant_id"
+                value={formData.tenant_id}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                disabled={!!subscription} // Cannot change tenant on edit
+              >
+                <option value="">{t('common.select')}...</option>
+                {tenants.map(tenant => (
+                  <option key={tenant._id} value={tenant._id}>
+                    {tenant.name} ({tenant.code})
+                  </option>
+                ))}
+              </select>
+              {errors.tenant_id && <p className="text-red-600 text-sm mt-1">{errors.tenant_id}</p>}
             </div>
 
             {/* Subscription Name */}
@@ -178,46 +265,29 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 name="subscription_name"
                 value={formData.subscription_name}
                 onChange={handleChange}
-                placeholder={t('subscriptions.subscriptionNamePlaceholder')}
+                placeholder="Ex: Standard Monthly Plan"
               />
-              {errors.subscription_name && (
-                <p className="text-red-600 text-sm mt-1">{errors.subscription_name}</p>
-              )}
+              {errors.subscription_name && <p className="text-red-600 text-sm mt-1">{errors.subscription_name}</p>}
             </div>
 
-            {/* Tenant ID */}
+            {/* Plan Selection */}
             <div>
-              <Label htmlFor="tenant_id">{t('subscriptions.tenantId')} *</Label>
-              <Input
-                id="tenant_id"
-                name="tenant_id"
-                value={formData.tenant_id}
-                onChange={handleChange}
-                placeholder="UUID"
-              />
-              {errors.tenant_id && (
-                <p className="text-red-600 text-sm mt-1">{errors.tenant_id}</p>
-              )}
-            </div>
-
-            {/* Plan Name */}
-            <div>
-              <Label htmlFor="plan_name">{t('subscriptions.planName')}</Label>
+              <Label htmlFor="plan_id">{t('subscriptions.plan')}</Label>
               <select
-                id="plan_name"
-                name="plan_name"
-                value={formData.plan_name}
-                onChange={handleChange}
+                id="plan_id"
+                name="plan_id"
+                value={formData.plan_id || ''}
+                onChange={handlePackageChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="">{t('subscriptions.selectPlan')}</option>
-                <option value="Basic">Basic</option>
-                <option value="Startup">Startup</option>
-                <option value="Professional">Professional</option>
-                <option value="Business">Business</option>
-                <option value="Growth">Growth</option>
-                <option value="Enterprise">Enterprise</option>
+                <option value="">-- {t('subscriptions.selectPlan')} --</option>
+                {packages.map(pkg => (
+                  <option key={pkg._id} value={pkg._id}>
+                    {pkg.name} ({pkg.price_amount} {pkg.currency_code})
+                  </option>
+                ))}
               </select>
+              {formData.plan_name && <p className="text-xs text-gray-500 mt-1">Current: {formData.plan_name}</p>}
             </div>
           </div>
         </CardContent>
@@ -243,9 +313,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 value={formData.start_date}
                 onChange={handleChange}
               />
-              {errors.start_date && (
-                <p className="text-red-600 text-sm mt-1">{errors.start_date}</p>
-              )}
+              {errors.start_date && <p className="text-red-600 text-sm mt-1">{errors.start_date}</p>}
             </div>
 
             {/* End Date */}
@@ -258,9 +326,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 value={formData.end_date}
                 onChange={handleChange}
               />
-              {errors.end_date && (
-                <p className="text-red-600 text-sm mt-1">{errors.end_date}</p>
-              )}
+              {errors.end_date && <p className="text-red-600 text-sm mt-1">{errors.end_date}</p>}
             </div>
 
             {/* Status */}
@@ -273,12 +339,12 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="pending">{t('subscriptions.status.pending')}</option>
-                <option value="trial">{t('subscriptions.status.trial')}</option>
-                <option value="active">{t('subscriptions.status.active')}</option>
-                <option value="suspended">{t('subscriptions.status.suspended')}</option>
-                <option value="expired">{t('subscriptions.status.expired')}</option>
-                <option value="cancelled">{t('subscriptions.status.cancelled')}</option>
+                <option value="pending">Pending</option>
+                <option value="trial">Trial</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+                <option value="expired">Expired</option>
+                <option value="cancelled">Cancelled</option>
               </select>
             </div>
 
@@ -292,14 +358,14 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="monthly">{t('subscriptions.billingCycle.monthly')}</option>
-                <option value="quarterly">{t('subscriptions.billingCycle.quarterly')}</option>
-                <option value="yearly">{t('subscriptions.billingCycle.yearly')}</option>
-                <option value="custom">{t('subscriptions.billingCycle.custom')}</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="yearly">Yearly</option>
+                <option value="custom">Custom</option>
               </select>
             </div>
 
-            {/* Trial End Date (if trial) */}
+            {/* Trial End Date */}
             {formData.is_trial && (
               <div>
                 <Label htmlFor="trial_end_date">{t('subscriptions.trialEndDate')}</Label>
@@ -314,7 +380,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
             )}
 
             {/* Checkboxes */}
-            <div className="space-y-2">
+            <div className="space-y-2 pt-6">
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -324,7 +390,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                   onChange={handleChange}
                   className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
-                <Label htmlFor="is_trial" className="flex items-center gap-2">
+                <Label htmlFor="is_trial" className="flex items-center gap-2 cursor-pointer">
                   <Sparkles className="w-4 h-4 text-purple-600" />
                   {t('subscriptions.isTrial')}
                 </Label>
@@ -338,7 +404,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                   onChange={handleChange}
                   className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
-                <Label htmlFor="auto_renew">{t('subscriptions.autoRenew')}</Label>
+                <Label htmlFor="auto_renew" className="cursor-pointer">{t('subscriptions.autoRenew')}</Label>
               </div>
             </div>
           </div>
@@ -384,12 +450,10 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 min="0"
                 step="0.01"
               />
-              {errors.base_price && (
-                <p className="text-red-600 text-sm mt-1">{errors.base_price}</p>
-              )}
+              {errors.base_price && <p className="text-red-600 text-sm mt-1">{errors.base_price}</p>}
             </div>
 
-            {/* Discount Amount */}
+            {/* Discount */}
             <div>
               <Label htmlFor="discount_amount">{t('subscriptions.discountAmount')}</Label>
               <Input
@@ -403,7 +467,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               />
             </div>
 
-            {/* Tax Amount */}
+            {/* Tax */}
             <div>
               <Label htmlFor="tax_amount">{t('subscriptions.taxAmount')}</Label>
               <Input
@@ -417,7 +481,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               />
             </div>
 
-            {/* Total Amount (Read-only) */}
+            {/* Total */}
             <div className="md:col-span-2">
               <Label htmlFor="total_amount">{t('subscriptions.totalAmount')}</Label>
               <div className="flex items-center gap-2">
@@ -445,29 +509,11 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 onChange={handleChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="unpaid">{t('subscriptions.paymentStatus.unpaid')}</option>
-                <option value="paid">{t('subscriptions.paymentStatus.paid')}</option>
-                <option value="partially_paid">{t('subscriptions.paymentStatus.partiallyPaid')}</option>
-                <option value="failed">{t('subscriptions.paymentStatus.failed')}</option>
-                <option value="refunded">{t('subscriptions.paymentStatus.refunded')}</option>
-              </select>
-            </div>
-
-            {/* Payment Method */}
-            <div>
-              <Label htmlFor="payment_method">{t('subscriptions.paymentMethod')}</Label>
-              <select
-                id="payment_method"
-                name="payment_method"
-                value={formData.payment_method || ''}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="">{t('subscriptions.selectPaymentMethod')}</option>
-                <option value="credit_card">Credit Card</option>
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="wire_transfer">Wire Transfer</option>
-                <option value="paypal">PayPal</option>
+                <option value="unpaid">Unpaid</option>
+                <option value="paid">Paid</option>
+                <option value="partially_paid">Partially Paid</option>
+                <option value="failed">Failed</option>
+                <option value="refunded">Refunded</option>
               </select>
             </div>
           </div>
@@ -495,9 +541,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 onChange={handleChange}
                 min="1"
               />
-              {errors.max_users && (
-                <p className="text-red-600 text-sm mt-1">{errors.max_users}</p>
-              )}
+              {errors.max_users && <p className="text-red-600 text-sm mt-1">{errors.max_users}</p>}
             </div>
 
             {/* Current Users */}
@@ -511,12 +555,10 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
                 onChange={handleChange}
                 min="0"
               />
-              {errors.current_users && (
-                <p className="text-red-600 text-sm mt-1">{errors.current_users}</p>
-              )}
+              {errors.current_users && <p className="text-red-600 text-sm mt-1">{errors.current_users}</p>}
             </div>
 
-            {/* Max Storage GB */}
+            {/* Max Storage */}
             <div>
               <Label htmlFor="max_storage_gb">{t('subscriptions.maxStorage')} (GB)</Label>
               <Input
@@ -529,7 +571,7 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               />
             </div>
 
-            {/* Current Storage GB */}
+            {/* Current Storage */}
             <div>
               <Label htmlFor="current_storage_gb">{t('subscriptions.currentStorage')} (GB)</Label>
               <Input
@@ -543,63 +585,6 @@ export const SubscriptionForm: React.FC<SubscriptionFormProps> = ({
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Contact Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('subscriptions.billingContact')}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="billing_contact_name">{t('subscriptions.contactName')}</Label>
-              <Input
-                id="billing_contact_name"
-                name="billing_contact_name"
-                value={formData.billing_contact_name}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label htmlFor="billing_contact_email">{t('subscriptions.contactEmail')}</Label>
-              <Input
-                type="email"
-                id="billing_contact_email"
-                name="billing_contact_email"
-                value={formData.billing_contact_email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <Label htmlFor="billing_contact_phone">{t('subscriptions.contactPhone')}</Label>
-              <Input
-                id="billing_contact_phone"
-                name="billing_contact_phone"
-                value={formData.billing_contact_phone}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('subscriptions.notes')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <textarea
-            id="notes"
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            rows={4}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder={t('subscriptions.notesPlaceholder')}
-          />
         </CardContent>
       </Card>
 

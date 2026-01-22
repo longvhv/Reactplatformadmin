@@ -5,15 +5,15 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Zap, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { showToast } from '@/lib/toast';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Gauge, Plus, Search } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
+import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
 
 interface RateLimit {
   _id: string;
@@ -76,7 +76,7 @@ function RateLimitsPage() {
 
   return (
     <PageLayout
-      icon={Zap}
+      icon={Gauge}
       title="Rate Limits"
       description="Quản lý giới hạn tốc độ truy cập API"
       actions={

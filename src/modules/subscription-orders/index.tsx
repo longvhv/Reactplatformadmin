@@ -11,16 +11,16 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { ShoppingCart } from 'lucide-react';
 
 const SubscriptionOrdersPage = lazy(() => 
-  import('../../app/(admin)/commerce/subscription-orders/page')
+  import('../../app/(admin)/commerce/subscription-orders/page').then(m => ({ default: m.default }))
 );
 const SubscriptionOrderDetailPage = lazy(() => 
-  import('../../app/(admin)/commerce/subscription-orders/[id]/page')
+  import('../../app/(admin)/commerce/subscription-orders/[id]/page').then(m => ({ default: m.default }))
 );
 const AddOrderPage = lazy(() => 
-  import('../../app/(admin)/commerce/subscription-orders/create/page')
+  import('../../app/(admin)/commerce/subscription-orders/create/page').then(m => ({ default: m.default }))
 );
 const EditOrderPage = lazy(() => 
-  import('../../app/(admin)/commerce/subscription-orders/edit/[id]/page')
+  import('../../app/(admin)/commerce/subscription-orders/edit/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const SubscriptionOrdersModule: ModuleDefinition = {
@@ -88,3 +88,5 @@ export const SubscriptionOrdersModule: ModuleDefinition = {
     console.log('🧹 Subscription Orders module cleaned up');
   },
 };
+
+export default SubscriptionOrdersModule;

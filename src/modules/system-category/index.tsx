@@ -108,3 +108,5 @@ export const SystemCategoryModule: ModuleDefinition = {
     },
   ],
 };
+
+export default SystemCategoryModule;

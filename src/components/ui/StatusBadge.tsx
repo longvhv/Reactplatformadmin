@@ -3,7 +3,7 @@
  * Standardized status badge for consistent UI
  */
 
-import { BADGE_VARIANTS, cn } from '@/constants/ui';
+import { BADGE_VARIANTS, cn } from '../../constants/ui';
 import { CheckCircle, XCircle, Clock, AlertCircle, Ban, Users, Shield } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 

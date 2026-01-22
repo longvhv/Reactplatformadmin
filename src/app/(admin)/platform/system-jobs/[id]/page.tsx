@@ -5,20 +5,20 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Activity, ArrowLeft, MoreVertical, Trash2, RotateCw, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { systemJobsApi, SystemJob } from '@/api/systemJobsApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { Cog, Play, Square, RotateCw, Trash2 } from 'lucide-react';
+import { Button } from '../../../../../../components/ui/button';
+import { systemJobsApi, SystemJob } from '../../../../../../api/systemJobsApi';
+import { showToast } from '../../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../../../components/ui/dropdown-menu';
 
 function SystemJobDetailPage() {
   const params = useParams();
@@ -87,10 +87,10 @@ function SystemJobDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Cog className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Job Not Found</h2>
           <Button onClick={() => router.push('/platform/system-jobs')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <Square className="w-4 h-4 mr-2" />
             Back to System Jobs
           </Button>
         </div>
@@ -101,7 +101,7 @@ function SystemJobDetailPage() {
   return (
     <>
       <PageLayout
-        icon={Activity}
+        icon={Cog}
         title={job.job_name}
         description={`Type: ${job.job_type}`}
         backButton={{
@@ -118,7 +118,7 @@ function SystemJobDetailPage() {
             )}
             {(job.status === 'PENDING' || job.status === 'RUNNING') && (
               <Button variant="outline" size="sm" onClick={handleCancel}>
-                <X className="w-4 h-4 mr-2" />
+                <Square className="w-4 h-4 mr-2" />
                 Cancel
               </Button>
             )}

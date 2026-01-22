@@ -1,6 +1,13 @@
 /**
  * WebhookModal Component
  * Modal for creating/editing webhooks - Chuẩn Stripe/GitHub UI
+ * 
+ * ✅ ENHANCED 2026-01-21: Full DB schema support
+ * - Added Signing Secret (secret_key)
+ * - Added Custom Headers editor
+ * - Added Event Filter (JSON)
+ * - Added Tags management
+ * - Improved Auth Config (Basic Auth support)
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,14 +20,17 @@ import {
   Lock,
   Zap,
   Globe,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw,
+  Tag,
+  Code
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { 
   Webhook, 
   CreateWebhookRequest, 
   UpdateWebhookRequest 
-} from '@/api/webhooksApi';
+} from '../../api/webhooksApi';
 
 interface WebhookModalProps {
   isOpen: boolean;
@@ -53,13 +63,32 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
     timeout_ms: 5000,
     retry_config: { max_retries: 3, retry_delay: 1000, backoff_multiplier: 2 },
     priority: 0,
+    secret_key: '',
+    tags: [],
+    event_filter: {},
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
   const [customEvent, setCustomEvent] = useState('');
+  
+  // Auth state
   const [authSecret, setAuthSecret] = useState('');
+  const [authUsername, setAuthUsername] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  
+  // Custom Headers state
+  const [headersList, setHeadersList] = useState<{key: string, value: string}[]>([]);
+  const [newHeaderKey, setNewHeaderKey] = useState('');
+  const [newHeaderValue, setNewHeaderValue] = useState('');
+
+  // Tags state
+  const [currentTag, setCurrentTag] = useState('');
+  
+  // Filter state
+  const [filterJson, setFilterJson] = useState('{}');
+
   const [activeTab, setActiveTab] = useState<'basic' | 'events' | 'auth' | 'advanced'>('basic');
 
   useEffect(() => {
@@ -80,8 +109,28 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
         tags: webhook.tags,
         batch_size: webhook.batch_size,
         rate_limit: webhook.rate_limit,
+        secret_key: webhook.secret_key,
+        event_filter: webhook.event_filter,
       });
       setSelectedEvents(webhook.event_types);
+      
+      // Setup Auth
+      if (webhook.auth_type === 'basic' && webhook.auth_config) {
+        setAuthUsername(webhook.auth_config.username || '');
+        setAuthPassword(webhook.auth_config.password || '');
+      } else if (webhook.auth_config && webhook.auth_config.secret) {
+        setAuthSecret(webhook.auth_config.secret);
+      }
+      
+      // Setup Headers
+      if (webhook.headers) {
+        setHeadersList(Object.entries(webhook.headers).map(([key, value]) => ({ key, value: String(value) })));
+      }
+      
+      // Setup Filter
+      if (webhook.event_filter) {
+        setFilterJson(JSON.stringify(webhook.event_filter, null, 2));
+      }
     } else {
       resetForm();
     }
@@ -99,11 +148,22 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
       timeout_ms: 5000,
       retry_config: { max_retries: 3, retry_delay: 1000, backoff_multiplier: 2 },
       priority: 0,
+      secret_key: generateSecret(),
+      tags: [],
+      event_filter: {},
     });
     setSelectedEvents([]);
     setAuthSecret('');
+    setAuthUsername('');
+    setAuthPassword('');
+    setHeadersList([{ key: 'Content-Type', value: 'application/json' }]);
+    setFilterJson('{}');
     setErrors({});
     setActiveTab('basic');
+  };
+
+  const generateSecret = () => {
+    return 'whsec_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   };
 
   const validateForm = (): boolean => {
@@ -134,6 +194,13 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
       newErrors.timeout_ms = 'Timeout phải từ 1000ms đến 60000ms';
     }
 
+    // Validate JSON filter
+    try {
+      JSON.parse(filterJson);
+    } catch (e) {
+      newErrors.filter = 'Invalid JSON format';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -142,24 +209,34 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
     e.preventDefault();
     
     if (!validateForm()) {
-      setActiveTab('basic'); // Switch to basic tab to show errors
+      // Find which tab has errors
+      if (errors.name || errors.url || errors.timeout_ms) setActiveTab('basic');
+      else if (errors.events) setActiveTab('events');
+      else if (errors.filter) setActiveTab('advanced');
       return;
     }
 
     setSaving(true);
     try {
+      const headers = headersList.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
+      
       const submitData = { 
         ...formData, 
-        event_types: selectedEvents 
+        event_types: selectedEvents,
+        headers,
+        event_filter: JSON.parse(filterJson)
       } as CreateWebhookRequest;
 
-      // Add auth secret if provided
-      if (formData.auth_type !== 'none' && authSecret) {
+      // Handle Auth Config
+      if (formData.auth_type === 'basic') {
+        submitData.auth_config = { username: authUsername, password: authPassword };
+      } else if (formData.auth_type !== 'none' && authSecret) {
         submitData.auth_config = { secret: authSecret };
+      } else {
+        submitData.auth_config = undefined;
       }
 
       await onSave(submitData);
-      resetForm();
       onClose();
     } catch (err) {
       console.error('Error saving webhook:', err);
@@ -169,6 +246,38 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
     }
   };
 
+  // Tag handlers
+  const addTag = () => {
+    if (currentTag.trim() && !formData.tags?.includes(currentTag.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...(prev.tags || []), currentTag.trim()]
+      }));
+      setCurrentTag('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      tags: prev.tags?.filter(tag => tag !== tagToRemove) || []
+    }));
+  };
+
+  // Header handlers
+  const addHeader = () => {
+    if (newHeaderKey.trim() && newHeaderValue.trim()) {
+      setHeadersList(prev => [...prev, { key: newHeaderKey.trim(), value: newHeaderValue.trim() }]);
+      setNewHeaderKey('');
+      setNewHeaderValue('');
+    }
+  };
+
+  const removeHeader = (index: number) => {
+    setHeadersList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Event handlers
   const toggleEvent = (event: string) => {
     setSelectedEvents(prev =>
       prev.includes(event) ? prev.filter(e => e !== event) : [...prev, event]
@@ -202,7 +311,7 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
@@ -233,7 +342,7 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
             {[
               { id: 'basic', label: 'Cơ bản', icon: Globe },
               { id: 'events', label: 'Events', icon: Zap },
-              { id: 'auth', label: 'Xác thực', icon: Lock },
+              { id: 'auth', label: 'Bảo mật & Auth', icon: Lock },
               { id: 'advanced', label: 'Nâng cao', icon: AlertCircle },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -315,9 +424,6 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                       {errors.url}
                     </p>
                   )}
-                  <p className="mt-1.5 text-xs text-gray-500">
-                    URL nhận POST request chứa event data
-                  </p>
                 </div>
 
                 {/* Method & Timeout */}
@@ -328,13 +434,14 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                     </label>
                     <select
                       value={formData.method}
-                      onChange={(e) => setFormData({ ...formData, method: e.target.value })}
+                      onChange={(e) => setFormData({ ...formData, method: e.target.value as any })}
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
                       <option value="POST">POST</option>
                       <option value="GET">GET</option>
                       <option value="PUT">PUT</option>
                       <option value="PATCH">PATCH</option>
+                      <option value="DELETE">DELETE</option>
                     </select>
                   </div>
 
@@ -356,9 +463,6 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                         errors.timeout_ms ? 'border-red-300' : 'border-gray-300'
                       }`}
                     />
-                    {errors.timeout_ms && (
-                      <p className="mt-1.5 text-sm text-red-600">{errors.timeout_ms}</p>
-                    )}
                   </div>
                 </div>
 
@@ -371,22 +475,35 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                     value={formData.description || ''}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
-                    placeholder="Mô tả mục đích và chức năng của webhook..."
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
                   />
                 </div>
 
-                {/* Info Box */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex gap-3">
-                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm text-blue-900">
-                      <p className="font-medium mb-1">Webhook hoạt động như thế nào?</p>
-                      <p className="text-blue-800">
-                        Khi có event xảy ra, hệ thống sẽ gửi HTTP request đến URL bạn cấu hình.
-                        Request chứa thông tin chi tiết về event dưới dạng JSON.
-                      </p>
-                    </div>
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Tags</label>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={currentTag}
+                      onChange={(e) => setCurrentTag(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                      placeholder="Add tag..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <Button type="button" onClick={addTag} variant="outline" size="sm">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags?.map(tag => (
+                      <span key={tag} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 rounded text-sm">
+                        <Tag className="w-3 h-3" /> {tag}
+                        <button type="button" onClick={() => removeTag(tag)} className="ml-1 hover:text-red-500">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -498,57 +615,59 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                       </Button>
                     </div>
                   </div>
-
-                  {/* Selected Events Display */}
-                  {selectedEvents.length > 0 && (
-                    <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-xs font-semibold text-gray-600 uppercase mb-2">
-                        Events đã chọn ({selectedEvents.length})
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedEvents.map(event => (
-                          <span 
-                            key={event} 
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs font-mono"
-                          >
-                            {event}
-                            <button 
-                              type="button" 
-                              onClick={() => removeEvent(event)} 
-                              className="hover:text-indigo-900"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* Auth Tab */}
+            {/* Auth & Security Tab */}
             {activeTab === 'auth' && (
-              <div className="space-y-5">
-                <div>
+              <div className="space-y-6">
+                {/* Signing Secret */}
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Signing Secret
+                    </label>
+                    <button type="button" onClick={() => setFormData({...formData, secret_key: generateSecret()})} className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3" /> Regenerate
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={formData.secret_key}
+                      onChange={(e) => setFormData({...formData, secret_key: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm bg-white"
+                    />
+                    <Lock className="w-4 h-4 text-gray-400 absolute right-3 top-2.5" />
+                  </div>
+                  <p className="mt-1.5 text-xs text-gray-500">
+                    Dùng để ký payload (HMAC SHA256). Server của bạn nên verify chữ ký này.
+                  </p>
+                </div>
+
+                <div className="border-t border-gray-200 pt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phương thức xác thực
+                    Phương thức xác thực (Authentication)
                   </label>
-                  <div className="space-y-2">
+                  <p className="text-xs text-gray-500 mb-4">
+                    Cách hệ thống xác thực với server của bạn.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     {[
-                      { value: 'none', label: 'Không xác thực', desc: 'Endpoint công khai, không yêu cầu auth' },
-                      { value: 'bearer', label: 'Bearer Token', desc: 'Gửi token trong Authorization header' },
-                      { value: 'api_key', label: 'API Key', desc: 'Gửi API key trong X-API-Key header' },
-                      { value: 'basic', label: 'Basic Auth', desc: 'Username/password authentication' },
+                      { value: 'none', label: 'Không xác thực' },
+                      { value: 'bearer', label: 'Bearer Token' },
+                      { value: 'api_key', label: 'API Key' },
+                      { value: 'basic', label: 'Basic Auth' },
                     ].map((option) => (
                       <label 
                         key={option.value}
                         className={`
-                          flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all
+                          flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all
                           ${formData.auth_type === option.value
                             ? 'border-indigo-600 bg-indigo-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            : 'border-gray-200 hover:border-gray-300'
                           }
                         `}
                       >
@@ -557,58 +676,53 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                           name="auth_type"
                           value={option.value}
                           checked={formData.auth_type === option.value}
-                          onChange={(e) => setFormData({ ...formData, auth_type: e.target.value })}
-                          className="mt-1"
+                          onChange={(e) => setFormData({ ...formData, auth_type: e.target.value as any })}
+                          className="text-indigo-600"
                         />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            {option.value !== 'none' && <Lock className="w-4 h-4 text-gray-400" />}
-                            <span className="font-medium text-gray-900">{option.label}</span>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-1">{option.desc}</p>
-                        </div>
+                        <span className="font-medium text-sm text-gray-900">{option.label}</span>
                       </label>
                     ))}
                   </div>
-                </div>
 
-                {/* Auth Secret Input */}
-                {formData.auth_type !== 'none' && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <label className="block text-sm font-medium text-orange-900 mb-2">
-                      Secret Key / Token <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={authSecret}
-                      onChange={(e) => setAuthSecret(e.target.value)}
-                      placeholder={
-                        formData.auth_type === 'bearer' ? 'Bearer token...' :
-                        formData.auth_type === 'api_key' ? 'API key...' :
-                        'Secret...'
-                      }
-                      className="w-full px-3 py-2.5 border border-orange-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
-                    <p className="mt-2 text-xs text-orange-800 flex items-center gap-1">
-                      <AlertCircle className="w-3 h-3" />
-                      Secret được mã hóa và lưu trữ an toàn
-                    </p>
-                  </div>
-                )}
-
-                {/* Info */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex gap-3">
-                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                    <div className="text-sm text-blue-900">
-                      <p className="font-medium mb-1">Bảo mật webhook</p>
-                      <ul className="space-y-1 text-blue-800 list-disc list-inside">
-                        <li>Bearer Token: Gửi trong header <code className="bg-blue-100 px-1 rounded">Authorization: Bearer YOUR_TOKEN</code></li>
-                        <li>API Key: Gửi trong header <code className="bg-blue-100 px-1 rounded">X-API-Key: YOUR_KEY</code></li>
-                        <li>Basic Auth: Credentials được encode base64</li>
-                      </ul>
+                  {/* Auth Config Inputs */}
+                  {formData.auth_type !== 'none' && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 animate-in fade-in slide-in-from-top-2">
+                      {formData.auth_type === 'basic' ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-medium text-orange-900 mb-1">Username</label>
+                            <input
+                              type="text"
+                              value={authUsername}
+                              onChange={(e) => setAuthUsername(e.target.value)}
+                              className="w-full px-3 py-2 border border-orange-300 rounded-md text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-orange-900 mb-1">Password</label>
+                            <input
+                              type="password"
+                              value={authPassword}
+                              onChange={(e) => setAuthPassword(e.target.value)}
+                              className="w-full px-3 py-2 border border-orange-300 rounded-md text-sm"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-xs font-medium text-orange-900 mb-1">
+                            {formData.auth_type === 'bearer' ? 'Token' : 'API Key'} <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="password"
+                            value={authSecret}
+                            onChange={(e) => setAuthSecret(e.target.value)}
+                            className="w-full px-3 py-2 border border-orange-300 rounded-md font-mono text-sm"
+                          />
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )}
@@ -616,17 +730,63 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
             {/* Advanced Tab */}
             {activeTab === 'advanced' && (
               <div className="space-y-6">
-                {/* Retry Config */}
+                {/* Headers */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-indigo-600" />
-                    Retry Configuration
+                    <Code className="w-4 h-4 text-indigo-600" />
+                    Custom Headers
+                  </h3>
+                  <div className="space-y-2 mb-2">
+                    {headersList.map((header, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={header.key}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded bg-gray-50 text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={header.value}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded bg-gray-50 text-sm"
+                        />
+                        <button type="button" onClick={() => removeHeader(index)} className="text-red-500 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newHeaderKey}
+                      onChange={(e) => setNewHeaderKey(e.target.value)}
+                      placeholder="Header Key (e.g. X-Custom)"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={newHeaderValue}
+                      onChange={(e) => setNewHeaderValue(e.target.value)}
+                      placeholder="Value"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                    <Button type="button" onClick={addHeader} variant="outline" size="sm">
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Retry Config */}
+                <div className="border-t pt-5">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-indigo-600" />
+                    Retry Policy
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Max Retries
-                      </label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Max Retries</label>
                       <input
                         type="number"
                         value={formData.retry_config?.max_retries}
@@ -634,16 +794,12 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                           ...formData,
                           retry_config: { ...formData.retry_config!, max_retries: parseInt(e.target.value) }
                         })}
-                        min="0"
-                        max="10"
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="0" max="10"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
-                      <p className="mt-1 text-xs text-gray-500">Số lần thử lại khi thất bại</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Retry Delay (ms)
-                      </label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Delay (ms)</label>
                       <input
                         type="number"
                         value={formData.retry_config?.retry_delay}
@@ -651,16 +807,12 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                           ...formData,
                           retry_config: { ...formData.retry_config!, retry_delay: parseInt(e.target.value) }
                         })}
-                        min="100"
-                        step="100"
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="100" step="100"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
-                      <p className="mt-1 text-xs text-gray-500">Delay giữa các lần thử</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Backoff Multiplier
-                      </label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Multiplier</label>
                       <input
                         type="number"
                         value={formData.retry_config?.backoff_multiplier}
@@ -668,73 +820,69 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
                           ...formData,
                           retry_config: { ...formData.retry_config!, backoff_multiplier: parseFloat(e.target.value) }
                         })}
-                        min="1"
-                        step="0.1"
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="1" step="0.1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
-                      <p className="mt-1 text-xs text-gray-500">Hệ số tăng delay</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Performance Settings */}
+                {/* Event Filter (JSON) */}
                 <div className="border-t pt-5">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Performance Settings</h3>
+                   <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Code className="w-4 h-4 text-indigo-600" />
+                    Event Filter (JSON)
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Lọc event dựa trên payload. Nếu để trống, tất cả event type đã chọn sẽ được gửi.
+                  </p>
+                  <textarea
+                    value={filterJson}
+                    onChange={(e) => {
+                      setFilterJson(e.target.value);
+                      setErrors(prev => ({ ...prev, filter: '' }));
+                    }}
+                    className={`w-full px-3 py-2 border rounded-lg font-mono text-xs h-32 ${errors.filter ? 'border-red-500' : 'border-gray-300'}`}
+                    placeholder='{"data": {"status": "completed"}}'
+                  />
+                  {errors.filter && <p className="text-xs text-red-500 mt-1">{errors.filter}</p>}
+                </div>
+
+                {/* Performance */}
+                <div className="border-t pt-5">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Performance</h3>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Batch Size
-                      </label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Batch Size</label>
                       <input
                         type="number"
                         value={formData.batch_size || ''}
                         onChange={(e) => setFormData({ ...formData, batch_size: parseInt(e.target.value) || undefined })}
-                        placeholder="Mặc định: 1"
-                        min="1"
-                        max="100"
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="1" max="100"
+                        placeholder="1"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Rate Limit (per min)
-                      </label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Rate Limit (req/min)</label>
                       <input
                         type="number"
                         value={formData.rate_limit || ''}
                         onChange={(e) => setFormData({ ...formData, rate_limit: parseInt(e.target.value) || undefined })}
-                        placeholder="Không giới hạn"
                         min="1"
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        placeholder="No limit"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Priority
-                      </label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Priority (0-10)</label>
                       <input
                         type="number"
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                        min="0"
-                        max="10"
-                        className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        min="0" max="10"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                       />
-                      <p className="mt-1 text-xs text-gray-500">0 = thấp nhất, 10 = cao nhất</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Info */}
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    <div className="text-sm text-green-900">
-                      <p className="font-medium mb-1">Exponential Backoff</p>
-                      <p className="text-green-800">
-                        Với max_retries=3, delay=1000ms, multiplier=2:<br />
-                        Retry 1 sau 1s, Retry 2 sau 2s, Retry 3 sau 4s
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -743,7 +891,7 @@ export function WebhookModal({ isOpen, onClose, onSave, webhook, tenantId }: Web
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between sticky bottom-0">
             <div>
               {errors.submit && (
                 <p className="text-sm text-red-600 flex items-center gap-1">

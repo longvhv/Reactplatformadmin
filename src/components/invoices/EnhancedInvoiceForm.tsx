@@ -8,26 +8,29 @@
  * - amounts: numeric(19,4) >= 0
  * - billing_info, items_snapshot, tax_breakdown: jsonb
  * - dates: billing_period_start <= billing_period_end
+ * - pdf_url: text
+ * - subscription_id: uuid
  */
 
 import { useState, useEffect } from "react";
-import { Save, Plus, Trash, Calendar, FileText, User, DollarSign, Tag } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Save, Plus, Trash, Calendar, FileText, User, DollarSign, Tag, Link as LinkIcon } from "lucide-react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { 
   Invoice, 
   CreateInvoiceRequest, 
   UpdateInvoiceRequest, 
   ItemSnapshot, 
   BillingInfo 
-} from "@/api/invoiceApi";
-import { tenantsApi, Tenant } from "@/api/tenantsApi";
-import { showToast } from "@/lib/toast";
+} from "../../api/invoiceApi";
+import { tenantsApi, Tenant } from "../../api/tenantsApi";
+import { tenantSubscriptionsApi } from "../../api/tenantSubscriptionsApi";
+import { showToast } from "../../lib/toast";
 
 interface EnhancedInvoiceFormProps {
   initialData?: Partial<Invoice>;
@@ -57,11 +60,13 @@ export function EnhancedInvoiceForm({
   const [activeTab, setActiveTab] = useState("general");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]); // Use appropriate type if available
   
   // Form State
   const [formData, setFormData] = useState<Partial<CreateInvoiceRequest>>({
     invoice_number: "",
     tenant_id: "",
+    subscription_id: "",
     status: "DRAFT",
     currency_code: "VND",
     subtotal: 0,
@@ -76,6 +81,7 @@ export function EnhancedInvoiceForm({
     billing_info: {},
     tax_breakdown: [],
     metadata: {},
+    pdf_url: "",
   });
 
   const [items, setItems] = useState<ItemSnapshot[]>([]);
@@ -95,6 +101,23 @@ export function EnhancedInvoiceForm({
     fetchTenants();
   }, []);
 
+  // Fetch subscriptions when tenant_id changes
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      if (!formData.tenant_id) {
+        setSubscriptions([]);
+        return;
+      }
+      try {
+        const data = await tenantSubscriptionsApi.getAll({ tenant_id: formData.tenant_id });
+        setSubscriptions(data);
+      } catch (err) {
+        console.error("Failed to load subscriptions", err);
+      }
+    };
+    fetchSubscriptions();
+  }, [formData.tenant_id]);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -102,6 +125,7 @@ export function EnhancedInvoiceForm({
         billing_period_start: initialData.billing_period_start || new Date().toISOString(),
         billing_period_end: initialData.billing_period_end || new Date().toISOString(),
         due_date: initialData.due_date || new Date().toISOString(),
+        subscription_id: initialData.subscription_id || "", // Ensure subscription_id is set
       });
       setItems(initialData.items_snapshot || []);
       setBillingInfo(initialData.billing_info || {});
@@ -158,6 +182,8 @@ export function EnhancedInvoiceForm({
     try {
       const submitData: any = {
         ...formData,
+        // Ensure subscription_id is undefined if empty string to match optional type
+        subscription_id: formData.subscription_id || undefined,
         items_snapshot: items,
         billing_info: billingInfo,
         metadata: JSON.parse(metadataJson),
@@ -245,7 +271,10 @@ export function EnhancedInvoiceForm({
                 <Label htmlFor="tenant_id">Khách hàng (Tenant) <span className="text-destructive">*</span></Label>
                 <Select 
                   value={formData.tenant_id} 
-                  onValueChange={val => updateField("tenant_id", val)}
+                  onValueChange={val => {
+                    updateField("tenant_id", val);
+                    updateField("subscription_id", ""); // Reset subscription when tenant changes
+                  }}
                   disabled={isEdit}
                 >
                   <SelectTrigger className={errors.tenant_id ? "border-destructive" : ""}>
@@ -258,6 +287,27 @@ export function EnhancedInvoiceForm({
                   </SelectContent>
                 </Select>
                 {errors.tenant_id && <p className="text-sm text-destructive">{errors.tenant_id}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="subscription_id">Gói đăng ký (Subscription)</Label>
+                <Select 
+                  value={formData.subscription_id} 
+                  onValueChange={val => updateField("subscription_id", val)}
+                  disabled={!formData.tenant_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formData.tenant_id ? "Chọn gói đăng ký (Tùy chọn)" : "Vui lòng chọn khách hàng trước"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">-- Không chọn --</SelectItem>
+                    {subscriptions.map(s => (
+                      <SelectItem key={s._id} value={s._id}>
+                        {s.plan_code || "Subscription"} ({s.status})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
@@ -472,16 +522,32 @@ export function EnhancedInvoiceForm({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-indigo-600" />
-                Metadata (JSON)
+                Thông tin hệ thống
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <Textarea
-                value={metadataJson}
-                onChange={e => setMetadataJson(e.target.value)}
-                className={`font-mono text-sm h-[300px] ${errors.metadata ? "border-destructive" : ""}`}
-              />
-              {errors.metadata && <p className="text-sm text-destructive mt-1">{errors.metadata}</p>}
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <LinkIcon className="w-4 h-4" />
+                  PDF URL
+                </Label>
+                <Input 
+                  value={formData.pdf_url || ""}
+                  onChange={e => updateField("pdf_url", e.target.value)}
+                  placeholder="https://..."
+                />
+                <p className="text-xs text-muted-foreground">Link đến file PDF của hóa đơn (nếu có)</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Metadata (JSON)</Label>
+                <Textarea
+                  value={metadataJson}
+                  onChange={e => setMetadataJson(e.target.value)}
+                  className={`font-mono text-sm h-[200px] ${errors.metadata ? "border-destructive" : ""}`}
+                />
+                {errors.metadata && <p className="text-sm text-destructive mt-1">{errors.metadata}</p>}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

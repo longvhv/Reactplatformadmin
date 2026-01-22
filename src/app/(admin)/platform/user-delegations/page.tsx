@@ -1,205 +1,227 @@
-/**
- * User Delegations Page
- * Trang quản lý ủy quyền giữa các users
- * ✅ CREATED: 2026-01-20
- */
 'use client';
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { UserCog, Plus, Search, CheckCircle, Clock, XCircle, AlertCircle, ArrowRight, Calendar, Shield } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { useUserDelegations } from '@/hooks/useUserDelegations';
-import { UserDelegation, DelegationStatusHelper, DelegationScopeHelper } from '@/api/userDelegationsApi';
-import { showToast } from '@/lib/toast';
-import { useTranslation } from 'react-i18next';
 
-function UserDelegationsPage() {
+import React, { useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { 
+  UserCog, Plus, Search, Filter, Trash2, Edit, CheckCircle, 
+  XCircle, Clock, AlertCircle, Shield, ArrowRight, Calendar, StopCircle, RefreshCcw
+} from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { 
+  userDelegationsApi, 
+  UserDelegation, 
+  DelegationStatus,
+  DelegationScope,
+  DelegationStatusHelper,
+  getScopeColor,
+  getStatusColor,
+  formatDate
+} from '../../../../api/userDelegationsApi';
+import { usersApi } from '../../../../api/usersApi';
+import { tenantsApi } from '../../../../api/tenantsApi';
+import { showToast } from '../../../../lib/toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '../../../../components/ui/dropdown-menu';
+
+export default function UserDelegationsPage() {
   const router = useRouter();
-  const { delegations, loading, deleteDelegation } = useUserDelegations();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'pending' | 'expired' | 'revoked'>('all');
-  const [scopeFilter, setScopeFilter] = useState<'all' | string>('all');
-  const { t } = useTranslation();
+  const [delegations, setDelegations] = useState<UserDelegation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | DelegationStatus>('all');
+  const [scopeFilter, setScopeFilter] = useState<'all' | DelegationScope>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Maps for display names
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+  const [tenantMap, setTenantMap] = useState<Record<string, string>>({});
 
-  // Filter delegations
-  const filteredDelegations = delegations.filter(delegation => {
-    const matchesSearch = 
-      delegation.delegator_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delegation.delegate_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delegation.delegator_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delegation.delegate_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || delegation.status === statusFilter;
-    const matchesScope = scopeFilter === 'all' || delegation.scope === scopeFilter;
-    
-    return matchesSearch && matchesStatus && matchesScope;
-  });
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa ủy quyền này?')) return;
+  const loadData = async () => {
     try {
-      await deleteDelegation(id);
-      showToast.success('Thành công', 'Đã xóa ủy quyền');
-    } catch (error: any) {
-      showToast.error('Lỗi', error.message || 'Không thể xóa ủy quyền');
+      setLoading(true);
+      const [delegationsData, usersData, tenantsData] = await Promise.all([
+        userDelegationsApi.getAll(),
+        usersApi.getAll(),
+        tenantsApi.getAll()
+      ]);
+      
+      setDelegations(delegationsData);
+      
+      const uMap: Record<string, string> = {};
+      usersData.forEach(u => uMap[u._id] = u.full_name || u.email);
+      setUserMap(uMap);
+
+      const tMap: Record<string, string> = {};
+      tenantsData.forEach(t => tMap[t._id] = t.name);
+      setTenantMap(tMap);
+
+    } catch (err) {
+      console.error(err);
+      showToast.error('Error', 'Failed to load delegations');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatDate = (date?: string) => {
-    if (!date) return '-';
-    return new Date(date).toLocaleDateString('vi-VN', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this delegation record?')) return;
+    try {
+      await userDelegationsApi.delete(id);
+      showToast.success('Success', 'Delegation deleted');
+      setDelegations(prev => prev.filter(d => d._id !== id));
+    } catch (err) {
+      showToast.error('Error', 'Failed to delete delegation');
+    }
   };
 
-  const getStatusBadge = (status: string) => {
-    const configs = {
-      active: { icon: CheckCircle, class: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300', label: t('common.active') },
-      pending: { icon: Clock, class: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300', label: t('common.pending') },
-      expired: { icon: AlertCircle, class: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', label: t('common.expired') },
-      revoked: { icon: XCircle, class: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', label: t('common.revoked') },
-      suspended: { icon: XCircle, class: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300', label: t('common.suspended') },
-    };
-    const config = configs[status as keyof typeof configs] || configs.pending;
-    const Icon = config.icon;
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${config.class}`}>
-        <Icon className="w-3 h-3" />
-        {config.label}
-      </span>
-    );
+  const handleRevoke = async (id: string) => {
+    const reason = prompt('Reason for revocation (optional):');
+    if (reason === null) return;
+
+    try {
+       // In a real app, revoked_by would come from current user context
+       // Here we might need a mock ID or handle it in backend
+       await userDelegationsApi.revoke(id, { 
+           revoked_by: delegations.find(d => d._id === id)?.delegator_id || 'system', // Fallback
+           revoked_reason: reason 
+       });
+       showToast.success('Success', 'Delegation revoked');
+       loadData();
+    } catch (err) {
+       showToast.error('Error', 'Failed to revoke delegation');
+    }
   };
 
-  const getScopeBadge = (scope: string) => {
-    const colorMap: Record<string, string> = {
-      admin: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-      manager: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-      editor: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
-      viewer: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-      approver: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-      reviewer: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300',
-      auditor: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
-      custom: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
-    };
+  const handleSuspend = async (id: string) => {
+     try {
+         await userDelegationsApi.suspend(id);
+         showToast.success('Success', 'Delegation suspended');
+         loadData();
+     } catch (err) {
+         showToast.error('Error', 'Failed to suspend');
+     }
+  };
+
+  const handleResume = async (id: string) => {
+    try {
+        await userDelegationsApi.resume(id);
+        showToast.success('Success', 'Delegation resumed');
+        loadData();
+    } catch (err) {
+        showToast.error('Error', 'Failed to resume');
+    }
+ };
+
+  const filteredDelegations = delegations.filter(d => {
+    const delegatorName = userMap[d.delegator_id] || '';
+    const delegateName = userMap[d.delegate_id] || '';
+    const query = searchQuery.toLowerCase();
     
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${colorMap[scope] || colorMap.custom}`}>
-        <Shield className="w-3 h-3" />
-        {scope}
-      </span>
-    );
-  };
+    // Search
+    const matchesSearch = 
+        delegatorName.toLowerCase().includes(query) ||
+        delegateName.toLowerCase().includes(query) ||
+        d.reason?.toLowerCase().includes(query);
 
-  // Statistics
-  const stats = {
-    total: delegations.length,
-    active: delegations.filter(d => DelegationStatusHelper.isActive(d.status)).length,
-    pending: delegations.filter(d => DelegationStatusHelper.isPending(d.status)).length,
-    expired: delegations.filter(d => DelegationStatusHelper.isExpired(d.status)).length,
+    if (!matchesSearch) return false;
+
+    // Filters
+    if (statusFilter !== 'all' && d.status !== statusFilter) return false;
+    if (scopeFilter !== 'all' && d.scope !== scopeFilter) return false;
+
+    return true;
+  });
+
+  const getStatusBadge = (status?: string) => {
+      const s = status as DelegationStatus;
+      const config = {
+        active: { icon: CheckCircle, label: 'Active', class: 'bg-green-100 text-green-800' },
+        pending: { icon: Clock, label: 'Pending', class: 'bg-yellow-100 text-yellow-800' },
+        expired: { icon: AlertCircle, label: 'Expired', class: 'bg-orange-100 text-orange-800' },
+        revoked: { icon: XCircle, label: 'Revoked', class: 'bg-red-100 text-red-800' },
+        suspended: { icon: StopCircle, label: 'Suspended', class: 'bg-gray-100 text-gray-800' },
+      };
+      const c = config[s] || config.pending;
+      const Icon = c.icon;
+      
+      return (
+          <Badge variant="outline" className={`border-0 ${c.class} flex items-center gap-1`}>
+              <Icon className="w-3 h-3" /> {c.label}
+          </Badge>
+      );
   };
 
   return (
-    <Fragment>
-      <PageLayout
-        icon={UserCog}
-        title="Ủy quyền người dùng"
-        description="Quản lý ủy quyền quyền hạn giữa các người dùng"
-        actions={
-          <Button onClick={() => router.push('/admin/user-delegations/create')}>
-            <Plus className="w-4 h-4 mr-2" />
-            Tạo ủy quyền
-          </Button>
-        }
-      >
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Tổng số</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-              </div>
-              <UserCog className="w-8 h-8 text-gray-400" />
-            </div>
-          </Card>
-          
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Đang hoạt động</p>
-                <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-green-400" />
-            </div>
-          </Card>
-          
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Chờ xử lý</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-              </div>
-              <Clock className="w-8 h-8 text-yellow-400" />
-            </div>
-          </Card>
-          
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Hết hạn</p>
-                <p className="text-2xl font-bold text-orange-600">{stats.expired}</p>
-              </div>
-              <AlertCircle className="w-8 h-8 text-orange-400" />
-            </div>
-          </Card>
+    <PageLayout
+      icon={UserCog}
+      title="User Delegations"
+      description="Manage authority delegation between users"
+      actions={
+        <Button onClick={() => router.push('/platform/user-delegations/create')}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Delegation
+        </Button>
+      }
+    >
+      <Card className="p-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input 
+              placeholder="Search by delegator, delegate, or reason..." 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+           <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className={showFilters ? 'bg-gray-100' : ''}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+            </Button>
         </div>
 
-        <Card className="p-6">
-          {/* Filters */}
-          <div className="space-y-4 mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                placeholder="Tìm kiếm theo tên hoặc email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                  Trạng thái
-                </label>
+        {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border mb-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="all">Tất cả</option>
-                  <option value="active">{t('common.active')}</option>
-                  <option value="pending">{t('common.pending')}</option>
-                  <option value="expired">{t('common.expired')}</option>
-                  <option value="revoked">{t('common.revoked')}</option>
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="pending">Pending</option>
+                  <option value="expired">Expired</option>
+                  <option value="revoked">Revoked</option>
+                  <option value="suspended">Suspended</option>
                 </select>
               </div>
-              
-              <div className="flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                  Phạm vi
-                </label>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Scope</label>
                 <select
                   value={scopeFilter}
-                  onChange={(e) => setScopeFilter(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  onChange={(e) => setScopeFilter(e.target.value as any)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="all">Tất cả</option>
+                  <option value="all">All Scopes</option>
                   <option value="admin">Admin</option>
                   <option value="manager">Manager</option>
                   <option value="editor">Editor</option>
@@ -211,99 +233,117 @@ function UserDelegationsPage() {
                 </select>
               </div>
             </div>
-          </div>
-
-          {/* Delegations List */}
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-              <p className="text-gray-500 dark:text-gray-400 mt-4">Đang tải...</p>
-            </div>
-          ) : filteredDelegations.length === 0 ? (
-            <div className="text-center py-12">
-              <UserCog className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-gray-500 dark:text-gray-400">
-                {statusFilter !== 'all' || scopeFilter !== 'all'
-                  ? 'Không tìm thấy ủy quyền nào phù hợp'
-                  : 'Chưa có ủy quyền nào'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredDelegations.map((delegation) => (
-                <div
-                  key={delegation._id}
-                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      {/* Delegator -> Delegate */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {delegation.delegator_name || delegation.delegator_email}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {delegation.delegator_email}
-                          </p>
-                        </div>
-                        
-                        <ArrowRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                        
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {delegation.delegate_name || delegation.delegate_email}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {delegation.delegate_email}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Details */}
-                      <div className="flex flex-wrap items-center gap-3 text-sm">
-                        {getStatusBadge(delegation.status)}
-                        {getScopeBadge(delegation.scope)}
-                        
-                        <span className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
-                          <Calendar className="w-3 h-3" />
-                          {formatDate(delegation.start_date)} - {formatDate(delegation.end_date)}
-                        </span>
-                        
-                        {delegation.tenant_name && (
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Tenant: {delegation.tenant_name}
-                          </span>
-                        )}
-                      </div>
-
-                      {delegation.reason && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                          Lý do: {delegation.reason}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 ml-4">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(delegation._id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           )}
-        </Card>
-      </PageLayout>
-    </Fragment>
+
+        {loading ? (
+           <div className="flex justify-center py-10">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+           </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delegation Chain</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Scope / Tenant</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredDelegations.map((d) => (
+                  <tr key={d._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900">{userMap[d.delegator_id] || 'Unknown'}</div>
+                          <ArrowRight className="w-4 h-4 text-gray-400" />
+                          <div className="font-medium text-gray-900">{userMap[d.delegate_id] || 'Unknown'}</div>
+                      </div>
+                      {d.reason && <p className="text-xs text-gray-500 mt-1 italic">"{d.reason}"</p>}
+                    </td>
+                    <td className="px-6 py-4">
+                        <Badge variant="outline" className={`mb-1 ${getScopeColor(d.scope)} border-0`}>
+                            {d.scope}
+                        </Badge>
+                        {d.tenant_id && (
+                             <div className="text-xs text-gray-500 flex items-center gap-1">
+                                 <Shield className="w-3 h-3" />
+                                 {tenantMap[d.tenant_id] || 'Unknown Tenant'}
+                             </div>
+                        )}
+                    </td>
+                    <td className="px-6 py-4">
+                        {getStatusBadge(d.status)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-gray-400"/>
+                          {formatDate(d.start_date)}
+                      </div>
+                      {d.end_date && (
+                         <div className="flex items-center gap-1 mt-1 text-xs">
+                             <span className="text-gray-400">to</span> {formatDate(d.end_date)}
+                         </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                       <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="w-4 h-4 text-gray-500" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => router.push(`/platform/user-delegations/edit/${d._id}`)}>
+                                Edit Details
+                            </DropdownMenuItem>
+                            
+                            {d.status === 'active' && (
+                                <>
+                                    <DropdownMenuItem onClick={() => handleSuspend(d._id)}>
+                                        <StopCircle className="w-4 h-4 mr-2 text-orange-600" />
+                                        Suspend
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleRevoke(d._id)}>
+                                        <XCircle className="w-4 h-4 mr-2 text-red-600" />
+                                        Revoke
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+
+                            {d.status === 'suspended' && (
+                                <DropdownMenuItem onClick={() => handleResume(d._id)}>
+                                    <RefreshCcw className="w-4 h-4 mr-2 text-green-600" />
+                                    Resume
+                                </DropdownMenuItem>
+                            )}
+                            
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDelete(d._id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Record
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+                {filteredDelegations.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                      No delegations found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </PageLayout>
   );
 }
-
-export { UserDelegationsPage };
-export default UserDelegationsPage;

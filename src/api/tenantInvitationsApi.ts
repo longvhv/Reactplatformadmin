@@ -299,6 +299,9 @@ export const tenantInvitationsApi = {
    * Create new invitation with validation
    */
   create: async (data: CreateInvitationRequest): Promise<TenantInvitation> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
     // Normalize email
     const normalizedEmail = normalizeEmail(data.email);
 
@@ -317,6 +320,9 @@ export const tenantInvitationsApi = {
       throw new Error(`Active invitation already exists for ${normalizedEmail}`);
     }
 
+    // Generate UUID
+    const _id = crypto.randomUUID();
+
     // Generate token if not provided
     const token = data.token || generateInvitationToken();
 
@@ -327,6 +333,7 @@ export const tenantInvitationsApi = {
 
     // Apply defaults
     const requestData = {
+      _id,
       ...data,
       email: normalizedEmail,
       role_ids: data.role_ids || [], // default
@@ -335,7 +342,17 @@ export const tenantInvitationsApi = {
       expires_at: expiryDate.toISOString(),
     };
 
-    return adapter.create(requestData);
+    const { data: created, error } = await supabase
+      .from('tenant_invitations')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create invitation: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**

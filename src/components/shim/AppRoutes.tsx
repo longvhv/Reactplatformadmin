@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useEffect } from 'react';
-import { usePathname, ParamsProvider, useRouter } from './next-navigation';
+import { usePathname, useRouter, ParamsProvider } from './next-navigation';
 import { ModuleRegistry, RouteDefinition } from '../../core/ModuleRegistry';
 import { registerAllModules } from '../../core/moduleRegistration';
 

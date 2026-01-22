@@ -5,8 +5,8 @@
  */
 
 import { BaseApiAdapter, BaseFilters, IApiAdapter, PaginatedResponse } from './base';
-import { getDataClient } from '@/lib/data-client';
-import { QueryOptions } from '@/lib/data-client/types';
+import { getDataClient } from '../../lib/data-client';
+import { QueryOptions } from '../../lib/data-client/types';
 
 export class DataClientAdapter<T, CreateDto, UpdateDto> extends BaseApiAdapter<T, CreateDto, UpdateDto> {
   private resource: string;

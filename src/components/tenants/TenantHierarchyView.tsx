@@ -1,16 +1,16 @@
 import { useMemo } from "react";
 import { ChevronRight, Building2, Users, Database } from "lucide-react";
 import { useNavigate } from "react-router";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
 import { 
   Tenant, 
   tenantStatusColors, 
   tenantTierColors 
-} from "@/data/tenants";
+} from "../../data/tenants";
 
 interface TenantHierarchyViewProps {
   tenants: Tenant[];

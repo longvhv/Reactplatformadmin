@@ -5,11 +5,11 @@
 'use client';
 import { Fragment, useState, useEffect } from 'react';
 import { Database, Download, Upload, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { backupApi } from '@/api/backupApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { backupApi } from '../../../../api/backupApi';
+import { showToast } from '../../../../lib/toast';
 
 function BackupRestorePage() {
   const [backups, setBackups] = useState<any[]>([]);

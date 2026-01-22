@@ -5,10 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, CheckCircle, XCircle, Eye, TestTube, ShieldCheck } from 'lucide-react';
-import { useWebhooks } from '@/hooks/useWebhooks';
-import { WebhookModal } from '@/components/webhooks/WebhookModal';
-import { WebhookDetailModal } from '@/components/webhooks/WebhookDetailModal';
-import { Webhook } from '@/api/webhooksApi';
+import { useWebhooks } from '../../hooks/useWebhooks';
+import { WebhookModal } from '../webhooks/WebhookModal';
+import { WebhookDetailModal } from '../webhooks/WebhookDetailModal';
+import { Webhook } from '../../api/webhooksApi';
 import { toast } from 'sonner';
 
 interface TenantWebhooksTabProps {

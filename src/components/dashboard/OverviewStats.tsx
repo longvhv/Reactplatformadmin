@@ -3,8 +3,8 @@
  * Displays key metrics in a modern card grid layout
  */
 
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { 
   Users, 
   Building2, 
@@ -14,7 +14,7 @@ import {
   TrendingDown,
   LucideIcon
 } from 'lucide-react';
-import type { DashboardStats } from '@/services/dashboardService';
+import type { DashboardStats } from '../../services/dashboardService';
 
 interface OverviewStatsProps {
   stats: DashboardStats[];

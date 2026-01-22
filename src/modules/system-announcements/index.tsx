@@ -10,11 +10,12 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Bell } from 'lucide-react';
 
-// Lazy-loaded pages
-const NotificationsPage = lazy(() => import('../../pages/NotificationsPage'));
-const NotificationDetailPage = lazy(() => import('../../pages/NotificationDetailPage'));
-const AddNotificationPage = lazy(() => import('../../pages/AddNotificationPage'));
-const EditNotificationPage = lazy(() => import('../../pages/EditNotificationPage'));
+// Lazy-loaded pages (App Router)
+const SystemAnnouncementsPage = lazy(() => import('../../app/(admin)/platform/system-announcements/page').then(m => ({ default: m.default })));
+const CreateSystemAnnouncementPage = lazy(() => import('../../app/(admin)/platform/system-announcements/create/page').then(m => ({ default: m.default })));
+const EditSystemAnnouncementPage = lazy(() => import('../../app/(admin)/platform/system-announcements/edit/[id]/page').then(m => ({ default: m.default })));
+// Detail page not implemented separately yet, reusing edit or list
+const SystemAnnouncementDetailPage = lazy(() => import('../../app/(admin)/platform/system-announcements/edit/[id]/page').then(m => ({ default: m.default })));
 
 export const SystemAnnouncementsModule: ModuleDefinition = {
   id: 'system-announcements',
@@ -30,7 +31,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       path: '/platform/system-announcements',
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <NotificationsPage />
+          <SystemAnnouncementsPage />
         </Suspense>
       ),
       title: 'systemAnnouncements.menu',
@@ -39,7 +40,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       path: '/platform/system-announcements/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <AddNotificationPage />
+          <CreateSystemAnnouncementPage />
         </Suspense>
       ),
       title: 'systemAnnouncements.add',
@@ -48,7 +49,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       path: '/platform/system-announcements/:id/edit',
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <EditNotificationPage />
+          <EditSystemAnnouncementPage />
         </Suspense>
       ),
       title: 'systemAnnouncements.edit',
@@ -57,7 +58,7 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
       path: '/platform/system-announcements/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
-          <NotificationDetailPage />
+          <SystemAnnouncementDetailPage />
         </Suspense>
       ),
       title: 'systemAnnouncements.detail',
@@ -74,3 +75,5 @@ export const SystemAnnouncementsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default SystemAnnouncementsModule;

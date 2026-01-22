@@ -15,9 +15,9 @@ import {
   X,
   Globe
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import type { User } from '@/data/users';
+import { Button } from '../../ui/button';
+import { Input } from '../../ui/input';
+import type { User } from '../../../data/users';
 
 interface UserOverviewProps {
   user: User;

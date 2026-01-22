@@ -14,7 +14,7 @@ const PermissionsPage = lazy(() =>
  * Permissions Module
  * Quản lý phân quyền hệ thống theo cấu trúc cây phân cấp
  * 
- * 🌐 Path: /admin/permissions
+ * 🌐 Path: /platform/permissions
  */
 export const PermissionsModule: ModuleDefinition = {
   id: "permissions",
@@ -26,7 +26,7 @@ export const PermissionsModule: ModuleDefinition = {
   order: 54, // NỀN TẢNG & CẤU HÌNH group (after location-types)
   routes: [
     {
-      path: "/admin/permissions",
+      path: "/platform/permissions",
       element: (
         <Suspense fallback={<LoadingFallback message="Đang tải permissions..." />}>
           <PermissionsPage />
@@ -40,7 +40,9 @@ export const PermissionsModule: ModuleDefinition = {
       id: "permissions",
       label: "navigation.permissions",
       icon: <Shield className="w-5 h-5" />,
-      path: "/admin/permissions",
+      path: "/platform/permissions",
     },
   ],
 };
+
+export default PermissionsModule;

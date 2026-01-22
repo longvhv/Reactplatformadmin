@@ -1,31 +1,31 @@
 /**
- * Product Detail Page  
- * ✅ MIGRATED: Using Next.js shim for navigation
+ * Product Detail Page - Shows detailed information about a product
+ * ✅ MIGRATED from /pages/commerce/products/[id].tsx
  */
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Package, ArrowLeft, MoreVertical, Edit, Trash2, Power, PowerOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { productsApi, Product } from '@/api/productsApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
+import React, { useState, useEffect, Fragment } from 'react';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
+import { Package, ArrowLeft, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { saasProductsApi, SaasProduct } from '../../../../../api/saasProductsApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../../components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../../components/ui/dialog';
 
 function ProductDetailPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
 
-  const [product, setProduct] = useState<Product | null>(null);
+  const [product, setProduct] = useState<SaasProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -36,7 +36,7 @@ function ProductDetailPage() {
   const loadProduct = async () => {
     try {
       setLoading(true);
-      const data = await productsApi.getById(id);
+      const data = await saasProductsApi.getById(id);
       setProduct(data);
     } catch (error: any) {
       showToast.error('Error', 'Failed to load product');
@@ -46,8 +46,9 @@ function ProductDetailPage() {
   };
 
   const handleDelete = async () => {
+    if (!product) return;
     try {
-      await productsApi.delete(id);
+      await saasProductsApi.delete(id, product.version);
       showToast.success('Success', 'Product deleted');
       router.push('/commerce/products');
     } catch (error: any) {
@@ -58,12 +59,29 @@ function ProductDetailPage() {
   const handleToggleActive = async () => {
     if (!product) return;
     try {
-      await productsApi.update(id, { is_active: !product.is_active });
-      showToast.success('Success', `Product ${product.is_active ? 'deactivated' : 'activated'}`);
+      const newStatus = product.status === 'active' ? 'inactive' : 'active';
+      await saasProductsApi.update(id, { 
+        status: newStatus,
+        version: product.version
+      });
+      showToast.success('Success', `Product ${newStatus === 'inactive' ? 'deactivated' : 'activated'}`);
       loadProduct();
     } catch (error: any) {
       showToast.error('Error', error.message || 'Failed to toggle status');
     }
+  };
+
+  const formatPrice = (price: number, currency: string) => {
+    if (currency === 'VND') {
+      return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+      }).format(price);
+    }
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(price);
   };
 
   if (loading) {
@@ -112,7 +130,7 @@ function ProductDetailPage() {
                 Edit Product
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleToggleActive}>
-                {product.is_active ? (
+                {product.status === 'active' ? (
                   <>
                     <PowerOff className="w-4 h-4 mr-2" />
                     Deactivate
@@ -138,21 +156,21 @@ function ProductDetailPage() {
             <dl className="space-y-2">
               <div className="flex justify-between">
                 <dt className="text-gray-600">Product Code:</dt>
-                <dd className="font-mono text-sm">{product.product_code}</dd>
+                <dd className="font-mono text-sm">{product.code}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-600">Status:</dt>
                 <dd>
                   <span className={`px-2 py-1 rounded text-xs ${
-                    product.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    product.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {product.is_active ? 'Active' : 'Inactive'}
+                    {product.status === 'active' ? 'Active' : 'Inactive'}
                   </span>
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-600">Category:</dt>
-                <dd>{product.category || 'N/A'}</dd>
+                <dt className="text-gray-600">Category (Type):</dt>
+                <dd>{product.product_type_code || 'N/A'}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-600">Created:</dt>

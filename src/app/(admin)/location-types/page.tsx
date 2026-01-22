@@ -2,52 +2,44 @@
  * Location Types Page
  * Trang quản lý các loại địa điểm
  * ✅ CREATED: 2026-01-20
+ * ✅ UPDATED: 2026-01-20 - Integrated LocationTypeFormDialog and locationTypesApi
  */
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { MapPin, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { showToast } from '@/lib/toast';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { MapPin, Plus, Search, Loader2, AlertCircle, Edit, Trash2 } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
+import {
+  locationTypesApi,
+  LocationType,
+  CreateLocationTypeData,
+  UpdateLocationTypeData
+} from '../../../../api/locationTypesApi';
+import { LocationTypeFormDialog } from '../../../../components/locationTypes/LocationTypeFormDialog';
 
-interface LocationType {
-  _id: string;
-  code: string;
-  name: string;
-  description?: string;
-  is_active: boolean;
-  created_at?: string;
-}
+// Mock tenant ID for now - in a real app this would come from auth context
+const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
 function LocationTypesPage() {
-  const router = useRouter();
   const [locationTypes, setLocationTypes] = useState<LocationType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
-  const baseUrl = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0`;
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLocationType, setSelectedLocationType] = useState<LocationType | undefined>(undefined);
 
   const fetchLocationTypes = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/location-types`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch location types');
-      }
-
-      const result = await response.json();
-      setLocationTypes(result.data || []);
+      // In a real app, we would get the tenantId from the session/context
+      // For now, we'll fetch all or filter by the mock tenant
+      const data = await locationTypesApi.getAll({ tenant_id: MOCK_TENANT_ID });
+      setLocationTypes(data);
     } catch (error: any) {
       console.error('Error fetching location types:', error);
       showToast.error('Lỗi', 'Không thể tải danh sách location types');
@@ -66,13 +58,52 @@ function LocationTypesPage() {
     type.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleCreate = () => {
+    setSelectedLocationType(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (type: LocationType) => {
+    setSelectedLocationType(type);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn xóa loại địa điểm "${name}"?`)) return;
+
+    try {
+      await locationTypesApi.delete(id);
+      showToast.success('Thành công', 'Đã xóa loại địa điểm');
+      fetchLocationTypes();
+    } catch (error: any) {
+      console.error('Error deleting location type:', error);
+      showToast.error('Lỗi', error.message || 'Không thể xóa loại địa điểm');
+    }
+  };
+
+  const handleSubmit = async (data: CreateLocationTypeData | UpdateLocationTypeData, id?: string) => {
+    try {
+      if (id) {
+        await locationTypesApi.update(id, data as UpdateLocationTypeData);
+        showToast.success('Thành công', 'Đã cập nhật loại địa điểm');
+      } else {
+        await locationTypesApi.create(data as CreateLocationTypeData);
+        showToast.success('Thành công', 'Đã tạo loại địa điểm mới');
+      }
+      fetchLocationTypes();
+    } catch (error: any) {
+      console.error('Error saving location type:', error);
+      throw error; // Rethrow to be handled by the modal
+    }
+  };
+
   return (
     <PageLayout
       icon={MapPin}
       title="Location Types"
       description="Quản lý các loại địa điểm trong hệ thống"
       actions={
-        <Button onClick={() => router.push('/admin/location-types/create')} className="gap-2">
+        <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
           Thêm Location Type
         </Button>
@@ -110,7 +141,7 @@ function LocationTypesPage() {
                 : 'Bắt đầu bằng cách tạo location type đầu tiên'}
             </p>
             {!searchTerm && (
-              <Button onClick={() => router.push('/admin/location-types/create')}>
+              <Button onClick={handleCreate}>
                 <Plus className="w-4 h-4 mr-2" />
                 Tạo Location Type Đầu Tiên
               </Button>
@@ -124,24 +155,28 @@ function LocationTypesPage() {
                   <th className="text-left py-3 px-4 font-semibold">Code</th>
                   <th className="text-left py-3 px-4 font-semibold">Name</th>
                   <th className="text-left py-3 px-4 font-semibold">Description</th>
+                  <th className="text-left py-3 px-4 font-semibold">Extra Fields</th>
                   <th className="text-left py-3 px-4 font-semibold">Status</th>
+                  <th className="text-right py-3 px-4 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredLocationTypes.map((type) => (
                   <tr
                     key={type._id}
-                    className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
-                    onClick={() => router.push(`/admin/location-types/${type._id}`)}
+                    className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   >
                     <td className="py-3 px-4">
-                      <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                      <code className="text-sm bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">
                         {type.code}
                       </code>
                     </td>
                     <td className="py-3 px-4 font-medium">{type.name}</td>
                     <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                       {type.description || '-'}
+                    </td>
+                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                      {type.extra_fields?.length || 0} fields
                     </td>
                     <td className="py-3 px-4">
                       <span
@@ -154,6 +189,28 @@ function LocationTypesPage() {
                         {type.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEdit(type)}
+                          title="Edit"
+                        >
+                          <Edit className="w-4 h-4 text-gray-500 hover:text-indigo-600" />
+                        </Button>
+                        {!type.is_system && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(type._id, type.name)}
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -161,6 +218,14 @@ function LocationTypesPage() {
           </div>
         )}
       </Card>
+
+      <LocationTypeFormDialog
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSubmit}
+        editData={selectedLocationType}
+        tenantId={MOCK_TENANT_ID}
+      />
     </PageLayout>
   );
 }

@@ -7,8 +7,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, ExternalLink, Shield, AlertCircle, CheckCircle, XCircle, Star, Globe, Power, PowerOff } from 'lucide-react';
 import { AppRouteModal } from './AppRouteModal';
-import { BUTTON_VARIANTS, CARD_VARIANTS, TABLE_STYLES, cn } from '@/constants/ui';
-import { tenantAppRoutesApi, TenantAppRoute, RouteStatus, SSLStatus } from '@/api/tenantAppRoutesApi';
+import { BUTTON_VARIANTS, CARD_VARIANTS, TABLE_STYLES, cn } from '../../constants/ui';
+import { tenantAppRoutesApi, TenantAppRoute, RouteStatus, SSLStatus } from '../../api/tenantAppRoutesApi';
 import { toast } from 'sonner';
 
 interface TenantAppRoutesTabProps {

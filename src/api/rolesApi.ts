@@ -54,6 +54,7 @@ export interface UpdateRoleRequest {
   name?: string;
   description?: string;
   permission_codes?: string[];
+  version?: number; // Optimistic locking
   // ⚠️ type cannot be changed after creation (SYSTEM roles are protected)
 }
 

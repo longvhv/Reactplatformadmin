@@ -1,38 +1,69 @@
 /**
  * User Roles Module
- * Quản lý phân quyền người dùng
+ * Module definition for user role assignment management
  * 
- * 🌐 Path: /admin/user-roles
+ * 🌐 Path: /platform/user-roles
  */
 
-import { UserCog } from 'lucide-react';
-import type { ModuleDefinition } from '../../core/ModuleRegistry';
-import { lazy, Suspense } from 'react';
-import { LoadingFallback } from '../../components/LoadingFallback';
+import { ModuleDefinition } from "../../core/ModuleRegistry";
+import { lazy, Suspense } from "react";
+import { LoadingFallback } from "../../components/LoadingFallback";
+import { Users } from "lucide-react";
 
 // Lazy-loaded pages
-// ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
-const UserRolesPage = lazy(() => import('../../app/(admin)/admin/roles/page'));
+const UserRolesPage = lazy(() => import("../../app/(admin)/platform/user-roles/page").then(m => ({ default: m.default })));
+const CreateUserRolePage = lazy(() => import("../../app/(admin)/platform/user-roles/create/page").then(m => ({ default: m.default })));
+const EditUserRolePage = lazy(() => import("../../app/(admin)/platform/user-roles/edit/[id]/page").then(m => ({ default: m.default })));
 
 export const UserRolesModule: ModuleDefinition = {
-  id: 'user-roles',
-  name: 'Phân quyền',
-  description: 'Quản lý phân quyền người dùng',
-  icon: <UserCog className="w-4 h-4" />,
-  showInSidebar: false,
-  order: 60,
+  id: "user-roles",
+  name: "User Roles",
+  description: "Manage user role assignments and scopes",
+  version: "1.0.0",
+  enabled: true,
+  showInSidebar: true,
+  order: 60, // Security / Access Control group
+  icon: <Users className="w-4 h-4" />,
   
-  // Routes array (required)
   routes: [
     {
-      path: '/admin/user-roles',
+      path: "/platform/user-roles",
       element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải Phân quyền..." />}>
+        <Suspense fallback={<LoadingFallback />}>
           <UserRolesPage />
         </Suspense>
       ),
+      title: "User Roles",
+    },
+    {
+      path: "/platform/user-roles/create",
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <CreateUserRolePage />
+        </Suspense>
+      ),
+      title: "Assign Role",
+    },
+    {
+      path: "/platform/user-roles/edit/:id",
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <EditUserRolePage />
+        </Suspense>
+      ),
+      title: "Edit Role Assignment",
     },
   ],
   
-  enabled: true,
+  menuItems: [
+    {
+      id: "user-roles",
+      label: "User Roles",
+      icon: <Users className="w-5 h-5" />,
+      path: "/platform/user-roles",
+      order: 1,
+    },
+  ],
 };
+
+export default UserRolesModule;

@@ -241,22 +241,28 @@ class ServiceAccountsService {
         updateData.is_active = input.is_active;
       }
 
-      // Increment version
+      // Increment version and implement Optimistic Locking
       const current = await this.getById(id);
-      if (current) {
-        updateData.version = current.version + 1;
+      if (!current) {
+        throw new Error('Service account not found');
       }
+      updateData.version = current.version + 1;
 
       const { data, error } = await supabase
         .from(this.table)
         .update(updateData)
         .eq('_id', id)
+        .eq('version', current.version) // Optimistic locking
         .select()
         .single();
 
       if (error) {
         console.error('Error updating service account:', error);
         throw error;
+      }
+
+      if (!data) {
+        throw new Error('Concurrent modification detected. Please refresh and try again.');
       }
 
       return data;

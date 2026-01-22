@@ -11,16 +11,16 @@ import { ModuleDefinition } from '../../core/types';
 import { LoadingFallback } from '../../components/LoadingFallback';
 
 const SaasProductTypesPage = lazy(() => 
-  import('../../app/(admin)/platform/saas-product-types/page')
+  import('../../app/(admin)/platform/saas-product-types/page').then(m => ({ default: m.default }))
 );
 const AddSaasProductTypePage = lazy(() => 
-  import('../../app/(admin)/platform/saas-product-types/create/page')
+  import('../../app/(admin)/platform/saas-product-types/create/page').then(m => ({ default: m.default }))
 );
 const EditSaasProductTypePage = lazy(() => 
-  import('../../app/(admin)/platform/saas-product-types/edit/[id]/page')
+  import('../../app/(admin)/platform/saas-product-types/edit/[id]/page').then(m => ({ default: m.default }))
 );
 const SaasProductTypeDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/saas-product-types/[id]/page')
+  import('../../app/(admin)/platform/saas-product-types/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const SaasProductTypesModule: ModuleDefinition = {

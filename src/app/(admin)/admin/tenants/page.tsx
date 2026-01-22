@@ -8,24 +8,24 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { Plus, Search, LayoutGrid, Network, List, Building2, CheckCircle, Clock, Crown, Handshake, Users } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { useTenants } from '@/hooks/useTenants';
-import { useTenantTree } from '@/hooks/useTenantTree';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { TenantTreeView } from '@/components/tenants/TenantTreeView';
-import { TenantFilters } from '@/components/tenants/TenantFilters';
-import { TenantDetailView } from '@/components/tenants/TenantDetailView';
-import { TenantGrid } from '@/components/tenants/TenantGrid';
-import { TenantList } from '@/components/tenants/TenantList';
-import { isRootTenant } from '@/utils/tenant-utils';
-import { showToast } from '@/lib/toast';
-import type { TenantStatus, TenantTier, DataRegion } from '@/data/tenants';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { useTenants } from '../../../../hooks/useTenants';
+import { useTenantTree } from '../../../../hooks/useTenantTree';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { TenantTreeView } from '../../../../components/tenants/TenantTreeView';
+import { TenantFilters } from '../../../../components/tenants/TenantFilters';
+import { TenantDetailView } from '../../../../components/tenants/TenantDetailView';
+import { TenantGrid } from '../../../../components/tenants/TenantGrid';
+import { TenantList } from '../../../../components/tenants/TenantList';
+import { isRootTenant } from '../../../../utils/tenant-utils';
+import { showToast } from '../../../../lib/toast';
+import type { TenantStatus, TenantTier, DataRegion } from '../../../../data/tenants';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
 type ViewMode = 'grid' | 'tree' | 'list';
 

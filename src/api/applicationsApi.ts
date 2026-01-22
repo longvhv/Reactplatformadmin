@@ -4,6 +4,7 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
+import { getSupabaseClient } from '../lib/supabase';
 
 // ==================== TYPES ====================
 
@@ -62,13 +63,7 @@ export interface ApplicationFilters extends BaseFilters {
 
 // ==================== ADAPTER ====================
 
-const adapter = createAdapter<Application, CreateApplicationRequest, UpdateApplicationRequest>(
-  'applications',
-  '/applications',
-  {
-    supportsSoftDelete: true // ✅ Enable soft delete (deleted_at field)
-  }
-);
+// Removed adapter in favor of direct Supabase calls for strict schema compliance and versioning
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -108,35 +103,164 @@ export const applicationsApi = {
    * GET /applications
    */
   getAll: async (filters?: ApplicationFilters): Promise<Application[]> => {
-    return adapter.getAll(filters);
+    const supabase = getSupabaseClient();
+    let query = supabase
+      .from('applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // Filter out deleted by default
+    if (!filters?.include_deleted) {
+      query = query.is('deleted_at', null);
+    }
+
+    // Apply filters
+    if (filters?.is_active !== undefined) query = query.eq('is_active', filters.is_active);
+    
+    // Pagination
+    if (filters?.limit) query = query.limit(filters.limit);
+    if (filters?.offset) {
+      query = query.range(filters.offset, filters.offset + (filters.limit || 50) - 1);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch applications: ${error.message}`);
+    
+    return data as Application[];
   },
 
   /**
    * GET /applications/:id
    */
   getById: async (id: string): Promise<Application> => {
-    return adapter.getById(id);
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('_id', id)
+      .single();
+
+    if (error) throw new Error(`Failed to fetch application: ${error.message}`);
+    return data as Application;
   },
 
   /**
    * POST /applications
    */
   create: async (data: CreateApplicationRequest): Promise<Application> => {
-    return adapter.create(data);
+    const supabase = getSupabaseClient();
+    const _id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const requestData = {
+      _id,
+      ...data,
+      is_active: data.is_active ?? true,
+      created_at: now,
+      updated_at: now,
+      version: 1,
+      created_by: data.created_by || null,
+      updated_by: data.created_by || null, // Initial creator is also updater
+    };
+
+    const { data: created, error } = await supabase
+      .from('applications')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to create application: ${error.message}`);
+    return created as Application;
   },
 
   /**
    * PATCH /applications/:id
    */
   update: async (id: string, data: UpdateApplicationRequest): Promise<Application> => {
-    return adapter.update(id, data);
+    const supabase = getSupabaseClient();
+
+    // Determine version for optimistic locking
+    let currentVersion = data.version;
+
+    if (currentVersion === undefined) {
+      // If version not provided, fetch current (fallback)
+      const { data: current, error: fetchError } = await supabase
+        .from('applications')
+        .select('version')
+        .eq('_id', id)
+        .single();
+
+      if (fetchError || !current) {
+        throw new Error('Application not found or access denied');
+      }
+      currentVersion = current.version;
+    }
+
+    const nextVersion = currentVersion + 1;
+    const now = new Date().toISOString();
+
+    // Remove version from data to avoid sending it as a field to update
+    const { version, ...restData } = data;
+
+    const updateData = {
+      ...restData,
+      updated_at: now,
+      version: nextVersion,
+    };
+
+    const { data: updated, error } = await supabase
+      .from('applications')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', currentVersion) // Optimistic locking
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to update application: ${error.message}`);
+    if (!updated) throw new Error('Concurrent modification detected. Please refresh and try again.');
+
+    return updated as Application;
   },
 
   /**
    * DELETE /applications/:id
+   * Soft delete
    */
-  delete: async (id: string): Promise<void> => {
-    return adapter.delete(id);
+  delete: async (id: string, deletedBy?: string, version?: number): Promise<void> => {
+    const supabase = getSupabaseClient();
+
+    let currentVersion = version;
+
+    if (currentVersion === undefined) {
+      // Get current version if not provided
+      const { data: current, error: fetchError } = await supabase
+        .from('applications')
+        .select('version')
+        .eq('_id', id)
+        .single();
+
+      if (fetchError || !current) {
+         // Already deleted or not found
+         return; 
+      }
+      currentVersion = current.version;
+    }
+
+    const nextVersion = currentVersion + 1;
+
+    const { error } = await supabase
+      .from('applications')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deletedBy || null,
+        is_active: false, // Deactivate on delete
+        updated_at: new Date().toISOString(),
+        version: nextVersion,
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion);
+
+    if (error) throw new Error(`Failed to delete application: ${error.message}`);
   },
 
   // ✅ IMPROVEMENT 2: Soft Delete Operations
@@ -147,9 +271,7 @@ export const applicationsApi = {
    * @param deletedBy User ID who deletes
    */
   softDelete: async (id: string, deletedBy?: string): Promise<void> => {
-    // The adapter already supports soft delete via delete()
-    // But we can make it explicit with metadata
-    return adapter.delete(id);
+    return applicationsApi.delete(id, deletedBy);
   },
 
   /**
@@ -157,9 +279,9 @@ export const applicationsApi = {
    * @param id Application ID
    */
   hardDelete: async (id: string): Promise<void> => {
-    // This would bypass soft delete and permanently remove
-    // Implementation depends on backend support
-    throw new Error('Hard delete not implemented - contact backend team');
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.from('applications').delete().eq('_id', id);
+    if (error) throw new Error(`Failed to hard delete application: ${error.message}`);
   },
 
   /**
@@ -167,29 +289,49 @@ export const applicationsApi = {
    * @param id Application ID
    */
   restore: async (id: string): Promise<Application> => {
-    // Get the deleted application
-    const app = await adapter.getById(id);
+    const supabase = getSupabaseClient();
     
-    // Update to clear deleted_at and deleted_by
-    return adapter.update(id, {
-      version: app.version,
-      // Clear soft delete fields (backend should handle this)
-    } as UpdateApplicationRequest);
+    // Get current version (even if deleted)
+    const { data: current, error: fetchError } = await supabase
+      .from('applications')
+      .select('version')
+      .eq('_id', id)
+      .single();
+
+    if (fetchError || !current) throw new Error('Application not found');
+
+    const nextVersion = current.version + 1;
+
+    const { data: restored, error } = await supabase
+      .from('applications')
+      .update({
+        deleted_at: null,
+        deleted_by: null,
+        is_active: true, // Reactivate on restore
+        updated_at: new Date().toISOString(),
+        version: nextVersion
+      })
+      .eq('_id', id)
+      .eq('version', current.version)
+      .select()
+      .single();
+      
+    if (error) throw new Error(`Failed to restore application: ${error.message}`);
+    return restored as Application;
   },
 
   /**
    * Get only deleted applications
    */
   getDeleted: async (): Promise<Application[]> => {
-    const all = await adapter.getAll({ include_deleted: true });
-    return all.filter(app => app.deleted_at !== null);
+    return applicationsApi.getAll({ include_deleted: true }).then(apps => apps.filter(app => app.deleted_at !== null));
   },
 
   /**
    * Get only active (non-deleted) applications
    */
   getActive: async (): Promise<Application[]> => {
-    return adapter.getAll({ is_active: true, include_deleted: false });
+    return applicationsApi.getAll({ is_active: true, include_deleted: false });
   },
 
   // ✅ IMPROVEMENT 3: Version Conflict Handling
@@ -211,10 +353,10 @@ export const applicationsApi = {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         // Get latest version
-        const current = await adapter.getById(id);
+        const current = await applicationsApi.getById(id);
         
         // Attempt update with current version
-        return await adapter.update(id, {
+        return await applicationsApi.update(id, {
           ...data,
           version: current.version,
         } as UpdateApplicationRequest);
@@ -225,7 +367,7 @@ export const applicationsApi = {
         const isVersionConflict = 
           error.message?.includes('version') ||
           error.message?.includes('conflict') ||
-          error.status === 409;
+          error.message?.includes('Concurrent modification');
         
         if (!isVersionConflict || attempt === maxRetries - 1) {
           throw error;
@@ -246,7 +388,7 @@ export const applicationsApi = {
    */
   hasVersionConflict: async (id: string, expectedVersion: number): Promise<boolean> => {
     try {
-      const current = await adapter.getById(id);
+      const current = await applicationsApi.getById(id);
       return current.version !== expectedVersion;
     } catch {
       return true; // Assume conflict if can't fetch
@@ -258,7 +400,7 @@ export const applicationsApi = {
    * @param id Application ID
    */
   getLatestVersion: async (id: string): Promise<number> => {
-    const app = await adapter.getById(id);
+    const app = await applicationsApi.getById(id);
     return app.version;
   },
 
@@ -267,7 +409,8 @@ export const applicationsApi = {
    * TODO (Golang): Implement capabilities endpoint
    */
   getCapabilities: async (id: string): Promise<any[]> => {
-    throw new Error('Not implemented - migrate to Golang');
+    console.warn('getCapabilities: Not implemented - migrate to Golang');
+    return [];
   },
 
   /**
@@ -275,7 +418,8 @@ export const applicationsApi = {
    * TODO (Golang): Implement stats endpoint
    */
   getStats: async (id: string): Promise<any> => {
-    throw new Error('Not implemented - migrate to Golang');
+    console.warn('getStats: Not implemented - migrate to Golang');
+    return {};
   },
 };
 

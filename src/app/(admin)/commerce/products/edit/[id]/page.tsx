@@ -1,34 +1,78 @@
 /**
- * Edit Product Page
- * ✅ MIGRATED: Using Next.js shim for navigation
+ * Product Edit Page
+ * ✅ MIGRATED from /pages/commerce/products/edit/[id].tsx
  */
-
 'use client';
 
-import React from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { Package } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { productsApi, UpdateProductRequest } from '@/api/productsApi';
-import { EnhancedProductForm } from '@/components/products/EnhancedProductForm';
-import { showToast } from '@/lib/toast';
-import { useProduct } from '@/hooks/useProduct';
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
+import { Package, Loader2 } from 'lucide-react';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { EnhancedProductForm } from '../../../../../../components/products/EnhancedProductForm';
+import { saasProductsApi, SaasProduct, UpdateSaasProductRequest } from '../../../../../../api/saasProductsApi';
+import { showToast } from '../../../../../../lib/toast';
+import { useAuth } from '../../../../../../hooks/useAuth';
+import { Button } from '../../../../../../components/ui/button';
 
 function EditProductPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
+  const { user } = useAuth();
   
-  const { product, loading } = useProduct(id);
+  const [product, setProduct] = useState<SaasProduct | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      loadProduct();
+    }
+  }, [id]);
+
+  const loadProduct = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await saasProductsApi.getById(id);
+      setProduct(data);
+    } catch (err: any) {
+      console.error('Load product error:', err);
+      setError(err.message || 'Không thể tải thông tin sản phẩm');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (data: any) => {
+    if (!product) return;
+    
     try {
-      await productsApi.update(id, data as UpdateProductRequest);
+      setSubmitting(true);
+      // Ensure we pass the version for optimistic locking
+      const updateData: UpdateSaasProductRequest = {
+        ...data,
+        version: product.version
+      };
+      
+      await saasProductsApi.update(product._id, updateData);
       showToast.success('Thành công', 'Đã cập nhật sản phẩm');
       router.push('/commerce/products');
-    } catch (error: any) {
-      showToast.error('Lỗi', 'Không thể cập nhật: ' + error.message);
+    } catch (err: any) {
+      console.error('Update product error:', err);
+      showToast.error('Lỗi', err.message || 'Không thể cập nhật sản phẩm');
+      // If concurrent modification, reload product
+      if (err.message?.includes('Concurrent modification')) {
+        loadProduct();
+      }
+    } finally {
+      setSubmitting(false);
     }
+  };
+
+  const handleCancel = () => {
+    router.push('/commerce/products');
   };
 
   if (loading) {
@@ -39,24 +83,42 @@ function EditProductPage() {
     );
   }
 
+  if (error || !product) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Không tìm thấy sản phẩm</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+          {error || 'Sản phẩm bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.'}
+        </p>
+        <Button onClick={handleCancel}>
+          Quay lại danh sách
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <FormPageLayout
-      mode="edit"
-      title="Chỉnh sửa sản phẩm"
-      description="Cập nhật thông tin sản phẩm"
+    <PageLayout
       icon={Package}
-      backPath="/commerce/products"
-      backLabel="Quay lại danh sách"
+      title={`Chỉnh sửa: ${product.name}`}
+      description={`Cập nhật thông tin cho sản phẩm ${product.code}`}
+      backButton={{
+        label: 'Quay lại danh sách',
+        onClick: handleCancel,
+      }}
     >
-      <EnhancedProductForm
-        initialData={product}
-        tenantId={product?.tenant_id}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push('/commerce/products')}
-      />
-    </FormPageLayout>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border shadow-sm">
+        <EnhancedProductForm
+          product={product}
+          tenantId={product.tenant_id}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          loading={submitting}
+        />
+      </div>
+    </PageLayout>
   );
 }
 
-export { EditProductPage };
 export default EditProductPage;

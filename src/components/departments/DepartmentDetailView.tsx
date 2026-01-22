@@ -2,10 +2,10 @@
  * DepartmentDetailView Component
  * Detailed view of a department with tabs (Overview, Members, Audit)
  * 
- * ✅ CREATED 2026-01-15: Department detail with tabs
+ * ✅ UPDATED 2026-01-21: Supports EnrichedDepartment and joined manager data
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Building2,
   Users,
@@ -17,19 +17,19 @@ import {
   ArchiveRestore,
   FolderTree,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Department } from '@/api/departmentsApi';
-import { TenantMember } from '@/api/tenantMembersApi';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { EnrichedDepartment, Department } from '../../api/departmentsApi';
+import { TenantMember } from '../../api/tenantMembersApi';
 import { DepartmentMembersTab } from './DepartmentMembersTab';
-import { AuditTrail } from '@/components/common/AuditTrail';
+import { AuditTrail } from '../common/AuditTrail';
 import { ManagerAssignmentDialog } from './ManagerAssignmentDialog';
 
 type TabType = 'overview' | 'members' | 'audit';
 
 export interface DepartmentDetailViewProps {
-  department: Department;
+  department: Department | EnrichedDepartment;
   members?: TenantMember[];
   allMembers?: TenantMember[];
   currentManager?: TenantMember | null;
@@ -63,6 +63,11 @@ export function DepartmentDetailView({
 }: DepartmentDetailViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showManagerDialog, setShowManagerDialog] = useState(false);
+
+  // Helper to check if department is enriched
+  const isEnriched = (dept: any): dept is EnrichedDepartment => {
+    return dept.manager !== undefined;
+  };
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -244,7 +249,7 @@ export function DepartmentDetailView({
 // ==================== OVERVIEW TAB ====================
 
 interface OverviewTabProps {
-  department: Department;
+  department: Department | EnrichedDepartment;
   currentManager?: TenantMember | null;
   onAssignManager?: () => void;
 }
@@ -254,6 +259,17 @@ function OverviewTab({
   currentManager,
   onAssignManager,
 }: OverviewTabProps) {
+  // Use enriched data if available, fallback to currentManager prop
+  const managerName = (department as EnrichedDepartment).manager?.user?.full_name 
+    || currentManager?.user_name || (currentManager as any)?.user?.full_name || 'N/A';
+  
+  const managerEmail = (department as EnrichedDepartment).manager?.user?.email
+    || (currentManager as any)?.email || (currentManager as any)?.user?.email;
+
+  const managerInitial = (managerName || managerEmail || '?')[0].toUpperCase();
+
+  const hasManager = !!department.manager_id;
+
   return (
     <div className="grid gap-6">
       {/* Basic Info */}
@@ -306,27 +322,22 @@ function OverviewTab({
           {onAssignManager && (
             <Button variant="outline" size="sm" onClick={onAssignManager}>
               <UserCog className="w-4 h-4 mr-2" />
-              {currentManager ? 'Thay đổi' : 'Chỉ định'}
+              {hasManager ? 'Thay đổi' : 'Chỉ định'}
             </Button>
           )}
         </div>
-        {currentManager ? (
+        {hasManager ? (
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-lg">
-              {(currentManager.full_name || currentManager.email || '?')[0].toUpperCase()}
+              {managerInitial}
             </div>
             <div>
               <p className="font-semibold text-gray-900 dark:text-white">
-                {currentManager.full_name || 'N/A'}
+                {managerName}
               </p>
-              {currentManager.email && (
+              {managerEmail && (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {currentManager.email}
-                </p>
-              )}
-              {currentManager.position && (
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  {currentManager.position}
+                  {managerEmail}
                 </p>
               )}
             </div>

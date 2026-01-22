@@ -5,10 +5,10 @@
  */
 
 import { Settings, Users, Database, Shield, Key, Palette, Code } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { useLanguage } from '../../../providers/LanguageProvider';
+import { Input } from '../../ui/input';
+import { Label } from '../../ui/label';
+import { Switch } from '../../ui/switch';
 
 interface SettingsTabProps {
   formData: any;

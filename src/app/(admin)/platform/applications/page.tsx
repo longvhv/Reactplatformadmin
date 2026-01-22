@@ -9,13 +9,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { useApplications } from '@/hooks/useApplications';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { useApplications } from '../../../../../hooks/useApplications';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
 import { 
   Server, 
   Plus, 
@@ -34,10 +34,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+} from '../../../../../components/ui/dropdown-menu';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
 
 function ApplicationsPage() {
   const { t } = useLanguage();
@@ -71,14 +71,14 @@ function ApplicationsPage() {
   };
 
   // Handle delete
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string, version: number) => {
     setConfirmDialog({
       open: true,
       title: 'Xóa ứng dụng',
       description: `Bạn có chắc chắn muốn xóa ứng dụng "${name}"?`,
       onConfirm: async () => {
         try {
-          await deleteApplication(id);
+          await deleteApplication(id, undefined, version);
           showToast.success('Thành công', 'Đã xóa ứng dụng');
         } catch (err) {
           showToast.error('Lỗi', 'Không thể xóa ứng dụng');
@@ -251,7 +251,7 @@ function ApplicationsPage() {
                               )}
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(app._id, app.name)}
+                              onClick={() => handleDelete(app._id, app.name, app.version)}
                               className="text-red-600"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />

@@ -6,8 +6,8 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useLanguage } from "../../providers/LanguageProvider";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useAuthContext } from "@/providers/AuthProvider";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { useAuthContext } from "../../providers/AuthProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 
 interface UserProfileDropdownProps {

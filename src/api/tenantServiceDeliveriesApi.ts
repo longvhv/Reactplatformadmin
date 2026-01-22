@@ -318,14 +318,21 @@ export const tenantServiceDeliveriesApi = {
    * Create with validation and defaults
    */
   create: async (data: CreateServiceDeliveryRequest): Promise<TenantServiceDelivery> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
     // Validate
     const validation = tenantServiceDeliveriesApi.validate(data);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
+    // Generate UUID
+    const _id = crypto.randomUUID();
+
     // Apply defaults
     const requestData = {
+      _id,
       ...data,
       delivered_units: data.delivered_units !== undefined ? data.delivered_units : 0, // default
       unit_price: data.unit_price !== undefined ? data.unit_price : 0, // default
@@ -335,20 +342,67 @@ export const tenantServiceDeliveriesApi = {
       version: data.version || 1, // default
     };
 
-    return adapter.create(requestData);
+    const { data: created, error } = await supabase
+      .from('tenant_service_deliveries')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create service delivery: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**
    * PUT /tenant-service-deliveries/:id
+   * Update with Optimistic Locking
    */
   update: async (id: string, data: UpdateServiceDeliveryRequest): Promise<TenantServiceDelivery> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
     // Validate
     const validation = tenantServiceDeliveriesApi.validate(data);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    return adapter.update(id, data);
+    // Get current version for optimistic locking
+    const { data: current, error: fetchError } = await supabase
+      .from('tenant_service_deliveries')
+      .select('version')
+      .eq('_id', id)
+      .single();
+
+    if (fetchError || !current) {
+      throw new Error(`Service delivery not found: ${fetchError?.message || 'Unknown error'}`);
+    }
+
+    const updateData = {
+      ...data,
+      updated_at: new Date().toISOString(),
+      version: current.version + 1,
+    };
+
+    const { data: updated, error } = await supabase
+      .from('tenant_service_deliveries')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', current.version)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update service delivery: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**

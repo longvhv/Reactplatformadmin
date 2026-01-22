@@ -1,5 +1,5 @@
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { Button } from '../ui/button';
 import { Download, Trash2 } from 'lucide-react';
 
 interface UserBulkActionsProps {

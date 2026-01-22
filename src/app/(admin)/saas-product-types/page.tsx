@@ -5,15 +5,15 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Cloud, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { showToast } from '@/lib/toast';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Layers, Plus, Search } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
+import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
 
 interface SaasProductType {
   _id: string;
@@ -82,7 +82,7 @@ function SaasProductTypesPage() {
 
   return (
     <PageLayout
-      icon={Cloud}
+      icon={Layers}
       title="SaaS Product Types"
       description="Quản lý các loại sản phẩm SaaS và dịch vụ đám mây"
       actions={

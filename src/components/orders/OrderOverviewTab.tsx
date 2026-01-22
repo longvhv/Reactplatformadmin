@@ -4,9 +4,9 @@
  */
 
 import React from 'react';
-import { Link } from 'react-router';
+import { Link } from '../shim/next-navigation';
 import { Building2, Package, CreditCard, Calendar, DollarSign, ExternalLink } from 'lucide-react';
-import { OrderWithDetails, formatCurrency, formatDate } from '@/api/ordersApi';
+import { OrderWithDetails, formatCurrency, formatDate } from '../../api/ordersApi';
 
 interface OrderOverviewTabProps {
   order: OrderWithDetails;

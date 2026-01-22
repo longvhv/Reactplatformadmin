@@ -3,13 +3,14 @@
  * Chi tiết người dùng với sidebar navigation - Full featured
  * ✅ MIGRATED: Using Next.js shim for navigation with params
  * ✅ Fixed confirm() → ConfirmDialog, toast → showToast, DropdownMenu
+ * ✅ Changed from tabs to sidebar navigation (like TenantDetailPage)
  * ✅ 100% QUALITY: Professional UI with proper dark mode support
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
 import {
   User,
   Mail,
@@ -35,30 +36,29 @@ import {
   PowerOff,
   UserCheck,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { usersApi } from '@/api/usersApi';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { Card } from '../../../../../components/ui/card';
+import { Button } from '../../../../../components/ui/button';
+import { Badge } from '../../../../../components/ui/badge';
+import { usersApi } from '../../../../../api/usersApi';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../../components/ui/dropdown-menu';
 
 // Import tab components
-import { UserStatsTab } from '@/components/users/UserStatsTab';
-import { UserActivityTab } from '@/components/users/UserActivityTab';
-import { UserTenantsTab } from '@/components/users/UserTenantsTab';
-import { UserSessionsTab } from '@/components/users/UserSessionsTab';
-import { UserDevicesTab } from '@/components/users/UserDevicesTab';
-import { UserSecurityTab } from '@/components/users/UserSecurityTab';
-import { UserOverviewTab } from '@/components/users/UserOverviewTab';
-import { UserConsentsTab } from '@/components/users/UserConsentsTab';
+import { UserStatsTab } from '../../../../../components/users/UserStatsTab';
+import { UserActivityTab } from '../../../../../components/users/UserActivityTab';
+import { UserTenantsTab } from '../../../../../components/users/UserTenantsTab';
+import { UserSessionsTab } from '../../../../../components/users/UserSessionsTab';
+import { UserDevicesTab } from '../../../../../components/users/UserDevicesTab';
+import { UserSecurityTab } from '../../../../../components/users/UserSecurityTab';
+import { UserOverviewTab } from '../../../../../components/users/UserOverviewTab';
+import { UserConsentsTab } from '../../../../../components/users/UserConsentsTab';
 
 interface UserDetail {
   _id: string;
@@ -172,6 +172,53 @@ function UserDetailPage() {
     return colors[status as keyof typeof colors] || colors.INACTIVE;
   };
 
+  // Grouped sidebar items structure
+  const sidebarGroups = [
+    {
+      id: 'general',
+      label: 'TỔNG QUAN',
+      items: [
+        { id: 'overview', label: 'Tổng quan', icon: User, badge: null },
+        { id: 'stats', label: 'Thống kê', icon: BarChart3, badge: null },
+        { id: 'activity', label: 'Hoạt động', icon: History, badge: null },
+      ]
+    },
+    {
+      id: 'access',
+      label: 'BẢO MẬT & TRUY CẬP',
+      items: [
+        { id: 'tenants', label: 'Tenants', icon: Users, badge: null },
+        { id: 'sessions', label: 'Sessions', icon: Activity, badge: null },
+        { id: 'devices', label: 'Devices', icon: Smartphone, badge: null },
+        { id: 'security', label: 'Security', icon: Shield, badge: null },
+        { id: 'consents', label: 'Consents', icon: UserCheck, badge: null },
+      ]
+    },
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <UserOverviewTab user={user!} />;
+      case 'stats':
+        return <UserStatsTab userId={user!._id} />;
+      case 'tenants':
+        return <UserTenantsTab userId={user!._id} />;
+      case 'sessions':
+        return <UserSessionsTab userId={user!._id} />;
+      case 'devices':
+        return <UserDevicesTab userId={user!._id} />;
+      case 'security':
+        return <UserSecurityTab userId={user!._id} />;
+      case 'activity':
+        return <UserActivityTab userId={user!._id} />;
+      case 'consents':
+        return <UserConsentsTab userId={user!._id} />;
+      default:
+        return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -202,7 +249,7 @@ function UserDetailPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="max-w-[1600px] mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button
@@ -318,76 +365,70 @@ function UserDetailPage() {
           </div>
         </div>
 
-        {/* Tabs Content */}
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabType)}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="overview">
-                <User className="w-4 h-4 mr-2" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger value="stats">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Stats
-              </TabsTrigger>
-              <TabsTrigger value="tenants">
-                <Users className="w-4 h-4 mr-2" />
-                Tenants
-              </TabsTrigger>
-              <TabsTrigger value="sessions">
-                <Activity className="w-4 h-4 mr-2" />
-                Sessions
-              </TabsTrigger>
-              <TabsTrigger value="devices">
-                <Smartphone className="w-4 h-4 mr-2" />
-                Devices
-              </TabsTrigger>
-              <TabsTrigger value="security">
-                <Shield className="w-4 h-4 mr-2" />
-                Security
-              </TabsTrigger>
-              <TabsTrigger value="activity">
-                <History className="w-4 h-4 mr-2" />
-                Activity
-              </TabsTrigger>
-              <TabsTrigger value="consents">
-                <UserCheck className="w-4 h-4 mr-2" />
-                Consents
-              </TabsTrigger>
-            </TabsList>
+        {/* Main Content with Sidebar */}
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
+          <div className="flex gap-6">
+            {/* Sidebar Navigation */}
+            <div className="w-64 flex-shrink-0">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-24">
+                <div className="p-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                    Quản lý User
+                  </p>
+                </div>
+                <nav className="py-3 px-2">
+                  {sidebarGroups.map((group, groupIndex) => (
+                    <div key={group.id} className={groupIndex > 0 ? 'mt-5' : ''}>
+                      {/* Group header */}
+                      <div className="px-3 mb-1.5">
+                        <h3 className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                          {group.label}
+                        </h3>
+                      </div>
+                      
+                      {/* Group items */}
+                      <div className="space-y-0.5">
+                        {group.items.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = activeTab === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => setActiveTab(item.id as TabType)}
+                              className={`
+                                w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-all duration-150
+                                ${isActive 
+                                  ? 'bg-indigo-600 text-white' 
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }
+                              `}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+                                <span className="font-normal">{item.label}</span>
+                              </div>
+                              {item.badge && (
+                                <Badge variant="secondary" className="ml-auto">
+                                  {item.badge}
+                                </Badge>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+              </div>
+            </div>
 
-            <TabsContent value="overview">
-              <UserOverviewTab user={user} />
-            </TabsContent>
-
-            <TabsContent value="stats">
-              <UserStatsTab userId={user._id} />
-            </TabsContent>
-
-            <TabsContent value="tenants">
-              <UserTenantsTab userId={user._id} />
-            </TabsContent>
-
-            <TabsContent value="sessions">
-              <UserSessionsTab userId={user._id} />
-            </TabsContent>
-
-            <TabsContent value="devices">
-              <UserDevicesTab userId={user._id} />
-            </TabsContent>
-
-            <TabsContent value="security">
-              <UserSecurityTab userId={user._id} />
-            </TabsContent>
-
-            <TabsContent value="activity">
-              <UserActivityTab userId={user._id} />
-            </TabsContent>
-
-            <TabsContent value="consents">
-              <UserConsentsTab userId={user._id} />
-            </TabsContent>
-          </Tabs>
+            {/* Main Content Area */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden p-6">
+                {renderTabContent()}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Delete Confirmation Dialog */}

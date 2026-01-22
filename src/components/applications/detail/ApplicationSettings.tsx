@@ -5,8 +5,8 @@
 
 import { useState } from 'react';
 import { Settings as SettingsIcon, Power, PowerOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import type { Application } from '@/data/applications';
+import { Button } from '../../ui/button';
+import type { Application } from '../../../data/applications';
 
 interface ApplicationSettingsProps {
   application: Application;

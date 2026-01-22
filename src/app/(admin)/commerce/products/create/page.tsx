@@ -1,18 +1,17 @@
 /**
- * Add Product Page
- * ✅ MIGRATED: Using Next.js shim for navigation
- * ✅ Enhanced UI with EnhancedProductForm
+ * Product Create Page
+ * ✅ MIGRATED from /pages/commerce/products/create.tsx  
  */
 
 'use client';
 
-import React from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import React, { useState } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Package } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { productsApi, CreateProductRequest } from '@/api/productsApi';
-import { EnhancedProductForm } from '@/components/products/EnhancedProductForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { saasProductsApi, CreateSaasProductRequest } from '../../../../../api/saasProductsApi';
+import { EnhancedProductForm } from '../../../../../components/products/EnhancedProductForm';
+import { showToast } from '../../../../../lib/toast';
 
 const DEMO_TENANT_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -21,7 +20,7 @@ function AddProductPage() {
 
   const handleSubmit = async (data: any) => {
     try {
-      await productsApi.create(data as CreateProductRequest);
+      await saasProductsApi.create(data as CreateSaasProductRequest);
       showToast.success('Thành công', 'Đã tạo sản phẩm mới');
       router.push('/commerce/products');
     } catch (error: any) {

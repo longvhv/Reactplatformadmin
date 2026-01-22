@@ -3,15 +3,9 @@
  * Professional sidebar with hierarchical groups, similar to Stripe/Linear/GitHub design
  */
 
-import { useState, useEffect, useMemo } from 'react';
-import { Link, useLocation } from 'react-router';
-import {
-  ChevronLeft,
-  Settings,
-} from 'lucide-react';
 import { ModuleRegistry } from '../../core/ModuleRegistry';
-import { getCurrentTenant, getTenantName } from '@/lib/currentTenant';
-import type { Tenant } from '@/lib/currentTenant';
+import { getCurrentTenant, getTenantName } from '../../lib/currentTenant';
+import type { Tenant } from '../../lib/currentTenant';
 
 // Menu item type
 interface MenuItem {

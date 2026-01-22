@@ -10,7 +10,6 @@
  */
 
 import { ModuleRegistry } from './ModuleRegistry';
-import { lazy } from 'react';
 
 // ============================================
 // CRITICAL MODULES - Load immediately
@@ -24,54 +23,58 @@ import { AuthModule } from '../modules/auth/index';
 // ============================================
 
 // Create lazy loaders for module definitions
+// ⚠️ CRITICAL: These return MODULE DEFINITIONS (objects), NOT React components
 const lazyModuleLoaders = {
   // Identity & Access
-  tenants: () => import('../modules/tenant/index').then(m => m.TenantsModule),
-  users: () => import('../modules/user/index').then(m => m.UsersModule),
-  roles: () => import('../modules/roles/index').then(m => m.RolesModule),
-  permissions: () => import('../modules/permissions/index').then(m => m.PermissionsModule),
-  tenantMembers: () => import('../modules/tenant-members/index').then(m => m.TenantMembersModule),
-  userRoles: () => import('../modules/user-roles/index').then(m => m.UserRolesModule),
-  userDelegations: () => import('../modules/user-delegations/index').then(m => m.UserDelegationsModule),
+  tenants: () => import('../modules/tenant/index'),
+  users: () => import('../modules/users/index'),
+  roles: () => import('../modules/roles/index'),
+  permissions: () => import('../modules/permissions/index'),
+  tenantMembers: () => import('../modules/tenant-members/index'),
+  userRoles: () => import('../modules/user-roles/index'),
+  userDelegations: () => import('../modules/user-delegations/index'),
+  userSessions: () => import('../modules/user-sessions/index'),
+  userDevices: () => import('../modules/user-devices/index'),
   
   // Commerce
-  products: () => import('../modules/products/index').then(m => m.ProductsModule),
-  productTypes: () => import('../modules/product-types/index').then(m => m.ProductTypesModule),
-  saasProductTypes: () => import('../modules/saas-product-types/index').then(m => m.SaasProductTypesModule),
-  servicePackages: () => import('../modules/service-packages/index').then(m => m.ServicePackagesModule),
-  subscriptionOrders: () => import('../modules/subscription-orders/index').then(m => m.SubscriptionOrdersModule),
-  subscriptionInvoices: () => import('../modules/subscription-invoices/index').then(m => m.SubscriptionInvoicesModule),
-  tenantSubscriptions: () => import('../modules/tenant-subscriptions/index').then(m => m.TenantSubscriptionsModule),
-  digitalAssets: () => import('../modules/digital-assets/index').then(m => m.DigitalAssetsModule),
-  serviceDeliveries: () => import('../modules/service-deliveries/index').then(m => m.ServiceDeliveriesModule),
+  products: () => import('../modules/products/index'),
+  productTypes: () => import('../modules/product-types/index'),
+  saasProductTypes: () => import('../modules/saas-product-types/index'),
+  servicePackages: () => import('../modules/service-packages/index'),
+  subscriptionOrders: () => import('../modules/subscription-orders/index'),
+  subscriptionInvoices: () => import('../modules/subscription-invoices/index'),
+  tenantSubscriptions: () => import('../modules/tenant-subscriptions/index'),
+  digitalAssets: () => import('../modules/digital-assets/index'),
+  serviceDeliveries: () => import('../modules/service-deliveries/index'),
   
   // Platform
-  applications: () => import('../modules/applications/index').then(m => m.ApplicationsModule),
-  systemCategories: () => import('../modules/system-category/index').then(m => m.SystemCategoryModule),
-  locationTypes: () => import('../modules/location-types/index').then(m => m.LocationTypesModule),
-  locations: () => import('../modules/locations/index').then(m => m.LocationsModule),
-  rateLimits: () => import('../modules/rate-limits/index').then(m => m.RateLimitsModule),
-  reservedSlugs: () => import('../modules/reserved-slugs/module').then(m => m.ReservedSlugsModule),
-  systemAnnouncements: () => import('../modules/system-announcements/index').then(m => m.SystemAnnouncementsModule),
-  systemJobs: () => import('../modules/system-jobs/index').then(m => m.SystemJobsModule),
-  featureFlags: () => import('../modules/feature-flags/index').then(m => m.FeatureFlagsModule),
-  notificationTemplates: () => import('../modules/notification-templates/index').then(m => m.NotificationTemplatesModule),
-  legalDocuments: () => import('../modules/legal-documents/index').then(m => m.LegalDocumentsModule),
+  applications: () => import('../modules/applications/index'),
+  systemCategories: () => import('../modules/system-category/index'),
+  locationTypes: () => import('../modules/location-types/index'),
+  locations: () => import('../modules/locations/index'),
+  rateLimits: () => import('../modules/rate-limits/index'),
+  reservedSlugs: () => import('../modules/reserved-slugs/index'),
+  systemAnnouncements: () => import('../modules/system-announcements/index'),
+  systemJobs: () => import('../modules/system-jobs/index'),
+  featureFlags: () => import('../modules/feature-flags/index'),
+  notificationTemplates: () => import('../modules/notification-templates/index'),
+  legalDocuments: () => import('../modules/legal-documents/index'),
   
   // Integrations
-  webhooks: () => import('../modules/webhooks/index').then(m => m.WebhooksModule),
-  apiUsageLogs: () => import('../modules/api-usage-logs/index').then(m => m.ApiUsageLogsModule),
+  webhooks: () => import('../modules/webhooks/index'),
+  apiUsageLogs: () => import('../modules/api-usage-logs/index'),
   
   // Telemetry
-  userRegistrationTelemetry: () => import('../modules/user-registration-telemetry/index').then(m => m.UserRegistrationTelemetryModule),
-  trafficLogs: () => import('../modules/traffic-logs/index').then(m => m.TrafficLogsModule),
-  authLogs: () => import('../modules/auth-logs/index').then(m => m.AuthLogsModule),
-  auditLogs: () => import('../modules/audit-logs/index').then(m => m.AuditLogsModule),
+  userConsents: () => import('../modules/user-consents/index'),
+  userRegistrationTelemetry: () => import('../modules/user-registration-telemetry/index'),
+  trafficLogs: () => import('../modules/traffic-logs/index'),
+  authLogs: () => import('../modules/auth-logs/index'),
+  auditLogs: () => import('../modules/audit-logs/index'),
   
   // System
-  settings: () => import('../modules/settings/index').then(m => m.SettingsModule),
-  help: () => import('../modules/help/index').then(m => m.HelpModule),
-  devDocs: () => import('../modules/dev-docs/index').then(m => m.DevDocsModule),
+  settings: () => import('../modules/settings/index'),
+  help: () => import('../modules/help/index'),
+  devDocs: () => import('../modules/dev-docs/index'),
 };
 
 /**
@@ -127,11 +130,56 @@ export async function registerNonCriticalModules(): Promise<void> {
     const batchPromises = batch.map(async (key) => {
       try {
         const loader = lazyModuleLoaders[key as keyof typeof lazyModuleLoaders];
-        if (loader) {
-          const module = await loader();
-          registry.register(module);
-          loadedCount++;
+        if (!loader) {
+          console.warn(`No loader found for module: ${key}`);
+          return;
         }
+        
+        // ✅ FIX: Import module and extract the default or named export
+        const moduleImport = await loader();
+        
+        // Try multiple ways to extract the module
+        let module = moduleImport.default;
+        
+        // If default doesn't exist, try the module name with PascalCase + "Module" suffix
+        if (!module) {
+          const moduleName = key.charAt(0).toUpperCase() + key.slice(1).replace(/-([a-z])/g, (g) => g[1].toUpperCase()) + 'Module';
+          module = (moduleImport as any)[moduleName];
+        }
+        
+        // If still not found, try lowercase module name
+        if (!module) {
+          module = (moduleImport as any)[`${key}Module`];
+        }
+        
+        // If still not found, try the exact key
+        if (!module) {
+          module = (moduleImport as any)[key];
+        }
+        
+        // ✅ FIX: Validate that we got a valid module definition
+        if (!module) {
+          console.error(`Module ${key} not found in import:`, Object.keys(moduleImport));
+          return;
+        }
+        
+        if (typeof module !== 'object') {
+          console.error(`Module ${key} is not an object:`, typeof module);
+          return;
+        }
+        
+        if (!module.id) {
+          console.error(`Module ${key} does not have an 'id' property:`, module);
+          return;
+        }
+        
+        if (!Array.isArray(module.routes)) {
+          console.error(`Module ${key} does not have valid 'routes' array:`, module.routes);
+          return;
+        }
+        
+        registry.register(module);
+        loadedCount++;
       } catch (error) {
         console.error(`Failed to load module: ${key}`, error);
       }
@@ -159,7 +207,16 @@ export async function registerModuleOnDemand(moduleName: keyof typeof lazyModule
   }
   
   try {
-    const module = await loader();
+    // ✅ FIX: Import module and extract the default or named export
+    const moduleImport = await loader();
+    const module = moduleImport.default || moduleImport;
+    
+    // ✅ FIX: Validate that we got a module definition
+    if (!module || typeof module !== 'object' || !module.id || !Array.isArray(module.routes)) {
+      console.error(`Invalid module loaded for ${moduleName}:`, module);
+      return;
+    }
+    
     registry.register(module);
     console.log(`✅ Module ${moduleName} loaded on-demand`);
   } catch (error) {

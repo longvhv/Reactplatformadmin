@@ -8,9 +8,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Calendar, History, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 
 /**
  * Audit Data Interface

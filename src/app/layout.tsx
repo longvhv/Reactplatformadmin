@@ -2,8 +2,8 @@
  * Root Layout - Next.js 14 App Router
  */
 import type { Metadata } from 'next';
-import './globals.css';
-import { DataClientProvider } from '@/components/providers/DataClientProvider';
+import '../styles/globals.css';
+import { DataClientProvider } from '../components/providers/DataClientProvider';
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard',

@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Package } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { subscriptionApi } from '@/api/subscriptionApi';
-import { SubscriptionForm } from '@/components/subscriptions/SubscriptionForm';
-import { showToast } from '@/lib/toast';
+import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { CreditCard, Plus } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { tenantSubscriptionsApi as subscriptionApi } from '../../../../../../api/tenantSubscriptionsApi';
+import { SubscriptionForm } from '../../../../../../components/subscriptions/SubscriptionForm';
+import { showToast } from '../../../../../../lib/toast';
 
 function AddSubscriptionPage() {
   const router = useRouter();
@@ -31,7 +31,7 @@ function AddSubscriptionPage() {
   };
 
   return (
-    <FormPageLayout mode="add" title="Add Subscription" description="Create new subscription" icon={Package} backPath="/commerce/subscriptions" backLabel="Back">
+    <FormPageLayout mode="add" title="Add Subscription" description="Create new subscription" icon={CreditCard} backPath="/commerce/subscriptions" backLabel="Back">
       <SubscriptionForm onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/commerce/subscriptions')} />
     </FormPageLayout>
   );

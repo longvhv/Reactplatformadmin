@@ -16,7 +16,7 @@ import { SettingsModule } from '../modules/settings/index';
 import { AuthModule } from '../modules/auth/index';
 import { TenantsModule } from '../modules/tenant/index';
 import { SystemCategoryModule } from '../modules/system-category/index';
-import { UsersModule } from '../modules/user/index';
+import { UsersModule } from '../modules/users/index';
 import { UserRolesModule } from '../modules/user-roles/index';
 import { HelpModule } from '../modules/help/index';
 import { DevDocsModule } from '../modules/dev-docs/index';
@@ -32,7 +32,7 @@ import { DigitalAssetsModule } from '../modules/digital-assets/index';
 import { ServiceDeliveriesModule } from '../modules/service-deliveries/index';
 import { RateLimitsModule } from '../modules/rate-limits/index';
 import { WebhooksModule } from '../modules/webhooks/index';
-import { ReservedSlugsModule } from '../modules/reserved-slugs/module';
+import { ReservedSlugsModule } from '../modules/reserved-slugs/index';
 import { SystemAnnouncementsModule } from '../modules/system-announcements/index';
 import { SystemJobsModule } from '../modules/system-jobs/index';
 import { FeatureFlagsModule } from '../modules/feature-flags/index';
@@ -42,13 +42,16 @@ import { AuthLogsModule } from '../modules/auth-logs/index';
 import { AuditLogsModule } from '../modules/audit-logs/index';
 import { LegalDocumentsModule } from '../modules/legal-documents/index';
 import { UserDelegationsModule } from '../modules/user-delegations/index';
-import { LocationTypesModule } from '../modules/location-types/index';
-import { LocationsModule } from '../modules/locations/index';
 import { PermissionsModule } from '../modules/permissions/index';
 import { UserRegistrationTelemetryModule } from '../modules/user-registration-telemetry/index';
 import { TrafficLogsModule } from '../modules/traffic-logs/index';
 import { ApiUsageLogsModule } from '../modules/api-usage-logs/index';
 import { SaasProductTypesModule } from '../modules/saas-product-types/index';
+import { LocationTypesModule } from '../modules/location-types/index';
+import { LocationsModule } from '../modules/locations/index';
+import { UserConsentsModule } from '../modules/user-consents/index';
+import { UserDevicesModule } from '../modules/user-devices/index';
+import { UserSessionsModule } from '../modules/user-sessions/index';
 
 /**
  * Register all modules
@@ -96,8 +99,11 @@ export function registerAllModules(): void {
   registry.register(UserRegistrationTelemetryModule);
   registry.register(TrafficLogsModule);
   registry.register(ApiUsageLogsModule);
+  registry.register(UserConsentsModule);
+  registry.register(UserDevicesModule);
+  registry.register(UserSessionsModule);
   
-  console.log('✅ All 39 modules registered successfully');
+  console.log('✅ All 42 modules registered successfully');
 }
 
 // Auto-register on import

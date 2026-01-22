@@ -5,34 +5,21 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Shield, Plus, Search, Loader2, AlertCircle, Folder, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { PermissionTreeItem } from '@/components/permissions/PermissionTreeItem';
-import { PermissionFormDialog } from '@/components/permissions/PermissionFormDialog';
-import { showToast } from '@/lib/toast';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-
-interface Permission {
-  _id: string;
-  code: string;
-  name: string;
-  description?: string;
-  is_group: boolean;
-  parent_code?: string | null;
-  path: string;
-  app_code: string;
-  children?: Permission[];
-  version?: number;
-}
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Shield, Plus, Search, RefreshCw } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { PermissionTreeItem } from '../../../../components/permissions/PermissionTreeItem';
+import { PermissionFormDialog } from '../../../../components/permissions/PermissionFormDialog';
+import { showToast } from '../../../../lib/toast';
+import { permissionsApi, Permission, PermissionNode } from '../../../../api/permissionsApi';
 
 function PermissionsPage() {
   const router = useRouter();
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [permissions, setPermissions] = useState<PermissionNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [appCode, setAppCode] = useState('admin');
@@ -40,41 +27,15 @@ function PermissionsPage() {
   const [editingPermission, setEditingPermission] = useState<Permission | null>(null);
   const [parentCode, setParentCode] = useState<string | null>(null);
 
-  const baseUrl = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0`;
-
   // Fetch permissions tree
   const fetchPermissions = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/permissions/tree/${appCode}`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // Suppress error for table not found (permissions table hasn't been created yet)
-        if (response.status === 404 || errorData.error?.includes('not found') || errorData.error?.includes('PGRST')) {
-          console.log('[Permissions] Table not created yet, showing empty state');
-          setPermissions([]);
-          return;
-        }
-        
-        throw new Error(errorData.error || 'Failed to fetch permissions');
-      }
-
-      const result = await response.json();
-      setPermissions(result.data || []);
+      const data = await permissionsApi.getTree(appCode);
+      setPermissions(data);
     } catch (error: any) {
-      // Only log real errors, not "table doesn't exist" errors
-      if (!error.message?.includes('not found') && !error.message?.includes('PGRST')) {
-        console.error('Error fetching permissions:', error);
-        showToast.error('Lỗi', error.message || 'Không thể tải danh sách permissions');
-      }
-      // Set empty array so UI doesn't break
+      console.error('Error fetching permissions:', error);
+      showToast.error('Lỗi', error.message || 'Không thể tải danh sách permissions');
       setPermissions([]);
     } finally {
       setLoading(false);
@@ -86,7 +47,7 @@ function PermissionsPage() {
   }, [appCode]);
 
   // Get flat list of all permissions for parent selection
-  const getFlatPermissions = (perms: Permission[], result: Permission[] = []): Permission[] => {
+  const getFlatPermissions = (perms: PermissionNode[], result: PermissionNode[] = []): PermissionNode[] => {
     perms.forEach(p => {
       result.push(p);
       if (p.children) {
@@ -129,19 +90,7 @@ function PermissionsPage() {
     }
 
     try {
-      const response = await fetch(`${baseUrl}/permissions/${permission._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to delete permission');
-      }
-
+      await permissionsApi.delete(permission._id, undefined, permission.version);
       showToast.success('Thành công', 'Đã xóa permission');
       fetchPermissions();
     } catch (error: any) {
@@ -153,32 +102,23 @@ function PermissionsPage() {
   // Handle form submit
   const handleSubmit = async (data: Permission) => {
     try {
-      const isEdit = !!editingPermission;
-      const url = isEdit 
-        ? `${baseUrl}/permissions/${editingPermission._id}`
-        : `${baseUrl}/permissions`;
-      
-      const method = isEdit ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      if (editingPermission) {
+        await permissionsApi.update(editingPermission._id, {
           ...data,
           app_code: appCode,
           parent_code: parentCode,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to ${isEdit ? 'update' : 'create'} permission`);
+          version: editingPermission.version
+        });
+        showToast.success('Thành công', 'Đã cập nhật permission');
+      } else {
+        await permissionsApi.create({
+          ...data,
+          app_code: appCode,
+          parent_code: parentCode,
+        });
+        showToast.success('Thành công', 'Đã tạo permission mới');
       }
 
-      showToast.success('Thành công', isEdit ? 'Đã cập nhật permission' : 'Đã tạo permission mới');
       setShowDialog(false);
       fetchPermissions();
     } catch (error: any) {
@@ -190,14 +130,14 @@ function PermissionsPage() {
   };
 
   // Filter permissions by search term
-  const filterPermissions = (perms: Permission[]): Permission[] => {
+  const filterPermissions = (perms: PermissionNode[]): PermissionNode[] => {
     if (!searchTerm) return perms;
     
-    return perms.reduce((acc: Permission[], perm) => {
+    return perms.reduce((acc: PermissionNode[], perm) => {
       const matches = 
         perm.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         perm.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        perm.description?.toLowerCase().includes(searchTerm.toLowerCase());
+        (perm.description || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const filteredChildren = perm.children ? filterPermissions(perm.children) : [];
 

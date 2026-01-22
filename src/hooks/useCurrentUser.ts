@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 import {
   getCurrentUser,
   getUserProfile,
@@ -18,7 +18,7 @@ import {
   getUserAvatarUrl,
   CurrentUser,
   UserProfile,
-} from '@/lib/currentUser';
+} from '../lib/currentUser';
 import { AuthChangeEvent } from '@supabase/supabase-js';
 
 export interface UseCurrentUserReturn {

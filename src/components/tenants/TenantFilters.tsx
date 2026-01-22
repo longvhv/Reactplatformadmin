@@ -3,9 +3,9 @@
  * Filter controls for tenant list
  */
 
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { TenantStatus, TenantTier, DataRegion } from '@/data/tenants';
+import { Button } from '../ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import type { TenantStatus, TenantTier, DataRegion } from '../../data/tenants';
 import { useTranslation } from 'react-i18next';
 
 interface TenantFiltersProps {

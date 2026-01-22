@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
 import { Box } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { productTypesApi } from '@/api/productTypesApi';
-import { ProductTypeForm } from '@/components/product-types/ProductTypeForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { productTypesApi } from '../../../../../api/productTypesApi';
+import { ProductTypeForm } from '../../../../../components/product-types/ProductTypeForm';
+import { showToast } from '../../../../../lib/toast';
 
 function EditProductTypePage() {
   const params = useParams();

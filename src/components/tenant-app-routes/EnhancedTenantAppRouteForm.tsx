@@ -4,26 +4,26 @@
  * 
  * Compliant with tenant_app_routes schema:
  * - app_code: varchar(50) NOT NULL
- * - domain: varchar(255) (Conditional NOT NULL based on scope, but DB says NOT NULL)
- * - path_prefix: varchar(100) DEFAULT '/'
+ * - domain: varchar(255) NOT NULL (CHECK: ^[a-z0-9.-]+$)
+ * - path_prefix: varchar(100) DEFAULT '/' (CHECK: ^/[-a-z0-9/]*$)
  * - route_scope: 'SPECIFIC_DOMAIN' | 'ALL_MY_DOMAINS' | 'INHERITED'
  * - status, ssl_status, is_primary, is_custom_domain
  */
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
-import { Save, AlertTriangle, ArrowLeft, Globe, Shield, Activity, Link as LinkIcon } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TenantAppRoute, CreateRouteRequest, UpdateRouteRequest, RouteScope, RouteStatus, SSLStatus, tenantAppRoutesApi } from "@/api/tenantAppRoutesApi";
-import { applicationsApi, Application } from "@/api/applicationsApi";
-import { showToast } from "@/lib/toast";
+import { useRouter } from "../shim/next-navigation";
+import { Save, AlertTriangle, ArrowLeft, Globe, Shield, Activity, Link as LinkIcon, Info } from "lucide-react";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { TenantAppRoute, CreateRouteRequest, UpdateRouteRequest, RouteScope, RouteStatus, SSLStatus, tenantAppRoutesApi } from "../../api/tenantAppRoutesApi";
+import { applicationsApi, Application } from "../../api/applicationsApi";
+import { showToast } from "../../lib/toast";
 
 interface EnhancedTenantAppRouteFormProps {
   initialData?: Partial<TenantAppRoute>;
@@ -63,7 +63,7 @@ export function EnhancedTenantAppRouteForm({
   onCancel
 }: EnhancedTenantAppRouteFormProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("general");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [applications, setApplications] = useState<Application[]>([]);
@@ -102,7 +102,7 @@ export function EnhancedTenantAppRouteForm({
       setFormData({
         tenant_id: initialData.tenant_id || tenantId,
         app_code: initialData.app_code || "",
-        domain: initialData.domain || "", // Can be null in API, but form needs string
+        domain: initialData.domain || "", 
         path_prefix: initialData.path_prefix || "/",
         route_scope: initialData.route_scope || "SPECIFIC_DOMAIN",
         is_primary: initialData.is_primary || false,
@@ -112,6 +112,29 @@ export function EnhancedTenantAppRouteForm({
       });
     }
   }, [initialData, tenantId]);
+
+  const handleChange = (field: keyof CreateRouteRequest, value: any) => {
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+      
+      // Special logic for route_scope
+      if (field === "route_scope") {
+        if (value !== "SPECIFIC_DOMAIN") {
+          newData.domain = null; // Clear domain if not specific
+        }
+      }
+      
+      return newData;
+    });
+
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -126,29 +149,40 @@ export function EnhancedTenantAppRouteForm({
       if (!formData.domain || !formData.domain.trim()) {
         newErrors.domain = "Tên miền là bắt buộc cho loại 'Domain cụ thể'";
       } else {
+        // Strict DB regex: ^[a-z0-9.-]+$
         const domainRegex = /^[a-z0-9.-]+$/;
         if (!domainRegex.test(formData.domain)) {
-          newErrors.domain = "Tên miền chỉ chứa chữ thường, số, dấu chấm và gạch ngang";
+          newErrors.domain = "Tên miền chỉ chứa chữ thường, số, dấu chấm và gạch ngang (không dấu)";
         }
         if (formData.domain.length > 255) {
           newErrors.domain = "Tên miền quá dài (tối đa 255 ký tự)";
+        }
+        if (formData.domain.startsWith('.') || formData.domain.endsWith('.')) {
+          newErrors.domain = "Tên miền không được bắt đầu hoặc kết thúc bằng dấu chấm";
+        }
+        if (formData.domain.includes('..')) {
+          newErrors.domain = "Tên miền không được chứa hai dấu chấm liên tiếp";
         }
       }
     }
 
     // Validate Path Prefix
+    // Strict DB regex: ^/[-a-z0-9/]*$
     const pathRegex = /^\/[-a-z0-9/]*$/;
     if (!formData.path_prefix) {
-       // Should default to / but just in case
        newErrors.path_prefix = "Path prefix là bắt buộc (ít nhất là /)";
     } else if (!pathRegex.test(formData.path_prefix)) {
-      newErrors.path_prefix = "Path phải bắt đầu bằng / và chỉ chứa ký tự hợp lệ";
+      newErrors.path_prefix = "Path phải bắt đầu bằng / và chỉ chứa chữ thường, số, gạch ngang và /";
     }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length > 0) {
       showToast.error("Lỗi xác thực", "Vui lòng kiểm tra lại thông tin");
+      // Auto switch to tab with error
+      if (newErrors.app_code || newErrors.domain || newErrors.path_prefix) {
+        setActiveTab("general");
+      }
       return false;
     }
 
@@ -160,17 +194,11 @@ export function EnhancedTenantAppRouteForm({
     if (!validateForm()) return;
 
     try {
-      // Logic for domain nullability based on scope
       const submitData = { ...formData };
       
-      // If NOT specific domain, we should send null (or empty string if API handles it)
-      // The API types say `domain` is nullable.
-      // However, check constraint implies `domain` MUST be null if scope is NOT SPECIFIC_DOMAIN.
-      // But DB column says NOT NULL.
-      // We will send the value if it exists, or handle based on API expectation.
-      // Assuming API handles validation or DB has been fixed.
+      // Ensure specific domain logic for DB constraints
       if (submitData.route_scope !== "SPECIFIC_DOMAIN") {
-        submitData.domain = null; 
+        submitData.domain = null; // Explicitly set to null
       }
 
       await onSubmit(submitData);
@@ -180,14 +208,11 @@ export function EnhancedTenantAppRouteForm({
     }
   };
 
-  const handleChange = (field: keyof CreateRouteRequest, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      router.back();
     }
   };
 
@@ -221,7 +246,7 @@ export function EnhancedTenantAppRouteForm({
                   <Select 
                     value={formData.app_code} 
                     onValueChange={(value) => handleChange("app_code", value)}
-                    disabled={isEdit} // Usually cannot change app of an existing route easily without confusion
+                    disabled={isEdit} 
                   >
                     <SelectTrigger className={errors.app_code ? "border-destructive" : ""}>
                       <SelectValue placeholder={loadingApps ? "Đang tải..." : "Chọn ứng dụng"} />
@@ -257,25 +282,42 @@ export function EnhancedTenantAppRouteForm({
                 </div>
               </div>
 
-              {formData.route_scope === "SPECIFIC_DOMAIN" && (
-                <div className="space-y-2">
-                  <Label htmlFor="domain">
-                    Tên miền <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Globe className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="domain"
-                      value={formData.domain || ""}
-                      onChange={(e) => handleChange("domain", e.target.value.toLowerCase())}
-                      placeholder="vd: app.example.com"
-                      className={errors.domain ? "border-destructive" : ""}
-                    />
-                  </div>
-                  {errors.domain && <p className="text-sm text-destructive">{errors.domain}</p>}
+              <div className="space-y-2">
+                <Label htmlFor="domain">
+                  Tên miền {formData.route_scope === "SPECIFIC_DOMAIN" && <span className="text-destructive">*</span>}
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Globe className={`w-4 h-4 ${formData.route_scope === "SPECIFIC_DOMAIN" ? "text-muted-foreground" : "text-gray-300"}`} />
+                  <Input
+                    id="domain"
+                    value={formData.domain || ""}
+                    onChange={(e) => handleChange("domain", e.target.value.toLowerCase())}
+                    placeholder="vd: app.example.com"
+                    disabled={formData.route_scope !== "SPECIFIC_DOMAIN"}
+                    className={`${errors.domain ? "border-destructive" : ""} ${formData.route_scope !== "SPECIFIC_DOMAIN" ? "bg-gray-50 text-gray-400" : ""}`}
+                  />
+                </div>
+                {errors.domain && <p className="text-sm text-destructive">{errors.domain}</p>}
+                {formData.route_scope === "SPECIFIC_DOMAIN" && (
                   <p className="text-xs text-muted-foreground">
                     Chỉ hỗ trợ ký tự thường, số, dấu chấm và gạch ngang.
                   </p>
+                )}
+              </div>
+
+              {formData.route_scope !== "SPECIFIC_DOMAIN" && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-2">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm text-blue-800">
+                      {formData.route_scope === 'ALL_MY_DOMAINS' && (
+                        <p>Route này sẽ tự động áp dụng cho tất cả tên miền đã được xác thực của Tenant.</p>
+                      )}
+                      {formData.route_scope === 'INHERITED' && (
+                        <p>Route này sẽ được kế thừa từ cấu hình tên miền của hệ thống/cha.</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -294,11 +336,14 @@ export function EnhancedTenantAppRouteForm({
                   />
                 </div>
                 {errors.path_prefix && <p className="text-sm text-destructive">{errors.path_prefix}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Bắt đầu bằng / (vd: /app, /portal). Dùng / để trỏ về root.
+                </p>
               </div>
 
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
                 <div className="space-y-0.5">
-                  <Label htmlFor="is_custom_domain" className="text-base">Custom Domain</Label>
+                  <Label htmlFor="is_custom_domain" className="text-base cursor-pointer">Custom Domain</Label>
                   <p className="text-sm text-muted-foreground">
                     Đánh dấu nếu đây là tên miền riêng của khách hàng (Custom Domain)
                   </p>
@@ -312,9 +357,9 @@ export function EnhancedTenantAppRouteForm({
 
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
                 <div className="space-y-0.5">
-                  <Label htmlFor="is_primary" className="text-base">Route Chính (Primary)</Label>
+                  <Label htmlFor="is_primary" className="text-base cursor-pointer">Route Chính (Primary)</Label>
                   <p className="text-sm text-muted-foreground">
-                    Route mặc định khi truy cập ứng dụng. Mỗi tenant chỉ có 1 route chính.
+                    Route mặc định khi truy cập ứng dụng. Mỗi tenant nên chỉ có 1 route chính.
                   </p>
                 </div>
                 <Switch
@@ -424,16 +469,16 @@ export function EnhancedTenantAppRouteForm({
         </TabsContent>
       </Tabs>
 
-      <div className="flex items-center justify-end gap-4 pt-4 border-t">
+      <div className="flex items-center justify-end gap-4 pt-4 border-t sticky bottom-0 bg-white dark:bg-gray-900 z-10 p-4">
         <Button
           type="button"
           variant="outline"
-          onClick={onCancel}
+          onClick={handleCancel}
           disabled={loading}
         >
           Hủy bỏ
         </Button>
-        <Button type="submit" disabled={loading} className="min-w-[120px]">
+        <Button type="submit" disabled={loading} className="min-w-[120px] bg-indigo-600 hover:bg-indigo-700">
           {loading ? (
             <>
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />

@@ -1,81 +1,85 @@
-/**
- * Edit Feature Flag Page
- * ✅ MIGRATED: Using Next.js shim for navigation
- */
-
 'use client';
-
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
 import { Flag } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { featureFlagsApi, FeatureFlag } from '@/api/featureFlagsApi';
-import { FeatureFlagForm } from '@/components/feature-flags/FeatureFlagForm';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../../../components/ui/button';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { FeatureFlagForm } from '../../../../../../components/feature-flags/FeatureFlagForm';
+import { featureFlagsApi, FeatureFlag, UpdateFeatureFlagRequest } from '../../../../../../api/featureFlagsApi';
+import { showToast } from '../../../../../../lib/toast';
 
 function EditFeatureFlagPage() {
-  const params = useParams();
-  const id = params?.id as string;
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const params = useParams();
+  const id = params.id as string;
+
   const [flag, setFlag] = useState<FeatureFlag | null>(null);
-  const [flagLoading, setFlagLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
-    if (id) loadFlag();
-  }, [id]);
+    const fetchFlag = async () => {
+      try {
+        const data = await featureFlagsApi.getById(id);
+        setFlag(data);
+      } catch (error: any) {
+        console.error('Failed to fetch feature flag:', error);
+        showToast.error('Error', 'Failed to load feature flag details');
+        router.push('/platform/feature-flags');
+      } finally {
+        setFetching(false);
+      }
+    };
 
-  const loadFlag = async () => {
-    try {
-      setFlagLoading(true);
-      const data = await featureFlagsApi.getById(id);
-      setFlag(data);
-    } catch (error: any) {
-      showToast.error('Error', 'Failed to load feature flag');
-    } finally {
-      setFlagLoading(false);
+    if (id) {
+      fetchFlag();
     }
-  };
+  }, [id, router]);
 
   const handleSubmit = async (data: any) => {
     setLoading(true);
     try {
-      await featureFlagsApi.update(id, data);
-      showToast.success('Success', 'Feature flag updated');
+      await featureFlagsApi.update(id, data as UpdateFeatureFlagRequest);
+      showToast.success('Success', 'Feature flag updated successfully');
       router.push('/platform/feature-flags');
     } catch (error: any) {
-      showToast.error('Error', error.message || 'Failed to update');
+      console.error('Failed to update feature flag:', error);
+      showToast.error('Error', error.message || 'Failed to update feature flag');
     } finally {
       setLoading(false);
     }
   };
 
-  if (flagLoading) {
+  if (fetching) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
+  if (!flag) return null;
+
   return (
-    <FormPageLayout
-      mode="edit"
-      title="Edit Feature Flag"
-      description="Update feature flag configuration"
+    <PageLayout
       icon={Flag}
-      backPath="/platform/feature-flags"
-      backLabel="Back to Feature Flags"
+      title="Edit Feature Flag"
+      description={`Update configuration for ${flag.flag_name}`}
+      actions={
+        <Button variant="outline" onClick={() => router.push('/platform/feature-flags')}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to List
+        </Button>
+      }
     >
-      <FeatureFlagForm
-        initialData={flag}
-        onSubmit={handleSubmit}
-        loading={loading}
-        onCancel={() => router.push('/platform/feature-flags')}
-      />
-    </FormPageLayout>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-6">
+        <FeatureFlagForm
+          flag={flag}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push('/platform/feature-flags')}
+          loading={loading}
+        />
+      </div>
+    </PageLayout>
   );
 }
-
-export { EditFeatureFlagPage };
-export default EditFeatureFlagPage;

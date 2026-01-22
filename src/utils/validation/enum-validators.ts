@@ -9,7 +9,7 @@ import type {
   DataRegion,
   ComplianceLevel,
   BillingType 
-} from '@/data/tenants';
+} from '../../data/tenants';
 
 import type { FieldValidationResult } from './field-validators';
 

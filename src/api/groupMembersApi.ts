@@ -144,42 +144,147 @@ export const groupMembersApi = {
     if (!data.user_group_id || !data.tenant_member_id) {
       throw new Error('user_group_id and tenant_member_id are required');
     }
+    
+    // Check if tenant_id is provided
+    if (!data.tenant_id) {
+        throw new Error('tenant_id is required');
+    }
 
-    // Check unique constraint: (user_group_id, tenant_member_id)
-    const existing = await adapter.getAll({
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    const _id = crypto.randomUUID();
+
+    const requestData = {
+      _id,
+      tenant_id: data.tenant_id,
       user_group_id: data.user_group_id,
       tenant_member_id: data.tenant_member_id,
-    });
+      is_primary: data.is_primary || false,
+      role_in_group: data.role_in_group || null,
+      joined_at: data.joined_at || new Date().toISOString(),
+      metadata: data.metadata || {},
+      created_by: data.created_by || null,
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    const { data: created, error } = await supabase
+      .from('group_members')
+      .insert([requestData])
+      .select()
+      .single();
 
-    if (existing.length > 0 && !existing[0].deleted_at) {
-      throw new Error('Member is already assigned to this group');
+    if (error) {
+      // Check for unique constraint violation (handled by DB index usually, but we check here too if needed)
+      // The previous code checked manually.
+      if (error.code === '23505') { // Unique violation
+         throw new Error('Member is already assigned to this group');
+      }
+      throw new Error(`Failed to create group member: ${error.message}`);
     }
-
-    // Auto-set joined_at if not provided
-    if (!data.joined_at) {
-      data.joined_at = new Date().toISOString();
-    }
-
-    return adapter.create(data);
+    
+    return created;
   },
 
   /**
    * PATCH /group-members/:id
    * Update a group membership
    */
-  update: async (id: string, data: UpdateGroupMemberRequest): Promise<GroupMember> => {
-    return adapter.update(id, data);
+  update: async (id: string, data: UpdateGroupMemberRequest & { version?: number }): Promise<GroupMember> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Get current version if not provided
+    let currentVersion = data.version;
+
+    if (!currentVersion) {
+        const { data: current, error: fetchError } = await supabase
+            .from('group_members')
+            .select('version')
+            .eq('_id', id)
+            .single();
+            
+        if (fetchError || !current) {
+            throw new Error(`Group member not found: ${fetchError?.message || 'Unknown error'}`);
+        }
+        currentVersion = current.version;
+    }
+
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+      version: currentVersion + 1,
+    };
+
+    if (data.is_primary !== undefined) updateData.is_primary = data.is_primary;
+    if (data.role_in_group !== undefined) updateData.role_in_group = data.role_in_group;
+    if (data.left_at !== undefined) updateData.left_at = data.left_at;
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+    if (data.updated_by !== undefined) updateData.updated_by = data.updated_by;
+
+    const { data: updated, error } = await supabase
+      .from('group_members')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update group member: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**
    * DELETE /group-members/:id (SOFT DELETE)
    * Sets deleted_at to current timestamp
    */
-  delete: async (id: string, deleted_by?: string): Promise<void> => {
-    await adapter.update(id, {
-      deleted_at: new Date().toISOString(),
-      deleted_by,
-    } as any);
+  delete: async (id: string, deleted_by?: string, version?: number): Promise<void> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Get current version if not provided
+    let currentVersion = version;
+    if (!currentVersion) {
+        const { data: current, error: fetchError } = await supabase
+            .from('group_members')
+            .select('version')
+            .eq('_id', id)
+            .single();
+        
+        if (fetchError || !current) {
+             if (fetchError) throw new Error(fetchError.message);
+             return;
+        }
+        currentVersion = current.version;
+    }
+
+    const { error, data } = await supabase
+      .from('group_members')
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: deleted_by || null,
+        version: currentVersion + 1
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to delete group member: ${error.message}`);
+    }
+    
+    if (!data) {
+        throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
   },
 
   /**
@@ -193,11 +298,38 @@ export const groupMembersApi = {
   /**
    * Restore soft-deleted membership
    */
-  restore: async (id: string): Promise<GroupMember> => {
-    return adapter.update(id, {
-      deleted_at: undefined,
-      deleted_by: undefined,
-    } as any);
+  restore: async (id: string, version?: number): Promise<GroupMember> => {
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    let currentVersion = version;
+    if (!currentVersion) {
+        const { data: current, error } = await supabase
+            .from('group_members')
+            .select('version')
+            .eq('_id', id)
+            .single();
+        if (error || !current) throw new Error(`Group member not found: ${error?.message}`);
+        currentVersion = current.version;
+    }
+    
+    const { data: updated, error } = await supabase
+      .from('group_members')
+      .update({
+        deleted_at: null,
+        deleted_by: null,
+        updated_at: new Date().toISOString(),
+        version: currentVersion + 1
+      })
+      .eq('_id', id)
+      .eq('version', currentVersion)
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to restore group member: ${error.message}`);
+    if (!updated) throw new Error('Concurrent modification detected.');
+    
+    return updated;
   },
 
   // ==================== QUERY OPERATIONS ====================
@@ -292,12 +424,56 @@ export const groupMembersApi = {
     tenantMemberId: string,
     data: AssignMemberRequest = {}
   ): Promise<GroupMember> => {
-    // Get tenant_id from the group
-    // TODO: In real implementation, fetch from backend
-    // For now, user must provide tenant_id in metadata or we throw error
+    // Check if already assigned
+    const existing = await adapter.getAll({
+      user_group_id: groupId,
+      tenant_member_id: tenantMemberId,
+    });
     
+    // Check for active membership
+    const activeExisting = existing.find(m => !m.deleted_at && !m.left_at);
+    if (activeExisting) {
+      throw new Error('Member is already assigned to this group');
+    }
+
+    // Check for inactive/deleted membership to reactivate
+    const inactiveExisting = existing.find(m => m.deleted_at || m.left_at);
+
+    if (inactiveExisting) {
+        // Reactivate
+        const updatePayload: any = {
+            left_at: null,
+            deleted_at: null,
+            is_primary: data.is_primary,
+            role_in_group: data.role_in_group,
+            // Re-joined date
+            joined_at: data.joined_at || new Date().toISOString(),
+            metadata: data.metadata,
+            updated_by: data.created_by,
+            version: inactiveExisting.version
+        };
+        
+        return groupMembersApi.update(inactiveExisting._id, updatePayload);
+    }
+
+    // Need tenant_id. Since we don't have group details here efficiently, 
+    // we require tenant_id to be passed in metadata or we assume the caller knows what they are doing.
+    
+    let tenantId = data.metadata?.tenant_id;
+    if (!tenantId) {
+        // Fetch group to get tenant_id
+        const { getSupabaseClient } = await import('../lib/supabase');
+        const supabase = getSupabaseClient();
+        const { data: group } = await supabase.from('user_groups').select('tenant_id').eq('_id', groupId).single();
+        if (group) {
+            tenantId = group.tenant_id;
+        } else {
+            throw new Error('User group not found');
+        }
+    }
+
     const createData: CreateGroupMemberRequest = {
-      tenant_id: data.metadata?.tenant_id || '', // Should be fetched from group
+      tenant_id: tenantId,
       user_group_id: groupId,
       tenant_member_id: tenantMemberId,
       is_primary: data.is_primary,
@@ -339,9 +515,10 @@ export const groupMembersApi = {
     }
 
     // Set left_at
-    return adapter.update(membership._id, {
+    return groupMembersApi.update(membership._id, {
       left_at: new Date().toISOString(),
       updated_by,
+      version: membership.version
     });
   },
 
@@ -368,21 +545,28 @@ export const groupMembersApi = {
     }
 
     // Unset all current primary flags
+    const toUnset = allMemberships.filter(m => m.is_primary && m.user_group_id !== groupId);
+    
     await Promise.all(
-      allMemberships
-        .filter(m => m.is_primary)
-        .map(m =>
-          adapter.update(m._id, {
-            is_primary: false,
-            updated_by,
-          })
-        )
+      toUnset.map(m =>
+        groupMembersApi.update(m._id, {
+          is_primary: false,
+          updated_by,
+          version: m.version
+        })
+      )
     );
+    
+    // If target is already primary, no need to update
+    if (targetMembership.is_primary) {
+        return targetMembership;
+    }
 
     // Set new primary
-    return adapter.update(targetMembership._id, {
+    return groupMembersApi.update(targetMembership._id, {
       is_primary: true,
       updated_by,
+      version: targetMembership.version
     });
   },
 
@@ -405,9 +589,10 @@ export const groupMembersApi = {
       throw new Error('Membership not found');
     }
 
-    return adapter.update(memberships[0]._id, {
+    return groupMembersApi.update(memberships[0]._id, {
       role_in_group: role,
       updated_by,
+      version: memberships[0].version
     });
   },
 
@@ -436,20 +621,18 @@ export const groupMembersApi = {
     const wasPrimary = currentMembership.is_primary;
 
     // Mark as left
-    await adapter.update(currentMembership._id, {
+    await groupMembersApi.update(currentMembership._id, {
       left_at: new Date().toISOString(),
       updated_by,
+      version: currentMembership.version
     });
 
     // Create new membership
-    return groupMembersApi.create({
-      tenant_id: currentMembership.tenant_id,
-      user_group_id: toGroupId,
-      tenant_member_id: tenantMemberId,
-      is_primary: wasPrimary,
-      role_in_group: currentMembership.role_in_group,
-      metadata: currentMembership.metadata,
-      created_by: updated_by,
+    return groupMembersApi.assignMember(toGroupId, tenantMemberId, {
+        is_primary: wasPrimary,
+        role_in_group: currentMembership.role_in_group,
+        metadata: currentMembership.metadata,
+        created_by: updated_by
     });
   },
 
@@ -509,11 +692,14 @@ export const groupMembersApi = {
    * Bulk soft delete
    */
   bulkDelete: async (ids: string[], deleted_by?: string): Promise<void> => {
-    const deleted_at = new Date().toISOString();
     await Promise.all(
-      ids.map(id =>
-        adapter.update(id, { deleted_at, deleted_by } as any)
-      )
+      ids.map(async id => {
+        try {
+            await groupMembersApi.delete(id, deleted_by);
+        } catch (e) {
+            console.error(`Failed to delete member ${id}`, e);
+        }
+      })
     );
   },
 

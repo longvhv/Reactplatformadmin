@@ -5,7 +5,7 @@
  */
 
 import { ButtonHTMLAttributes, forwardRef } from 'react';
-import { cn, BUTTON_VARIANTS, UI_SPACING } from '@/constants/ui';
+import { cn, BUTTON_VARIANTS, UI_SPACING } from '../../constants/ui';
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /**

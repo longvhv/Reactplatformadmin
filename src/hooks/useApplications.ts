@@ -153,9 +153,9 @@ export function useApplications(options: UseApplicationsOptions = {}) {
    * Soft delete application
    * ✅ IMPROVEMENT 2: Sets deleted_at and deleted_by
    */
-  const deleteApplication = async (id: string, deletedBy?: string): Promise<void> => {
+  const deleteApplication = async (id: string, deletedBy?: string, version?: number): Promise<void> => {
     try {
-      await applicationsApi.softDelete(id, deletedBy);
+      await applicationsApi.delete(id, deletedBy, version);
       
       // Remove from local state or mark as deleted
       if (options.includeDeleted) {
@@ -306,6 +306,7 @@ export function useApplications(options: UseApplicationsOptions = {}) {
 
   /**
    * Toggle application active status
+   * Uses automatic retry to handle version conflicts
    */
   const toggleActive = async (
     id: string, 
@@ -315,6 +316,8 @@ export function useApplications(options: UseApplicationsOptions = {}) {
       const app = getApplicationById(id);
       if (!app) throw new Error('Application not found');
 
+      // Use updateApplication (with retry) instead of manual versioning
+      // This ensures we always get the latest version for the toggle
       await updateApplication(
         id, 
         { is_active: !app.is_active },
@@ -322,6 +325,8 @@ export function useApplications(options: UseApplicationsOptions = {}) {
       );
     } catch (err: any) {
       console.error('Error toggling application status:', err);
+      // Reload to get latest state if failed
+      await loadApplications();
       throw err;
     }
   };

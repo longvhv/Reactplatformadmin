@@ -1,8 +1,7 @@
 /**
  * TenantMembersTab Component
- * Tab cho tenant detail page - quản lý members của tenant
- * 
- * ✅ REWRITTEN 2026-01-14: Uses new tenantMembersApi with 19+ fields
+ * Tenant member management tab
+ * ✅ Fully compliant with tenant_members schema and new API
  */
 
 import React, { useState, useEffect } from 'react';
@@ -21,34 +20,40 @@ import {
   Clock,
   AlertCircle,
   Briefcase,
-  Mail,
   UserCheck,
-  UserX,
   TrendingUp,
 } from 'lucide-react';
 import {
   tenantMembersApi,
-  TenantMember,
+  EnrichedTenantMember,
   MemberRole,
   MemberStatus,
-} from '@/api/tenantMembersApi';
-import { MemberModal } from '@/components/tenantMembers/MemberModal';
-import { MemberDetailModal } from '@/components/tenantMembers/MemberDetailModal';
-import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
+  TenantMemberFormData,
+} from '../../api/tenantMembersApi';
+import { TenantMemberForm } from '../tenantMembers/TenantMemberForm';
+import { MemberDetailModal } from '../tenantMembers/MemberDetailModal';
+import { toast } from 'sonner@2.0.3';
+import { useTranslation } from '../../providers/LanguageProvider';
 
 interface TenantMembersTabProps {
   tenantId: string;
 }
 
 export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
-  const [members, setMembers] = useState<TenantMember[]>([]);
-  const [filteredMembers, setFilteredMembers] = useState<TenantMember[]>([]);
+  const { t } = useTranslation();
+  
+  // Data State
+  const [members, setMembers] = useState<EnrichedTenantMember[]>([]);
+  const [filteredMembers, setFilteredMembers] = useState<EnrichedTenantMember[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<Array<{ _id: string; name: string; email: string }>>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<MemberRole | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<MemberStatus | 'all'>('all');
   
+  // Stats State
   const [stats, setStats] = useState({
     total: 0,
     by_role: { OWNER: 0, ADMIN: 0, MEMBER: 0, VIEWER: 0 },
@@ -60,41 +65,47 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
     recent_leavers: 0,
   });
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Modal State
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [editingMember, setEditingMember] = useState<TenantMember | null>(null);
-  const [viewingMember, setViewingMember] = useState<TenantMember | null>(null);
+  const [editingMember, setEditingMember] = useState<EnrichedTenantMember | null>(null);
+  const [viewingMember, setViewingMember] = useState<EnrichedTenantMember | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchMembers();
-    fetchStats();
+    fetchData();
   }, [tenantId]);
 
   useEffect(() => {
     filterMembers();
   }, [searchQuery, roleFilter, statusFilter, members]);
 
-  const fetchMembers = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await tenantMembersApi.getByTenant(tenantId);
-      setMembers(data);
+      
+      // Parallel fetch
+      const [membersData, statsData, usersData] = await Promise.all([
+        tenantMembersApi.getByTenant(tenantId),
+        tenantMembersApi.getStatistics(tenantId),
+        tenantMembersApi.fetchUsers()
+      ]);
+      
+      setMembers(membersData);
+      setStats(statsData);
+      
+      // Map users to simple format
+      setAvailableUsers(usersData.map((u: any) => ({
+        _id: u._id,
+        name: u.full_name,
+        email: u.email
+      })));
+      
     } catch (error) {
-      console.error('Error fetching members:', error);
-      toast.error('Lỗi khi tải danh sách thành viên');
-      setMembers([]);
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load members data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const s = await tenantMembersApi.getStatistics(tenantId);
-      setStats(s);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
     }
   };
 
@@ -129,92 +140,72 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
 
   const handleCreate = () => {
     setEditingMember(null);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
   };
 
-  const handleEdit = (member: TenantMember) => {
+  const handleEdit = (member: EnrichedTenantMember) => {
     setEditingMember(member);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
   };
 
-  const handleView = async (member: TenantMember) => {
-    try {
-      const full = await tenantMembersApi.getById(member._id);
-      setViewingMember(full);
-      setIsDetailModalOpen(true);
-    } catch (error) {
-      console.error('Error loading member details:', error);
-      toast.error('Lỗi khi tải chi tiết thành viên');
-    }
+  const handleView = async (member: EnrichedTenantMember) => {
+    setViewingMember(member);
+    setIsDetailModalOpen(true);
   };
 
-  const handleSave = async (data: any) => {
+  const handleFormSubmit = async (data: TenantMemberFormData) => {
     try {
       if (editingMember) {
-        await tenantMembersApi.update(editingMember._id, data);
-        toast.success('Đã cập nhật thành viên');
+        await tenantMembersApi.update(editingMember._id, {
+          ...data,
+          version: editingMember.version
+        });
+        toast.success('Member updated successfully');
       } else {
-        await tenantMembersApi.create({ ...data, tenant_id: tenantId });
-        toast.success('Đã thêm thành viên mới');
+        await tenantMembersApi.create({
+          ...data,
+          tenant_id: tenantId
+        });
+        toast.success('Member added successfully');
       }
-      setIsModalOpen(false);
-      await fetchMembers();
-      await fetchStats();
-    } catch (error) {
+      setIsFormOpen(false);
+      fetchData(); // Reload data
+    } catch (error: any) {
       console.error('Error saving member:', error);
-      toast.error('Lỗi khi lưu thông tin thành viên');
+      toast.error('Failed to save member', { description: error.message });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc muốn xóa thành viên này?')) return;
+    if (!window.confirm('Are you sure you want to remove this member?')) return;
     
     setDeletingId(id);
     try {
       await tenantMembersApi.delete(id);
-      toast.success('Đã xóa thành viên');
-      await fetchMembers();
-      await fetchStats();
-    } catch (error) {
+      toast.success('Member removed successfully');
+      fetchData();
+    } catch (error: any) {
       console.error('Error deleting member:', error);
-      toast.error('Lỗi khi xóa thành viên');
+      toast.error('Failed to remove member', { description: error.message });
     } finally {
       setDeletingId(null);
     }
   };
 
-  const handleChangeStatus = async (memberId: string, newStatus: MemberStatus) => {
-    try {
-      await tenantMembersApi.changeStatus(memberId, newStatus);
-      toast.success('Đã thay đổi trạng thái');
-      await fetchMembers();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error changing status:', error);
-      toast.error('Lỗi khi thay đổi trạng thái');
-    }
-  };
-
-  const handleChangeRole = async (memberId: string, newRole: MemberRole) => {
-    try {
-      await tenantMembersApi.changeRole(memberId, newRole);
-      toast.success('Đã thay đổi vai trò');
-      await fetchMembers();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error changing role:', error);
-      toast.error('Lỗi khi thay đổi vai trò');
-    }
-  };
-
-  const { t } = useTranslation();
+  // Managers list for the form (exclude current user if editing)
+  const availableManagers = members
+    .filter(m => !editingMember || m._id !== editingMember._id)
+    .map(m => ({
+      _id: m._id,
+      user_name: m.user?.full_name || 'Unknown'
+    }));
 
   const getRoleBadge = (role: MemberRole) => {
     const config = {
-      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: t('common.owner') },
-      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: t('common.admin') },
-      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: t('common.member') },
-      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: t('common.viewer') },
+      OWNER: { color: 'bg-purple-100 text-purple-700', icon: Crown, label: t('common.owner') || 'Owner' },
+      ADMIN: { color: 'bg-blue-100 text-blue-700', icon: Shield, label: t('common.admin') || 'Admin' },
+      MEMBER: { color: 'bg-gray-100 text-gray-700', icon: Users, label: t('common.member') || 'Member' },
+      VIEWER: { color: 'bg-green-100 text-green-700', icon: Eye, label: t('common.viewer') || 'Viewer' },
     };
     const c = config[role];
     const Icon = c.icon;
@@ -248,12 +239,12 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
     return new Date(date).toLocaleDateString('vi-VN');
   };
 
-  if (loading) {
+  if (loading && members.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-500">Đang tải...</p>
+          <p className="text-gray-500">Loading members...</p>
         </div>
       </div>
     );
@@ -261,12 +252,12 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
             <Users className="w-4 h-4" />
-            Tổng Thành Viên
+            Total Members
           </div>
           <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
@@ -284,7 +275,7 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
             <Crown className="w-4 h-4" />
-            Phân Bổ Vai Trò
+            Role Distribution
           </div>
           <div className="space-y-1 mt-2">
             <div className="flex justify-between text-sm">
@@ -301,15 +292,15 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
             <Briefcase className="w-4 h-4" />
-            Tổ Chức
+            Organization
           </div>
           <div className="space-y-1 mt-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Có Manager:</span>
+              <span className="text-gray-600">Managed:</span>
               <span className="font-medium">{stats.with_manager}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Có Mã NV:</span>
+              <span className="text-gray-600">Employee Code:</span>
               <span className="font-medium">{stats.with_employee_code}</span>
             </div>
           </div>
@@ -318,79 +309,75 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
             <TrendingUp className="w-4 h-4" />
-            Hoạt Động (30 ngày)
+            Activity (30d)
           </div>
           <div className="space-y-1 mt-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Tham gia:</span>
+              <span className="text-gray-600">Joined:</span>
               <span className="font-medium text-green-600">+{stats.recent_joiners}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Rời đi:</span>
+              <span className="text-gray-600">Left:</span>
               <span className="font-medium text-red-600">-{stats.recent_leavers}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filters & Actions */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên, email, mã NV..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            />
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full md:w-auto flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search name, email, code..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value as MemberRole | 'all')}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
+              >
+                <option value="all">All Roles</option>
+                <option value="OWNER">Owner</option>
+                <option value="ADMIN">Admin</option>
+                <option value="MEMBER">Member</option>
+                <option value="VIEWER">Viewer</option>
+              </select>
+            </div>
+
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as MemberStatus | 'all')}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
+              >
+                <option value="all">All Statuses</option>
+                <option value="ACTIVE">Active</option>
+                <option value="ONBOARDING">Onboarding</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="RESIGNED">Resigned</option>
+              </select>
+            </div>
           </div>
 
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value as MemberRole | 'all')}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
-            >
-              <option value="all">Tất cả vai trò</option>
-              <option value="OWNER">{t('common.owner')}</option>
-              <option value="ADMIN">{t('common.admin')}</option>
-              <option value="MEMBER">{t('common.member')}</option>
-              <option value="VIEWER">{t('common.viewer')}</option>
-            </select>
-          </div>
-
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as MemberStatus | 'all')}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none"
-            >
-              <option value="all">Tất cả trạng thái</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ONBOARDING">Onboarding</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="RESIGNED">Resigned</option>
-            </select>
-          </div>
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add Member
+          </button>
         </div>
-      </div>
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">
-          Thành Viên ({filteredMembers.length})
-        </h3>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <UserPlus className="w-4 h-4" />
-          Thêm Thành Viên
-        </button>
       </div>
 
       {/* Members Table */}
@@ -399,8 +386,8 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
           <Users className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <p className="text-gray-500">
             {searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
-              ? 'Không tìm thấy thành viên nào'
-              : 'Chưa có thành viên nào'}
+              ? 'No members found matching your filters'
+              : 'No members yet'}
           </p>
         </div>
       ) : (
@@ -409,11 +396,11 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Thành Viên</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Chức Vụ</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Vai Trò</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Trạng Thái</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Ngày Tham Gia</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Member</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Title & Manager</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Role</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Joined</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Actions</th>
                 </tr>
               </thead>
@@ -427,7 +414,7 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
                         </div>
                         <div>
                           <p className="font-medium text-gray-900 text-sm">
-                            {member.user?.full_name || 'Unknown'}
+                            {member.user?.full_name || 'Unknown User'}
                           </p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <p className="text-xs text-gray-500">{member.user?.email}</p>
@@ -444,8 +431,8 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
                       <div>
                         <p className="text-sm text-gray-900">{member.job_title || '-'}</p>
                         {member.manager && (
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            Manager: {member.manager.full_name}
+                          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                            Manager: {member.manager.user?.full_name || 'Unknown'}
                           </p>
                         )}
                       </div>
@@ -469,14 +456,14 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
                         <button
                           onClick={() => handleView(member)}
                           className="p-1 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                          title="Xem Chi Tiết"
+                          title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleEdit(member)}
                           className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                          title="Chỉnh Sửa"
+                          title="Edit"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -484,7 +471,7 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
                           onClick={() => handleDelete(member._id)}
                           disabled={deletingId === member._id}
                           className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors disabled:opacity-50"
-                          title="Xóa"
+                          title="Remove"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -499,12 +486,14 @@ export function TenantMembersTab({ tenantId }: TenantMembersTabProps) {
       )}
 
       {/* Modals */}
-      <MemberModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        member={editingMember}
-        tenantId={tenantId}
+      <TenantMemberForm
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleFormSubmit}
+        initialData={editingMember || { tenant_id: tenantId }}
+        users={availableUsers}
+        managers={availableManagers}
+        mode={editingMember ? 'edit' : 'create'}
       />
 
       <MemberDetailModal

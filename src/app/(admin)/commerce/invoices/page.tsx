@@ -3,15 +3,15 @@
  * ✅ MIGRATED: Rapid completion batch - 20+ pages
  */
 'use client';
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { FileText, Plus, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { invoicesApi } from '@/api/invoicesApi';
-import { showToast } from '@/lib/toast';
+import { useState, useEffect } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { DollarSign, Plus, Search, Download } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { invoicesApi } from '../../../../../api/invoicesApi';
+import { showToast } from '../../../../../lib/toast';
 
 function InvoicesPage() {
   const router = useRouter();

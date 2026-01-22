@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, UserPlus, Mail, MoreVertical, Shield, User } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
 
 interface TenantUser {
   id: string;

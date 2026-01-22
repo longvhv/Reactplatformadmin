@@ -16,9 +16,9 @@ import {
   AlertCircle,
   ExternalLink,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import {
   Table,
   TableBody,
@@ -26,11 +26,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { useTenantMembers } from '@/hooks/useTenantMembers';
-import { tenantsApi } from '@/api/tenantsApi';
-import type { Tenant } from '@/data/tenants';
-import type { TenantMember } from '@/api/tenantMembersApi';
+} from '../ui/table';
+import { useTenantMembers } from '../../hooks/useTenantMembers';
+import { tenantsApi } from '../../api/tenantsApi';
+import type { Tenant } from '../../data/tenants';
+import type { TenantMember } from '../../api/tenantMembersApi';
 
 interface UserTenantsTabProps {
   userId: string;

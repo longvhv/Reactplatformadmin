@@ -7,6 +7,7 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
+import { getSupabaseClient } from '../lib/supabase';
 
 // ==================== TYPES ====================
 
@@ -221,6 +222,7 @@ export interface UpdateSSOConfigRequest {
   settings?: SSOSettings;
 
   updated_by?: string | null;
+  version?: number;
 }
 
 export interface SSOConfigFilters extends BaseFilters {
@@ -268,11 +270,7 @@ export interface ValidationResult {
 
 // ==================== ADAPTER ====================
 
-const adapter = createAdapter<TenantSSOConfig, CreateSSOConfigRequest, UpdateSSOConfigRequest>(
-  'tenant_sso_configs',
-  '/tenant-sso-configs',
-  true // Soft delete enabled
-);
+// Removed adapter in favor of direct Supabase calls for strict schema compliance and versioning
 
 // ==================== API CLIENT ====================
 
@@ -281,9 +279,7 @@ export const tenantSSOConfigsApi = {
    * GET /tenant-sso-configs
    */
   getAll: async (filters?: SSOConfigFilters): Promise<TenantSSOConfig[]> => {
-    const { getSupabaseClient } = await import('../lib/supabase');
     const supabase = getSupabaseClient();
-
     let query = supabase
       .from('tenant_sso_configs')
       .select('*')
@@ -330,14 +326,23 @@ export const tenantSSOConfigsApi = {
    * GET /tenant-sso-configs/:id
    */
   getById: async (id: string): Promise<TenantSSOConfig> => {
-    return adapter.getById(id);
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('tenant_sso_configs')
+      .select('*')
+      .eq('_id', id)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to fetch SSO config: ${error.message}`);
+    }
+    return data;
   },
 
   /**
    * GET /tenant-sso-configs/:id/details
    */
   getByIdWithDetails: async (id: string): Promise<TenantSSOConfigWithDetails> => {
-    const { getSupabaseClient } = await import('../lib/supabase');
     const supabase = getSupabaseClient();
 
     // Get config
@@ -384,52 +389,141 @@ export const tenantSSOConfigsApi = {
    * POST /tenant-sso-configs
    */
   create: async (data: CreateSSOConfigRequest): Promise<TenantSSOConfig> => {
+    const supabase = getSupabaseClient();
+    
     // Validate
     const validation = tenantSSOConfigsApi.validate(data);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    // Apply defaults
+    const _id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
     const requestData = {
+      _id,
       ...data,
-      status: data.status || 'ACTIVE' as SSOConfigStatus, // default
-      scopes: data.scopes || [], // default
-      attribute_mapping: data.attribute_mapping || {}, // default
-      settings: data.settings || {}, // default
-      version: data.version || 1, // default
+      status: data.status || 'ACTIVE',
+      scopes: data.scopes || [],
+      attribute_mapping: data.attribute_mapping || {},
+      settings: data.settings || {},
+      version: 1,
+      created_at: now,
+      updated_at: now,
+      created_by: data.created_by || null,
+      updated_by: data.created_by || null, // Initial creator is also updater
     };
 
-    return adapter.create(requestData);
+    const { data: created, error } = await supabase
+      .from('tenant_sso_configs')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create SSO config: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**
    * PUT /tenant-sso-configs/:id
    */
   update: async (id: string, data: UpdateSSOConfigRequest): Promise<TenantSSOConfig> => {
+    const supabase = getSupabaseClient();
+
     // Validate
     const validation = tenantSSOConfigsApi.validate(data);
     if (!validation.valid) {
       throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
     }
 
-    return adapter.update(id, data);
+    // Determine version for optimistic locking
+    let currentVersion = data.version;
+
+    if (currentVersion === undefined) {
+      // If version not provided, fetch current (fallback, effectively disables UI-side staleness check but handles concurrency during this function)
+      const { data: current, error: fetchError } = await supabase
+        .from('tenant_sso_configs')
+        .select('version')
+        .eq('_id', id)
+        .single();
+
+      if (fetchError || !current) {
+        throw new Error('Config not found or access denied');
+      }
+      currentVersion = current.version;
+    }
+
+    const nextVersion = currentVersion + 1;
+    const now = new Date().toISOString();
+
+    // Remove version from data to avoid sending it as a field to update (if it was just for check)
+    // The DB update needs 'version' to be set to nextVersion.
+    const { version, ...restData } = data;
+
+    const updateData = {
+      ...restData,
+      updated_at: now,
+      version: nextVersion,
+    };
+
+    const { data: updated, error } = await supabase
+      .from('tenant_sso_configs')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', currentVersion) // Optimistic locking
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update SSO config: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**
    * DELETE /tenant-sso-configs/:id (Soft delete)
    */
-  delete: async (id: string, deletedBy?: string): Promise<void> => {
-    const { getSupabaseClient } = await import('../lib/supabase');
+  delete: async (id: string, deletedBy?: string, version?: number): Promise<void> => {
     const supabase = getSupabaseClient();
+
+    let currentVersion = version;
+
+    if (currentVersion === undefined) {
+      // Get current version if not provided (fallback)
+      const { data: current, error: fetchError } = await supabase
+        .from('tenant_sso_configs')
+        .select('version')
+        .eq('_id', id)
+        .single();
+
+      if (fetchError || !current) {
+         // If not found, it might already be deleted
+         throw new Error('Config not found or access denied');
+      }
+      currentVersion = current.version;
+    }
+
+    const nextVersion = currentVersion + 1;
 
     const { error } = await supabase
       .from('tenant_sso_configs')
       .update({
         deleted_at: new Date().toISOString(),
         deleted_by: deletedBy || null,
+        status: 'INACTIVE',
+        updated_at: new Date().toISOString(),
+        version: nextVersion,
       })
-      .eq('_id', id);
+      .eq('_id', id)
+      .eq('version', currentVersion);
 
     if (error) {
       throw new Error(`Failed to delete SSO config: ${error.message}`);

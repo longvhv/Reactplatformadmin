@@ -13,17 +13,17 @@ import { Settings } from 'lucide-react';
 // Lazy load pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const SystemJobsPage = lazy(() => 
-  import('../../app/(admin)/platform/system-jobs/page')
+  import('../../app/(admin)/platform/system-jobs/page').then(m => ({ default: m.default }))
 );
 
 const AddSystemJobPage = lazy(() => 
-  import('../../app/(admin)/platform/system-jobs/create/page')
+  import('../../app/(admin)/platform/system-jobs/create/page').then(m => ({ default: m.default }))
 );
 const EditSystemJobPage = lazy(() => 
-  import('../../app/(admin)/platform/system-jobs/edit/[id]/page')
+  import('../../app/(admin)/platform/system-jobs/edit/[id]/page').then(m => ({ default: m.default }))
 );
 const SystemJobDetailPage = lazy(() => 
-  import('../../app/(admin)/platform/system-jobs/[id]/page')
+  import('../../app/(admin)/platform/system-jobs/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const SystemJobsModule: ModuleDefinition = {
@@ -84,3 +84,5 @@ export const SystemJobsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default SystemJobsModule;

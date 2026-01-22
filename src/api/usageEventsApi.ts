@@ -40,6 +40,18 @@ export interface CreateUsageEventRequest {
   timestamp?: string;
 }
 
+export interface UpdateUsageEventRequest {
+  tenant_id?: string;
+  subscription_id?: string;
+  app_code?: string;
+  event_type?: string;
+  quantity?: number;
+  unit?: string;
+  metadata?: Record<string, any>;
+  data_region?: string;
+  timestamp?: string;
+}
+
 export interface UsageEventFilters extends BaseFilters {
   tenant_id?: string;
   subscription_id?: string;
@@ -73,7 +85,7 @@ export interface UsageStatistics {
 
 // ==================== ADAPTER ====================
 
-const adapter = createAdapter<UsageEvent, CreateUsageEventRequest, never>(
+const adapter = createAdapter<UsageEvent, CreateUsageEventRequest, UpdateUsageEventRequest>(
   'usage_events',
   '/usage-events',
   false // No soft delete (usage events are immutable)
@@ -161,6 +173,14 @@ export const usageEventsApi = {
    */
   create: async (data: CreateUsageEventRequest): Promise<UsageEvent> => {
     return adapter.create(data);
+  },
+
+  /**
+   * PATCH /usage-events/:id
+   * Update usage event (Correction)
+   */
+  update: async (id: string, data: UpdateUsageEventRequest): Promise<UsageEvent> => {
+    return adapter.update(id, data);
   },
 
   /**

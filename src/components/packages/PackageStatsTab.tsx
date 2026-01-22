@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card } from '../ui/card';
 import { Users, UserCheck, DollarSign, TrendingDown } from 'lucide-react';
 
 interface PackageStatsTabProps {
@@ -101,7 +101,7 @@ export function PackageStatsTab({ packageId }: PackageStatsTabProps) {
               <Users className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">T��ng khách hàng</p>
+              <p className="text-sm text-gray-600">Tng khách hàng</p>
               <p className="text-2xl font-bold text-gray-900">
                 {stats.total_subscriptions}
               </p>

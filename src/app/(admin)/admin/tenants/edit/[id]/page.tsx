@@ -6,14 +6,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
 import { Building2 } from 'lucide-react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { EnhancedTenantForm } from '@/components/tenants/EnhancedTenantForm';
-import { showToast } from '@/lib/toast';
-import { tenantsApi, Tenant, UpdateTenantRequest } from '@/api/tenantsApi';
-import { useTenant } from '@/hooks/useTenant';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { EnhancedTenantForm } from '../../../../../components/tenants/EnhancedTenantForm';
+import { showToast } from '../../../../../lib/toast';
+import { tenantsApi, Tenant, UpdateTenantRequest } from '../../../../../api/tenantsApi';
+import { useTenant } from '../../../../../hooks/useTenant';
 
 function EditTenantPage() {
   const params = useParams();

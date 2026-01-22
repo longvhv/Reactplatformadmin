@@ -2,10 +2,9 @@
  * UserSessionsTab Component
  * Manage user's active sessions
  * 
- * ✅ FIXED 2026-01-14: 
- * - Use userSessionsApi instead of non-existent /api/v1/users/${userId}/sessions
- * - Use correct UserSession interface with all 14 fields
- * - Parse device info from dedicated fields instead of user_agent
+ * ✅ FIXED 2026-01-20: 
+ * - Added Create/Edit functionality via UserSessionForm
+ * - Full schema compliance
  */
 
 import { useState, useEffect } from 'react';
@@ -19,10 +18,16 @@ import {
   CheckCircle,
   AlertCircle,
   MapPin,
+  Plus,
+  Edit,
+  Shield,
+  HelpCircle,
+  Tv,
+  Watch
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import {
   Table,
   TableBody,
@@ -30,8 +35,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { userSessionsApi, type UserSession } from '@/api/userSessionsApi';
+} from '../ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { userSessionsApi, type UserSession, DeviceTypeHelper, DeviceType } from '../../api/userSessionsApi';
+import { UserSessionForm } from '../sessions/UserSessionForm';
 import { toast } from 'sonner';
 
 interface UserSessionsTabProps {
@@ -41,65 +54,73 @@ interface UserSessionsTabProps {
 export function UserSessionsTab({ userId }: UserSessionsTabProps) {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<UserSession | null>(null);
 
   useEffect(() => {
-    fetchSessions();
+    if (userId) fetchSessions();
   }, [userId]);
 
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      console.log('🔍 [UserSessionsTab] Fetching sessions for user:', userId);
-      
-      // ✅ Use correct API
       const data = await userSessionsApi.getByUserId(userId);
-      console.log('✅ [UserSessionsTab] Sessions loaded:', data);
       setSessions(data);
     } catch (error) {
       console.error('❌ [UserSessionsTab] Error fetching sessions:', error);
-      toast.error('Không thể tải sessions');
+      toast.error('Failed to load sessions');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRevokeSession = async (sessionId: string) => {
-    if (!confirm('Bạn có chắc muốn thu hồi session này?')) return;
+    if (!confirm('Are you sure you want to revoke this session?')) return;
 
     try {
-      console.log('🔍 [UserSessionsTab] Revoking session:', sessionId);
-      
-      // ✅ Use API method
       await userSessionsApi.revokeSession(sessionId);
-      console.log('✅ [UserSessionsTab] Session revoked');
-      
-      toast.success('Đã thu hồi session');
+      toast.success('Session revoked');
       await fetchSessions();
     } catch (error) {
       console.error('❌ [UserSessionsTab] Error revoking session:', error);
-      toast.error('Không thể thu hồi session. Vui lòng thử lại.');
+      toast.error('Failed to revoke session');
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!confirm('Are you sure you want to DELETE this session? This cannot be undone.')) return;
+
+    try {
+      await userSessionsApi.delete(sessionId);
+      toast.success('Session deleted');
+      await fetchSessions();
+    } catch (error) {
+      console.error('❌ [UserSessionsTab] Error deleting session:', error);
+      toast.error('Failed to delete session');
     }
   };
 
   const getDeviceIcon = (deviceType?: string | null) => {
     if (!deviceType) return Monitor;
-    
-    const type = deviceType.toLowerCase();
-    if (type.includes('mobile') || type.includes('phone')) return Smartphone;
-    if (type.includes('tablet') || type.includes('ipad')) return Tablet;
+    const type = deviceType as DeviceType;
+    if (DeviceTypeHelper.isMobile(type)) return Smartphone;
+    if (DeviceTypeHelper.isTablet(type)) return Tablet;
+    if (DeviceTypeHelper.isSmartTV(type)) return Tv;
+    if (DeviceTypeHelper.isWatch(type)) return Watch;
+    if (DeviceTypeHelper.isOther(type)) return HelpCircle;
     return Monitor;
   };
 
   const formatTimeAgo = (date: string) => {
     const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
     
-    if (seconds < 60) return 'Vừa xong';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} phút trước`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} giờ trước`;
-    return `${Math.floor(seconds / 86400)} ngày trước`;
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
   };
 
-  if (loading) {
+  if (loading && sessions.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -112,11 +133,29 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Sessions</h2>
-          <p className="text-sm text-gray-600">
-            Quản lý các phiên đăng nhập đang hoạt động
+          <h2 className="text-xl font-bold text-gray-900">User Sessions</h2>
+          <p className="text-sm text-gray-500">
+            Manage active login sessions and device access
           </p>
         </div>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Session
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <UserSessionForm 
+              userId={userId}
+              onSuccess={() => {
+                setIsCreateOpen(false);
+                fetchSessions();
+              }}
+              onCancel={() => setIsCreateOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats */}
@@ -141,7 +180,7 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
               <Monitor className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tổng Sessions</p>
+              <p className="text-sm text-gray-600">Total Sessions</p>
               <p className="text-2xl font-bold text-gray-900">{sessions.length}</p>
             </div>
           </div>
@@ -156,8 +195,9 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
               <p className="text-sm text-gray-600">Expiring Soon</p>
               <p className="text-2xl font-bold text-gray-900">
                 {sessions.filter((s) => {
+                  if (!s.expires_at) return false;
                   const hoursLeft = (new Date(s.expires_at).getTime() - Date.now()) / (1000 * 60 * 60);
-                  return hoursLeft < 24;
+                  return hoursLeft < 24 && hoursLeft > 0;
                 }).length}
               </p>
             </div>
@@ -170,19 +210,19 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Thiết bị</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead>Hoạt động gần nhất</TableHead>
-              <TableHead>Hết hạn</TableHead>
-              <TableHead className="text-right">Hành động</TableHead>
+              <TableHead>Device / Token</TableHead>
+              <TableHead>Location / IP</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Activity</TableHead>
+              <TableHead>Expires</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sessions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-12 text-gray-500">
-                  Không có session nào
+                  No sessions found
                 </TableCell>
               </TableRow>
             ) : (
@@ -203,8 +243,8 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
                           <p className="font-semibold text-gray-900">
                             {session.device_name || session.browser || 'Unknown Device'}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            {session.os || 'Unknown OS'}
+                          <p className="text-xs text-gray-500 font-mono truncate max-w-[150px]" title={session.session_token}>
+                            {session.session_token.substring(0, 12)}...
                           </p>
                         </div>
                       </div>
@@ -249,29 +289,52 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
                       <div>
                         <p className="text-sm text-gray-900">
                           {session.expires_at 
-                            ? new Date(session.expires_at).toLocaleDateString('vi-VN')
-                            : '-'
+                            ? new Date(session.expires_at).toLocaleDateString()
+                            : 'Never'
                           }
                         </p>
-                        {isExpiringSoon && (
+                        {isExpiringSoon && session.is_active && (
                           <Badge className="bg-orange-100 text-orange-800 text-xs mt-1">
                             <AlertCircle className="w-3 h-3 mr-1" />
-                            Sắp hết hạn
+                            Expiring
                           </Badge>
                         )}
                       </div>
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRevokeSession(session._id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Thu hồi
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingSession(session)}
+                          title="Edit Session"
+                        >
+                          <Edit className="w-4 h-4 text-gray-600" />
+                        </Button>
+                        
+                        {session.is_active ? (
+                           <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleRevokeSession(session._id)}
+                            title="Revoke Session"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            <Shield className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteSession(session._id)}
+                            title="Delete Permanently"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -281,19 +344,22 @@ export function UserSessionsTab({ userId }: UserSessionsTabProps) {
         </Table>
       </Card>
 
-      {/* Info */}
-      <Card className="p-4 bg-blue-50 border-blue-200">
-        <div className="flex items-start gap-3">
-          <Globe className="w-5 h-5 text-blue-600 mt-0.5" />
-          <div>
-            <h4 className="font-semibold text-blue-900 mb-1">Lưu ý bảo mật</h4>
-            <p className="text-sm text-blue-800">
-              Nếu bạn thấy session không quen thuộc, hãy thu hồi ngay lập tức và thay đổi mật khẩu.
-              Các session sẽ tự động hết hạn sau 7 ngày không hoạt động.
-            </p>
-          </div>
-        </div>
-      </Card>
+      {/* Edit Modal */}
+      <Dialog open={!!editingSession} onOpenChange={(open) => !open && setEditingSession(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {editingSession && (
+             <UserSessionForm 
+              initialData={editingSession}
+              isEdit={true}
+              onSuccess={() => {
+                setEditingSession(null);
+                fetchSessions();
+              }}
+              onCancel={() => setEditingSession(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

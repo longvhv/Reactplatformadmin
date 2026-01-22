@@ -2,7 +2,7 @@
  * TenantLocationsTab Component
  * Tab cho tenant detail page - hiển thị location types và locations của tenant
  * 
- * ✅ REWRITTEN 2026-01-14: Use new interfaces with 11+18 fields, manage both types & locations
+ * ✅ REWRITTEN 2026-01-20: Added LocationModal integration and full CRUD support
  */
 
 import React, { useState, useEffect } from 'react';
@@ -21,21 +21,21 @@ import { useLocationTypes } from '../../hooks/useLocationTypes';
 import { useLocations } from '../../hooks/useLocations';
 import {
   LocationType,
-  ExtraFieldDefinition,
-  formatCode,
 } from '../../api/locationTypesApi';
 import {
   Location,
-  LocationStatus,
   LocationWithRelations,
   getStatusColor,
   formatAddress,
   formatCoordinates,
+  CreateLocationRequest,
+  UpdateLocationRequest
 } from '../../api/locationsApi';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner@2.0.3';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { toast } from 'sonner';
+import { LocationModal } from '../locations/LocationModal';
 
 interface TenantLocationsTabProps {
   tenantId: string;
@@ -94,9 +94,6 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
     createLocation,
     updateLocation,
     deleteLocation,
-    activateLocation,
-    deactivateLocation,
-    closeLocation,
     setAsHeadquarters,
     buildTree,
     getStats,
@@ -111,6 +108,10 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
     by_status: { ACTIVE: 0, INACTIVE: 0, CLOSED: 0 },
     headquarters: 0,
   });
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | undefined>(undefined);
 
   useEffect(() => {
     const loadData = async () => {
@@ -134,8 +135,22 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
     setExpandedIds(newExpanded);
   };
 
+  const handleCreate = () => {
+    if (locationTypes.length === 0) {
+      toast.error('Vui lòng tạo ít nhất một Loại địa điểm trước.');
+      return;
+    }
+    setSelectedLocation(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (loc: Location) => {
+    setSelectedLocation(loc);
+    setIsModalOpen(true);
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc muốn xóa địa điểm này?')) return;
+    if (!confirm('Bạn có chắc muốn xóa địa điểm này? Hành động này không thể hoàn tác.')) return;
     try {
       await deleteLocation(id);
       toast.success('Đã xóa địa điểm');
@@ -153,6 +168,22 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
     }
   };
 
+  const handleModalSubmit = async (data: CreateLocationRequest | UpdateLocationRequest, id?: string) => {
+    try {
+      if (id) {
+        await updateLocation(id, data as UpdateLocationRequest);
+        toast.success('Đã cập nhật địa điểm');
+      } else {
+        await createLocation(data as CreateLocationRequest);
+        toast.success('Đã tạo địa điểm mới');
+      }
+      setIsModalOpen(false);
+    } catch (error: any) {
+      // Error handling is done in modal
+      throw error;
+    }
+  };
+
   const renderLocationNode = (loc: LocationWithRelations, level: number = 0) => {
     const hasChildren = loc.children && loc.children.length > 0;
     const isExpanded = expandedIds.has(loc._id);
@@ -161,7 +192,7 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
     return (
       <div key={loc._id}>
         <div
-          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
           style={{ marginLeft: level > 0 ? `${level * 24}px` : '0' }}
         >
           <div className="w-6 flex-shrink-0">
@@ -187,8 +218,8 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
             <div className="flex items-center gap-2">
               <p className="font-semibold text-gray-900 dark:text-white">{loc.name}</p>
               {loc.code && (
-                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                  ({loc.code})
+                <span className="text-xs font-mono text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 px-1 rounded">
+                  {loc.code}
                 </span>
               )}
               {loc.is_headquarter && (
@@ -208,26 +239,26 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
             </div>
             <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
               {loc.address && Object.keys(loc.address).length > 0 && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" title={formatAddress(loc.address)}>
                   <MapPin className="w-3 h-3" />
                   <span className="truncate max-w-xs">{formatAddress(loc.address)}</span>
                 </div>
               )}
               {loc.coordinates && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 hidden md:flex">
                   <MapPin className="w-3 h-3" />
                   <span>{formatCoordinates(loc.coordinates)}</span>
                 </div>
               )}
               {loc.timezone && (
-                <div>
+                <div className="hidden md:block">
                   <span>🌍 {loc.timezone}</span>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             {!loc.is_headquarter && (
               <Button
                 variant="ghost"
@@ -238,6 +269,14 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
                 <Star className="w-4 h-4" />
               </Button>
             )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(loc)}
+              title="Chỉnh sửa"
+            >
+              <Edit2 className="w-4 h-4 text-gray-500 hover:text-indigo-600" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -269,6 +308,15 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
 
   return (
     <div className="space-y-6">
+      {/* Header Actions */}
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white">Danh sách địa điểm</h3>
+        <Button onClick={handleCreate}>
+          <Plus className="w-4 h-4 mr-2" />
+          Thêm địa điểm
+        </Button>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4">
@@ -332,6 +380,10 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
             <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
               Tạo loại địa điểm trước, sau đó tạo địa điểm
             </p>
+            <Button variant="outline" className="mt-4" onClick={handleCreate}>
+              <Plus className="w-4 h-4 mr-2" />
+              Tạo địa điểm ngay
+            </Button>
           </div>
         ) : (
           <div className="space-y-2">
@@ -339,6 +391,17 @@ function LocationsPanel({ tenantId }: { tenantId: string }) {
           </div>
         )}
       </Card>
+
+      {/* Modal */}
+      <LocationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleModalSubmit}
+        editData={selectedLocation}
+        tenantId={tenantId}
+        locationTypes={locationTypes.filter(t => t.is_active)} // Only active types
+        parentOptions={locations} // Pass all locations as potential parents
+      />
     </div>
   );
 }
@@ -349,8 +412,6 @@ function LocationTypesPanel({ tenantId }: { tenantId: string }) {
   const {
     locationTypes,
     loading,
-    createLocationType,
-    updateLocationType,
     deleteLocationType,
     activateLocationType,
     deactivateLocationType,

@@ -35,11 +35,11 @@ import {
   isExpiringSoon,
   formatExpiryText,
   getDaysUntilExpiry,
-} from '@/api/tenantApplicationsApi';
-import { formatDate } from '@/lib/format';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+} from '../../api/tenantApplicationsApi';
+import { formatDate } from '../../lib/format';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { toast } from 'sonner@2.0.3';
 import { TenantApplicationModal } from './TenantApplicationModal';
 import { EditTenantApplicationModal } from './EditTenantApplicationModal';
@@ -95,23 +95,25 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
 
   const handleActivate = async (app: TenantApplication) => {
     try {
-      await tenantApplicationsApi.activate(app._id);
+      await tenantApplicationsApi.activate(app._id, app.version);
       toast.success(`Đã kích hoạt ${app.app_code}`);
       loadApplications();
     } catch (error: any) {
       console.error('Failed to activate application:', error);
       toast.error('Không thể kích hoạt: ' + error.message);
+      loadApplications(); // Reload to get new version if conflict
     }
   };
 
   const handleDeactivate = async (app: TenantApplication) => {
     try {
-      await tenantApplicationsApi.deactivate(app._id);
+      await tenantApplicationsApi.deactivate(app._id, app.version);
       toast.success(`Đã vô hiệu hóa ${app.app_code}`);
       loadApplications();
     } catch (error: any) {
       console.error('Failed to deactivate application:', error);
       toast.error('Không thể vô hiệu hóa: ' + error.message);
+      loadApplications();
     }
   };
 
@@ -119,12 +121,13 @@ export const TenantApplicationsTab: React.FC<TenantApplicationsTabProps> = ({ te
     if (!confirm(`Bạn có chắc muốn xóa ứng dụng ${app.app_code}?`)) return;
 
     try {
-      await tenantApplicationsApi.delete(app._id);
+      await tenantApplicationsApi.delete(app._id, undefined, app.version);
       toast.success('Đã xóa ứng dụng');
       loadApplications();
     } catch (error: any) {
       console.error('Failed to delete application:', error);
       toast.error('Không thể xóa: ' + error.message);
+      loadApplications();
     }
   };
 

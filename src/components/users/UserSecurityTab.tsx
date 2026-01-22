@@ -15,12 +15,12 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { toast } from 'sonner';
-import { usersApi } from '@/api/usersApi';
+import { usersApi } from '../../api/usersApi';
 
 interface UserSecurityTabProps {
   userId: string;
@@ -39,6 +39,17 @@ export function UserSecurityTab({ userId, user }: UserSecurityTabProps) {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isTogglingMFA, setIsTogglingMFA] = useState(false);
+  
+  // ✅ Safe navigation - handle undefined user
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <p className="text-gray-500">Loading user data...</p>
+        </div>
+      </div>
+    );
+  }
   
   const mfaEnabled = user.mfa_enabled || false;
   const isVerified = user.is_verified || user.email_verified || false;

@@ -1,6 +1,7 @@
 /**
  * TenantDetailView Component
- * Hiển thị chi tiết overview của tenant
+ * Displays comprehensive tenant details including profile, settings, and infrastructure
+ * ✅ Aligned with tenants table schema and EnhancedTenantForm
  */
 
 import { useState } from 'react';
@@ -12,24 +13,33 @@ import {
   CreditCard,
   Calendar,
   Settings,
-  Edit,
   GitBranch,
   Clock,
-  Database
+  Database,
+  Mail,
+  Phone,
+  User,
+  Briefcase,
+  Handshake,
+  HardDrive,
+  Users
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import type { Tenant } from '@/data/tenants';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
+import type { Tenant } from '../../api/tenantsApi';
+import { useLanguage } from '../../providers/LanguageProvider';
 
 interface TenantDetailViewProps {
   tenant: Tenant;
 }
 
 export function TenantDetailView({ tenant }: TenantDetailViewProps) {
+  const { t } = useLanguage();
   const [showRawData, setShowRawData] = useState(false);
 
-  // Parse JSONB fields
+  // Parse JSONB fields (handle both string and object)
   const profile = typeof tenant.profile === 'string' 
     ? JSON.parse(tenant.profile) 
     : tenant.profile || {};
@@ -38,308 +48,384 @@ export function TenantDetailView({ tenant }: TenantDetailViewProps) {
     ? JSON.parse(tenant.settings)
     : tenant.settings || {};
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'bg-green-100 text-green-800 border-green-200';
+      case 'TRIAL': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'SUSPENDED': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'CANCELLED': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'FREE': return 'border-gray-300 text-gray-700';
+      case 'PRO': return 'border-blue-300 text-blue-700 bg-blue-50';
+      case 'ENTERPRISE': return 'border-purple-300 text-purple-700 bg-purple-50';
+      case 'PARTNER_ELITE': return 'border-amber-300 text-amber-700 bg-amber-50';
+      default: return 'border-gray-300 text-gray-700';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Tổng quan Tenant</h2>
-        <p className="text-sm text-gray-600">
-          Thông tin chi tiết và cấu hình của tenant
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('tenants.overview') || 'Tenant Overview'}</h2>
+        <p className="text-sm text-gray-500">
+          {t('tenants.overviewDescription') || 'Detailed information and configuration of the tenant'}
         </p>
       </div>
 
       {/* Basic Info */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 rounded-lg bg-indigo-50">
-            <Building2 className="w-6 h-6 text-indigo-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Thông tin cơ bản</h3>
-            <p className="text-sm text-gray-500">Định danh và cấu hình chính</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Tên Tenant</label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.name}</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Code (Subdomain)</label>
-            <p className="text-sm font-mono font-semibold text-gray-900 mt-1">
-              {tenant.code}
-            </p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Tier</label>
-            <div className="mt-1">
-              <Badge variant="outline" className="font-semibold">
-                {tenant.tier}
-              </Badge>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-50">
+              <Building2 className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <CardTitle className="text-base">{t('tenants.basicInformation') || 'Basic Information'}</CardTitle>
+              <CardDescription>{t('tenants.identityAndStatus') || 'Identity and status'}</CardDescription>
             </div>
           </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Status</label>
-            <div className="mt-1">
-              <Badge className={
-                tenant.status === 'active' ? 'bg-green-100 text-green-800' :
-                tenant.status === 'trial' ? 'bg-blue-100 text-blue-800' :
-                tenant.status === 'suspended' ? 'bg-orange-100 text-orange-800' :
-                'bg-gray-100 text-gray-800'
-              }>
-                {tenant.status}
-              </Badge>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.name') || 'Tenant Name'}</label>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.name}</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.code') || 'Code (Subdomain)'}</label>
+              <p className="text-sm font-mono font-semibold text-gray-900 mt-1 bg-gray-50 inline-block px-2 py-0.5 rounded">
+                {tenant.code}
+              </p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.tier') || 'Tier'}</label>
+              <div className="mt-1">
+                <Badge variant="outline" className={`font-semibold ${getTierColor(tenant.tier)}`}>
+                  {tenant.tier}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.status') || 'Status'}</label>
+              <div className="mt-1">
+                <Badge variant="outline" className={getStatusColor(tenant.status)}>
+                  {tenant.status}
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
+        </CardContent>
       </Card>
 
       {/* Infrastructure & Compliance */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 rounded-lg bg-purple-50">
-            <Globe className="w-6 h-6 text-purple-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Hạ tầng & Tuân thủ</h3>
-            <p className="text-sm text-gray-500">Vùng dữ liệu và yêu cầu tuân thủ</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              Data Region
-            </label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.data_region}</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
-              <Shield className="w-3 h-3" />
-              Compliance Level
-            </label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.compliance_level}</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
-              <CreditCard className="w-3 h-3" />
-              Billing Type
-            </label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.billing_type}</p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              Timezone
-            </label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.timezone}</p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Profile (JSONB) */}
-      {Object.keys(profile).length > 0 && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-green-50">
-                <Building2 className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Thông tin doanh nghiệp</h3>
-                <p className="text-sm text-gray-500">Hồ sơ và thông tin liên hệ</p>
-              </div>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-50">
+              <Globe className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <CardTitle className="text-base">{t('tenants.infrastructure') || 'Infrastructure & Compliance'}</CardTitle>
+              <CardDescription>{t('tenants.regionAndCompliance') || 'Data region and compliance requirements'}</CardDescription>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {profile.company_name && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Tên công ty</label>
-                <p className="text-sm font-semibold text-gray-900 mt-1">{profile.company_name}</p>
-              </div>
-            )}
-            {profile.tax_code && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Mã số thuế</label>
-                <p className="text-sm font-mono font-semibold text-gray-900 mt-1">{profile.tax_code}</p>
-              </div>
-            )}
-            {profile.industry && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Ngành nghề</label>
-                <p className="text-sm font-semibold text-gray-900 mt-1">{profile.industry}</p>
-              </div>
-            )}
-            {profile.size && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Quy mô</label>
-                <p className="text-sm font-semibold text-gray-900 mt-1">{profile.size}</p>
-              </div>
-            )}
-            {profile.website && (
-              <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">Website</label>
-                <a 
-                  href={profile.website} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-sm font-semibold text-indigo-600 hover:underline mt-1 block"
-                >
-                  {profile.website}
-                </a>
-              </div>
-            )}
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                {t('tenants.dataRegion') || 'Data Region'}
+              </label>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.data_region}</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                {t('tenants.complianceLevel') || 'Compliance Level'}
+              </label>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.compliance_level}</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <CreditCard className="w-3 h-3" />
+                {t('tenants.billingType') || 'Billing Type'}
+              </label>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.billing_type}</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {t('tenants.timezone') || 'Timezone'}
+              </label>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{tenant.timezone}</p>
+            </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Profile Information */}
+      {Object.keys(profile).length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-50">
+                <Briefcase className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <CardTitle className="text-base">{t('tenants.profile') || 'Profile Information'}</CardTitle>
+                <CardDescription>{t('tenants.contactAndBusiness') || 'Contact and business details'}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {profile.billing_email && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Mail className="w-3 h-3" />
+                    {t('tenants.billingEmail') || 'Billing Email'}
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.billing_email}</p>
+                </div>
+              )}
+              {profile.phone && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {t('tenants.phone') || 'Phone'}
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.phone}</p>
+                </div>
+              )}
+              {profile.domain && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Globe className="w-3 h-3" />
+                    {t('tenants.domain') || 'Domain'}
+                  </label>
+                  <a 
+                    href={`https://${profile.domain}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm font-semibold text-indigo-600 hover:underline mt-1 block"
+                  >
+                    {profile.domain}
+                  </a>
+                </div>
+              )}
+              {profile.contact_person && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    {t('tenants.contactPerson') || 'Contact Person'}
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.contact_person}</p>
+                </div>
+              )}
+              {profile.tax_id && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.taxId') || 'Tax ID'}</label>
+                  <p className="text-sm font-mono font-semibold text-gray-900 mt-1">{profile.tax_id}</p>
+                </div>
+              )}
+              {profile.industry && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.industry') || 'Industry'}</label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.industry}</p>
+                </div>
+              )}
+              {profile.company_size && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.companySize') || 'Company Size'}</label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.company_size}</p>
+                </div>
+              )}
+              {profile.country && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.country') || 'Country'}</label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.country}</p>
+                </div>
+              )}
+              {profile.address && (
+                <div className="md:col-span-2 lg:col-span-3">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    {t('tenants.address') || 'Address'}
+                  </label>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">{profile.address}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
         </Card>
       )}
 
-      {/* Settings (JSONB) */}
-      {Object.keys(settings).length > 0 && (
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
+      {/* Hierarchy */}
+      {(tenant.parent_tenant_id || tenant.partner_tenant_id) && (
+        <Card>
+          <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-lg bg-blue-50">
-                <Settings className="w-6 h-6 text-blue-600" />
+              <div className="p-2 rounded-lg bg-orange-50">
+                <GitBranch className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Cấu hình hệ thống</h3>
-                <p className="text-sm text-gray-500">Thiết lập và tính năng</p>
+                <CardTitle className="text-base">{t('tenants.hierarchy') || 'Hierarchy'}</CardTitle>
+                <CardDescription>{t('tenants.relationships') || 'Parent and partner relationships'}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {tenant.parent_tenant_id && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.parentTenant') || 'Parent Tenant ID'}</label>
+                  <p className="text-sm font-mono font-semibold text-gray-900 mt-1">
+                    {tenant.parent_tenant_id}
+                  </p>
+                  {tenant.path && (
+                    <div className="mt-2">
+                      <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.path') || 'Path'}</label>
+                      <p className="text-xs font-mono text-gray-600 mt-1 bg-gray-50 p-1.5 rounded border border-gray-100">{tenant.path}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {tenant.partner_tenant_id && (
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Handshake className="w-3 h-3" />
+                    {t('tenants.partnerTenant') || 'Partner Tenant ID'}
+                  </label>
+                  <p className="text-sm font-mono font-semibold text-gray-900 mt-1">
+                    {tenant.partner_tenant_id}
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Settings & Configuration */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-50">
+                <Settings className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-base">{t('tenants.systemConfiguration') || 'System Configuration'}</CardTitle>
+                <CardDescription>{t('tenants.settingsAndFeatures') || 'Settings and features'}</CardDescription>
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowRawData(!showRawData)}
+              className="text-xs"
             >
-              <Database className="w-4 h-4 mr-2" />
-              {showRawData ? 'Ẩn JSON' : 'Xem JSON'}
+              <Database className="w-3 h-3 mr-1.5" />
+              {showRawData ? (t('common.hideJson') || 'Hide JSON') : (t('common.viewJson') || 'View JSON')}
             </Button>
           </div>
-
+        </CardHeader>
+        <CardContent>
           {showRawData ? (
-            <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-auto max-h-96">
+            <pre className="bg-gray-50 p-4 rounded-lg text-xs overflow-auto max-h-96 font-mono text-gray-700">
               {JSON.stringify(settings, null, 2)}
             </pre>
           ) : (
-            <div className="space-y-4">
-              {settings.security && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Bảo mật</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {settings.security.mfa_required !== undefined && (
-                      <div className="flex items-center gap-2">
-                        <Badge variant={settings.security.mfa_required ? 'default' : 'secondary'}>
-                          MFA: {settings.security.mfa_required ? 'Bắt buộc' : 'Tùy chọn'}
-                        </Badge>
-                      </div>
-                    )}
-                    {settings.security.session_timeout && (
-                      <div className="text-sm">
-                        <span className="text-gray-600">Session:</span>{' '}
-                        <span className="font-semibold">{settings.security.session_timeout}s</span>
-                      </div>
-                    )}
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {t('tenants.users') || 'Users'}
+                  </label>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="text-lg font-semibold text-gray-900">{settings.current_users || 0}</span>
+                    <span className="text-sm text-gray-500">/ {settings.max_users || 'Unlimited'}</span>
                   </div>
                 </div>
-              )}
-
-              {settings.features && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Tính năng</h4>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                    <HardDrive className="w-3 h-3" />
+                    {t('tenants.storage') || 'Storage'}
+                  </label>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="text-lg font-semibold text-gray-900">{settings.current_storage || 0} GB</span>
+                    <span className="text-sm text-gray-500">/ {settings.max_storage || 'Unlimited'} GB</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.security') || 'Security'}</label>
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className={`w-2 h-2 rounded-full ${settings.mfa_enforced ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className="text-gray-700">MFA Enforced</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className={`w-2 h-2 rounded-full ${settings.sso_enabled ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className="text-gray-700">SSO Enabled</span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">{t('tenants.features') || 'Features'}</label>
+                  <div className="mt-1 space-y-1">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className={`w-2 h-2 rounded-full ${settings.custom_branding ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className="text-gray-700">Custom Branding</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className={`w-2 h-2 rounded-full ${settings.api_access ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                      <span className="text-gray-700">API Access</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {settings.features && Array.isArray(settings.features) && settings.features.length > 0 && (
+                <div className="pt-4 border-t border-gray-100">
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-2">{t('tenants.additionalFeatures') || 'Additional Features'}</label>
                   <div className="flex flex-wrap gap-2">
-                    {Object.entries(settings.features).map(([key, value]) => (
-                      <Badge 
-                        key={key} 
-                        variant={value ? 'default' : 'secondary'}
-                        className="capitalize"
-                      >
-                        {key.replace(/_/g, ' ')}: {value ? '✓' : '✗'}
+                    {settings.features.map((feature: string, index: number) => (
+                      <Badge key={index} variant="secondary" className="capitalize">
+                        {feature.replace(/_/g, ' ')}
                       </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {settings.quotas && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Hạn mức</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {Object.entries(settings.quotas).map(([key, value]) => (
-                      <div key={key} className="text-sm">
-                        <span className="text-gray-600 capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                        <span className="font-semibold">{String(value)}</span>
-                      </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
           )}
-        </Card>
-      )}
-
-      {/* Hierarchy */}
-      {tenant.parent_tenant_id && (
-        <Card className="p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 rounded-lg bg-orange-50">
-              <GitBranch className="w-6 h-6 text-orange-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Phân cấp</h3>
-              <p className="text-sm text-gray-500">Quan hệ cha - con</p>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Parent Tenant ID</label>
-            <p className="text-sm font-mono font-semibold text-gray-900 mt-1">
-              {tenant.parent_tenant_id}
-            </p>
-            {tenant.path && (
-              <>
-                <label className="text-xs font-medium text-gray-500 uppercase mt-3 block">Path</label>
-                <p className="text-sm font-mono text-gray-900 mt-1">{tenant.path}</p>
-              </>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {/* Metadata */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 rounded-lg bg-gray-50">
-            <Calendar className="w-6 h-6 text-gray-600" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Metadata</h3>
-            <p className="text-sm text-gray-500">Thông tin hệ thống</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Created At</label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">
-              {new Date(tenant.created_at).toLocaleString('vi-VN')}
-            </p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Updated At</label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">
-              {new Date(tenant.updated_at).toLocaleString('vi-VN')}
-            </p>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 uppercase">Version</label>
-            <p className="text-sm font-semibold text-gray-900 mt-1">v{tenant.version}</p>
-          </div>
-        </div>
+        </CardContent>
       </Card>
+
+      {/* Metadata Footer */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-500 bg-gray-50 p-4 rounded-lg border border-gray-100">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-3.5 h-3.5" />
+          <span>Created: {new Date(tenant.created_at).toLocaleString()}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock className="w-3.5 h-3.5" />
+          <span>Updated: {new Date(tenant.updated_at).toLocaleString()}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <GitBranch className="w-3.5 h-3.5" />
+          <span>Version: {tenant.version}</span>
+        </div>
+      </div>
     </div>
   );
 }

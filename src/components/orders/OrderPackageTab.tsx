@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Package, Code } from 'lucide-react';
-import { OrderWithDetails, formatCurrency } from '@/api/ordersApi';
+import { OrderWithDetails, formatCurrency } from '../../api/ordersApi';
 
 interface OrderPackageTabProps {
   order: OrderWithDetails;

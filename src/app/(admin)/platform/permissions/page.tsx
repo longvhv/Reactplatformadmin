@@ -6,20 +6,20 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useApplications } from '@/hooks/useApplications';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { usePermissions } from '../../../../hooks/usePermissions';
+import { useApplications } from '../../../../hooks/useApplications';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
+} from '../../../../components/ui/select';
+import { Card } from '../../../../components/ui/card';
 import {
   Shield,
   Plus,
@@ -36,10 +36,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { showToast } from '@/lib/toast';
-import { Permission } from '@/api/permissionsApi';
+} from '../../../../components/ui/dropdown-menu';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
+import { showToast } from '../../../../lib/toast';
+import { Permission } from '../../../../api/permissionsApi';
 
 export default function PermissionsPage() {
   const router = useRouter();

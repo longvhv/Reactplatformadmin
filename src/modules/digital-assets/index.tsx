@@ -11,16 +11,16 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Image } from 'lucide-react';
 
 const DigitalAssetsPage = lazy(() => 
-  import('../../app/(admin)/commerce/digital-assets/page')
+  import('../../app/(admin)/commerce/digital-assets/page').then(m => ({ default: m.default }))
 );
 const DigitalAssetDetailPage = lazy(() => 
-  import('../../app/(admin)/commerce/digital-assets/[id]/page')
+  import('../../app/(admin)/commerce/digital-assets/[id]/page').then(m => ({ default: m.default }))
 );
 const AddTenantDigitalAssetPage = lazy(() => 
-  import('../../app/(admin)/content/digital-assets/add/page')
+  import('../../app/(admin)/content/digital-assets/add/page').then(m => ({ default: m.default }))
 );
 const EditTenantDigitalAssetPage = lazy(() => 
-  import('../../app/(admin)/content/digital-assets/edit/[id]/page')
+  import('../../app/(admin)/content/digital-assets/edit/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const DigitalAssetsModule: ModuleDefinition = {
@@ -88,3 +88,5 @@ export const DigitalAssetsModule: ModuleDefinition = {
     console.log('🧹 Digital Assets module cleaned up');
   },
 };
+
+export default DigitalAssetsModule;

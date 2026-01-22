@@ -12,25 +12,25 @@ import {
   Smartphone, Mail, KeyRound, CheckCircle2, XCircle,
   Clock, Star
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { LinkedIdentityDialog } from './LinkedIdentityDialog';
 import { MFAMethodDialog } from './MFAMethodDialog';
 import { 
   userLinkedIdentitiesApi, 
   UserLinkedIdentity, 
   IdentityProvider 
-} from '@/api/userLinkedIdentitiesApi';
+} from '../../api/userLinkedIdentitiesApi';
 import {
   userMfaMethodsApi,
   UserMfaMethod,
   MfaMethodType
-} from '@/api/userMfaMethodsApi';
+} from '../../api/userMfaMethodsApi';
 import { 
   IDENTITY_PROVIDERS as UI_IDENTITY_PROVIDERS, 
   IDENTITY_STATUSES as UI_IDENTITY_STATUSES, 
   MFA_METHOD_TYPES, 
   MFA_STATUSES 
-} from '@/data/user-auth-methods';
+} from '../../data/user-auth-methods';
 import { toast } from 'sonner@2.0.3';
 
 interface UserAuthMethodsTabProps {

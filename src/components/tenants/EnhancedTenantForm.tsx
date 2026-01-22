@@ -15,26 +15,26 @@ import {
   ArrowLeft, Save, Building2, Globe, Mail, Phone, Calendar, 
   Database, Users, Shield, MapPin, Clock, Settings, Handshake, CreditCard
 } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { TenantCombobox } from "@/components/common/TenantCombobox";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { Switch } from "../ui/switch";
+import { Textarea } from "../ui/textarea";
+import { TenantCombobox } from "../common/TenantCombobox";
 import { 
   Tenant, TenantStatus, TenantTier, BillingType, 
   DataRegion, ComplianceLevel 
-} from "@/data/tenants";
+} from "../../data/tenants";
 import {
   CreateSubscriptionRequest,
   SubscriptionStatus,
   BillingCycle,
   PaymentStatus,
-} from "@/api/tenantSubscriptionsApi";
+} from "../../api/tenantSubscriptionsApi";
 
 interface TenantFormProps {
   tenant?: Tenant | null;

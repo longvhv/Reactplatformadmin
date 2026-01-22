@@ -1,31 +1,25 @@
 /**
- * Enhanced User Form Component
- * Standardized form for creating/editing users
- * 
- * Compliant with users schema:
- * - email: varchar(255) NOT NULL, regex checked
- * - full_name: text NOT NULL
- * - phone_number: varchar(20) NULL, UNIQUE
- * - avatar_url: text NULL, regex checked
- * - status: 'ACTIVE' | 'BANNED' | 'DISABLED' | 'PENDING'
- * - locale: 'vi-VN' | 'en-US' ...
- * - metadata: jsonb NOT NULL
- * - is_verified, is_support_staff, mfa_enabled: boolean
+ * EnhancedUserForm Component
+ * Comprehensive user creation/editing form with tabs
+ * Features: Basic info, contact, security settings, preferences, metadata
  */
 
+'use client';
+
+import React from "react";
 import { useState, useEffect } from "react";
 import { Save, User as UserIcon, Mail, Phone, Globe, Shield, Lock, FileCode, AlertTriangle } from "lucide-react";
-import { useLanguage } from "@/providers/LanguageProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, CreateUserRequest, UpdateUserRequest, UserStatus, Locale, USER_STATUSES, LOCALES, usersApi } from "@/api/usersApi";
-import { showToast } from "@/lib/toast";
+import { useLanguage } from "../../providers/LanguageProvider";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
+import { Textarea } from "../ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { User, CreateUserRequest, UpdateUserRequest, UserStatus, Locale, USER_STATUSES, LOCALES } from "../../api/usersApi";
+import { showToast } from "../../lib/toast";
 
 interface EnhancedUserFormProps {
   initialData?: Partial<User>;
@@ -74,6 +68,7 @@ export function EnhancedUserForm({
         email: initialData.email || "",
         full_name: initialData.full_name || "",
         phone_number: initialData.phone_number || "",
+        password: "", // Never populate password
         avatar_url: initialData.avatar_url || "",
         status: initialData.status || "ACTIVE",
         is_support_staff: initialData.is_support_staff || false,
@@ -120,7 +115,7 @@ export function EnhancedUserForm({
 
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.email || newErrors.full_name || newErrors.phone_number) setActiveTab("general");
-      else if (newErrors.avatar_url) setActiveTab("profile");
+      else if (newErrors.avatar_url) setActiveTab("profile"); // Fallback if general
       else if (newErrors.metadata) setActiveTab("advanced");
       
       showToast.error("Lỗi xác thực", "Vui lòng kiểm tra lại thông tin");
@@ -137,21 +132,27 @@ export function EnhancedUserForm({
     try {
       const parsedMetadata = JSON.parse(metadataJson);
       
+      // Construct payload
       const submitData: any = {
         ...formData,
         metadata: parsedMetadata,
       };
 
-      // Remove password if empty or editing (unless explicitly changing password logic is added)
+      // Clean up fields
       if (isEdit || !submitData.password) {
         delete submitData.password;
       }
-
-      // Handle nullable fields
+      
+      // Handle empty optional fields
       if (!submitData.phone_number) delete submitData.phone_number;
       if (!submitData.avatar_url) delete submitData.avatar_url;
 
-      await onSubmit(submitData);
+      // Type cast to ensure compatibility with interface
+      if (isEdit) {
+        await onSubmit(submitData as UpdateUserRequest);
+      } else {
+        await onSubmit(submitData as CreateUserRequest);
+      }
     } catch (error: any) {
       console.error("Form submit error:", error);
       showToast.error("Lỗi", error.message || "Có lỗi xảy ra");
@@ -219,7 +220,7 @@ export function EnhancedUserForm({
                       onChange={(e) => handleChange("email", e.target.value)}
                       placeholder="user@example.com"
                       className={errors.email ? "border-destructive" : ""}
-                      disabled={isEdit} // Usually email changes require verifying logic
+                      disabled={isEdit} // Email acts as identifier, usually immutable
                     />
                   </div>
                   {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
@@ -247,7 +248,7 @@ export function EnhancedUserForm({
                       onValueChange={(value) => handleChange("locale", value)}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                      <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {LOCALES.map((loc) => (
@@ -271,13 +272,30 @@ export function EnhancedUserForm({
                   />
                   {errors.avatar_url && <p className="text-sm text-destructive">{errors.avatar_url}</p>}
                 </div>
+
+                {/* Password field for creation only */}
+                {!isEdit && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="password">Mật khẩu khởi tạo (Tùy chọn)</Label>
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type="password"
+                        value={formData.password || ""}
+                        onChange={(e) => handleChange("password", e.target.value)}
+                        placeholder="Để trống nếu muốn gửi email thiết lập mật khẩu"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {!isEdit && (
+              {!isEdit && !formData.password && (
                 <div className="bg-blue-50 p-4 rounded-md text-sm border border-blue-100 flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5" />
                   <div className="text-blue-700">
-                    <strong>Lưu ý:</strong> Mật khẩu khởi tạo sẽ được gửi qua email. Nếu cần thiết lập ngay, vui lòng sử dụng tính năng "Reset Password" sau khi tạo.
+                    <strong>Lưu ý:</strong> Nếu không nhập mật khẩu, hệ thống sẽ gửi email hướng dẫn thiết lập mật khẩu cho người dùng mới.
                   </div>
                 </div>
               )}

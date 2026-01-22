@@ -9,13 +9,9 @@
  * - currency_code: varchar(3) NOT NULL
  * - items_snapshot: jsonb NOT NULL
  * - billing_info: jsonb NOT NULL
- * - amounts: numeric(19,4) >= 0
+ * - subtotal_amount, tax_amount, discount_amount, credit_applied, total_amount: numeric >= 0
  * 
- * ✅ Features:
- * - Tenant selection (from API)
- * - Line Items Editor with dynamic metadata
- * - Auto-calculation of totals
- * - JSON Editor for Billing Info (with form fields helper)
+ * Note: subscription_orders table does NOT have a metadata column or subscription_id column.
  */
 
 import React, { useState, useEffect } from 'react';
@@ -26,19 +22,19 @@ import {
   LineItem, 
   BillingInfo, 
   OrderType 
-} from '@/api/ordersApi';
-import { tenantsApi, Tenant } from '@/api/tenantsApi';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
+} from '../../api/ordersApi';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { useLanguage } from '../../providers/LanguageProvider';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Textarea } from '../ui/textarea';
 import { Save, X, ShoppingCart, CreditCard, User } from 'lucide-react';
 import { LineItemsEditor } from './LineItemsEditor';
-import { showToast } from '@/lib/toast';
+import { showToast } from '../../lib/toast';
 
 interface EnhancedOrderFormProps {
   initialData?: Partial<Order>;
@@ -205,9 +201,10 @@ export function EnhancedOrderForm({
     if (!validateForm()) return;
 
     try {
+      // Ensure we use the correct fields for subscription_orders
       const submitData: any = {
         ...formData,
-        subtotal_amount: calculatedAmounts.subtotal,
+        subtotal_amount: calculatedAmounts.subtotal, // Mapped to subtotal_amount
         total_amount: calculatedAmounts.total,
         items_snapshot: items,
         billing_info: billingInfo,

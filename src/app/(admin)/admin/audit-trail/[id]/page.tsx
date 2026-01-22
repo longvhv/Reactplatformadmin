@@ -3,13 +3,13 @@
  * ✅ MIGRATED from /pages/admin/audit-trail/[id].tsx
  */
 'use client';
-import { Fragment, useState, useEffect } from 'react';
-import { useParams } from '@/components/shim/next-navigation';
-import { FileSearch } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { auditTrailApi } from '@/api/auditTrailApi';
-import { showToast } from '@/lib/toast';
+import { useState, useEffect } from 'react';
+import { useParams } from '../../../../../components/shim/next-navigation';
+import { Shield, ArrowLeft } from 'lucide-react';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { auditTrailApi } from '../../../../../api/auditTrailApi';
+import { showToast } from '../../../../../lib/toast';
 
 function AuditTrailDetailPage() {
   const params = useParams();

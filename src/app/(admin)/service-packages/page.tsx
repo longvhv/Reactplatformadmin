@@ -6,25 +6,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { Package2, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { showToast } from '@/lib/toast';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
-
-interface ServicePackage {
-  _id: string;
-  code: string;
-  name: string;
-  description?: string;
-  price?: number;
-  currency?: string;
-  is_active: boolean;
-  created_at?: string;
-}
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
+import { servicePackagesApi, ServicePackage } from '../../../../api/servicePackagesApi';
 
 function ServicePackagesPage() {
   const router = useRouter();
@@ -32,24 +21,11 @@ function ServicePackagesPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const baseUrl = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0`;
-
   const fetchServicePackages = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${baseUrl}/service-packages`, {
-        headers: {
-          'Authorization': `Bearer ${publicAnonKey}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch service packages');
-      }
-
-      const result = await response.json();
-      setServicePackages(result.data || []);
+      const data = await servicePackagesApi.getAll();
+      setServicePackages(data);
     } catch (error: any) {
       console.error('Error fetching service packages:', error);
       showToast.error('Lỗi', 'Không thể tải danh sách service packages');
@@ -63,8 +39,8 @@ function ServicePackagesPage() {
   }, []);
 
   const filteredPackages = servicePackages.filter(pkg =>
-    pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pkg.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pkg.package_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    pkg.package_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
     pkg.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -146,9 +122,9 @@ function ServicePackagesPage() {
                     {pkg.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-                <h3 className="font-semibold text-lg mb-1">{pkg.name}</h3>
+                <h3 className="font-semibold text-lg mb-1">{pkg.package_name}</h3>
                 <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                  {pkg.code}
+                  {pkg.package_code}
                 </code>
                 {pkg.description && (
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 mb-4 line-clamp-2">

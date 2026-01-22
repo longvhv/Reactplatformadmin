@@ -1,24 +1,23 @@
 /**
- * Order Detail Page
- * ✅ MIGRATED: Using Next.js shim for navigation
+ * Subscription Order Detail Page
+ * ✅ MIGRATED from /pages/commerce/subscription-orders/[id].tsx
  */
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { ShoppingCart, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ordersApi, Order } from '@/api/ordersApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
+import React, { useState, useEffect, Fragment } from 'react';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
+import { ShoppingCart, ArrowLeft, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { ordersApi, Order } from '../../../../../api/ordersApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../../components/ui/dropdown-menu';
 
 function OrderDetailPage() {
   const params = useParams();

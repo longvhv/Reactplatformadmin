@@ -1,14 +1,18 @@
 /**
  * useUserSessions Hook
  * React hook for managing user sessions
+ * 
+ * ✅ UPDATED: Sync with userSessionsApi
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner@2.0.3';
 import {
   userSessionsApi,
   UserSession,
   SessionFilters,
-  CreateSessionData,
+  CreateSessionRequest,
+  UpdateSessionRequest
 } from '../api/userSessionsApi';
 
 export function useUserSessions(filters?: SessionFilters) {
@@ -24,62 +28,88 @@ export function useUserSessions(filters?: SessionFilters) {
       const data = await userSessionsApi.getAll(filters);
       setSessions(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+      const msg = err instanceof Error ? err.message : 'Failed to load sessions';
+      setError(msg);
       console.error('Error fetching sessions:', err);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
   // Create session
-  const createSession = async (data: CreateSessionData): Promise<UserSession> => {
+  const createSession = useCallback(async (data: CreateSessionRequest): Promise<UserSession> => {
     try {
       const created = await userSessionsApi.create(data);
       await fetchSessions();
+      toast.success('Session created successfully');
       return created;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create session';
       setError(message);
+      toast.error(message);
       throw new Error(message);
     }
-  };
+  }, [fetchSessions]);
 
-  // Toggle lock
-  const toggleLock = async (id: string): Promise<void> => {
+  // Update session
+  const updateSession = useCallback(async (id: string, data: UpdateSessionRequest): Promise<UserSession> => {
     try {
-      await userSessionsApi.toggleLock(id);
+      const updated = await userSessionsApi.update(id, data);
       await fetchSessions();
+      toast.success('Session updated successfully');
+      return updated;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to toggle lock';
+      const message = err instanceof Error ? err.message : 'Failed to update session';
       setError(message);
+      toast.error(message);
       throw new Error(message);
     }
-  };
+  }, [fetchSessions]);
 
-  // Delete session
-  const deleteSession = async (id: string): Promise<void> => {
+  // Revoke session (Soft "lock")
+  const revokeSession = useCallback(async (id: string): Promise<UserSession> => {
+    try {
+      const revoked = await userSessionsApi.revokeSession(id);
+      await fetchSessions();
+      toast.success('Session revoked successfully');
+      return revoked;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to revoke session';
+      setError(message);
+      toast.error(message);
+      throw new Error(message);
+    }
+  }, [fetchSessions]);
+
+  // Delete session (Hard delete)
+  const deleteSession = useCallback(async (id: string): Promise<void> => {
     try {
       await userSessionsApi.delete(id);
       await fetchSessions();
+      toast.success('Session deleted successfully');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete session';
       setError(message);
+      toast.error(message);
       throw new Error(message);
     }
-  };
+  }, [fetchSessions]);
 
-  // Delete all inactive sessions
-  const deleteInactiveSessions = async (userId: string): Promise<number> => {
+  // Cleanup expired sessions
+  const cleanupExpired = useCallback(async (userId?: string): Promise<number> => {
     try {
-      const count = await userSessionsApi.deleteInactive(userId);
+      const count = await userSessionsApi.cleanupExpired(userId);
       await fetchSessions();
+      if (count > 0) toast.success(`Cleaned up ${count} expired sessions`);
       return count;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete sessions';
+      const message = err instanceof Error ? err.message : 'Failed to cleanup sessions';
       setError(message);
+      toast.error(message);
       throw new Error(message);
     }
-  };
+  }, [fetchSessions]);
 
   // Initial load
   useEffect(() => {
@@ -91,9 +121,10 @@ export function useUserSessions(filters?: SessionFilters) {
     loading,
     error,
     createSession,
-    toggleLock,
+    updateSession,
+    revokeSession,
     deleteSession,
-    deleteInactiveSessions,
+    cleanupExpired,
     refresh: fetchSessions,
   };
 }

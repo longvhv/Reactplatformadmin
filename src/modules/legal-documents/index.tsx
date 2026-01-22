@@ -42,3 +42,5 @@ export const LegalDocumentsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default LegalDocumentsModule;

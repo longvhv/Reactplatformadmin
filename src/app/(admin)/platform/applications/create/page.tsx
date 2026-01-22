@@ -5,14 +5,14 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Server } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { applicationsApi } from '@/api/applicationsApi';
-import { ApplicationForm } from '@/components/applications/ApplicationForm';
-import { showToast } from '@/lib/toast';
+import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { Plus } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { applicationsApi } from '../../../../../../api/applicationsApi';
+import { ApplicationForm } from '../../../../../../components/applications/ApplicationForm';
+import { showToast } from '../../../../../../lib/toast';
 
-function ApplicationFormPage() {
+function CreateApplicationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -30,11 +30,11 @@ function ApplicationFormPage() {
   };
 
   return (
-    <FormPageLayout mode="create" title="Create Application" description="Add a new application to the platform" icon={Server} backPath="/platform/applications" backLabel="Back">
+    <FormPageLayout mode="create" title="Create Application" description="Add a new application to the platform" icon={Plus} backPath="/platform/applications" backLabel="Back">
       <ApplicationForm onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/applications')} />
     </FormPageLayout>
   );
 }
 
-export { ApplicationFormPage };
-export default ApplicationFormPage;
+export { CreateApplicationPage };
+export default CreateApplicationPage;

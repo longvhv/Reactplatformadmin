@@ -8,7 +8,7 @@ import { AppWindow } from 'lucide-react';
  * ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
  */
 const ApplicationsPage = lazy(() =>
-  import('../../app/(admin)/platform/applications/page')
+  import('../../app/(admin)/platform/applications/page').then(m => ({ default: m.default }))
 );
 
 /**
@@ -53,3 +53,5 @@ export const ApplicationsModule: ModuleDefinition = {
     },
   ],
 };
+
+export default ApplicationsModule;

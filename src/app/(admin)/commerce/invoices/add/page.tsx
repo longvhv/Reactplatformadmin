@@ -3,17 +3,17 @@
  * ✅ MIGRATED from /pages/commerce/invoices/add.tsx
  */
 'use client';
-import { Fragment, useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { FileText, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { invoicesApi } from '@/api/invoicesApi';
-import { showToast } from '@/lib/toast';
+import { useState } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { DollarSign, Plus } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { invoicesApi } from '../../../../../api/invoicesApi';
+import { showToast } from '../../../../../lib/toast';
 
-function InvoicesAddPage() {
+function AddInvoicePage() {
   const router = useRouter();
   const [formData, setFormData] = useState({ invoice_number: '', amount: '', customer: '' });
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ function InvoicesAddPage() {
     }
   };
 
-  return <Fragment><PageLayout icon={FileText} title="Add Invoice" description="Create new invoice"><Card className="p-6"><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-sm font-medium mb-2">Invoice Number</label><Input value={formData.invoice_number} onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Amount</label><Input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Customer</label><Input value={formData.customer} onChange={(e) => setFormData({ ...formData, customer: e.target.value })} required /></div><div className="flex gap-2 pt-4"><Button type="submit" disabled={loading}><Save className="w-4 h-4 mr-2" />{loading ? 'Saving...' : 'Save'}</Button><Button type="button" variant="outline" onClick={() => router.push('/commerce/invoices')}>Cancel</Button></div></form></Card></PageLayout></Fragment>;
+  return <Fragment><PageLayout icon={DollarSign} title="Add Invoice" description="Create new invoice"><Card className="p-6"><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-sm font-medium mb-2">Invoice Number</label><Input value={formData.invoice_number} onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Amount</label><Input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Customer</label><Input value={formData.customer} onChange={(e) => setFormData({ ...formData, customer: e.target.value })} required /></div><div className="flex gap-2 pt-4"><Button type="submit" disabled={loading}><Plus className="w-4 h-4 mr-2" />{loading ? 'Saving...' : 'Save'}</Button><Button type="button" variant="outline" onClick={() => router.push('/commerce/invoices')}>Cancel</Button></div></form></Card></PageLayout></Fragment>;
 }
-export { InvoicesAddPage };
-export default InvoicesAddPage;
+export { AddInvoicePage };
+export default AddInvoicePage;

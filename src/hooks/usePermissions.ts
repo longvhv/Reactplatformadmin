@@ -158,17 +158,13 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
    */
   const createPermission = useCallback(
     async (data: CreatePermissionRequest): Promise<Permission> => {
-      if (!dataClient) {
-        throw new Error('DataClient not initialized');
-      }
-
       setError(null);
 
       try {
         console.log('[usePermissions] Creating permission:', data);
 
-        // Create using DataClient
-        const newPermission = await dataClient.create<Permission>('permissions', data);
+        // Use permissionsApi which handles UUID generation and versioning
+        const newPermission = await permissionsApi.create(data);
 
         console.log('[usePermissions] Permission created:', newPermission._id);
 
@@ -186,7 +182,7 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
         throw new Error(message);
       }
     },
-    [dataClient]
+    []
   );
 
   /**
@@ -194,32 +190,19 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
    */
   const updatePermission = useCallback(
     async (id: string, data: UpdatePermissionRequest): Promise<Permission> => {
-      if (!dataClient) {
-        throw new Error('DataClient not initialized');
-      }
-
       setError(null);
 
       try {
         console.log('[usePermissions] Updating permission:', id, data);
 
-        // Get current permission for version check
+        // Get current permission for version check (if available in local state)
         const currentPermission = permissions.find((p) => p._id === id);
-        if (!currentPermission) {
-          throw new Error('Permission not found in local state');
-        }
-
-        // Prepare update data (remove immutable fields)
-        const updateData: any = { ...data };
-        delete updateData._id;
-        delete updateData.created_at;
-        delete updateData.created_by;
         
-        // Include version for optimistic locking
-        updateData.version = currentPermission.version;
-
-        // Update using DataClient
-        const updatedPermission = await dataClient.update<Permission>('permissions', id, updateData);
+        // Use permissionsApi which handles version check
+        const updatedPermission = await permissionsApi.update(id, {
+          ...data,
+          version: currentPermission?.version // Pass version if we have it
+        });
 
         console.log('[usePermissions] Permission updated:', updatedPermission._id);
 
@@ -237,7 +220,7 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
         throw new Error(message);
       }
     },
-    [dataClient, permissions]
+    [permissions]
   );
 
   /**
@@ -245,17 +228,16 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
    */
   const deletePermission = useCallback(
     async (id: string): Promise<void> => {
-      if (!dataClient) {
-        throw new Error('DataClient not initialized');
-      }
-
       setError(null);
 
       try {
         console.log('[usePermissions] Deleting permission:', id);
 
-        // Delete using DataClient (soft delete)
-        await dataClient.delete('permissions', id);
+        // Get current permission for version check
+        const currentPermission = permissions.find((p) => p._id === id);
+
+        // Use permissionsApi which handles soft delete and version check
+        await permissionsApi.delete(id, undefined, currentPermission?.version);
 
         console.log('[usePermissions] Permission deleted:', id);
 
@@ -271,7 +253,7 @@ export function usePermissions(options: UsePermissionsOptions = {}) {
         throw new Error(message);
       }
     },
-    [dataClient]
+    [permissions]
   );
 
   /**

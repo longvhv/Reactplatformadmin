@@ -1,7 +1,8 @@
 /**
  * useNotificationTemplates Hook
  * Manages notification templates with CRUD operations and statistics
- * ✅ CREATED 2026-01-15: Complete hook implementation
+ * 
+ * ✅ REFACTORED 2026-01-20: Aligned with new strict schema API
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,7 +11,8 @@ import {
   NotificationTemplate, 
   CreateTemplateRequest, 
   UpdateTemplateRequest,
-  TemplateFilters 
+  TemplateFilters,
+  TemplateStatus
 } from '../api/notificationTemplateApi';
 
 export interface TemplateStats {
@@ -23,7 +25,7 @@ export interface TemplateStats {
     email: number;
     sms: number;
     push: number;
-    inApp: number;
+    'in-app': number;
     webhook: number;
   };
   totalUsage: number;
@@ -49,7 +51,7 @@ export function useNotificationTemplates(filters?: TemplateFilters) {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [JSON.stringify(filters)]);
 
   useEffect(() => {
     fetchTemplates();
@@ -58,11 +60,10 @@ export function useNotificationTemplates(filters?: TemplateFilters) {
   const createTemplate = async (data: CreateTemplateRequest): Promise<NotificationTemplate> => {
     try {
       const created = await notificationTemplateApi.create(data);
-      await fetchTemplates();
+      setTemplates(prev => [created, ...prev]);
       return created;
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to create template';
-      setError(errorMsg);
       throw new Error(errorMsg);
     }
   };
@@ -73,11 +74,10 @@ export function useNotificationTemplates(filters?: TemplateFilters) {
   ): Promise<NotificationTemplate> => {
     try {
       const updated = await notificationTemplateApi.update(id, data);
-      await fetchTemplates();
+      setTemplates(prev => prev.map(t => t._id === id ? updated : t));
       return updated;
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to update template';
-      setError(errorMsg);
       throw new Error(errorMsg);
     }
   };
@@ -85,40 +85,15 @@ export function useNotificationTemplates(filters?: TemplateFilters) {
   const deleteTemplate = async (id: string): Promise<void> => {
     try {
       await notificationTemplateApi.delete(id);
-      await fetchTemplates();
+      setTemplates(prev => prev.filter(t => t._id !== id));
     } catch (err: any) {
       const errorMsg = err.message || 'Failed to delete template';
-      setError(errorMsg);
       throw new Error(errorMsg);
     }
   };
 
   const getTemplateById = useCallback((id: string): NotificationTemplate | undefined => {
     return templates.find(t => t._id === id);
-  }, [templates]);
-
-  const getTemplateByCode = useCallback((code: string): NotificationTemplate | undefined => {
-    return templates.find(t => t.template_code === code);
-  }, [templates]);
-
-  const getActiveTemplates = useCallback((): NotificationTemplate[] => {
-    return templates.filter(t => t.status === 'active');
-  }, [templates]);
-
-  const getSystemTemplates = useCallback((): NotificationTemplate[] => {
-    return templates.filter(t => t.is_system_template);
-  }, [templates]);
-
-  const getEditableTemplates = useCallback((): NotificationTemplate[] => {
-    return templates.filter(t => t.is_editable !== false);
-  }, [templates]);
-
-  const getByType = useCallback((type: string): NotificationTemplate[] => {
-    return templates.filter(t => t.notification_type === type);
-  }, [templates]);
-
-  const getByCategory = useCallback((category: string): NotificationTemplate[] => {
-    return templates.filter(t => t.category === category);
   }, [templates]);
 
   const getStats = useCallback((): TemplateStats => {
@@ -132,7 +107,7 @@ export function useNotificationTemplates(filters?: TemplateFilters) {
       email: templates.filter(t => t.notification_type === 'email').length,
       sms: templates.filter(t => t.notification_type === 'sms').length,
       push: templates.filter(t => t.notification_type === 'push').length,
-      inApp: templates.filter(t => t.notification_type === 'in-app').length,
+      'in-app': templates.filter(t => t.notification_type === 'in-app').length,
       webhook: templates.filter(t => t.notification_type === 'webhook').length,
     };
 
@@ -155,133 +130,79 @@ export function useNotificationTemplates(filters?: TemplateFilters) {
     };
   }, [templates]);
 
-  const cloneTemplate = async (
-    sourceId: string, 
-    newCode: string, 
-    newName: string
-  ): Promise<NotificationTemplate> => {
+  const cloneTemplate = async (sourceId: string, newCode: string, newName: string): Promise<NotificationTemplate> => {
     try {
       const source = getTemplateById(sourceId);
-      if (!source) {
-        throw new Error('Source template not found');
-      }
+      if (!source) throw new Error('Source template not found');
 
-      const cloned = await createTemplate({
-        ...source,
-        _id: undefined as any,
+      // Prepare clone data based on CreateTemplateRequest
+      // We must omit system fields
+      const { 
+        _id, 
+        created_at, created_by, 
+        updated_at, updated_by, 
+        deleted_at, deleted_by,
+        version,
+        ...rest 
+      } = source;
+
+      const cloneData: CreateTemplateRequest = {
+        ...rest,
         template_code: newCode,
         template_name: newName,
         parent_template_id: sourceId,
         status: 'draft',
-        usage_count: undefined,
-        last_used_at: undefined,
-        success_count: undefined,
-        failure_count: undefined,
-        created_at: undefined as any,
-        updated_at: undefined as any,
-        version: undefined as any,
-      });
+        usage_count: 0,
+        success_count: 0,
+        failure_count: 0,
+        // Reset timestamps or let API handle default
+      };
 
+      const cloned = await createTemplate(cloneData);
       return cloned;
     } catch (err: any) {
-      const errorMsg = err.message || 'Failed to clone template';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    }
-  };
-
-  const validateCode = useCallback((
-    code: string, 
-    excludeId?: string
-  ): boolean => {
-    const exists = templates.some(t => 
-      t.template_code === code && (!excludeId || t._id !== excludeId)
-    );
-    return !exists;
-  }, [templates]);
-
-  const incrementUsage = async (id: string): Promise<void> => {
-    try {
-      const template = getTemplateById(id);
-      if (!template) throw new Error('Template not found');
-
-      await updateTemplate(id, {
-        usage_count: (template.usage_count || 0) + 1,
-        last_used_at: new Date().toISOString(),
-        version: template.version,
-      });
-    } catch (err: any) {
-      const errorMsg = err.message || 'Failed to increment usage';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    }
-  };
-
-  const recordSuccess = async (id: string): Promise<void> => {
-    try {
-      const template = getTemplateById(id);
-      if (!template) throw new Error('Template not found');
-
-      await updateTemplate(id, {
-        success_count: (template.success_count || 0) + 1,
-        version: template.version,
-      });
-    } catch (err: any) {
-      const errorMsg = err.message || 'Failed to record success';
-      setError(errorMsg);
-      throw new Error(errorMsg);
-    }
-  };
-
-  const recordFailure = async (id: string): Promise<void> => {
-    try {
-      const template = getTemplateById(id);
-      if (!template) throw new Error('Template not found');
-
-      await updateTemplate(id, {
-        failure_count: (template.failure_count || 0) + 1,
-        version: template.version,
-      });
-    } catch (err: any) {
-      const errorMsg = err.message || 'Failed to record failure';
-      setError(errorMsg);
-      throw new Error(errorMsg);
+      throw new Error(err.message || 'Failed to clone template');
     }
   };
 
   return {
-    // State
     templates,
     loading,
     error,
-
-    // CRUD Operations
     createTemplate,
     updateTemplate,
     deleteTemplate,
-    cloneTemplate,
-    
-    // Query Methods
     getTemplateById,
-    getTemplateByCode,
-    getActiveTemplates,
-    getSystemTemplates,
-    getEditableTemplates,
-    getByType,
-    getByCategory,
-    
-    // Statistics
     getStats,
-    
-    // Utilities
-    validateCode,
-    incrementUsage,
-    recordSuccess,
-    recordFailure,
-    
-    // Refresh
+    cloneTemplate,
     refresh: fetchTemplates,
   };
+}
+
+export function useNotificationTemplate(id: string | undefined) {
+  const [template, setTemplate] = useState<NotificationTemplate | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await notificationTemplateApi.getById(id);
+      setTemplate(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch template');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { template, loading, error, refresh };
 }
 
 export default useNotificationTemplates;

@@ -5,29 +5,30 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from '../../providers/LanguageProvider';
+import { useTranslation } from '../../providers/LanguageProvider'; // Adjusted import path
 import {
   Globe,
   Plus,
   Trash2,
   CheckCircle,
-  XCircle,
   Clock,
   Shield,
-  Copy,
   RefreshCw,
-  Info,
-  Settings,
   AlertCircle,
+  Edit,
 } from 'lucide-react';
 import {
-  tenantDomainsService,
+  tenantDomainsApi,
   TenantDomain,
-  VerificationMethod,
   DomainPolicy,
-} from '../../services/tenantDomainsService';
+  VerificationStatus,
+  CreateDomainRequest,
+  UpdateDomainRequest
+} from '../../api/tenantDomainsApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { TenantDomainModal } from './TenantDomainModal';
+import { toast } from 'sonner';
 
 interface TenantDomainsTabProps {
   tenantId: string;
@@ -38,19 +39,20 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
   const [domains, setDomains] = useState<TenantDomain[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDomain, setSelectedDomain] = useState<TenantDomain | null>(null);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
 
   // Load domains
   const loadDomains = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await tenantDomainsService.getByTenantId(tenantId);
+      const data = await tenantDomainsApi.getByTenant(tenantId);
       setDomains(data);
     } catch (err) {
-      setError(t('domains.fetchError'));
+      setError('Không thể tải danh sách tên miền');
       console.error('Error loading domains:', err);
     } finally {
       setLoading(false);
@@ -63,52 +65,66 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
     }
   }, [tenantId]);
 
+  // Handle create/edit
+  const handleSave = async (data: CreateDomainRequest | UpdateDomainRequest) => {
+    try {
+      if (selectedDomain) {
+        // Edit
+        await tenantDomainsApi.update(selectedDomain._id, data as UpdateDomainRequest);
+        toast.success('Cập nhật tên miền thành công');
+      } else {
+        // Create
+        await tenantDomainsApi.create(data as CreateDomainRequest);
+        toast.success('Thêm tên miền thành công');
+      }
+      loadDomains();
+    } catch (error: any) {
+      throw error; // Let modal handle error display
+    }
+  };
+
   // Handle delete
   const handleDelete = async (id: string, domain: string) => {
-    if (!confirm(t('domains.confirmDelete', { domain }))) return;
+    if (!confirm(`Bạn có chắc muốn xóa tên miền ${domain}?`)) return;
 
     try {
-      await tenantDomainsService.delete(id);
-      await loadDomains();
+      await tenantDomainsApi.delete(id);
+      toast.success('Đã xóa tên miền');
+      loadDomains();
     } catch (err) {
-      alert(t('domains.deleteError'));
+      toast.error('Lỗi khi xóa tn miền');
       console.error('Error deleting domain:', err);
     }
   };
 
-  // Handle verify
-  const handleVerify = async (domain: TenantDomain) => {
-    setSelectedDomain(domain);
-    setShowVerificationModal(true);
+  // Handle verify trigger
+  const handleVerifyCheck = async (id: string) => {
+    try {
+      const result = await tenantDomainsApi.verifyDomain(id);
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.info(result.message);
+      }
+      loadDomains();
+    } catch (err) {
+      toast.error('Lỗi khi kiểm tra xác thực');
+      console.error('Error verifying domain:', err);
+    }
   };
 
-  // Handle mark as verified (admin action)
+  // Handle mark as verified (admin/debug action - usually hidden in prod)
   const handleMarkVerified = async (id: string) => {
-    if (!confirm(t('domains.confirmMarkVerified'))) return;
+    if (!confirm('Hành động này sẽ đánh dấu tên miền là ĐÃ XÁC MINH thủ công. Tiếp tục?')) return;
 
     try {
-      await tenantDomainsService.markAsVerified(id);
-      await loadDomains();
+      await tenantDomainsApi.markAsVerified(id);
+      toast.success('Đã đánh dấu xác minh thủ công');
+      loadDomains();
     } catch (err) {
-      alert(t('domains.verifyError'));
+      toast.error('Lỗi khi cập nhật trạng thái');
       console.error('Error marking as verified:', err);
     }
-  };
-
-  // Handle policy change
-  const handlePolicyChange = async (id: string, policy: DomainPolicy) => {
-    try {
-      await tenantDomainsService.updatePolicy(id, policy);
-      await loadDomains();
-    } catch (err) {
-      alert(t('domains.updateError'));
-      console.error('Error updating policy:', err);
-    }
-  };
-
-  // Copy to clipboard
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
   };
 
   if (loading) {
@@ -132,55 +148,60 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">{t('domains.title')}</h2>
-          <p className="text-sm text-gray-500 mt-1">{t('domains.subtitle')}</p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Quản lý Tên miền</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Thiết lập tên miền riêng và chính sách bảo mật cho tenant
+          </p>
         </div>
         <Button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setSelectedDomain(null);
+            setIsModalOpen(true);
+          }}
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          {t('domains.addDomain')}
+          Thêm Tên miền
         </Button>
       </div>
 
       {/* Stats */}
       {domains.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="bg-indigo-100 rounded-lg p-2">
-                <Globe className="h-5 w-5 text-indigo-600" />
+              <div className="bg-indigo-100 dark:bg-indigo-900/30 rounded-lg p-2">
+                <Globe className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('domains.totalDomains')}</p>
-                <p className="text-2xl font-bold text-gray-900">{domains.length}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Tổng tên miền</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{domains.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="bg-green-100 rounded-lg p-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+              <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-2">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('domains.verified')}</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Đã xác minh</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {domains.filter(d => d.verification_status === 'VERIFIED').length}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="bg-yellow-100 rounded-lg p-2">
-                <Clock className="h-5 w-5 text-yellow-600" />
+              <div className="bg-yellow-100 dark:bg-yellow-900/30 rounded-lg p-2">
+                <Clock className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">{t('domains.pending')}</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Chờ xác minh</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {domains.filter(d => d.verification_status === 'PENDING').length}
                 </p>
               </div>
@@ -191,70 +212,70 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
 
       {/* Domains List */}
       {domains.length > 0 ? (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('domains.domain')}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Tên miền
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('domains.status')}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('domains.method')}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Phương thức
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('domains.policy')}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Chính sách
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('domains.createdAt')}
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Ngày tạo
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    {t('common.actions')}
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Thao tác
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 {domains.map((domain) => (
-                  <tr key={domain._id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={domain._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Globe className="h-4 w-4 text-gray-400" />
-                        <span className="font-mono text-sm text-gray-900">{domain.domain}</span>
+                        <span className="font-mono text-sm text-gray-900 dark:text-gray-100">{domain.domain}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       {domain.verification_status === 'VERIFIED' ? (
-                        <Badge variant="success" className="flex items-center gap-1 w-fit">
-                          <CheckCircle className="h-3 w-3" />
-                          {t('domains.verified')}
-                        </Badge>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Verified
+                        </span>
                       ) : (
-                        <Badge variant="warning" className="flex items-center gap-1 w-fit">
-                          <Clock className="h-3 w-3" />
-                          {t('domains.pending')}
-                        </Badge>
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Pending
+                        </span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
                         {domain.verification_method === 'DNS_TXT' ? 'DNS TXT' : 'HTML File'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <select
-                        value={domain.policy}
-                        onChange={(e) => handlePolicyChange(domain._id, e.target.value as DomainPolicy)}
-                        className="text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      >
-                        <option value="NONE">{t('domains.policyNone')}</option>
-                        <option value="CAPTURE">{t('domains.policyCapture')}</option>
-                        <option value="ENFORCE_SSO">{t('domains.policyEnforceSSO')}</option>
-                      </select>
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                        domain.policy === 'NONE' 
+                          ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' 
+                          : domain.policy === 'CAPTURE'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                      }`}>
+                        {domain.policy}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                       {new Date(domain.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4">
@@ -262,24 +283,35 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
                         {domain.verification_status === 'PENDING' && (
                           <>
                             <button
-                              onClick={() => handleVerify(domain)}
-                              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                              onClick={() => handleVerifyCheck(domain._id)}
+                              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                              title="Kiểm tra xác thực"
                             >
-                              {t('domains.verify')}
+                              <RefreshCw className="h-4 w-4" />
                             </button>
-                            <span className="text-gray-300">|</span>
                             <button
                               onClick={() => handleMarkVerified(domain._id)}
-                              className="text-green-600 hover:text-green-800 text-sm font-medium"
+                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                              title="Đánh dấu đã xác thực (Thủ công)"
                             >
-                              {t('domains.markVerified')}
+                              <CheckCircle className="h-4 w-4" />
                             </button>
-                            <span className="text-gray-300">|</span>
                           </>
                         )}
                         <button
+                          onClick={() => {
+                            setSelectedDomain(domain);
+                            setIsModalOpen(true);
+                          }}
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          title="Chỉnh sửa / Xem hướng dẫn"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(domain._id, domain.domain)}
-                          className="text-red-600 hover:text-red-800"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                          title="Xóa tên miền"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -292,325 +324,29 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
           </div>
         </div>
       ) : (
-        <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
+        <div className="text-center py-12 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
           <Globe className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 mb-4">{t('domains.noDomains')}</p>
-          <Button onClick={() => setShowAddModal(true)}>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Chưa có tên miền nào được định nghĩa</p>
+          <Button onClick={() => {
+            setSelectedDomain(null);
+            setIsModalOpen(true);
+          }}>
             <Plus className="h-4 w-4 mr-2" />
-            {t('domains.addFirstDomain')}
+            Thêm tên miền đầu tiên
           </Button>
         </div>
       )}
 
-      {/* Add Domain Modal */}
-      {showAddModal && (
-        <AddDomainModal
-          tenantId={tenantId}
-          onClose={() => setShowAddModal(false)}
-          onSuccess={() => {
-            setShowAddModal(false);
-            loadDomains();
-          }}
-        />
-      )}
-
-      {/* Verification Modal */}
-      {showVerificationModal && selectedDomain && (
-        <VerificationModal
-          domain={selectedDomain}
-          onClose={() => {
-            setShowVerificationModal(false);
-            setSelectedDomain(null);
-          }}
-          onRefresh={loadDomains}
-        />
-      )}
+      {/* Modal */}
+      <TenantDomainModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSave}
+        domain={selectedDomain}
+        tenantId={tenantId}
+      />
     </div>
   );
 };
 
-// Add Domain Modal Component
-interface AddDomainModalProps {
-  tenantId: string;
-  onClose: () => void;
-  onSuccess: () => void;
-}
-
-const AddDomainModal: React.FC<AddDomainModalProps> = ({ tenantId, onClose, onSuccess }) => {
-  const { t } = useTranslation();
-  const [domain, setDomain] = useState('');
-  const [verificationMethod, setVerificationMethod] = useState<VerificationMethod>('DNS_TXT');
-  const [policy, setPolicy] = useState<DomainPolicy>('NONE');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!domain.trim()) {
-      setError(t('domains.domainRequired'));
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      await tenantDomainsService.create({
-        tenant_id: tenantId,
-        domain: domain.trim(),
-        verification_method: verificationMethod,
-        policy,
-      });
-      onSuccess();
-    } catch (err: any) {
-      setError(err.message || t('domains.createError'));
-      console.error('Error creating domain:', err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('domains.addDomain')}</h3>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Domain Input */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('domains.domainName')}
-            </label>
-            <input
-              type="text"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder="example.com"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">{t('domains.domainHint')}</p>
-          </div>
-
-          {/* Verification Method */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('domains.verificationMethod')}
-            </label>
-            <select
-              value={verificationMethod}
-              onChange={(e) => setVerificationMethod(e.target.value as VerificationMethod)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="DNS_TXT">DNS TXT Record</option>
-              <option value="HTML_FILE">HTML File</option>
-            </select>
-          </div>
-
-          {/* Policy */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('domains.domainPolicy')}
-            </label>
-            <select
-              value={policy}
-              onChange={(e) => setPolicy(e.target.value as DomainPolicy)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="NONE">{t('domains.policyNone')}</option>
-              <option value="CAPTURE">{t('domains.policyCapture')}</option>
-              <option value="ENFORCE_SSO">{t('domains.policyEnforceSSO')}</option>
-            </select>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="flex-1"
-            >
-              {t('common.cancel')}
-            </Button>
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="flex-1"
-            >
-              {submitting ? t('common.creating') : t('common.create')}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// Verification Modal Component
-interface VerificationModalProps {
-  domain: TenantDomain;
-  onClose: () => void;
-  onRefresh: () => void;
-}
-
-const VerificationModal: React.FC<VerificationModalProps> = ({ domain, onClose, onRefresh }) => {
-  const { t } = useTranslation();
-  const instructions = tenantDomainsService.getVerificationInstructions(domain);
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">{t('domains.verificationInstructions')}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            ✕
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {/* Domain Info */}
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Globe className="h-5 w-5 text-indigo-600" />
-              <span className="font-semibold text-gray-900">{domain.domain}</span>
-            </div>
-            <p className="text-sm text-gray-600">
-              {t('domains.verificationMethodLabel')}: {instructions.method === 'DNS_TXT' ? 'DNS TXT Record' : 'HTML File'}
-            </p>
-          </div>
-
-          {/* Instructions */}
-          {instructions.method === 'DNS_TXT' ? (
-            <div className="space-y-3">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 mb-2">{t('domains.dnsInstructions')}</p>
-                    <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-                      <li>{t('domains.dnsStep1')}</li>
-                      <li>{t('domains.dnsStep2')}</li>
-                      <li>{t('domains.dnsStep3')}</li>
-                      <li>{t('domains.dnsStep4')}</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('domains.recordName')}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={instructions.recordName}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => copyToClipboard(instructions.recordName || '')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('domains.recordValue')}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={instructions.recordValue}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => copyToClipboard(instructions.recordValue || '')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900 mb-2">{t('domains.htmlInstructions')}</p>
-                    <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-                      <li>{t('domains.htmlStep1')}</li>
-                      <li>{t('domains.htmlStep2')}</li>
-                      <li>{t('domains.htmlStep3')}</li>
-                    </ol>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('domains.filePath')}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={instructions.filePath}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => copyToClipboard(instructions.filePath || '')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('domains.fileContent')}
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={instructions.fileContent}
-                    readOnly
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => copyToClipboard(instructions.fileContent || '')}
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              {t('common.close')}
-            </Button>
-            <Button onClick={onRefresh} className="flex-1">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {t('domains.checkVerification')}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+export default TenantDomainsTab;

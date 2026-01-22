@@ -10,11 +10,11 @@ import { Shield } from 'lucide-react';
 // Lazy load pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
 const AuditLogsPage = lazy(() => 
-  import('../../app/(admin)/admin/audit-logs/page')
+  import('../../app/(admin)/admin/audit-logs/page').then(m => ({ default: m.default }))
 );
 
 const AuditLogDetailPage = lazy(() => 
-  import('../../app/(admin)/admin/audit-logs/[id]/page')
+  import('../../app/(admin)/admin/audit-logs/[id]/page').then(m => ({ default: m.default }))
 );
 
 // Loading fallback component

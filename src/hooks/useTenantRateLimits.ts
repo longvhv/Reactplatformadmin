@@ -1,6 +1,8 @@
 /**
  * useTenantRateLimits Hook
  * React hook for managing tenant rate limits
+ * 
+ * ✅ UPDATED: Matches strictly typed API
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -10,7 +12,7 @@ import {
   RateLimitFilters,
   CreateRateLimitData,
   UpdateRateLimitData,
-} from '@/api/tenantRateLimitsApi';
+} from '../api/tenantRateLimitsApi';
 
 export function useTenantRateLimits(filters?: RateLimitFilters) {
   const [limits, setLimits] = useState<TenantRateLimit[]>([]);
@@ -48,7 +50,8 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const createLimit = async (data: CreateRateLimitData): Promise<TenantRateLimit> => {
     try {
       const created = await tenantRateLimitsApi.create(data);
-      await fetchLimits();
+      // Optimistic update
+      setLimits(prev => [created, ...prev]);
       return created;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create rate limit';
@@ -61,7 +64,8 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const updateLimit = async (id: string, data: UpdateRateLimitData): Promise<TenantRateLimit> => {
     try {
       const updated = await tenantRateLimitsApi.update(id, data);
-      await fetchLimits();
+      // Optimistic update
+      setLimits(prev => prev.map(l => l._id === id ? updated : l));
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update rate limit';
@@ -74,7 +78,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const enableLimit = async (id: string): Promise<TenantRateLimit> => {
     try {
       const enabled = await tenantRateLimitsApi.enable(id);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? enabled : l));
       return enabled;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to enable rate limit';
@@ -87,7 +91,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const disableLimit = async (id: string): Promise<TenantRateLimit> => {
     try {
       const disabled = await tenantRateLimitsApi.disable(id);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? disabled : l));
       return disabled;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to disable rate limit';
@@ -100,7 +104,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const resetUsage = async (id: string): Promise<TenantRateLimit> => {
     try {
       const reset = await tenantRateLimitsApi.resetUsage(id);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? reset : l));
       return reset;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to reset usage';
@@ -113,7 +117,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const deleteLimit = async (id: string): Promise<void> => {
     try {
       await tenantRateLimitsApi.delete(id);
-      await fetchLimits();
+      setLimits(prev => prev.filter(l => l._id !== id));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete rate limit';
       setError(message);
@@ -125,7 +129,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const toggleAlert = async (id: string, enabled: boolean): Promise<TenantRateLimit> => {
     try {
       const updated = await tenantRateLimitsApi.toggleAlert(id, enabled);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? updated : l));
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to toggle alert';
@@ -138,7 +142,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const setAlertThreshold = async (id: string, threshold: number | null): Promise<TenantRateLimit> => {
     try {
       const updated = await tenantRateLimitsApi.setAlertThreshold(id, threshold);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? updated : l));
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to set alert threshold';
@@ -151,7 +155,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const setPriority = async (id: string, priority: number): Promise<TenantRateLimit> => {
     try {
       const updated = await tenantRateLimitsApi.setPriority(id, priority);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? updated : l));
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to set priority';
@@ -164,7 +168,7 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
   const setOverride = async (id: string, until: string | null): Promise<TenantRateLimit> => {
     try {
       const updated = await tenantRateLimitsApi.setOverride(id, until);
-      await fetchLimits();
+      setLimits(prev => prev.map(l => l._id === id ? updated : l));
       return updated;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to set override';
@@ -192,10 +196,6 @@ export function useTenantRateLimits(filters?: RateLimitFilters) {
         sms: 0,
         alertsEnabled: 0,
         exceeded: 0,
-        by_resource_type: {} as any,
-        by_limit_type: {} as any,
-        by_limit_scope: {} as any,
-        by_window_unit: {} as any,
       };
     }
   };

@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { BarChart, TrendingUp, Users, Activity, Layers } from 'lucide-react';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '../../../utils/supabase/client';
 
 interface ApplicationStatsProps {
   appId: string;

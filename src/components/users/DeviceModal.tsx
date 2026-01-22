@@ -5,18 +5,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { UserDevice, CreateDeviceData, UpdateDeviceData, DeviceType, DeviceOS, DeviceBrowser } from '../../api/userDevicesApi';
+import { UserDevice, CreateDeviceRequest, UpdateDeviceRequest, DeviceType, DeviceOS, DeviceBrowser } from '../../api/userDevicesApi';
 
 interface DeviceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: CreateDeviceData | UpdateDeviceData) => Promise<void>;
+  onSave: (data: CreateDeviceRequest | UpdateDeviceRequest) => Promise<void>;
   device?: UserDevice | null;
   userId?: string; // For create mode
 }
 
 export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceModalProps) {
-  const [formData, setFormData] = useState<Partial<CreateDeviceData>>({
+  const [formData, setFormData] = useState<Partial<CreateDeviceRequest>>({
     user_id: userId || '',
     device_type: 'desktop',
     device_name: '',
@@ -30,6 +30,13 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
     app_version: '',
     ip_address: '',
     is_trusted: false,
+    location: {},
+  });
+
+  const [locationData, setLocationData] = useState({
+    city: '',
+    country: '',
+    region: ''
   });
 
   const [saving, setSaving] = useState(false);
@@ -39,18 +46,26 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
       setFormData({
         user_id: device.user_id,
         device_type: device.device_type,
-        device_name: device.device_name,
-        device_model: device.device_model,
-        manufacturer: device.manufacturer,
-        os: device.os,
-        os_version: device.os_version,
-        browser: device.browser,
-        browser_version: device.browser_version,
-        app_name: device.app_name,
-        app_version: device.app_version,
-        ip_address: device.ip_address,
-        is_trusted: device.is_trusted,
+        device_name: device.device_name || '',
+        device_model: device.device_model || '',
+        manufacturer: device.manufacturer || '',
+        os: device.os || undefined,
+        os_version: device.os_version || '',
+        browser: device.browser || undefined,
+        browser_version: device.browser_version || '',
+        app_name: device.app_name || '',
+        app_version: device.app_version || '',
+        ip_address: device.ip_address || '',
+        is_trusted: device.is_trusted || false,
       });
+      
+      if (device.location) {
+        setLocationData({
+          city: device.location.city || '',
+          country: device.location.country || '',
+          region: device.location.region || ''
+        });
+      }
     } else {
       setFormData({
         user_id: userId || '',
@@ -67,6 +82,7 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
         ip_address: '',
         is_trusted: false,
       });
+      setLocationData({ city: '', country: '', region: '' });
     }
   }, [device, userId]);
 
@@ -74,7 +90,17 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
     e.preventDefault();
     setSaving(true);
     try {
-      await onSave(formData as CreateDeviceData);
+      const payload = {
+        ...formData,
+        location: {
+          ...formData.location,
+          city: locationData.city,
+          country: locationData.country,
+          region: locationData.region
+        }
+      };
+      
+      await onSave(payload as CreateDeviceRequest);
       onClose();
     } catch (err) {
       console.error('Error saving device:', err);
@@ -116,9 +142,9 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold text-gray-900">
             {device ? 'Chỉnh sửa thiết bị' : 'Thêm thiết bị'}
           </h2>
@@ -128,7 +154,7 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Device Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -138,7 +164,7 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                 value={formData.device_type}
                 onChange={(e) => setFormData({ ...formData, device_type: e.target.value as DeviceType })}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {deviceTypes.map(type => (
                   <option key={type.value} value={type.value}>
@@ -158,12 +184,12 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                 value={formData.device_name}
                 onChange={(e) => setFormData({ ...formData, device_name: e.target.value })}
                 placeholder="iPhone 15 Pro, MacBook Pro..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Device Model */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -174,7 +200,7 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                 value={formData.device_model}
                 onChange={(e) => setFormData({ ...formData, device_model: e.target.value })}
                 placeholder="iPhone15,2, MacBookPro18,1..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -188,22 +214,23 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                 value={formData.manufacturer}
                 onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
                 placeholder="Apple, Samsung, Dell..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* OS */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Hệ điều hành
               </label>
               <select
-                value={formData.os}
+                value={formData.os || ''}
                 onChange={(e) => setFormData({ ...formData, os: e.target.value as DeviceOS })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
+                <option value="">Chọn hệ điều hành...</option>
                 {osTypes.map(os => (
                   <option key={os.value} value={os.value}>
                     {os.label}
@@ -222,22 +249,23 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                 value={formData.os_version}
                 onChange={(e) => setFormData({ ...formData, os_version: e.target.value })}
                 placeholder="14.2, 17.0, 11.0..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Browser */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trình duyệt
               </label>
               <select
-                value={formData.browser}
+                value={formData.browser || ''}
                 onChange={(e) => setFormData({ ...formData, browser: e.target.value as DeviceBrowser })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
+                <option value="">Chọn trình duyệt...</option>
                 {browsers.map(browser => (
                   <option key={browser.value} value={browser.value}>
                     {browser.label}
@@ -256,14 +284,14 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                 value={formData.browser_version}
                 onChange={(e) => setFormData({ ...formData, browser_version: e.target.value })}
                 placeholder="120.0.6099.109..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           </div>
 
           {/* Mobile App Info */}
           {(formData.device_type === 'mobile' || formData.device_type === 'tablet') && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
               {/* App Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -274,7 +302,7 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                   value={formData.app_name}
                   onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
                   placeholder="VHP Mobile App"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
@@ -288,11 +316,45 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
                   value={formData.app_version}
                   onChange={(e) => setFormData({ ...formData, app_version: e.target.value })}
                   placeholder="2.5.0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
             </div>
           )}
+
+          {/* Location Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t pt-4">
+             <div className="col-span-full">
+                <label className="block text-sm font-medium text-gray-700">Thông tin địa điểm</label>
+             </div>
+             <div>
+                <input
+                  type="text"
+                  value={locationData.city}
+                  onChange={(e) => setLocationData({ ...locationData, city: e.target.value })}
+                  placeholder="Thành phố (Hanoi)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+             </div>
+             <div>
+                <input
+                  type="text"
+                  value={locationData.region}
+                  onChange={(e) => setLocationData({ ...locationData, region: e.target.value })}
+                  placeholder="Vùng/Miền"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+             </div>
+             <div>
+                <input
+                  type="text"
+                  value={locationData.country}
+                  onChange={(e) => setLocationData({ ...locationData, country: e.target.value })}
+                  placeholder="Quốc gia (Vietnam)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+             </div>
+          </div>
 
           {/* IP Address */}
           <div>
@@ -304,31 +366,31 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
               value={formData.ip_address}
               onChange={(e) => setFormData({ ...formData, ip_address: e.target.value })}
               placeholder="192.168.1.100"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           {/* Is Trusted */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pt-2">
             <input
               type="checkbox"
               checked={formData.is_trusted}
               onChange={(e) => setFormData({ ...formData, is_trusted: e.target.checked })}
               id="is_trusted"
-              className="rounded"
+              className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
             />
-            <label htmlFor="is_trusted" className="text-sm text-gray-700">
-              Thiết bị tin cậy
+            <label htmlFor="is_trusted" className="text-sm font-medium text-gray-700">
+              Đánh dấu là thiết bị tin cậy (Trusted Device)
             </label>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t">
+          <div className="flex items-center justify-end gap-3 pt-6 border-t bg-white sticky bottom-0">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-300"
             >
               Hủy
             </button>
@@ -337,7 +399,7 @@ export function DeviceModal({ isOpen, onClose, onSave, device, userId }: DeviceM
               disabled={saving}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
             >
-              {saving ? 'Đang lưu...' : device ? 'Cập nhật' : 'Tạo'}
+              {saving ? 'Đang lưu...' : device ? 'Cập nhật' : 'Tạo mới'}
             </button>
           </div>
         </form>

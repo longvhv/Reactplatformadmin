@@ -10,12 +10,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
 import { Package } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { servicePackagesApi } from '@/api/servicePackagesApi';
-import { ServicePackageForm } from '@/components/service-packages/ServicePackageForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { servicePackagesApi } from '../../../../../api/servicePackagesApi';
+import { ServicePackageForm } from '../../../../../components/service-packages/ServicePackageForm';
+import { showToast } from '../../../../../lib/toast';
 
 function EditServicePackagePage() {
   const params = useParams();
@@ -56,7 +56,7 @@ function EditServicePackagePage() {
 
   return (
     <FormPageLayout mode="edit" title="Edit Service Package" description="Update service package" icon={Package} backPath="/platform/service-packages" backLabel="Back">
-      <ServicePackageForm initialData={data} onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/service-packages')} />
+      <ServicePackageForm package={data} onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/service-packages')} />
     </FormPageLayout>
   );
 }

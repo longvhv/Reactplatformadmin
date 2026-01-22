@@ -9,8 +9,8 @@ import {
   Calendar,
   Filter
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useUserActivity } from '@/hooks/useUserActivity';
+import { Button } from '../../ui/button';
+import { useUserActivity } from '../../../hooks/useUserActivity';
 
 interface UserActivityProps {
   userId: string;

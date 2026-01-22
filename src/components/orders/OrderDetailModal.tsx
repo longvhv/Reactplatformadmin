@@ -243,31 +243,69 @@ export function OrderDetailModal({ order, isOpen, onClose }: OrderDetailModalPro
 
             {/* Right Column */}
             <div className="space-y-5">
-              {/* IV. Package Snapshot - MOST IMPORTANT */}
-              {order.package_snapshot && Object.keys(order.package_snapshot).length > 0 && (
+              {/* IV. Items Snapshot - MOST IMPORTANT */}
+              {order.items_snapshot && order.items_snapshot.length > 0 && (
                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl p-5 shadow-lg border-2 border-blue-300 dark:border-blue-700">
                   <h3 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-2 uppercase tracking-wide">
                     <Package className="w-5 h-5" />
-                    IV. Package Snapshot (Bảo toàn giá & quyền lợi)
+                    IV. Order Items (Chi tiết đơn hàng)
                   </h3>
                   
                   <div className="bg-blue-100/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-3">
                     <div className="flex items-start gap-2 text-xs text-blue-800 dark:text-blue-300">
                       <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
                       <div>
-                        <strong>Snapshot này lưu trữ thông tin gói dịch vụ tại thời điểm đặt hàng</strong> để đảm bảo:
-                        <ul className="mt-1 ml-4 list-disc space-y-0.5">
-                          <li>Giá không thay đổi khi admin tăng giá</li>
-                          <li>Quyền lợi không thay đổi khi gói được cập nhật</li>
-                          <li>Lưu vết audit trail cho compliance</li>
-                        </ul>
+                        <strong>Snapshot này lưu trữ thông tin sản phẩm tại thời điểm đặt hàng</strong>. Giá và thông tin này sẽ không thay đổi ngay cả khi sản phẩm gốc được cập nhật.
                       </div>
                     </div>
                   </div>
                   
-                  <pre className="bg-white dark:bg-gray-900 p-4 rounded-lg text-xs overflow-x-auto border-2 border-blue-300 dark:border-blue-700 font-mono text-gray-900 dark:text-white max-h-96 overflow-y-auto shadow-inner">
-                    {formatJSON(order.package_snapshot)}
-                  </pre>
+                  <div className="overflow-x-auto rounded-lg border border-blue-200 dark:border-blue-700 bg-white dark:bg-gray-900">
+                    <table className="w-full text-sm">
+                      <thead className="bg-blue-50 dark:bg-blue-900/40 border-b border-blue-200 dark:border-blue-700">
+                        <tr>
+                          <th className="px-4 py-2 text-left font-semibold text-blue-900 dark:text-blue-100">Sản phẩm / Dịch vụ</th>
+                          <th className="px-4 py-2 text-right font-semibold text-blue-900 dark:text-blue-100">Đơn giá</th>
+                          <th className="px-4 py-2 text-center font-semibold text-blue-900 dark:text-blue-100">SL</th>
+                          <th className="px-4 py-2 text-right font-semibold text-blue-900 dark:text-blue-100">Thành tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-blue-100 dark:divide-blue-800">
+                        {order.items_snapshot.map((item, index) => (
+                          <tr key={index} className="hover:bg-blue-50/50 dark:hover:bg-blue-900/20">
+                            <td className="px-4 py-2 text-gray-900 dark:text-white">
+                              <div className="font-medium">{item.name}</div>
+                              {item.item_type && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-tighter">
+                                  {item.item_type}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-right font-mono text-gray-700 dark:text-gray-300">
+                              {formatPrice(item.price, order.currency_code)}
+                            </td>
+                            <td className="px-4 py-2 text-center font-mono text-gray-700 dark:text-gray-300">
+                              {item.quantity || (item as any).qty}
+                            </td>
+                            <td className="px-4 py-2 text-right font-mono font-medium text-gray-900 dark:text-white">
+                              {formatPrice(item.price * (item.quantity || (item as any).qty), order.currency_code)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-blue-50/30 dark:bg-blue-900/10 border-t border-blue-200 dark:border-blue-700">
+                        <tr>
+                          <td colSpan={3} className="px-4 py-2 text-right font-semibold text-gray-700 dark:text-gray-300">Tổng tạm tính:</td>
+                          <td className="px-4 py-2 text-right font-mono font-bold text-gray-900 dark:text-white">
+                            {formatPrice(
+                              order.items_snapshot.reduce((sum, item) => sum + (item.price * (item.quantity || (item as any).qty)), 0),
+                              order.currency_code
+                            )}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               )}
 

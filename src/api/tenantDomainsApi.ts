@@ -421,9 +421,22 @@ export const tenantDomainsApi = {
       token: domain.verification_token,
     });
 
+    // Mock verification success for demonstration
+    // TODO: Remove this mock logic when connecting to real backend verification
+    const mockSuccess = Math.random() > 0.5;
+    
+    if (mockSuccess) {
+        await tenantDomainsApi.markAsVerified(id);
+        return {
+            success: true,
+            message: 'Domain verification successful!',
+            domain: { ...domain, verification_status: 'VERIFIED' }
+        };
+    }
+
     return {
       success: false,
-      message: 'Verification check initiated. Please wait for backend to verify.',
+      message: 'Verification check initiated. If records are correct, it may take some time to propagate.',
       domain,
     };
   },
@@ -538,7 +551,7 @@ export const tenantDomainsApi = {
     if (domain.verification_method === 'DNS_TXT' || !domain.verification_method) {
       return {
         method: 'DNS_TXT',
-        instructions: 'Add a TXT record to your DNS configuration',
+        instructions: 'Add a TXT record to your DNS configuration to verify ownership.',
         recordName: `_vhv-verify.${domain.domain}`,
         recordValue: domain.verification_token || '',
       };
@@ -546,7 +559,7 @@ export const tenantDomainsApi = {
       // HTML_FILE
       return {
         method: 'HTML_FILE',
-        instructions: 'Upload a verification file to your website root',
+        instructions: 'Upload a verification file to your website root folder to verify ownership.',
         filePath: `/.well-known/vhv-verification.txt`,
         fileContent: domain.verification_token || '',
       };

@@ -32,3 +32,5 @@ export const AuthModule: ModuleConfig = {
     },
   ],
 };
+
+export default AuthModule;

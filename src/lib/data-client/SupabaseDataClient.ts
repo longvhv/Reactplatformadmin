@@ -29,6 +29,8 @@ export class SupabaseDataClient implements IDataClient {
     'permissions',
     'webhooks',
     'user_delegations',
+    'user_sessions',        // ✅ No deleted_at column
+    'user_devices',         // ✅ No deleted_at column
     'telemetry.auth_logs',
     'telemetry.api_usage_logs',
     'telemetry.traffic_logs',

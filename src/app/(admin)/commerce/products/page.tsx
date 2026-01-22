@@ -4,28 +4,28 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { productsApi, Product, ProductFilters } from '@/api/productsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { ProductTable } from '@/components/products/ProductTable';
-import { ProductCard } from '@/components/products/ProductCard';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { saasProductsApi, SaasProduct, SaasProductFilters } from '../../../../../api/saasProductsApi';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card } from '../../../../../components/ui/card';
+import { ProductTable } from '../../../../../components/products/ProductTable';
+import { ProductCard } from '../../../../../components/products/ProductCard';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
 import { Plus, Search, Grid, List, Package, CheckCircle, XCircle } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { showToast } from '../../../../../lib/toast';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
 
 function ProductsPage() {
   const router = useRouter();
   const { t } = useLanguage();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<SaasProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [searchTerm, setSearchTerm] = useState('');
-  const [filters, setFilters] = useState<ProductFilters>({});
+  const [filters, setFilters] = useState<SaasProductFilters>({});
 
   // Confirm dialog state
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -48,7 +48,7 @@ function ProductsPage() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await productsApi.getAll(filters);
+      const data = await saasProductsApi.getAll(filters);
       setProducts(data);
     } catch (error: any) {
       showToast.error(t('products.loadError'), error.message);
@@ -66,18 +66,18 @@ function ProductsPage() {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = (product: SaasProduct) => {
     router.push(`/commerce/products/edit/${product._id}`);
   };
 
-  const handleDelete = async (product: Product) => {
+  const handleDelete = async (product: SaasProduct) => {
     setConfirmDialog({
       open: true,
       title: t('products.confirmDelete'),
       description: t('products.confirmDeleteMessage', { name: product.name }),
       onConfirm: async () => {
         try {
-          await productsApi.delete(product._id!);
+          await saasProductsApi.delete(product._id!, product.version);
           showToast.success(t('products.deleteSuccess'), 'Đã xóa sản phẩm');
           loadProducts();
         } catch (error: any) {
@@ -90,7 +90,7 @@ function ProductsPage() {
     });
   };
 
-  const handleViewDetails = (product: Product) => {
+  const handleViewDetails = (product: SaasProduct) => {
     console.log('[ProductsPage] Navigate to product:', product._id, product);
     if (!product._id) {
       showToast.error('Lỗi', 'ID sản phẩm không hợp lệ');
@@ -117,13 +117,13 @@ function ProductsPage() {
     },
     {
       label: t('products.active'),
-      value: products.filter((p) => p.status === 'ACTIVE').length,
+      value: products.filter((p) => p.status === 'active').length,
       color: 'green' as const,
       icon: CheckCircle,
     },
     {
       label: t('products.inactive'),
-      value: products.filter((p) => p.status === 'INACTIVE').length,
+      value: products.filter((p) => p.status === 'inactive').length,
       color: 'red' as const,
       icon: XCircle,
     },

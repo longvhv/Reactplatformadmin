@@ -8,30 +8,30 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Plus, Search, Filter, RefreshCw, Eye, Trash2, ShoppingCart, Clock, CheckCircle, XCircle, DollarSign, AlertCircle, List, Grid, Edit2, Box } from 'lucide-react';
 import {
   ordersApi,
   Order,
   OrderStatus,
-} from '@/api/ordersApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+} from '../../../../../api/ordersApi';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { OrderDetailModal } from '@/components/orders/OrderDetailModal';
-import { Badge } from '@/components/ui/badge';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+} from '../../../../../components/ui/select';
+import { OrderDetailModal } from '../../../../../components/orders/OrderDetailModal';
+import { Badge } from '../../../../../components/ui/badge';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
 
 // Stats interface
 interface OrderStats {

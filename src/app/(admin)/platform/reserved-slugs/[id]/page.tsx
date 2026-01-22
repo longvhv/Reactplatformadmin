@@ -6,19 +6,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../components/shim/next-navigation';
 import { Tag, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { reservedSlugsApi, ReservedSlug } from '@/api/reservedSlugsApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { reservedSlugsApi, ReservedSlug } from '../../../../api/reservedSlugsSimpleApi';
+import { showToast } from '../../../../lib/toast';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 
 function ReservedSlugDetailPage() {
   const params = useParams();
@@ -82,7 +82,7 @@ function ReservedSlugDetailPage() {
     <>
       <PageLayout
         icon={Tag}
-        title={slug.slug_value}
+        title={slug.slug}
         description="Reserved slug details"
         backButton={{
           label: 'Back to Reserved Slugs',
@@ -111,20 +111,36 @@ function ReservedSlugDetailPage() {
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border">
           <dl className="space-y-4">
             <div>
-              <dt className="text-sm text-gray-600 mb-1">Slug Value</dt>
-              <dd className="font-mono text-lg font-semibold">{slug.slug_value}</dd>
+              <dt className="text-sm text-gray-600 mb-1">Slug</dt>
+              <dd className="font-mono text-lg font-semibold">/{slug.slug}</dd>
             </div>
             <div>
-              <dt className="text-sm text-gray-600 mb-1">Category</dt>
-              <dd className="font-medium">{slug.category || 'N/A'}</dd>
+              <dt className="text-sm text-gray-600 mb-1">Entity Type</dt>
+              <dd className="font-medium">{slug.entity_type || 'N/A'}</dd>
             </div>
             <div>
-              <dt className="text-sm text-gray-600 mb-1">Reason</dt>
-              <dd>{slug.reason || 'N/A'}</dd>
+              <dt className="text-sm text-gray-600 mb-1">Description</dt>
+              <dd>{slug.description || 'N/A'}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-600 mb-1">Status</dt>
+              <dd>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  slug.is_active
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                    : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                }`}>
+                  {slug.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </dd>
             </div>
             <div>
               <dt className="text-sm text-gray-600 mb-1">Created At</dt>
               <dd>{new Date(slug.created_at).toLocaleDateString()}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-600 mb-1">Updated At</dt>
+              <dd>{new Date(slug.updated_at).toLocaleDateString()}</dd>
             </div>
           </dl>
         </div>
@@ -134,7 +150,7 @@ function ReservedSlugDetailPage() {
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         title="Delete Reserved Slug"
-        description={`Delete slug "${slug.slug_value}"? This cannot be undone.`}
+        description={`Delete slug "${slug.slug}"? This cannot be undone.`}
         onConfirm={handleDelete}
         variant="destructive"
       />

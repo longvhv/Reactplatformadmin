@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,23 +7,23 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+} from '../ui/dialog';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+} from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
 import { 
   tenantApplicationsApi, 
   UpdateTenantApplicationRequest,
   LicenseType,
   TenantApplication
-} from '@/api/tenantApplicationsApi';
+} from '../../api/tenantApplicationsApi';
 import { toast } from 'sonner@2.0.3';
 import { Calendar, Users } from 'lucide-react';
 
@@ -84,7 +84,8 @@ export function EditTenantApplicationModal({
       // Format expires_at or set to null if empty
       const submissionData = {
         ...formData,
-        expires_at: formData.expires_at || undefined
+        expires_at: formData.expires_at || undefined,
+        version: application.version // Optimistic locking
       };
       
       await tenantApplicationsApi.update(application._id, submissionData);
@@ -181,6 +182,21 @@ export function EditTenantApplicationModal({
               onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked === true })}
             />
             <Label htmlFor="is_active" className="cursor-pointer">Đang hoạt động</Label>
+          </div>
+
+          {/* Audit Info (Read Only) */}
+          <div className="grid grid-cols-2 gap-4 text-xs text-gray-500 pt-2 border-t">
+            <div>
+              <span className="font-medium">Tạo lúc:</span>{' '}
+              {application.created_at ? new Date(application.created_at).toLocaleString('vi-VN') : 'N/A'}
+            </div>
+            <div>
+              <span className="font-medium">Cập nhật:</span>{' '}
+              {application.updated_at ? new Date(application.updated_at).toLocaleString('vi-VN') : 'N/A'}
+            </div>
+            <div>
+              <span className="font-medium">Version:</span> {application.version}
+            </div>
           </div>
 
           {errors.submit && (

@@ -4,7 +4,7 @@
  */
 
 import { HTMLAttributes, forwardRef } from 'react';
-import { cn, CARD_VARIANTS } from '@/constants/ui';
+import { cn, CARD_VARIANTS } from '../../constants/ui';
 
 export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   /**

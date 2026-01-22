@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card } from '../ui/card';
 import { Package, ShoppingCart, DollarSign, TrendingUp } from 'lucide-react';
 
 interface ProductStatsTabProps {

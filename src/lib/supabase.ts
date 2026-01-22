@@ -19,14 +19,7 @@ export function getSupabaseClient() {
     return globalForSupabase.supabaseClient;
   }
   
-  // Prevent concurrent creation
-  if (globalForSupabase.supabaseCreated) {
-    // Wait a tick and retry (rare race condition)
-    return new Promise<ReturnType<typeof createClient>>((resolve) => {
-      setTimeout(() => resolve(getSupabaseClient()), 0);
-    }) as any;
-  }
-  
+  // ✅ FIX: Don't handle race condition with Promise - just create synchronously
   // Mark as being created
   globalForSupabase.supabaseCreated = true;
   

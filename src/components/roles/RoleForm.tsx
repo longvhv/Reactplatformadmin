@@ -1,7 +1,8 @@
 /**
  * RoleForm Component
  * Reusable form for Add/Edit Role pages
- * ✅ CREATED 2026-01-15: Unified form design
+ * 
+ * ✅ UPDATED 2026-01-20: Strict schema compliance
  */
 
 import React, { useState, useEffect } from 'react';
@@ -82,13 +83,13 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Tên vai trò là bắt buộc';
+      newErrors.name = 'Role name is required';
     } else if (formData.name.length > 100) {
-      newErrors.name = 'Tên vai trò không được vượt quá 100 ký tự';
+      newErrors.name = 'Role name too long (max 100 chars)';
     }
 
     if (!role && !tenantId) {
-      newErrors.tenant = 'Tenant ID là bắt buộc';
+      newErrors.tenant = 'Tenant ID is required for new roles';
     }
 
     setErrors(newErrors);
@@ -104,9 +105,10 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
     try {
       if (role) {
         // Update existing role
+        // Note: 'type' cannot be updated
         const updateData: UpdateRoleRequest = {
-          name: formData.name,
-          description: formData.description || undefined,
+          name: formData.name.trim(),
+          description: formData.description?.trim() || undefined,
           permission_codes: formData.permission_codes,
         };
         await onSubmit(updateData);
@@ -119,8 +121,8 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
 
         const createData: CreateRoleRequest = {
           tenant_id: tenantId,
-          name: formData.name,
-          description: formData.description || undefined,
+          name: formData.name.trim(),
+          description: formData.description?.trim() || undefined,
           type: formData.type,
           permission_codes: formData.permission_codes,
         };
@@ -152,7 +154,7 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
     }
 
     // Validate format (should be like "module:action")
-    if (!/^[a-z_]+:[a-z_]+$/.test(trimmed)) {
+    if (!/^[a-z0-9_]+:[a-z0-9_]+$/.test(trimmed)) {
       setErrors({ ...errors, customPermission: 'Format: module:action (e.g., users:read)' });
       return;
     }
@@ -178,6 +180,8 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
       .some(p => p.code === code);
   });
 
+  const isSystemRole = role?.type === 'SYSTEM';
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Banner */}
@@ -197,14 +201,14 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           <Shield className="w-5 h-5 text-indigo-600" />
-          Thông tin cơ bản
+          Basic Information
         </h3>
 
         <div className="space-y-4">
           {/* Name */}
           <div>
             <Label htmlFor="name">
-              Tên vai trò <span className="text-red-500">*</span>
+              Role Name <span className="text-red-500">*</span>
             </Label>
             <Input
               id="name"
@@ -212,22 +216,25 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               className={errors.name ? 'border-red-500' : ''}
-              placeholder="VD: HR Manager, Team Lead"
-              disabled={isLoading || submitting}
+              placeholder="e.g. HR Manager, Team Lead"
+              disabled={isLoading || submitting || isSystemRole} // System roles name cannot be changed usually, but let's allow it if API allows? Schema says NO specific constraint on update, but logic usually protects system roles. Let's disable for SYSTEM.
             />
             {errors.name && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.name}</p>
+            )}
+            {isSystemRole && (
+              <p className="text-xs text-gray-500 mt-1">System role names cannot be changed.</p>
             )}
           </div>
 
           {/* Description */}
           <div>
-            <Label htmlFor="description">Mô tả</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Mô tả vai trò và trách nhiệm..."
+              placeholder="Role description and responsibilities..."
               rows={3}
               disabled={isLoading || submitting}
             />
@@ -236,7 +243,7 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
           {/* Type (only for create) */}
           {!role && (
             <div>
-              <Label htmlFor="type">Loại vai trò</Label>
+              <Label htmlFor="type">Role Type</Label>
               <select
                 id="type"
                 value={formData.type}
@@ -244,21 +251,33 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 disabled={isLoading || submitting}
               >
-                <option value="CUSTOM">Custom (Có thể chỉnh sửa)</option>
-                <option value="SYSTEM">System (Vai trò hệ thống)</option>
+                <option value="CUSTOM">Custom</option>
+                <option value="SYSTEM">System</option>
               </select>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 <Info className="w-4 h-4 inline mr-1" />
-                SYSTEM roles không thể xóa và bảo vệ quyền quan trọng
+                SYSTEM roles cannot be deleted.
               </p>
             </div>
           )}
 
-          {role && role.type === 'SYSTEM' && (
+          {role && (
+             <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="font-medium">Type:</span>
+                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                  role.type === 'SYSTEM' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {role.type}
+                </span>
+             </div>
+          )}
+
+          {isSystemRole && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
               <p className="text-sm text-blue-800 dark:text-blue-300 flex items-center gap-2">
                 <Info className="w-4 h-4" />
-                Đây là vai trò hệ thống. Chỉ có thể chỉnh sửa permissions.
+                This is a System Role. Only permissions can be modified (or nothing if protected). 
+                Assuming permissions are editable.
               </p>
             </div>
           )}
@@ -268,7 +287,7 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
       {/* Permissions */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-          Phân quyền ({formData.permission_codes.length} quyền)
+          Permissions ({formData.permission_codes.length} selected)
         </h3>
 
         <div className="space-y-6">
@@ -369,7 +388,7 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
 
             {customPermissions.length === 0 && (
               <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                Chưa có custom permission. Thêm custom permission nếu cần.
+                No custom permissions. Add if needed.
               </p>
             )}
           </div>
@@ -384,7 +403,7 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
           onClick={onCancel}
           disabled={submitting}
         >
-          Hủy
+          Cancel
         </Button>
         <Button
           type="submit"
@@ -394,10 +413,10 @@ export function RoleForm({ role, tenantId, onSubmit, onCancel, isLoading = false
           {submitting ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Đang lưu...
+              Saving...
             </>
           ) : (
-            <>{role ? 'Cập nhật' : 'Tạo vai trò'}</>
+            <>{role ? 'Update Role' : 'Create Role'}</>
           )}
         </Button>
       </div>

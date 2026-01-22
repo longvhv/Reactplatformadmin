@@ -7,7 +7,7 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
-import type { Tenant, TenantStatus, TenantTier, BillingType, DataRegion, ComplianceLevel } from '@/data/tenants';
+import type { Tenant, TenantStatus, TenantTier, BillingType, DataRegion, ComplianceLevel } from '../data/tenants';
 
 // ==================== TYPE HELPERS ====================
 
@@ -217,14 +217,105 @@ export const tenantsApi = {
    * POST /tenants
    */
   create: async (data: CreateTenantRequest): Promise<Tenant> => {
-    return adapter.create(data);
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Generate UUID
+    const _id = crypto.randomUUID();
+
+    // Prepare data matching schema
+    const requestData = {
+      _id,
+      code: data.code,
+      name: data.name,
+      parent_tenant_id: data.parent_tenant_id || null,
+      tier: data.tier || 'FREE',
+      status: data.status || 'TRIAL',
+      data_region: data.data_region || 'ap-southeast-1',
+      compliance_level: data.compliance_level || 'STANDARD',
+      timezone: data.timezone || 'UTC',
+      billing_type: data.billing_type || 'POSTPAID',
+      profile: data.profile || {},
+      settings: data.settings || {},
+      created_by: data.created_by || null,
+      version: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: created, error } = await supabase
+      .from('tenants')
+      .insert([requestData])
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create tenant: ${error.message}`);
+    }
+
+    return created;
   },
 
   /**
    * PATCH /tenants/:id
+   * Updated with Optimistic Locking
    */
   update: async (id: string, data: UpdateTenantRequest): Promise<Tenant> => {
-    return adapter.update(id, data);
+    const { getSupabaseClient } = await import('../lib/supabase');
+    const supabase = getSupabaseClient();
+
+    // Get current version for optimistic locking
+    const { data: current, error: fetchError } = await supabase
+      .from('tenants')
+      .select('version')
+      .eq('_id', id)
+      .single();
+
+    if (fetchError || !current) {
+      throw new Error(`Tenant not found: ${fetchError?.message || 'Unknown error'}`);
+    }
+
+    // Verify version if provided in request (it should be)
+    if (data.version && current.version !== data.version) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      updated_at: new Date().toISOString(),
+      version: current.version + 1,
+    };
+
+    if (data.code !== undefined) updateData.code = data.code;
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.parent_tenant_id !== undefined) updateData.parent_tenant_id = data.parent_tenant_id;
+    if (data.tier !== undefined) updateData.tier = data.tier;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.data_region !== undefined) updateData.data_region = data.data_region;
+    if (data.compliance_level !== undefined) updateData.compliance_level = data.compliance_level;
+    if (data.timezone !== undefined) updateData.timezone = data.timezone;
+    if (data.billing_type !== undefined) updateData.billing_type = data.billing_type;
+    if (data.profile !== undefined) updateData.profile = data.profile;
+    if (data.settings !== undefined) updateData.settings = data.settings;
+    if (data.updated_by !== undefined) updateData.updated_by = data.updated_by;
+
+    const { data: updated, error } = await supabase
+      .from('tenants')
+      .update(updateData)
+      .eq('_id', id)
+      .eq('version', current.version)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update tenant: ${error.message}`);
+    }
+
+    if (!updated) {
+      throw new Error('Concurrent modification detected. Please refresh and try again.');
+    }
+
+    return updated;
   },
 
   /**

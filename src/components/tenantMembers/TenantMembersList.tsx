@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Card } from '../ui/card';
-import { StatusBadge } from '@/components/common/StatusBadge';
+import { StatusBadge } from '../common/StatusBadge';
 import {
   DropdownMenu,
   DropdownMenuContent,

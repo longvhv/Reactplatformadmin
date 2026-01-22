@@ -1,6 +1,7 @@
 /**
  * Department Form Component
  * Create/Edit department with validation and manager selection
+ * ✅ UPDATED 2026-01-21: Uses EnrichedTenantMember and fixed manager selection
  */
 
 import { useState, useEffect } from 'react';
@@ -25,7 +26,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { departmentsApi, DepartmentTreeNode, CreateDepartmentRequest, UpdateDepartmentRequest } from '../../api/departmentsApi';
-import { tenantMembersApi, TenantMember } from '../../api/tenantMembersApi';
+import { tenantMembersApi, EnrichedTenantMember } from '../../api/tenantMembersApi';
 import { toast } from 'sonner@2.0.3';
 
 // ============================================
@@ -65,7 +66,7 @@ export function DepartmentForm({
 }: DepartmentFormProps) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [members, setMembers] = useState<TenantMember[]>([]);
+  const [members, setMembers] = useState<EnrichedTenantMember[]>([]);
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState<FormData>({
@@ -163,33 +164,14 @@ export function DepartmentForm({
           version: department.version,
         };
         
-        // Handle removing manager if explicitly set to none
-        if (formData.manager_id === 'none' && department.manager_id) {
-           // The API update handles undefined as "no change" usually, but here we want to clear it.
-           // However, departmentsApi.update helper `assignManager` or `removeManager` exists.
-           // But the adapter `update` usually takes the partial object. 
-           // If the backend implementation of PATCH respects null/empty for clearing, 
-           // we need to check how `adapter.update` handles it. 
-           // In `departmentsApi.ts`:
-           // assignManager uses { manager_id: id }
-           // removeManager uses { manager_id: undefined }
-           // If we pass undefined to `updateData.manager_id`, JSON.stringify might drop it.
-           // So `manager_id` needs to be explicit null or handled.
-           // Let's rely on the fact that if it changed, we send it.
-           // If the backend uses Go zero values, string pointer is better.
-           // For now, assuming the API client handles `undefined` correctly (or we might need a specific `removeManager` call if it fails).
-           // Actually, `departmentsApi.removeManager` sets it to `undefined`? No, Typescript `undefined` usually means "do not update".
-           // To clear it, we might need to send `null` but the type is `string | undefined`.
-           // Let's assume the backend handles an empty string or specific clear command.
-           // Or we use `departmentsApi.removeManager` if manager_id is 'none'.
-           // Let's stick to standard update. If it fails to clear, we'll fix later.
-           // FIX: If manager_id is 'none', we should probably send `null` casted to string if the API supports it, or use the dedicated endpoint.
-           // Ideally, the Clean Architecture UpdateRequest struct has *string for nullable fields.
-        }
-
         await departmentsApi.update(department._id, updateData);
         
-        // Special case: If manager is removed, we might need to call removeManager explicitly if standard update ignores undefined
+        // Special case: If manager is removed (set to none) but was present, we need to ensure it's cleared.
+        // UpdateDepartmentRequest treats undefined as "no change", but our logic above maps 'none' to undefined.
+        // If the user selected "None", we explicitly want to clear it.
+        // So we should call removeManager if managerId is undefined BUT department had a manager.
+        // Or better: Use null for manager_id in updateData if the API supports it.
+        // Assuming removeManager is safer if update ignores undefined.
         if (department.manager_id && formData.manager_id === 'none') {
              await departmentsApi.removeManager(department._id);
         }
@@ -205,7 +187,7 @@ export function DepartmentForm({
           parent_department_id: parentDepartment?._id,
           status: formData.status,
           order: order,
-          manager_id: managerId,
+          manager_id: managerId || null, // Create accepts null
           metadata: metadata,
         };
 
@@ -295,7 +277,7 @@ export function DepartmentForm({
                 <SelectItem value="none">-- Không có --</SelectItem>
                 {members.map(member => (
                   <SelectItem key={member._id} value={member._id}>
-                    {member.user_name || member.user_email || 'Unknown User'} ({member.role})
+                    {member.user?.full_name || member.internal_email || member.user?.email || 'Unknown User'} ({member.role})
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -1,6 +1,9 @@
 // Import polyfills FIRST
 import './polyfills';
 
+// ✅ DATA CLIENT: Initialize synchronously BEFORE React renders
+import './lib/data-client/init';
+
 import { PerformanceMonitor } from "./components/PerformanceMonitor";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { ThemeProvider } from "./providers/ThemeProvider";
@@ -42,23 +45,23 @@ const queryClient = new QueryClient({
 import { AppLayout } from "./components/layout/AppLayout";
 
 // Import ONLY full-screen detail pages (not in module registry)
-import TenantDetailPage from "./pages/TenantDetailPage";
-import AddTenantPage from "./pages/AddTenantPage";
-import EditTenantPage from "./pages/EditTenantPage";
-import UserDetailPage from "./pages/UserDetailPage";
-import EditUserPage from "./pages/EditUserPage";
-import AddUserPage from "./pages/AddUserPage";
-import ApplicationDetailPage from "./pages/ApplicationDetailPage";
-import ApplicationFormPage from "./pages/ApplicationFormPage";
-import EditApplicationPage from "./pages/EditApplicationPage";
-import ProductDetailPage from "./pages/ProductDetailPage";
-import AddProductPage from "./pages/AddProductPage";
-import EditProductPage from "./pages/EditProductPage";
-import ServicePackageDetailPage from "./pages/ServicePackageDetailPage";
-import AddServicePackagePage from "./pages/AddServicePackagePage";
-import EditServicePackagePage from "./pages/EditServicePackagePage";
-import SubscriptionDetailPageFullscreen from "./pages/SubscriptionDetailPage";
-import AddSubscriptionPage from "./pages/AddSubscriptionPage";
+import TenantDetailPage from "./app/(admin)/admin/tenants/[id]/page";
+import AddTenantPage from "./app/(admin)/admin/tenants/create/page";
+import EditTenantPage from "./app/(admin)/admin/tenants/edit/[id]/page";
+import UserDetailPage from "./app/(admin)/admin/users/[id]/page";
+import EditUserPage from "./app/(admin)/platform/users/edit/[id]/page";
+import AddUserPage from "./app/(admin)/platform/users/create/page";
+import ApplicationDetailPage from "./app/(admin)/platform/applications/[id]/page";
+import ApplicationFormPage from "./app/(admin)/platform/applications/create/page";
+import EditApplicationPage from "./app/(admin)/platform/applications/edit/[id]/page";
+import ProductDetailPage from "./app/(admin)/commerce/products/[id]/page";
+import AddProductPage from "./app/(admin)/commerce/products/create/page";
+import EditProductPage from "./app/(admin)/commerce/products/edit/[id]/page";
+import ServicePackageDetailPage from "./app/(admin)/platform/service-packages/[id]/page";
+import AddServicePackagePage from "./app/(admin)/platform/service-packages/create/page";
+import EditServicePackagePage from "./app/(admin)/platform/service-packages/edit/[id]/page";
+import SubscriptionDetailPageFullscreen from "./app/(admin)/commerce/subscriptions/[id]/page";
+import AddSubscriptionPage from "./app/(admin)/commerce/subscriptions/create/page";
 
 // Import module registration to register all modules
 import "./core/lazyModuleRegistration";
@@ -203,43 +206,67 @@ function AppContent() {
       <Route path="/commerce/tenant-subscriptions/create" element={<ProtectedRoute><AddSubscriptionPage /></ProtectedRoute>} />
       <Route path="/commerce/tenant-subscriptions/:id" element={<ProtectedRoute><SubscriptionDetailPageFullscreen /></ProtectedRoute>} />
       
-      {/* All other routes with AppLayout and Protected Route */}
-      <Route path="*" element={
-        <ProtectedRoute>
-          <AppLayout>
-            <Routes>
-              {/* Default redirect to dashboard */}
-              <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-              
-              {/* Dynamic routes from ModuleRegistry */}
-              {moduleRoutes.map((route, index) => (
-                <Route 
-                  key={route.path ? `${route.path}-${index}` : index}
-                  path={route.path} 
-                  element={route.element} 
-                />
-              ))}
-              
-              {/* Debug routes - Development only */}
-              {process.env.NODE_ENV === "development" && (
-                <>
-                  <Route path="/debug/traffic-schema" element={<TrafficSchemaDebug />} />
-                  <Route path="/debug/subscriptions-schema" element={<SubscriptionsSchemaDebug />} />
-                  <Route path="/debug/jobs-schema" element={<JobsSchemaDebug />} />
-                  <Route path="/debug/tenants-schema" element={<TenantsSchemaDebug />} />
-                  <Route path="/debug/users-schema" element={<UsersSchemaDebug />} />
-                </>
-              )}
-              
-              {/* Catch-all route - redirect to dashboard */}
-              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-            </Routes>
-            
-            {/* Performance Monitor - Development only */}
-            {process.env.NODE_ENV === "development" && <PerformanceMonitor />}
-          </AppLayout>
-        </ProtectedRoute>
-      } />
+      {/* Default redirect to dashboard */}
+      <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+      
+      {/* Dynamic routes from ModuleRegistry - wrapped with AppLayout */}
+      {moduleRoutes.map((route, index) => (
+        <Route 
+          key={route.path ? `${route.path}-${index}` : index}
+          path={route.path} 
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                {route.element}
+              </AppLayout>
+            </ProtectedRoute>
+          } 
+        />
+      ))}
+      
+      {/* Debug routes - Development only */}
+      {process.env.NODE_ENV === "development" && (
+        <>
+          <Route path="/debug/traffic-schema" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <TrafficSchemaDebug />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/debug/subscriptions-schema" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <SubscriptionsSchemaDebug />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/debug/jobs-schema" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <JobsSchemaDebug />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/debug/tenants-schema" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <TenantsSchemaDebug />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/debug/users-schema" element={
+            <ProtectedRoute>
+              <AppLayout>
+                <UsersSchemaDebug />
+              </AppLayout>
+            </ProtectedRoute>
+          } />
+        </>
+      )}
+      
+      {/* Catch-all route - redirect to dashboard */}
+      <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
     </Routes>
   );
 }
@@ -247,33 +274,37 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <LanguageProvider>
-        <ThemeProvider>
-          <BrowserRouter>
-            <QueryClientProvider client={queryClient}>
-              <Suspense fallback={<LoadingFallback />}>
-                <AuthProvider>
-                  <AppContent />
-                </AuthProvider>
-              </Suspense>
-              
-              {/* Toast Notifications */}
-              <Toaster 
-                position="top-right"
-                closeButton={false}
-                richColors={false}
-                expand={false}
-                duration={3000}
-              />
-              
-              {/* React Query Devtools - Development only */}
-              {process.env.NODE_ENV === "development" && <ReactQueryDevtools />}
-              {/* Bundle Analyzer - Development only */}
-              {process.env.NODE_ENV === "development" && <BundleAnalyzer />}
-            </QueryClientProvider>
-          </BrowserRouter>
-        </ThemeProvider>
-      </LanguageProvider>
+      <Suspense fallback={<LoadingFallback />}>
+        <LanguageProvider>
+          <ThemeProvider>
+            <BrowserRouter>
+              <QueryClientProvider client={queryClient}>
+                <Suspense fallback={<LoadingFallback />}>
+                  <AuthProvider>
+                    <Suspense fallback={<LoadingFallback />}>
+                      <AppContent />
+                    </Suspense>
+                  </AuthProvider>
+                </Suspense>
+                
+                {/* Toast Notifications */}
+                <Toaster 
+                  position="top-right"
+                  closeButton={false}
+                  richColors={false}
+                  expand={false}
+                  duration={3000}
+                />
+                
+                {/* React Query Devtools - Development only */}
+                {process.env.NODE_ENV === "development" && <ReactQueryDevtools />}
+                {/* Bundle Analyzer - Development only */}
+                {process.env.NODE_ENV === "development" && <BundleAnalyzer />}
+              </QueryClientProvider>
+            </BrowserRouter>
+          </ThemeProvider>
+        </LanguageProvider>
+      </Suspense>
     </ErrorBoundary>
   );
 }

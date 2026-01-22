@@ -3,16 +3,16 @@
  * ✅ MIGRATED from /pages/platform/notifications/[id].tsx
  */
 'use client';
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
-import { Bell, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { notificationsApi } from '@/api/notificationsApi';
-import { showToast } from '@/lib/toast';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { Bell, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '../../../../../../components/ui/button';
+import { Card } from '../../../../../../components/ui/card';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { notificationsApi } from '../../../../../../api/notificationsApi';
+import { showToast } from '../../../../../../lib/toast';
 
-function NotificationsDetailPage() {
+function NotificationDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
@@ -38,5 +38,5 @@ function NotificationsDetailPage() {
 
   return <Fragment><PageLayout icon={Bell} title="Notification Details" description="View notification information" actions={<div className="flex gap-2"><Button onClick={() => router.push(`/platform/notifications/edit/${id}`)}><Edit className="w-4 h-4 mr-2" />Edit</Button><Button variant="destructive" onClick={handleDelete}><Trash2 className="w-4 h-4 mr-2" />Delete</Button></div>}><Card className="p-6"><div className="space-y-4"><div><h3 className="font-semibold mb-2">Title</h3><p className="text-gray-700">{item.title}</p></div><div><h3 className="font-semibold mb-2">Message</h3><p className="text-gray-700">{item.message}</p></div><div><h3 className="font-semibold mb-2">Type</h3><p className="text-gray-700">{item.type}</p></div></div></Card></PageLayout></Fragment>;
 }
-export { NotificationsDetailPage };
-export default NotificationsDetailPage;
+export { NotificationDetailPage };
+export default NotificationDetailPage;
