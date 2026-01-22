@@ -161,7 +161,7 @@ function ProductsPage() {
                 <List className="h-4 w-4" />
               )}
             </Button>
-            <Button onClick={() => router.push('/commerce/products/add')}>
+            <Button onClick={() => router.push('/commerce/products/create')}>
               <Plus className="h-4 w-4 mr-2" />
               {t('products.add')}
             </Button>

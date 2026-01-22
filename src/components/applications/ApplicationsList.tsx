@@ -225,7 +225,7 @@ export function ApplicationsList() {
                         <>
                           <span className="text-gray-300">|</span>
                           <Link
-                            to={`/platform/applications/${app.code}/edit`}
+                            to={`/platform/applications/edit/${app.code}`}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             Edit

@@ -233,7 +233,7 @@ function ApplicationsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/${app._id}/edit`)}>
+                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/edit/${app._id}`)}>
                               <Settings className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>

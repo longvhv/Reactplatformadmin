@@ -10,7 +10,7 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { FileText } from 'lucide-react';
 
-const SubscriptionInvoicesPage = lazy(() => import('../../app/(admin)/subscriptions/invoices/page').then(module => ({ default: module.default })));
+const SubscriptionInvoicesPage = lazy(() => import('../../app/(admin)/commerce/invoices/page').then(module => ({ default: module.default })));
 
 export const SubscriptionInvoicesModule: ModuleDefinition = {
   id: "subscription-invoices",

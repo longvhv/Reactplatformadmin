@@ -61,7 +61,7 @@ export function EnhancedTenantCard({ tenant, onDelete, showHierarchy = true }: E
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/admin/tenants/${tenant._id}/edit`)}
+              onClick={() => navigate(`/admin/tenants/edit/${tenant._id}`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <Edit className="w-4 h-4" />

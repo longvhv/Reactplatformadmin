@@ -364,7 +364,7 @@ function TenantDetailPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push(`/admin/tenants/${id}/edit`)}
+                  onClick={() => router.push(`/admin/tenants/edit/${id}`)}
                 >
                   <Edit className="w-4 h-4 mr-2" />
                   {t('common.edit')}

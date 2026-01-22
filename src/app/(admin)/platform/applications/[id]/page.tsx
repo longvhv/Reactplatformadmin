@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
-import { ArrowLeft, Settings, Plus, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Settings, Plus, Edit, Trash2, MoreVertical, Power, PowerOff } from 'lucide-react';
 import { Button } from '../../../../../components/ui/button';
 import { Card } from '../../../../../components/ui/card';
 import { applicationsApi, Application } from '../../../../../api/applicationsApi';
@@ -23,6 +23,8 @@ import {
   DropdownMenuTrigger,
 } from '../../../../../components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../../components/ui/dialog';
+
+const SYSTEM_TENANT_ID = '000000000000000000000001'; // System tenant ID
 
 function ApplicationDetailPage() {
   const params = useParams();
@@ -175,7 +177,7 @@ function ApplicationDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/platform/applications/${id}/edit`)}>
+              <DropdownMenuItem onClick={() => router.push(`/platform/applications/edit/${id}`)}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>

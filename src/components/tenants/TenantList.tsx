@@ -124,7 +124,7 @@ export function TenantList({ tenants, onDelete, onSelect }: TenantListProps) {
                 className="h-8 w-8 hover:bg-indigo-50 hover:text-indigo-600"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/admin/tenants/${tenant._id}/edit`);
+                  navigate(`/admin/tenants/edit/${tenant._id}`);
                 }}
               >
                 <Edit className="w-4 h-4" />

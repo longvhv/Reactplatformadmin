@@ -48,7 +48,7 @@ import { AppLayout } from "./components/layout/AppLayout";
 import TenantDetailPage from "./app/(admin)/admin/tenants/[id]/page";
 import AddTenantPage from "./app/(admin)/admin/tenants/create/page";
 import EditTenantPage from "./app/(admin)/admin/tenants/edit/[id]/page";
-import UserDetailPage from "./app/(admin)/admin/users/[id]/page";
+import UserDetailPage from "./app/(admin)/platform/users/[id]/page";
 import EditUserPage from "./app/(admin)/platform/users/edit/[id]/page";
 import AddUserPage from "./app/(admin)/platform/users/create/page";
 import ApplicationDetailPage from "./app/(admin)/platform/applications/[id]/page";
@@ -57,9 +57,14 @@ import EditApplicationPage from "./app/(admin)/platform/applications/edit/[id]/p
 import ProductDetailPage from "./app/(admin)/commerce/products/[id]/page";
 import AddProductPage from "./app/(admin)/commerce/products/create/page";
 import EditProductPage from "./app/(admin)/commerce/products/edit/[id]/page";
+import ServicePackagesPage from "./app/(admin)/platform/service-packages/page";
 import ServicePackageDetailPage from "./app/(admin)/platform/service-packages/[id]/page";
 import AddServicePackagePage from "./app/(admin)/platform/service-packages/create/page";
 import EditServicePackagePage from "./app/(admin)/platform/service-packages/edit/[id]/page";
+import SaasProductTypesPage from "./app/(admin)/platform/saas-product-types/page";
+import AddSaasProductTypePage from "./app/(admin)/platform/saas-product-types/create/page";
+import EditSaasProductTypePage from "./app/(admin)/platform/saas-product-types/edit/[id]/page";
+import SaasProductTypeDetailPage from "./app/(admin)/platform/saas-product-types/[id]/page";
 import SubscriptionDetailPageFullscreen from "./app/(admin)/commerce/subscriptions/[id]/page";
 import AddSubscriptionPage from "./app/(admin)/commerce/subscriptions/create/page";
 
@@ -134,11 +139,11 @@ function AppContent() {
       <Route path="/admin/tenants/:id" element={<ProtectedRoute><TenantDetailPage /></ProtectedRoute>} />
       
       {/* 
-        ⚠️ CRITICAL FIX: Users routes - /moi and /sua/:id MUST come BEFORE /:id
+        ⚠️ CRITICAL FIX: Users routes - /create and /edit/:id MUST come BEFORE /:id
       */}
-      <Route path="/admin/users/create" element={<ProtectedRoute><AddUserPage /></ProtectedRoute>} />
-      <Route path="/admin/users/:id/edit" element={<ProtectedRoute><EditUserPage /></ProtectedRoute>} />
-      <Route path="/admin/users/:id" element={<ProtectedRoute><UserDetailPage /></ProtectedRoute>} />
+      <Route path="/platform/users/create" element={<ProtectedRoute><AddUserPage /></ProtectedRoute>} />
+      <Route path="/platform/users/edit/:id" element={<ProtectedRoute><EditUserPage /></ProtectedRoute>} />
+      <Route path="/platform/users/:id" element={<ProtectedRoute><UserDetailPage /></ProtectedRoute>} />
       
       {/* 
         ⚠️ CRITICAL FIX: Applications routes - /moi MUST come BEFORE /:id
@@ -150,7 +155,7 @@ function AppContent() {
           </AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/platform/applications/:id/edit" element={
+      <Route path="/platform/applications/edit/:id" element={
         <ProtectedRoute>
           <AppLayout>
             <EditApplicationPage />
@@ -180,24 +185,57 @@ function AppContent() {
       <Route path="/commerce/products/:id" element={<ProtectedRoute><ProductDetailPage /></ProtectedRoute>} />
       
       {/* 
-        ⚠️ CRITICAL FIX: Service Packages routes MUST be ordered correctly!
-        /add and /edit/:id MUST come BEFORE /:id to avoid matching "add"/"edit" as IDs
+        ⚠️ CRITICAL FIX: Service Packages routes - Moved to /platform
+        /create and /edit/:id MUST come BEFORE /:id
       */}
-      <Route path="/commerce/service-packages/add" element={
+      <Route path="/platform/service-packages" element={
+        <ProtectedRoute>
+          <AppLayout>
+            <ServicePackagesPage />
+          </AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/platform/service-packages/create" element={
         <ProtectedRoute>
           <AppLayout>
             <AddServicePackagePage />
           </AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/commerce/service-packages/edit/:id" element={
+      <Route path="/platform/service-packages/edit/:id" element={
         <ProtectedRoute>
           <AppLayout>
             <EditServicePackagePage />
           </AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/commerce/service-packages/:id" element={<ProtectedRoute><ServicePackageDetailPage /></ProtectedRoute>} />
+      <Route path="/platform/service-packages/:id" element={<ProtectedRoute><ServicePackageDetailPage /></ProtectedRoute>} />
+
+      {/* 
+        ⚠️ CRITICAL FIX: SaaS Product Types routes
+      */}
+      <Route path="/platform/saas-product-types" element={
+        <ProtectedRoute>
+          <AppLayout>
+            <SaasProductTypesPage />
+          </AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/platform/saas-product-types/create" element={
+        <ProtectedRoute>
+          <AppLayout>
+            <AddSaasProductTypePage />
+          </AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/platform/saas-product-types/edit/:id" element={
+        <ProtectedRoute>
+          <AppLayout>
+            <EditSaasProductTypePage />
+          </AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/platform/saas-product-types/:id" element={<ProtectedRoute><SaasProductTypeDetailPage /></ProtectedRoute>} />
       
       {/* 
         ⚠️ CRITICAL FIX: Subscriptions routes MUST be ordered correctly!

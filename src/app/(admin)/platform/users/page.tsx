@@ -107,7 +107,7 @@ export default function UsersPage() {
   };
 
   const handleRowClick = (userId: string) => {
-    router.push(`/admin/users/${userId}`);
+    router.push(`/platform/users/${userId}`);
   };
 
   return (

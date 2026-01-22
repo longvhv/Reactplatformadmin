@@ -14,7 +14,7 @@ import { Shield } from "lucide-react";
 const RolesPage = lazy(() => import("../../app/(admin)/platform/roles/page"));
 const AddRolePage = lazy(() => import("../../app/(admin)/platform/roles/create/page"));
 const EditRolePage = lazy(() => import("../../app/(admin)/platform/roles/edit/[id]/page"));
-const RoleDetailPage = lazy(() => import("../../app/(admin)/platform/roles/edit/[id]/page")); // Reuse edit for detail
+const RoleDetailPage = lazy(() => import("../../app/(admin)/platform/roles/[id]/page"));
 
 export const RolesModule: ModuleDefinition = {
   id: "roles",

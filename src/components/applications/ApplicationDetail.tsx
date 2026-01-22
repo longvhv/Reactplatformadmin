@@ -190,7 +190,7 @@ export function ApplicationDetail() {
           {!data.deleted_at && (
             <div className="flex items-center gap-2">
               <Link
-                to={`/core/applications/${data.code}/edit`}
+                to={`/platform/applications/edit/${data.code}`}
                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Edit

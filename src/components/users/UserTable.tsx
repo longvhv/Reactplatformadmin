@@ -134,12 +134,12 @@ export function UserTable({
                 <td className="px-4 py-3">
                   <div 
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => navigate(`/admin/users/${user._id}`)}
+                    onClick={() => navigate(`/platform/users/${user._id}`)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
-                        navigate(`/admin/users/${user._id}`);
+                        navigate(`/platform/users/${user._id}`);
                       }
                     }}
                   >
@@ -200,7 +200,7 @@ export function UserTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => navigate(`/admin/users/${user._id}/edit`)}>
+                      <DropdownMenuItem onClick={() => navigate(`/platform/users/edit/${user._id}`)}>
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>

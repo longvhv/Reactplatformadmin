@@ -9,9 +9,9 @@ import { useState } from 'react';
 import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Layers } from 'lucide-react';
 import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
-import { saasProductTypesApi } from '../../../../api/saasProductTypesApi';
-import { SaasProductTypeForm } from '../../../../components/saas-product-types/SaasProductTypeForm';
-import { showToast } from '../../../../lib/toast';
+import { saasProductTypesApi } from '../../../../../api/saasProductTypesApi';
+import { SaasProductTypeForm } from '../../../../../components/saas-product-types/SaasProductTypeForm';
+import { showToast } from '../../../../../lib/toast';
 
 function AddSaasProductTypePage() {
   const router = useRouter();

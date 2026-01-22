@@ -90,12 +90,12 @@ export function UserGrid({
           <CardHeader className="pb-4">
             <div 
               className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => navigate(`/admin/users/${user._id}`)}
+              onClick={() => navigate(`/platform/users/${user._id}`)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  navigate(`/admin/users/${user._id}`);
+                  navigate(`/platform/users/${user._id}`);
                 }
               }}
             >
@@ -127,12 +127,12 @@ export function UserGrid({
             {/* Email */}
             <div 
               className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"
-              onClick={() => navigate(`/admin/users/${user._id}`)}
+              onClick={() => navigate(`/platform/users/${user._id}`)}
               role="button"
               tabIndex={0}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
-                  navigate(`/admin/users/${user._id}`);
+                  navigate(`/platform/users/${user._id}`);
                 }
               }}
             >
@@ -188,7 +188,7 @@ export function UserGrid({
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => navigate(`/admin/users/${user._id}/edit`)}
+                onClick={() => navigate(`/platform/users/edit/${user._id}`)}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit

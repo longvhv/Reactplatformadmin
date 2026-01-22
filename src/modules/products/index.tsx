@@ -22,7 +22,9 @@ const EditProductPage = lazy(() =>
   import('../../app/(admin)/commerce/products/edit/[id]/page').then(m => ({ default: m.default }))
 );
 
-// Note: ProductDetailPage is full-screen (defined in App.tsx)
+const ProductDetailPage = lazy(() =>
+  import('../../app/(admin)/commerce/products/[id]/page').then(m => ({ default: m.default }))
+);
 
 /**
  * Products Module Definition
@@ -76,7 +78,15 @@ export const ProductsModule: ModuleDefinition = {
       ),
       title: "products.editProduct", // Translation key
     },
-    // Note: /commerce/products/:id is full-screen (defined in App.tsx)
+    {
+      path: "/commerce/products/:id",
+      element: (
+        <Suspense fallback={<LoadingFallback />}>
+          <ProductDetailPage />
+        </Suspense>
+      ),
+      title: "products.productDetail", // Translation key
+    },
   ],
 };
 
