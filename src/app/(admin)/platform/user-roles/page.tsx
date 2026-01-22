@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '../../../../components/ui/dropdown-menu';
+import { cn } from '../../../../components/ui/utils';
 
 export default function UserRolesPage() {
   const router = useRouter();

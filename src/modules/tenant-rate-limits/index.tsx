@@ -11,9 +11,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Activity } from "lucide-react";
 
 // Lazy-loaded pages
-const RateLimitsPage = lazy(() => import("../../app/(admin)/platform/tenant-rate-limits/page").then(m => ({ default: m.default })));
-const CreateRateLimitPage = lazy(() => import("../../app/(admin)/platform/tenant-rate-limits/create/page").then(m => ({ default: m.default })));
-const EditRateLimitPage = lazy(() => import("../../app/(admin)/platform/tenant-rate-limits/edit/[id]/page").then(m => ({ default: m.default })));
+const RateLimitsPage = lazy(() => import("../../app/(admin)/platform/tenant-rate-limits/page"));
+const CreateRateLimitPage = lazy(() => import("../../app/(admin)/platform/tenant-rate-limits/create/page"));
+const EditRateLimitPage = lazy(() => import("../../app/(admin)/platform/tenant-rate-limits/edit/[id]/page"));
 
 export const TenantRateLimitsModule: ModuleDefinition = {
   id: "tenant-rate-limits",

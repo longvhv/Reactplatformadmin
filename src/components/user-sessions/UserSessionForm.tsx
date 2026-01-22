@@ -27,7 +27,7 @@ import { showToast } from '../../lib/toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '../../lib/utils';
+import { cn } from '../ui/utils';
 import { TimePicker } from '../ui/time-picker'; // Assuming we have or can use a time picker logic or simple input
 
 interface UserSessionFormProps {

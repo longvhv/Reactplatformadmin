@@ -13,7 +13,7 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 
 // Lazy-loaded pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
-const LocationsPage = lazy(() => import('../../app/(admin)/location-types/page').then(m => ({ default: m.default })));
+const LocationsPage = lazy(() => import('../../app/(admin)/location-types/page'));
 
 export const LocationsModule: ModuleDefinition = {
   id: 'locations',

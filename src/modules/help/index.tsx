@@ -6,7 +6,7 @@ import { HelpCircle } from "lucide-react";
 /**
  * Lazy-load Help Page
  */
-const HelpPage = lazy(() => import("../../app/(admin)/help/page").then(m => ({ default: m.default })));
+const HelpPage = lazy(() => import("../../app/(admin)/help/page"));
 
 /**
  * Help Module

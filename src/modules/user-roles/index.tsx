@@ -11,9 +11,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Users } from "lucide-react";
 
 // Lazy-loaded pages
-const UserRolesPage = lazy(() => import("../../app/(admin)/platform/user-roles/page").then(m => ({ default: m.default })));
-const CreateUserRolePage = lazy(() => import("../../app/(admin)/platform/user-roles/create/page").then(m => ({ default: m.default })));
-const EditUserRolePage = lazy(() => import("../../app/(admin)/platform/user-roles/edit/[id]/page").then(m => ({ default: m.default })));
+const UserRolesPage = lazy(() => import("../../app/(admin)/platform/user-roles/page"));
+const CreateUserRolePage = lazy(() => import("../../app/(admin)/platform/user-roles/create/page"));
+const EditUserRolePage = lazy(() => import("../../app/(admin)/platform/user-roles/edit/[id]/page"));
 
 export const UserRolesModule: ModuleDefinition = {
   id: "user-roles",

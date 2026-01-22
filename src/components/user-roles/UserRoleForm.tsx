@@ -28,7 +28,7 @@ import { showToast } from '../../lib/toast';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '../../lib/utils';
+import { cn } from '../ui/utils';
 import { Textarea } from '../ui/textarea';
 
 interface UserRoleFormProps {

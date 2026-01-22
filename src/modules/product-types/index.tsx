@@ -7,15 +7,15 @@ import { Package } from "lucide-react";
  * Lazy load Product Types pages
  * ✅ CREATED 2026-01-15: Module definition for Product Types
  */
-const ProductTypesPage = lazy(() => import("../../app/(admin)/product-types/page").then(m => ({ default: m.default })));
+const ProductTypesPage = lazy(() => import("../../app/(admin)/product-types/page"));
 const ProductTypeDetailPage = lazy(() => 
-  import("../../app/(admin)/platform/product-types/[id]/page").then(m => ({ default: m.default }))
+  import("../../app/(admin)/platform/product-types/[id]/page")
 );
 const AddProductTypePage = lazy(() => 
-  import("../../app/(admin)/platform/product-types/create/page").then(m => ({ default: m.default }))
+  import("../../app/(admin)/platform/product-types/create/page")
 );
 const EditProductTypePage = lazy(() => 
-  import("../../app/(admin)/platform/product-types/edit/[id]/page").then(m => ({ default: m.default }))
+  import("../../app/(admin)/platform/product-types/edit/[id]/page")
 );
 
 /**

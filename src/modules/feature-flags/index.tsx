@@ -11,11 +11,11 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Flag } from 'lucide-react';
 
 // Lazy-loaded pages (App Router)
-const FeatureFlagsPage = lazy(() => import('../../app/(admin)/platform/feature-flags/page').then(m => ({ default: m.default })));
-const AddFeatureFlagPage = lazy(() => import('../../app/(admin)/platform/feature-flags/create/page').then(m => ({ default: m.default })));
-const EditFeatureFlagPage = lazy(() => import('../../app/(admin)/platform/feature-flags/edit/[id]/page').then(m => ({ default: m.default })));
+const FeatureFlagsPage = lazy(() => import('../../app/(admin)/platform/feature-flags/page'));
+const AddFeatureFlagPage = lazy(() => import('../../app/(admin)/platform/feature-flags/create/page'));
+const EditFeatureFlagPage = lazy(() => import('../../app/(admin)/platform/feature-flags/edit/[id]/page'));
 // Detail page not fully implemented yet, reuse list or edit
-const FeatureFlagDetailPage = lazy(() => import('../../app/(admin)/platform/feature-flags/edit/[id]/page').then(m => ({ default: m.default })));
+const FeatureFlagDetailPage = lazy(() => import('../../app/(admin)/platform/feature-flags/edit/[id]/page'));
 
 export const FeatureFlagsModule: ModuleDefinition = {
   id: 'feature-flags',
