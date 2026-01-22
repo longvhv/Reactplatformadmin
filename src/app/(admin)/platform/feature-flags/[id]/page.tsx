@@ -1,27 +1,27 @@
 /**
- * Feature Flag Detail Page
- * 
- * Read-only view of a feature flag.
- * Displays configuration, targeting rules, and audit information.
+ * ✅ MIGRATED from /pages/platform/feature-flags/[id].tsx
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
 import {
+  Flag,
   ArrowLeft,
   Edit,
   Trash2,
-  Flag
+  MoreVertical,
+  Power,
+  PowerOff
 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { featureFlagsApi, FeatureFlag } from '../../../../../../api/featureFlagsApi';
-import { showToast } from '../../../../../../lib/toast';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../../../../components/ui/card';
-import { Badge } from '../../../../../../components/ui/badge';
-import { ConfirmDialog } from '../../../../../../components/common/ConfirmDialog';
+import { Button } from '../../../../../components/ui/button';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { featureFlagsApi, FeatureFlag } from '../../../../../api/featureFlagsApi';
+import { showToast } from '../../../../../lib/toast';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../../components/ui/card';
+import { Badge } from '../../../../../components/ui/badge';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
 
 export default function FeatureFlagDetailPage() {
   const router = useRouter();

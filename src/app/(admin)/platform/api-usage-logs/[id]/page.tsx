@@ -4,12 +4,12 @@
  */
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
 import { Activity, ArrowLeft } from 'lucide-react';
-import { Card } from '../../../../../../components/ui/card';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { apiUsageLogsApi } from '../../../../../../api/apiUsageLogsApi';
-import { showToast } from '../../../../../../lib/toast';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { apiUsageLogsApi } from '../../../../../api/apiUsageLogsApi';
+import { showToast } from '../../../../../lib/toast';
 
 function ApiUsageLogDetailPage() {
   const router = useRouter();

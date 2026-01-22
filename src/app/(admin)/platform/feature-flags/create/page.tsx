@@ -1,18 +1,18 @@
 /**
  * Create Feature Flag Page
+ * ✅ MIGRATED from /pages/platform/feature-flags/create.tsx
  */
 
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from '../../../../../../components/shim/next-navigation';
-import { Flag } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { FeatureFlagForm } from '../../../../../../components/feature-flags/FeatureFlagForm';
-import { useFeatureFlags } from '../../../../../../hooks/useFeatureFlags';
-import { CreateFeatureFlagRequest } from '../../../../../../api/featureFlagsApi';
-import { showToast } from '../../../../../../lib/toast';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { Flag, Save, X } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { FeatureFlagForm } from '../../../../../components/feature-flags/FeatureFlagForm';
+import { useFeatureFlags } from '../../../../../hooks/useFeatureFlags';
+import { CreateFeatureFlagRequest } from '../../../../../api/featureFlagsApi';
+import { showToast } from '../../../../../lib/toast';
 
 function CreateFeatureFlagPage() {
   const router = useRouter();

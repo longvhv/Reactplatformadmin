@@ -1,17 +1,19 @@
+'use client';
+
 /**
- * Integration Add Form
+ * Add Integration Page
  * ✅ MIGRATED from /pages/platform/integrations/add.tsx
  */
-'use client';
-import { useState } from 'react';
-import { useRouter } from '../../../../../../components/shim/next-navigation';
-import { Puzzle, Plus } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { Input } from '../../../../../../components/ui/input';
-import { Card } from '../../../../../../components/ui/card';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { integrationsApi } from '../../../../../../api/integrationsApi';
-import { showToast } from '../../../../../../lib/toast';
+
+import { useState, Fragment } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { Plus, ArrowLeft } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { integrationsApi } from '../../../../../api/integrationsApi';
+import { showToast } from '../../../../../lib/toast';
 
 function AddIntegrationPage() {
   const router = useRouter();
@@ -32,7 +34,7 @@ function AddIntegrationPage() {
     }
   };
 
-  return <Fragment><PageLayout icon={Puzzle} title="Add Integration" description="Create new integration"><Card className="p-6"><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-sm font-medium mb-2">Name</label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Description</label><Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div><div><label className="block text-sm font-medium mb-2">API Endpoint</label><Input value={formData.endpoint} onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })} placeholder="https://api.example.com" required /></div><div className="flex items-center gap-3"><input type="checkbox" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} className="w-4 h-4" /><label className="text-sm font-medium">Enable integration</label></div><div className="flex gap-2 pt-4"><Button type="submit" disabled={loading}><Plus className="w-4 h-4 mr-2" />{loading ? 'Saving...' : 'Save'}</Button><Button type="button" variant="outline" onClick={() => router.push('/platform/integrations')}>Cancel</Button></div></form></Card></PageLayout></Fragment>;
+  return <Fragment><PageLayout icon={Plus} title="Add Integration" description="Create new integration"><Card className="p-6"><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-sm font-medium mb-2">Name</label><Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Description</label><Input value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div><div><label className="block text-sm font-medium mb-2">API Endpoint</label><Input value={formData.endpoint} onChange={(e) => setFormData({ ...formData, endpoint: e.target.value })} placeholder="https://api.example.com" required /></div><div className="flex items-center gap-3"><input type="checkbox" checked={formData.enabled} onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })} className="w-4 h-4" /><label className="text-sm font-medium">Enable integration</label></div><div className="flex gap-2 pt-4"><Button type="submit" disabled={loading}><Plus className="w-4 h-4 mr-2" />{loading ? 'Saving...' : 'Save'}</Button><Button type="button" variant="outline" onClick={() => router.push('/platform/integrations')}>Cancel</Button></div></form></Card></PageLayout></Fragment>;
 }
 export { AddIntegrationPage };
 export default AddIntegrationPage;

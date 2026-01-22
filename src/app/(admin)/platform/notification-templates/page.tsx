@@ -1,14 +1,15 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
-import { Mail, Plus, Search, Edit, Trash2, CheckCircle, Clock } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card } from '../../../../../components/ui/card';
-import { Badge } from '../../../../../components/ui/badge';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { notificationTemplateApi, NotificationTemplate } from '../../../../../api/notificationTemplateApi';
-import { showToast } from '../../../../../lib/toast';
+
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Mail, Plus } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { notificationTemplateApi, NotificationTemplate } from '../../../../api/notificationTemplateApi';
+import { showToast } from '../../../../lib/toast';
 
 function NotificationTemplatesPage() {
   const router = useRouter();

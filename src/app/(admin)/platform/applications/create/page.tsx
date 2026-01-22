@@ -5,12 +5,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Plus } from 'lucide-react';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
-import { applicationsApi } from '../../../../../../api/applicationsApi';
-import { ApplicationForm } from '../../../../../../components/applications/ApplicationForm';
-import { showToast } from '../../../../../../lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { applicationsApi } from '../../../../../api/applicationsApi';
+import { ApplicationForm } from '../../../../../components/applications/ApplicationForm';
+import { showToast } from '../../../../../lib/toast';
 
 function CreateApplicationPage() {
   const router = useRouter();

@@ -1,23 +1,21 @@
 /**
  * Tenant Subscription Detail Page
- * 
- * Displays detailed information about a tenant subscription.
- * Handles soft delete and navigation to edit page.
+ * ✅ MIGRATED from /pages/platform/tenant-subscriptions/[id].tsx
  */
 
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { CreditCard, Edit, Trash2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { tenantSubscriptionsApi, SubscriptionWithDetails } from '../../../../../../api/tenantSubscriptionsApi';
-import { showToast } from '../../../../../../lib/toast';
-import { ConfirmDialog } from '../../../../../../components/common/ConfirmDialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../../../components/ui/dropdown-menu';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../../../../components/ui/card';
-import { Badge } from '../../../../../../components/ui/badge';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
+import { CreditCard, ArrowLeft, Edit, Trash2, MoreVertical } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { tenantSubscriptionsApi, SubscriptionWithDetails } from '../../../../../api/tenantSubscriptionsApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../../components/ui/dropdown-menu';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../../components/ui/card';
+import { Badge } from '../../../../../components/ui/badge';
 
 export default function TenantSubscriptionDetailPage() {
   const params = useParams();

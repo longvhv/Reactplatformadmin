@@ -1,37 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTenants } from '../../../../../hooks/useTenants';
+import { useTenants } from '../../../../hooks/useTenants';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from 'next-i18next';
-import { useLanguage } from '../../../../../providers/LanguageProvider';
-import { useRouter } from '../../../../../components/shim/next-navigation';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { 
   FileText, 
   Plus, 
   Search, 
   MoreVertical, 
   Edit, 
-  Trash2 
+  Trash2,
+  Filter,
+  CheckCircle,
+  Clock,
+  Archive
 } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card } from '../../../../../components/ui/card';
-import { Badge } from '../../../../../components/ui/badge';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
 import { 
   legalDocumentsApi, 
   LegalDocument,
   DocumentType,
   DocumentStatus 
-} from '../../../../../api/legalDocumentsApi';
-import { showToast } from '../../../../../lib/toast';
+} from '../../../../api/legalDocumentsApi';
+import { showToast } from '../../../../lib/toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../../components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 
 export default function LegalDocumentsPage() {
   const router = useRouter();

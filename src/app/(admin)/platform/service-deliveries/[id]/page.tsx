@@ -1,14 +1,14 @@
 /**
  * Service Delivery Detail Page
- * ✅ MIGRATED: Using Next.js shim for navigation
+ * ✅ MIGRATED from /pages/platform/service-deliveries/[id].tsx
  */
 
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { Truck, Edit, Trash2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
+import { Truck, ArrowLeft } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
 import { serviceDeliveriesApi, ServiceDelivery } from '../../../../../api/serviceDeliveriesApi';
 import { showToast } from '../../../../../lib/toast';
 import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';

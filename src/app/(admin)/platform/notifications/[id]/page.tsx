@@ -1,16 +1,18 @@
+'use client';
+
 /**
- * Notifications Detail Page
+ * Notification Detail Page
  * ✅ MIGRATED from /pages/platform/notifications/[id].tsx
  */
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { Bell, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { Card } from '../../../../../../components/ui/card';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { notificationsApi } from '../../../../../../api/notificationsApi';
-import { showToast } from '../../../../../../lib/toast';
+
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
+import { Bell, ArrowLeft } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { Card } from '../../../../../components/ui/card';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { notificationsApi } from '../../../../../api/notificationsApi';
+import { showToast } from '../../../../../lib/toast';
 
 function NotificationDetailPage() {
   const router = useRouter();

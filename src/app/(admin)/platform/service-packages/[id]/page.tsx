@@ -1,19 +1,19 @@
-/**
- * Service Package Detail Page
- * ✅ MIGRATED: Using Next.js shim for navigation
- */
-
 'use client';
 
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { Package, Edit, Trash2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { servicePackagesApi, ServicePackage } from '../../../../api/servicePackagesApi';
-import { showToast } from '../../../../lib/toast';
-import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../components/ui/dropdown-menu';
+/**
+ * Service Package Detail Page
+ * ✅ MIGRATED from /pages/platform/service-packages/[id].tsx
+ */
+
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
+import { Package, ArrowLeft } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { servicePackagesApi, ServicePackage } from '../../../../../api/servicePackagesApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../../components/ui/dropdown-menu';
 
 function ServicePackageDetailPage() {
   const params = useParams();

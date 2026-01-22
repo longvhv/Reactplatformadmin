@@ -38,7 +38,6 @@ const lazyModuleLoaders = {
   
   // Commerce
   products: () => import('../modules/products/index'),
-  productTypes: () => import('../modules/product-types/index'),
   saasProductTypes: () => import('../modules/saas-product-types/index'),
   servicePackages: () => import('../modules/service-packages/index'),
   subscriptionOrders: () => import('../modules/subscription-orders/index'),

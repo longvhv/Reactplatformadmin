@@ -1,17 +1,17 @@
-/**
- * Add Notification Page
- * ✅ MIGRATED: Using Next.js shim for navigation
- */
-
 'use client';
 
+/**
+ * Create Notification Page
+ * ✅ MIGRATED from /pages/platform/notifications/create.tsx
+ */
+
 import { useState } from 'react';
-import { useRouter } from '../../../../../../components/shim/next-navigation';
-import { Bell, Plus } from 'lucide-react';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
-import { notificationsApi } from '../../../../../../api/notificationsApi';
-import { NotificationForm } from '../../../../../../components/notifications/NotificationForm';
-import { showToast } from '../../../../../../lib/toast';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { Bell } from 'lucide-react';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { notificationsApi } from '../../../../../api/notificationsApi';
+import { NotificationForm } from '../../../../../components/notifications/NotificationForm';
+import { showToast } from '../../../../../lib/toast';
 
 function CreateNotificationPage() {
   const router = useRouter();

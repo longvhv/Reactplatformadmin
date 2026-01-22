@@ -1,2 +1,2 @@
-import NotificationTemplatesPage from './app/(admin)/notification-templates/page';
+import NotificationTemplatesPage from '../app/(admin)/platform/notification-templates/page';
 export default NotificationTemplatesPage;

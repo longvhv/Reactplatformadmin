@@ -5,7 +5,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Mail, ArrowLeft } from 'lucide-react';
 import { Button } from '../../../../../components/ui/button';
 import { PageLayout } from '../../../../../components/layout/PageLayout';

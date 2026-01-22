@@ -15,7 +15,7 @@ interface ProductTableProps {
   products: SaasProduct[];
   onEdit?: (product: SaasProduct) => void;
   onDelete?: (product: SaasProduct) => void;
-  onView?: (product: SaasProduct) => void;
+  onViewDetails?: (product: SaasProduct) => void;
   onDuplicate?: (product: SaasProduct) => void;
   onToggleFeatured?: (product: SaasProduct) => void;
   loading?: boolean;
@@ -25,7 +25,7 @@ export function ProductTable({
   products,
   onEdit,
   onDelete,
-  onView,
+  onViewDetails,
   onDuplicate,
   onToggleFeatured,
   loading,
@@ -121,7 +121,7 @@ export function ProductTable({
                   )}
                   <div>
                     <button
-                      onClick={() => onView?.(product)}
+                      onClick={() => onViewDetails?.(product)}
                       className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
                     >
                       {product.name}

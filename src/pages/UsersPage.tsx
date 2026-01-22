@@ -1,2 +1,2 @@
-import UsersPage from '../app/(admin)/admin/users/page';
+import UsersPage from '../app/(admin)/platform/users/page';
 export default UsersPage;

@@ -1,2 +1,2 @@
-import TenantMembersPage from './app/(admin)/admin/tenant-members/page';
+import TenantMembersPage from '../app/(admin)/admin/tenant-members/page';
 export default TenantMembersPage;

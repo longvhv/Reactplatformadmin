@@ -9,13 +9,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
-import { useApplications } from '../../../../../hooks/useApplications';
-import { useLanguage } from '../../../../../providers/LanguageProvider';
-import { Card } from '../../../../../components/ui/card';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { useApplications } from '../../../../hooks/useApplications';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
 import { 
   Server, 
   Plus, 
@@ -34,10 +34,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../../components/ui/dropdown-menu';
-import { showToast } from '../../../../../lib/toast';
-import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
-import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
+} from '../../../../components/ui/dropdown-menu';
+import { showToast } from '../../../../lib/toast';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
+import { StatisticsCards } from '../../../../components/common/StatisticsCards';
 
 function ApplicationsPage() {
   const { t } = useLanguage();

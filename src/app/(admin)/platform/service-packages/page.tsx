@@ -113,7 +113,14 @@ function ServicePackagesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/platform/service-packages/${item._id}`);
+                        }}
+                      >
                         <Eye className="w-4 h-4" />
                       </Button>
                     </td>
