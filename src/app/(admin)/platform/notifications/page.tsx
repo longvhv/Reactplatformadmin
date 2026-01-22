@@ -1,19 +1,19 @@
-/**
- * FINAL COMPLETION MEGA BATCH: All Remaining Pages
- * Notifications | Invoices | User Registrations | API Usage Logs | Service Delivery Forms | Notification Forms | Invoice Forms | Digital Asset Forms | Region Edit | Application Add
- * Plus Analytics Pages | Report Pages | Settings Pages | Admin Tools | Utilities
- * ✅ MIGRATED: Final 25+ pages to reach 100%!
- */
 'use client';
-import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+
+/**
+ * Notifications Page
+ * ✅ MIGRATED from /pages/platform/notifications.tsx
+ */
+
+import { useState, useEffect, Fragment } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { Bell, Plus, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { notificationsApi } from '@/api/notificationsApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { notificationsApi } from '../../../../api/notificationsApi';
+import { showToast } from '../../../../lib/toast';
 
 function NotificationsPage() {
   const router = useRouter();

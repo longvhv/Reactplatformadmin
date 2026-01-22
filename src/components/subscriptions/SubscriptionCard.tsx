@@ -1,10 +1,11 @@
 /**
  * SubscriptionCard Component
- * Displays tenant subscription in a card format
+ * Displays subscription in card format
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React from 'react';
-import { useRouter } from '../../shim/next-navigation';
+import { useRouter } from '../../components/shim/next-navigation';
 import { 
   CreditCard, Calendar, DollarSign, Users, HardDrive,
   Eye, Pencil, Trash2, RefreshCw, Sparkles, Clock
@@ -238,7 +239,7 @@ export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
           >
             <Pencil className="w-4 h-4 mr-2" />
             {t('common.edit')}
-          </Button>>
+          </Button>
           <Button
             variant="outline"
             size="sm"

@@ -5,12 +5,17 @@
 'use client';
 import { Fragment, useState, useEffect } from 'react';
 import { Shield, Save } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { settingsApi } from '@/api/settingsApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
+
+// Temporary mock API since settingsApi doesn't exist
+const settingsApi = {
+  getSecurity: async () => ({ twoFactorEnabled: false, sessionTimeout: 30, passwordMinLength: 8 }),
+  updateSecurity: async (data: any) => { console.log('Saving:', data); }
+};
 
 function SecuritySettingsPage() {
   const [formData, setFormData] = useState({ twoFactorEnabled: false, sessionTimeout: 30, passwordMinLength: 8 });

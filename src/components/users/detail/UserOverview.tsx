@@ -1,20 +1,19 @@
 /**
- * UserOverview Component  
- * Hiển thị tổng quan thông tin user
+ * UserOverview Component
+ * Hiển thị thông tin tổng quan của user
  */
 
 import { useState } from 'react';
 import { 
-  Mail,
-  Phone,
+  User as UserIcon, 
+  Mail, 
+  Phone, 
+  MapPin, 
   Calendar,
-  Clock,
-  Shield,
-  CheckCircle,
-  XCircle,
-  Edit2,
-  Save,
-  X as XIcon
+  Edit,
+  Check,
+  X,
+  Globe
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -112,7 +111,7 @@ export function UserOverview({ user, onUpdate }: UserOverviewProps) {
               onClick={() => setEditing(true)}
               className="gap-2"
             >
-              <Edit2 className="w-4 h-4" />
+              <Edit className="w-4 h-4" />
               Chỉnh sửa
             </Button>
           ) : (
@@ -123,7 +122,7 @@ export function UserOverview({ user, onUpdate }: UserOverviewProps) {
                 onClick={handleCancel}
                 className="gap-2"
               >
-                <XIcon className="w-4 h-4" />
+                <X className="w-4 h-4" />
                 Hủy
               </Button>
               <Button
@@ -132,7 +131,7 @@ export function UserOverview({ user, onUpdate }: UserOverviewProps) {
                 disabled={saving}
                 className="gap-2"
               >
-                <Save className="w-4 h-4" />
+                <Check className="w-4 h-4" />
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </Button>
             </div>

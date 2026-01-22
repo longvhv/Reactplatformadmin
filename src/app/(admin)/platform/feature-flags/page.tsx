@@ -1,17 +1,16 @@
 'use client';
+import { useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { Flag, Plus, Search, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { featureFlagsApi, FeatureFlag } from '../../../../api/featureFlagsApi';
+import { showToast } from '../../../../lib/toast';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Flag, Plus, Search, Loader2, Edit, Trash2, ToggleLeft, ToggleRight, Sliders } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { featureFlagsApi, FeatureFlag } from '@/api/featureFlagsApi';
-import { showToast } from '@/lib/toast';
-
-export default function FeatureFlagsPage() {
+function FeatureFlagsPage() {
   const router = useRouter();
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,15 +148,8 @@ export default function FeatureFlagsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredFlags.map((flag) => (
-                  <tr 
-                    key={flag.id} 
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/platform/feature-flags/${flag.id}`)}
-                  >
-                    <td 
-                      className="px-6 py-4 whitespace-nowrap"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                  <tr key={flag.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
                        <button 
                         onClick={() => handleToggle(flag)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${flag.is_enabled ? 'bg-green-500' : 'bg-gray-200'}`}
@@ -168,13 +160,16 @@ export default function FeatureFlagsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className="font-medium hover:text-indigo-600 transition-colors">
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            <span 
+                              className="cursor-pointer hover:text-indigo-600 hover:underline"
+                              onClick={() => router.push(`/platform/feature-flags/${flag.id}`)}
+                            >
                               {flag.flag_name}
                             </span>
                             {getTypeBadge(flag.flag_type)}
                           </div>
-                          <div className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded w-fit mt-1">
+                          <div className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded w-fit mt-1">
                             {flag.flag_key}
                           </div>
                         </div>
@@ -191,13 +186,10 @@ export default function FeatureFlagsPage() {
                             style={{ width: `${flag.percentage_rollout}%` }}
                           />
                         </div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{flag.percentage_rollout}%</span>
+                        <span className="text-xs text-gray-500">{flag.percentage_rollout}%</span>
                       </div>
                     </td>
-                    <td 
-                      className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
@@ -242,3 +234,5 @@ export default function FeatureFlagsPage() {
     </PageLayout>
   );
 }
+
+export default FeatureFlagsPage;

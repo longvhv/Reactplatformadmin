@@ -1,12 +1,13 @@
 'use client';
 
-import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
 import { Users, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { UserRoleForm } from '@/components/user-roles/UserRoleForm';
-import { userRolesApi, UserRole, UpdateUserRoleRequest } from '@/api/userRolesApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../../../components/ui/button';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { UserRoleForm } from '../../../../../../components/user-roles/UserRoleForm';
+import { userRolesApi, UserRole, UpdateUserRoleRequest } from '../../../../../../api/userRolesApi';
+import { showToast } from '../../../../../../lib/toast';
 
 export default function EditUserRolePage() {
   const router = useRouter();

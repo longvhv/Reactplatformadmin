@@ -19,7 +19,7 @@ import {
   type UpdateCapabilityRequest,
   type CapabilityType,
   type CapabilityStatus,
-} from '@/api/appCapabilityApi';
+} from '../api/appCapabilityApi';
 import { toast } from 'sonner';
 
 export function useCapabilities(appId: string, tenantId?: string) {

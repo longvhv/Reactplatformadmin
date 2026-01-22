@@ -5,9 +5,10 @@
  */
 
 'use client';
-import React, { useEffect, useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { supabase } from '@/utils/supabase/client';
+
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter } from '../../components/shim/next-navigation';
+import { supabase } from '../../utils/supabase/client';
 
 export default function AdminLayout({
   children,
@@ -15,6 +16,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
 

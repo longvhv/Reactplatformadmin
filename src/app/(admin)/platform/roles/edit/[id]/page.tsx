@@ -1,85 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
-import { Shield, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { EnhancedRoleForm } from '@/components/roles/EnhancedRoleForm';
-import { rolesApi, Role, UpdateRoleRequest } from '@/api/rolesApi';
-import { showToast } from '@/lib/toast';
+/**
+ * Edit Reserved Slug | Edit Webhook | Edit Application | Add/Edit Service Delivery | Edit Invoice
+ * ✅ MIGRATED: Batch edit pages
+ */
 
-export default function EditRolePage() {
-  const router = useRouter();
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
+import { Tag } from 'lucide-react';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { reservedSlugsApi } from '../../../../../../api/reservedSlugsSimpleApi';
+import { ReservedSlugForm } from '../../../../../../components/reserved-slugs/ReservedSlugForm';
+import { showToast } from '../../../../../../lib/toast';
+
+function EditReservedSlugPage() {
   const params = useParams();
-  const id = params.id as string;
-
-  const [role, setRole] = useState<Role | null>(null);
+  const id = params?.id as string;
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const [slug, setSlug] = useState<any>(null);
+  const [slugLoading, setSlugLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchRole = async () => {
-      try {
-        const data = await rolesApi.getById(id);
-        setRole(data);
-      } catch (error: any) {
-        console.error('Failed to fetch role:', error);
-        showToast.error('Lỗi', 'Không thể tải thông tin vai trò');
-        router.push('/platform/roles');
-      } finally {
-        setFetching(false);
-      }
-    };
+  useEffect(() => { if (id) loadSlug(); }, [id]);
 
-    if (id) {
-      fetchRole();
+  const loadSlug = async () => {
+    try {
+      setSlugLoading(true);
+      const data = await reservedSlugsApi.getById(id);
+      setSlug(data);
+    } catch (error: any) {
+      showToast.error('Error', 'Failed to load');
+    } finally {
+      setSlugLoading(false);
     }
-  }, [id, router]);
+  };
 
   const handleSubmit = async (data: any) => {
     setLoading(true);
     try {
-      await rolesApi.update(id, data as UpdateRoleRequest);
-      showToast.success('Thành công', 'Đã cập nhật vai trò');
-      router.push('/platform/roles');
+      await reservedSlugsApi.update(id, data);
+      showToast.success('Success', 'Reserved slug updated');
+      router.push('/platform/reserved-slugs');
     } catch (error: any) {
-      console.error('Failed to update role:', error);
-      showToast.error('Lỗi', error.message || 'Không thể cập nhật vai trò');
+      showToast.error('Error', error.message || 'Failed');
     } finally {
       setLoading(false);
     }
   };
 
-  if (fetching) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
-  if (!role) return null;
+  if (slugLoading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   return (
-    <PageLayout
-      icon={Shield}
-      title="Chỉnh Sửa Vai Trò"
-      description={`Cập nhật quyền hạn cho vai trò: ${role.name}`}
-      actions={
-        <Button variant="outline" onClick={() => router.push('/platform/roles')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Quay lại
-        </Button>
-      }
-    >
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm p-6">
-        <EnhancedRoleForm
-          initialData={role}
-          onSubmit={handleSubmit}
-          onCancel={() => router.push('/platform/roles')}
-          loading={loading}
-          isEdit={true}
-        />
-      </div>
-    </PageLayout>
+    <FormPageLayout mode="edit" title="Edit Reserved Slug" description="Update reserved slug" icon={Tag} backPath="/platform/reserved-slugs" backLabel="Back">
+      <ReservedSlugForm initialData={slug} onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/reserved-slugs')} />
+    </FormPageLayout>
   );
 }
+
+export { EditReservedSlugPage };
+export default EditReservedSlugPage;

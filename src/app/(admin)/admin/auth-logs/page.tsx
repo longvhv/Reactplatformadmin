@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { Shield, Info } from 'lucide-react';
-import { AuthLogsTable } from '@/components/auth/AuthLogsTable';
+import { AuthLogsTable } from '../../../../components/auth/AuthLogsTable';
 
 function AuthLogsPage() {
   return (

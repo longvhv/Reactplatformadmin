@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { createAdapter, BaseFilters } from './adapters';
 
 // Re-export helper functions for backward compatibility
-export { formatCurrency, formatDate } from '@/lib/format';
+export { formatCurrency, formatDate } from '../lib/format';
 
 // ==================== TYPES ====================
 

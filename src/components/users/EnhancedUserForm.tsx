@@ -1,18 +1,12 @@
 /**
- * Enhanced User Form Component
- * Standardized form for creating/editing users
- * 
- * Compliant with users schema:
- * - email: varchar(255) NOT NULL, regex checked
- * - full_name: text NOT NULL
- * - phone_number: varchar(20) NULL, UNIQUE
- * - avatar_url: text NULL, regex checked
- * - status: 'ACTIVE' | 'BANNED' | 'DISABLED' | 'PENDING'
- * - locale: 'vi-VN' | 'en-US' ...
- * - metadata: jsonb NOT NULL
- * - is_verified, is_support_staff, mfa_enabled: boolean
+ * EnhancedUserForm Component
+ * Comprehensive user creation/editing form with tabs
+ * Features: Basic info, contact, security settings, preferences, metadata
  */
 
+'use client';
+
+import React from "react";
 import { useState, useEffect } from "react";
 import { Save, User as UserIcon, Mail, Phone, Globe, Shield, Lock, FileCode, AlertTriangle } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";

@@ -8,27 +8,27 @@ import {
   DeviceType,
   DEVICE_TYPES,
   DeviceTypeHelper
-} from '@/api/userSessionsApi';
-import { usersApi, User } from '@/api/usersApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+} from '../../api/userSessionsApi';
+import { usersApi, User } from '../../api/usersApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+} from '../ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { CalendarIcon, Save, Monitor, Smartphone, Tablet, Tv, Watch, HelpCircle } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { showToast } from '../../lib/toast';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { TimePicker } from '@/components/ui/time-picker'; // Assuming we have or can use a time picker logic or simple input
+import { cn } from '../ui/utils';
+import { TimePicker } from '../ui/time-picker'; // Assuming we have or can use a time picker logic or simple input
 
 interface UserSessionFormProps {
   initialData?: UserSession;

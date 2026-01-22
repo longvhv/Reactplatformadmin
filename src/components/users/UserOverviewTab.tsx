@@ -1,6 +1,6 @@
 /**
  * UserOverviewTab Component
- * Displays user overview information
+ * Overview of user information
  */
 
 import { Card } from '../ui/card';

@@ -6,11 +6,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Code2, Book, FileText, Search, ExternalLink } from 'lucide-react';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { useRouter } from '@/components/shim/next-navigation';
+import { Code2, Search, Book } from 'lucide-react';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Card } from '../../../../components/ui/card';
+import { Input } from '../../../../components/ui/input';
+import { useRouter } from '../../../../components/shim/next-navigation';
 
 interface DocSection {
   id: string;
@@ -37,7 +37,7 @@ function DevDocsPage() {
       title: 'System Architecture',
       description: 'Tổng quan về kiến trúc hệ thống',
       link: '/docs/dev/architecture',
-      icon: FileText,
+      icon: Book,
     },
     {
       id: 'api-reference',
@@ -51,7 +51,7 @@ function DevDocsPage() {
       title: 'Database Schema',
       description: 'Cấu trúc và schema của database',
       link: '/docs/database',
-      icon: FileText,
+      icon: Book,
     },
   ];
 

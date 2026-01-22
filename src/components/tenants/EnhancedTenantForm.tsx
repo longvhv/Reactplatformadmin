@@ -10,7 +10,7 @@
  */
 
 import { Fragment, useState } from "react";
-import { useRouter } from "../../shim/next-navigation";
+import { useNavigate } from "react-router";
 import { 
   ArrowLeft, Save, Building2, Globe, Mail, Phone, Calendar, 
   Database, Users, Shield, MapPin, Clock, Settings, Handshake, CreditCard
@@ -47,7 +47,7 @@ interface TenantFormProps {
 
 export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = false, loading = false, onCancel }: TenantFormProps) {
   const { t } = useLanguage();
-  const router = useRouter();
+  const navigate = useNavigate();
   // Remove internal loading state since we receive it as prop
   // const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -202,7 +202,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
 
       await onSubmit(submitData, subscriptionPayload);
       // Navigation is handled by parent usually, but we keep the old behavior if parent doesn't navigate
-      // router.push("/admin/tenants"); 
+      // navigate("/admin/tenants"); 
     } catch (error) {
       console.error("Failed to save tenant:", error);
     } 
@@ -236,7 +236,7 @@ export function EnhancedTenantForm({ tenant, tenants = [], onSubmit, isEdit = fa
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card">
           <div className="max-w-7xl mx-auto px-6 py-4">
-            <Button variant="ghost" size="sm" onClick={() => router.push("/admin/tenants")} className="gap-2 mb-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/tenants")} className="gap-2 mb-4">
               <ArrowLeft className="w-4 h-4" />
               {t("common.back")}
             </Button>

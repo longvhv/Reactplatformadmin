@@ -23,7 +23,6 @@ import { DevDocsModule } from '../modules/dev-docs/index';
 import { TenantMembersModule } from '../modules/tenant-members/index';
 import { ApplicationsModule } from '../modules/applications/index';
 import { ProductsModule } from '../modules/products/index';
-import { ProductTypesModule } from '../modules/product-types/index';
 import { ServicePackagesModule } from '../modules/service-packages/index';
 import { SubscriptionOrdersModule } from '../modules/subscription-orders/index';
 import { SubscriptionInvoicesModule } from '../modules/subscription-invoices/index';
@@ -72,7 +71,6 @@ export function registerAllModules(): void {
   registry.register(PermissionsModule);
   registry.register(ApplicationsModule);
   registry.register(ProductsModule);
-  registry.register(ProductTypesModule);
   registry.register(SaasProductTypesModule);
   registry.register(ServicePackagesModule);
   registry.register(SubscriptionOrdersModule);
@@ -103,7 +101,7 @@ export function registerAllModules(): void {
   registry.register(UserDevicesModule);
   registry.register(UserSessionsModule);
   
-  console.log('✅ All 42 modules registered successfully');
+  console.log('✅ All 41 modules registered successfully');
 }
 
 // Auto-register on import

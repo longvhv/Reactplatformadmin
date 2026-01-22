@@ -4,7 +4,7 @@
  * ✅ Production-ready with all features
  */
 
-import { useRouter } from '../../shim/next-navigation';
+import { useNavigate } from 'react-router';
 import { 
   Edit, Trash2, MoreVertical, 
   CheckCircle, Shield, Lock 
@@ -47,7 +47,7 @@ export function UserTable({
   handleDelete,
   handleStatusChange 
 }: UserTableProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -75,8 +75,7 @@ export function UserTable({
     }
   };
 
-  const handleSelectOne = (e: React.MouseEvent, id: string, checked: boolean) => {
-    e.stopPropagation();
+  const handleSelectOne = (id: string, checked: boolean) => {
     if (checked) {
       setSelectedUsers([...selectedUsers, id]);
     } else {
@@ -122,20 +121,28 @@ export function UserTable({
             {users.map((user) => (
               <tr 
                 key={user._id}
-                className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors cursor-pointer"
-                onClick={() => router.push(`/admin/users/${user._id}`)}
+                className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
               >
-                <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                <td className="px-4 py-3">
                   <input
                     type="checkbox"
                     checked={selectedUsers.includes(user._id)}
-                    onChange={(e) => handleSelectOne(e as any, user._id, e.target.checked)}
+                    onChange={(e) => handleSelectOne(user._id, e.target.checked)}
                     className="rounded border-gray-300"
-                    onClick={(e) => e.stopPropagation()}
                   />
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => navigate(`/platform/users/${user._id}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        navigate(`/platform/users/${user._id}`);
+                      }
+                    }}
+                  >
                     {user.avatar_url ? (
                       <img 
                         src={user.avatar_url} 
@@ -186,28 +193,26 @@ export function UserTable({
                   {formatDate(user.created_at)}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/admin/users/${user._id}/edit`)}>
-                          <Edit className="w-4 h-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDelete(user._id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => navigate(`/platform/users/edit/${user._id}`)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDelete(user._id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </td>
               </tr>
             ))}

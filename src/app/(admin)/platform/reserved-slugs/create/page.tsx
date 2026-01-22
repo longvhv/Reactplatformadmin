@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Tag } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { reservedSlugsApi } from '@/api/reservedSlugsSimpleApi';
-import { ReservedSlugForm } from '@/components/reserved-slugs/ReservedSlugForm';
-import { showToast } from '@/lib/toast';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { Ban } from 'lucide-react';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { reservedSlugsApi } from '../../../../../api/reservedSlugsSimpleApi';
+import { ReservedSlugForm } from '../../../../../components/reserved-slugs/ReservedSlugForm';
+import { showToast } from '../../../../../lib/toast';
 
 function AddReservedSlugPage() {
   const router = useRouter();
@@ -31,7 +31,7 @@ function AddReservedSlugPage() {
   };
 
   return (
-    <FormPageLayout mode="add" title="Add Reserved Slug" description="Create reserved slug" icon={Tag} backPath="/platform/reserved-slugs" backLabel="Back">
+    <FormPageLayout mode="add" title="Add Reserved Slug" description="Create reserved slug" icon={Ban} backPath="/platform/reserved-slugs" backLabel="Back">
       <ReservedSlugForm onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/reserved-slugs')} />
     </FormPageLayout>
   );

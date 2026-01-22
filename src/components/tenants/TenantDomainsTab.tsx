@@ -25,8 +25,8 @@ import {
   CreateDomainRequest,
   UpdateDomainRequest
 } from '../../api/tenantDomainsApi';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { TenantDomainModal } from './TenantDomainModal';
 import { toast } from 'sonner';
 
@@ -92,7 +92,7 @@ export const TenantDomainsTab: React.FC<TenantDomainsTabProps> = ({ tenantId }) 
       toast.success('Đã xóa tên miền');
       loadDomains();
     } catch (err) {
-      toast.error('Lỗi khi xóa tên miền');
+      toast.error('Lỗi khi xóa tn miền');
       console.error('Error deleting domain:', err);
     }
   };

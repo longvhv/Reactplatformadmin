@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Package } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { servicePackagesApi } from '@/api/servicePackagesApi';
-import { ServicePackageForm } from '@/components/service-packages/ServicePackageForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { servicePackagesApi } from '../../../../../api/servicePackagesApi';
+import { ServicePackageForm } from '../../../../../components/service-packages/ServicePackageForm';
+import { showToast } from '../../../../../lib/toast';
 
 function AddServicePackagePage() {
   const router = useRouter();

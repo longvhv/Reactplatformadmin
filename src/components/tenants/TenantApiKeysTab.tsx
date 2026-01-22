@@ -314,11 +314,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {keys.map((key) => (
-                  <tr 
-                    key={key._id} 
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => setEditingKey(key)}
-                  >
+                  <tr key={key._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Key className="h-4 w-4 text-gray-400" />
@@ -331,10 +327,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                           {apiKeysService.formatKeyDisplay(key.key_prefix)}
                         </code>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copyToClipboard(key.key_prefix, key._id);
-                          }}
+                          onClick={() => copyToClipboard(key.key_prefix, key._id)}
                           className="text-gray-400 hover:text-gray-600 transition-colors"
                           title="Copy prefix"
                         >
@@ -384,10 +377,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                          <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingKey(key);
-                          }}
+                          onClick={() => setEditingKey(key)}
                           className="text-gray-600 hover:text-indigo-600 text-sm font-medium p-1 rounded hover:bg-indigo-50 transition-colors"
                           title={t('common.edit') || 'Edit'}
                         >
@@ -395,10 +385,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                         </button>
                         <span className="text-gray-300">|</span>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRotate(key._id, key.name);
-                          }}
+                          onClick={() => handleRotate(key._id, key.name)}
                           className="text-indigo-600 hover:text-indigo-800 text-sm font-medium p-1 rounded hover:bg-indigo-50 transition-colors"
                           title={t('apiKeys.rotate') || 'Rotate Key'}
                         >
@@ -406,10 +393,7 @@ export const TenantApiKeysTab: React.FC<TenantApiKeysTabProps> = ({ tenantId }) 
                         </button>
                         <span className="text-gray-300">|</span>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(key._id, key.name);
-                          }}
+                          onClick={() => handleDelete(key._id, key.name)}
                           className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
                           title={t('apiKeys.revoke') || 'Revoke Key'}
                         >

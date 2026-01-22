@@ -4,17 +4,18 @@
  */
 
 import { useState } from 'react';
-import { Link, useRouter } from '../../shim/next-navigation';
+import { Link } from 'react-router';
 import {
   useApplications,
   applicationsApi,
+  formatAppCode,
+  getApplicationStatusColor,
   getApplicationStatusLabel,
 } from '../../api/applicationsApi';
 import { useTranslation } from 'react-i18next';
 
 export function ApplicationsList() {
   const { t } = useTranslation();
-  const router = useRouter();
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(true);
   const [includeDeleted, setIncludeDeleted] = useState(false);
   
@@ -23,8 +24,7 @@ export function ApplicationsList() {
     include_deleted: includeDeleted,
   });
 
-  const handleDelete = async (e: React.MouseEvent, code: string) => {
-    e.stopPropagation();
+  const handleDelete = async (code: string) => {
     if (!confirm(`Are you sure you want to delete application ${code}?`)) {
       return;
     }
@@ -38,8 +38,7 @@ export function ApplicationsList() {
     }
   };
 
-  const handleToggleActive = async (e: React.MouseEvent, code: string, currentStatus: boolean) => {
-    e.stopPropagation();
+  const handleToggleActive = async (code: string, currentStatus: boolean) => {
     try {
       await applicationsApi.update(code, { is_active: !currentStatus });
       alert('Application status updated');
@@ -47,10 +46,6 @@ export function ApplicationsList() {
     } catch (error) {
       alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  };
-
-  const handleRowClick = (code: string) => {
-    router.push(`/platform/applications/${code}`);
   };
 
   if (loading) {
@@ -80,7 +75,7 @@ export function ApplicationsList() {
           </p>
         </div>
         <Link
-          href="/platform/applications/create"
+          to="/platform/applications/create"
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           + Create Application
@@ -148,7 +143,7 @@ export function ApplicationsList() {
             Get started by creating your first application
           </p>
           <Link
-            href="/platform/applications/create"
+            to="/platform/applications/create"
             className="inline-flex px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
           >
             Create Application
@@ -181,15 +176,14 @@ export function ApplicationsList() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {applications.map((app) => (
-                <tr 
-                  key={app._id} 
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => handleRowClick(app.code)}
-                >
+                <tr key={app._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono font-medium text-indigo-600 hover:text-indigo-900">
+                    <Link
+                      to={`/platform/applications/${app.code}`}
+                      className="text-sm font-mono font-medium text-indigo-600 hover:text-indigo-900"
+                    >
                       {app.code}
-                    </span>
+                    </Link>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{app.name}</div>
@@ -220,9 +214,9 @@ export function ApplicationsList() {
                     {new Date(app.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-2">
                       <Link
-                        href={`/platform/applications/${app.code}`}
+                        to={`/platform/applications/${app.code}`}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         View
@@ -231,21 +225,21 @@ export function ApplicationsList() {
                         <>
                           <span className="text-gray-300">|</span>
                           <Link
-                            href={`/platform/applications/${app.code}/edit`}
+                            to={`/platform/applications/edit/${app.code}`}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             Edit
                           </Link>
                           <span className="text-gray-300">|</span>
                           <button
-                            onClick={(e) => handleToggleActive(e, app.code, app.is_active)}
+                            onClick={() => handleToggleActive(app.code, app.is_active)}
                             className="text-indigo-600 hover:text-indigo-900"
                           >
                             {app.is_active ? 'Deactivate' : 'Activate'}
                           </button>
                           <span className="text-gray-300">|</span>
                           <button
-                            onClick={(e) => handleDelete(e, app.code)}
+                            onClick={() => handleDelete(app.code)}
                             className="text-red-600 hover:text-red-900"
                           >
                             Delete

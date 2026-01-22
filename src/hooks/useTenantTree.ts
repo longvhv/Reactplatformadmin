@@ -1,11 +1,10 @@
 /**
  * useTenantTree Hook
  * Manages hierarchical tenant tree structure
- * Optimized with memoization and efficient tree building
  */
 
 import { useMemo, useState, useCallback } from 'react';
-import type { Tenant } from '@/data/tenants';
+import type { Tenant } from '../data/tenants';
 
 export interface TenantNode extends Tenant {
   children?: TenantNode[];

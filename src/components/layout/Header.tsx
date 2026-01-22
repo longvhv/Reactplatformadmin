@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useRouter } from "../shim/next-navigation";
+import { useNavigate } from "react-router";
 import { Menu, X, Search, Bell, User, Settings, LogOut, BookOpen, FileCode } from "lucide-react";
 import { Button } from "../ui/button";
 import { useLanguage } from "../../providers/LanguageProvider";
@@ -31,7 +31,7 @@ export function Header({ toggleSidebar }: HeaderProps) {
   const { displayName, initials, avatarUrl, loading: userLoading } = useCurrentUser();
   const [mounted, setMounted] = useState(false);
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setMounted(true);
@@ -177,18 +177,18 @@ export function Header({ toggleSidebar }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{t('profile.title')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/platform/dev-docs')}>
+              <DropdownMenuItem onClick={() => navigate('/platform/dev-docs')}>
                 <FileCode className="mr-2 h-4 w-4" />
                 {t('navigation.devDocs')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push('/settings')}>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
                 {t('navigation.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600" onClick={() => {
                 logout();
-                router.push('/login');
+                navigate('/login');
               }}>
                 <LogOut className="mr-2 h-4 w-4" />
                 {t('navigation.logout')}

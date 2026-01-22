@@ -21,9 +21,9 @@ import {
   ArchiveRestore,
   Eye,
 } from 'lucide-react';
-import { Card } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Badge } from '../../components/ui/badge';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { departmentsApi, DepartmentTreeNode, Department } from '../../api/departmentsApi';
 import { DepartmentDetailView } from '../departments/DepartmentDetailView';
 import { DepartmentForm } from '../departments/DepartmentForm';

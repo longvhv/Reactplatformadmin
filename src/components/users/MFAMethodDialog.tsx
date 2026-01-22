@@ -1,9 +1,6 @@
-/**
- * MFAMethodDialog Component
- * Dialog for adding/editing user MFA methods
- */
+'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,27 +8,28 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '../ui/dialog';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
+} from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
+import { Textarea } from '../ui/textarea';
 import { 
   userMfaMethodsApi, 
-  UserMfaMethod, 
-  MFA_METHOD_TYPES, 
-  MFA_STATUSES,
+  CreateMfaMethodRequest, 
+  UpdateMfaMethodRequest, 
+  MfaMethodStatus,
+  MfaMethodStatusHelper,
   MfaMethodType,
   MfaMethodTypeHelper
-} from '@/api/userMfaMethodsApi';
+} from '../../api/userMfaMethodsApi';
 import { toast } from 'sonner@2.0.3';
 import { Shield, Save, X } from 'lucide-react';
 
@@ -190,7 +188,7 @@ export function MFAMethodDialog({
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MFA_METHOD_TYPES.map((t) => (
+                  {MfaMethodTypeHelper.getTypes().map((t) => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>
@@ -258,7 +256,7 @@ export function MFAMethodDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {MFA_STATUSES.map((s) => (
+                  {MfaMethodStatusHelper.getStatuses().map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
                     </SelectItem>

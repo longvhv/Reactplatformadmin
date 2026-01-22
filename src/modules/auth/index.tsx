@@ -6,7 +6,7 @@ import { LogIn, UserPlus, Lock, KeyRound, Shield } from "lucide-react";
 /**
  * Lazy-load Login Page
  */
-const LoginPage = lazy(() => import("./LoginPage").then(m => ({ default: m.default })));
+const LoginPage = lazy(() => import("./LoginPage"));
 
 /**
  * Auth Module

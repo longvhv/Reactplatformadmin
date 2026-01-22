@@ -1,9 +1,9 @@
 /**
- * Product Detail Modal
- * Comprehensive modal for viewing full product details
+ * ProductDetailModal Component
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
-import React from 'react';
+import { useRouter } from '../../components/shim/next-navigation';
 import { Product } from '../../api/productsApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -25,7 +25,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
-import { useRouter } from '../../shim/next-navigation';
+import { useNavigate } from 'react-router';
 
 interface ProductDetailModalProps {
   product: Product;

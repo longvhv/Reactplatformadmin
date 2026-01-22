@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Shield, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { EnhancedRoleForm } from '@/components/roles/EnhancedRoleForm';
-import { rolesApi, CreateRoleRequest } from '@/api/rolesApi';
-import { showToast } from '@/lib/toast';
-import { getCurrentTenant } from '@/lib/currentTenant';
+import { Button } from '../../../../../components/ui/button';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { EnhancedRoleForm } from '../../../../../components/roles/EnhancedRoleForm';
+import { rolesApi, CreateRoleRequest } from '../../../../../api/rolesApi';
+import { showToast } from '../../../../../lib/toast';
+import { getCurrentTenant } from '../../../../../lib/currentTenant';
 
 export default function CreateRolePage() {
   const router = useRouter();

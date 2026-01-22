@@ -7,10 +7,11 @@
  *   - billing_period fields instead of invoice_date
  *   - metadata JSONB for notes, terms, payment info
  *   - Correct field names (currency_code, items_snapshot, paid_at)
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from '../../shim/next-navigation';
+import { useRouter } from '../../components/shim/next-navigation';
 import { Save, X, Plus, Trash2, Calculator } from 'lucide-react';
 import { Invoice } from '../../api/invoiceApi';
 import { Button } from '../ui/button';

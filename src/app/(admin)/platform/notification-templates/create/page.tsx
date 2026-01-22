@@ -4,17 +4,17 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { Bell, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { NotificationTemplateForm } from '@/components/notification-templates/NotificationTemplateForm';
-import { useNotificationTemplates } from '@/hooks/useNotificationTemplates';
-import { CreateTemplateRequest } from '@/api/notificationTemplateApi';
-import { showToast } from '@/lib/toast';
+import { useState } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
+import { Mail, ArrowLeft } from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { NotificationTemplateForm } from '../../../../../components/notification-templates/NotificationTemplateForm';
+import { useNotificationTemplates } from '../../../../../hooks/useNotificationTemplates';
+import { CreateTemplateRequest } from '../../../../../api/notificationTemplateApi';
+import { showToast } from '../../../../../lib/toast';
 
-export default function CreateNotificationTemplatePage() {
+function CreateNotificationTemplatePage() {
   const router = useRouter();
   const { createTemplate } = useNotificationTemplates(); // Don't need auto-load here really, but hook loads by default. Could optimize.
   const [submitting, setSubmitting] = useState(false);
@@ -35,7 +35,7 @@ export default function CreateNotificationTemplatePage() {
 
   return (
     <PageLayout
-      icon={Bell}
+      icon={Mail}
       title="Tạo Template Thông báo"
       description="Thiết lập mẫu thông báo mới cho hệ thống"
       actions={
@@ -55,3 +55,5 @@ export default function CreateNotificationTemplatePage() {
     </PageLayout>
   );
 }
+
+export default CreateNotificationTemplatePage;

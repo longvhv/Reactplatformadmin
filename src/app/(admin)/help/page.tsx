@@ -6,11 +6,11 @@
 'use client';
 
 import { useState } from 'react';
-import { HelpCircle, Book, Video, FileText, MessageCircle, Search } from 'lucide-react';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { HelpCircle, Search, MessageCircle, Book, Mail } from 'lucide-react';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Card } from '../../../../components/ui/card';
+import { Input } from '../../../../components/ui/input';
+import { Button } from '../../../../components/ui/button';
 
 interface HelpArticle {
   id: string;
@@ -36,21 +36,21 @@ function HelpPage() {
       title: 'Quản lý người dùng',
       category: 'User Management',
       description: 'Cách tạo, chỉnh sửa và quản lý người dùng',
-      icon: FileText,
+      icon: Book,
     },
     {
       id: '3',
       title: 'Phân quyền',
       category: 'Permissions',
       description: 'Thiết lập và quản lý phân quyền người dùng',
-      icon: FileText,
+      icon: Book,
     },
     {
       id: '4',
       title: 'Video hướng dẫn',
       category: 'Tutorials',
       description: 'Xem các video hướng dẫn chi tiết',
-      icon: Video,
+      icon: Book,
     },
   ];
 
@@ -90,7 +90,7 @@ function HelpPage() {
         </Card>
 
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-          <Video className="w-8 h-8 text-purple-500 mb-3" />
+          <Book className="w-8 h-8 text-purple-500 mb-3" />
           <h3 className="font-semibold mb-2">Video</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Xem video hướng dẫn
@@ -98,7 +98,7 @@ function HelpPage() {
         </Card>
 
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-          <FileText className="w-8 h-8 text-green-500 mb-3" />
+          <Book className="w-8 h-8 text-green-500 mb-3" />
           <h3 className="font-semibold mb-2">API Docs</h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Tài liệu API cho developers

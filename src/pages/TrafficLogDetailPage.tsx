@@ -1,2 +1,2 @@
-import TrafficLogDetailPage from '@/app/(admin)/traffic-logs/[id]/page';
+import TrafficLogDetailPage from '../app/(admin)/platform/traffic-logs/[id]/page';
 export default TrafficLogDetailPage;

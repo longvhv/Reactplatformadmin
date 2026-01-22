@@ -11,8 +11,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { useRouter } from "../../shim/next-navigation";
-import { Save, AlertTriangle, Globe, Shield, Activity, Link as LinkIcon, Info } from "lucide-react";
+import { useRouter } from "../shim/next-navigation";
+import { Save, AlertTriangle, ArrowLeft, Globe, Shield, Activity, Link as LinkIcon, Info } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -21,7 +21,7 @@ import { Switch } from "../ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { TenantAppRoute, CreateRouteRequest, UpdateRouteRequest, RouteScope, RouteStatus, SSLStatus } from "../../api/tenantAppRoutesApi";
+import { TenantAppRoute, CreateRouteRequest, UpdateRouteRequest, RouteScope, RouteStatus, SSLStatus, tenantAppRoutesApi } from "../../api/tenantAppRoutesApi";
 import { applicationsApi, Application } from "../../api/applicationsApi";
 import { showToast } from "../../lib/toast";
 

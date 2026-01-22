@@ -11,12 +11,12 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { CreditCard } from 'lucide-react';
 
 const TenantSubscriptionsPage = lazy(() => 
-  import('../../app/(admin)/admin/tenants/subscriptions/page').then(m => ({ default: m.default }))
+  import('../../app/(admin)/platform/tenant-subscriptions/page').then(m => ({ default: m.default }))
 );
 
 // Full-screen detail page (shows in App.tsx)
 const SubscriptionDetailPageFullscreen = lazy(() => 
-  import('../../app/(admin)/commerce/subscriptions/[id]/page').then(m => ({ default: m.default }))
+  import('../../app/(admin)/platform/tenant-subscriptions/[id]/page').then(m => ({ default: m.default }))
 );
 
 export const TenantSubscriptionsModule: ModuleDefinition = {

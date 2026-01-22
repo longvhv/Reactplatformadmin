@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
-import type { Tenant } from '../../../data/tenants';
+import type { Tenant } from '../../data/tenants';
 
 interface TenantOverviewProps {
   tenant: Tenant;

@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useRouter } from "../../shim/next-navigation";
+import { useNavigate } from "react-router";
 import { Save, AppWindow, ArrowLeft, CheckCircle, AlertTriangle } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";
 import { Button } from "../ui/button";
@@ -35,7 +35,7 @@ export function EnhancedApplicationForm({
   loading = false 
 }: EnhancedApplicationFormProps) {
   const { t } = useLanguage();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
@@ -195,7 +195,7 @@ export function EnhancedApplicationForm({
         <Button
           type="button"
           variant="outline"
-          onClick={() => router.push("/core/applications")}
+          onClick={() => navigate("/core/applications")}
           disabled={loading}
         >
           Hủy bỏ

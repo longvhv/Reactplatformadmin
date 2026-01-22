@@ -5,10 +5,10 @@
  */
 
 import { Edit, Trash2, Users, HardDrive } from 'lucide-react';
-import { useRouter } from '../../shim/next-navigation';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Card } from '../../components/ui/card';
+import { useNavigate } from 'react-router';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 import type { Tenant } from '../../api/tenantsApi';
 import { VirtualList } from '../VirtualList';
 
@@ -19,7 +19,7 @@ interface TenantListProps {
 }
 
 export function TenantList({ tenants, onDelete, onSelect }: TenantListProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   if (tenants.length === 0) {
     return (
@@ -66,7 +66,7 @@ export function TenantList({ tenants, onDelete, onSelect }: TenantListProps) {
       <Card
         key={tenant._id}
         className="p-4 hover:shadow-md transition-all cursor-pointer group mb-2 border-l-4 border-l-transparent hover:border-l-indigo-500"
-        onClick={() => router.push(`/admin/tenants/${tenant._id}`)}
+        onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -124,7 +124,7 @@ export function TenantList({ tenants, onDelete, onSelect }: TenantListProps) {
                 className="h-8 w-8 hover:bg-indigo-50 hover:text-indigo-600"
                 onClick={(e) => {
                   e.stopPropagation();
-                  router.push(`/admin/tenants/${tenant._id}/edit`);
+                  navigate(`/admin/tenants/edit/${tenant._id}`);
                 }}
               >
                 <Edit className="w-4 h-4" />

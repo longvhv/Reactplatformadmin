@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
 import { Tag } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { reservedSlugsApi } from '@/api/reservedSlugsSimpleApi';
-import { ReservedSlugForm } from '@/components/reserved-slugs/ReservedSlugForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../../components/layout/FormPageLayout';
+import { reservedSlugsApi } from '../../../../../../api/reservedSlugsSimpleApi';
+import { ReservedSlugForm } from '../../../../../../components/reserved-slugs/ReservedSlugForm';
+import { showToast } from '../../../../../../lib/toast';
 
 function EditReservedSlugPage() {
   const params = useParams();

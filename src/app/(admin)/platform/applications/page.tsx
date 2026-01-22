@@ -9,13 +9,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { useApplications } from '@/hooks/useApplications';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { useApplications } from '../../../../hooks/useApplications';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
 import { 
   Server, 
   Plus, 
@@ -34,10 +34,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+} from '../../../../components/ui/dropdown-menu';
+import { showToast } from '../../../../lib/toast';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
+import { StatisticsCards } from '../../../../components/common/StatisticsCards';
 
 function ApplicationsPage() {
   const { t } = useLanguage();
@@ -98,7 +98,7 @@ function ApplicationsPage() {
   };
 
   // Filter applications
-  const filteredApps = applications.filter(app => {
+  const filteredApplications = applications.filter(app => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -168,7 +168,7 @@ function ApplicationsPage() {
             />
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Showing {filteredApps.length} of {applications.length} applications
+            Showing {filteredApplications.length} of {applications.length} applications
           </p>
         </Card>
 
@@ -186,22 +186,26 @@ function ApplicationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredApps.map((app) => (
-                  <tr 
-                    key={app._id} 
-                    className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/platform/applications/${app._id}`)}
-                  >
+                {filteredApplications.map((app) => (
+                  <tr key={app._id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <Server className="w-4 h-4 text-indigo-600" />
-                        <span className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
-                          {app.name}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                          <Server className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => router.push(`/platform/applications/${app._id}`)}
+                            className="font-medium text-gray-900 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer text-left"
+                          >
+                            {app.name}
+                          </button>
+                          <p className="text-sm text-gray-500">v{app.version}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{app.code}</code>
+                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{app.code}</code>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
@@ -224,62 +228,46 @@ function ApplicationsPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/platform/applications/${app._id}`);
-                          }}
-                        >
-                          View
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/${app._id}/edit`)}>
-                              <Settings className="w-4 h-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleToggleActive(app._id, app.is_active)}>
-                              {app.is_active ? (
-                                <>
-                                  <PowerOff className="w-4 h-4 mr-2" />
-                                  Deactivate
-                                </>
-                              ) : (
-                                <>
-                                  <Power className="w-4 h-4 mr-2" />
-                                  Activate
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(app._id, app.name, app.version)}
-                              className="text-red-600"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => router.push(`/platform/applications/edit/${app._id}`)}>
+                            <Settings className="w-4 h-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleActive(app._id, app.is_active)}>
+                            {app.is_active ? (
+                              <>
+                                <PowerOff className="w-4 h-4 mr-2" />
+                                Deactivate
+                              </>
+                            ) : (
+                              <>
+                                <Power className="w-4 h-4 mr-2" />
+                                Activate
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(app._id, app.name, app.version)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {filteredApps.length === 0 && (
+            {filteredApplications.length === 0 && (
               <div className="text-center py-12">
                 <Server className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-600">No applications found</p>

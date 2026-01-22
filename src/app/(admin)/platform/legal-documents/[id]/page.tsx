@@ -1,14 +1,13 @@
 'use client';
-
-import React, { useEffect, useState } from 'react';
-import { LegalDocumentForm } from '@/components/legal/LegalDocumentForm';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { useState, useEffect } from 'react';
+import { LegalDocumentForm } from '../../../../../components/legal/LegalDocumentForm';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
 import { FileText } from 'lucide-react';
-import { legalDocumentsApi, LegalDocument } from '@/api/legalDocumentsApi';
-import { showToast } from '@/lib/toast';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { legalDocumentsApi, LegalDocument } from '../../../../../api/legalDocumentsApi';
+import { showToast } from '../../../../../lib/toast';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
 
-export default function EditLegalDocumentPage() {
+function EditLegalDocumentPage() {
   const params = useParams();
   const router = useRouter();
   const [document, setDocument] = useState<LegalDocument | null>(null);
@@ -64,3 +63,5 @@ export default function EditLegalDocumentPage() {
     </PageLayout>
   );
 }
+
+export default EditLegalDocumentPage;

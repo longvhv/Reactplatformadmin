@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, Clock, Activity, AlertCircle, CheckCircle } from 'lucide-react';
-import { Webhook } from '@/api/webhooksApi';
-import { DeliveryStats, webhookDeliveryLogsApi, WebhookDeliveryLog } from '@/api/webhookDeliveryLogsApi';
+import { Webhook } from '../../api/webhooksApi';
+import { DeliveryStats, webhookDeliveryLogsApi, WebhookDeliveryLog } from '../../api/webhookDeliveryLogsApi';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface WebhookStatsTabProps {

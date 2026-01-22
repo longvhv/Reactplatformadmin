@@ -118,19 +118,18 @@ export function RolesList({
                 </tr>
               ) : (
                 filteredRoles.map(role => (
-                  <tr 
-                    key={role._id} 
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${onView ? 'cursor-pointer' : ''}`}
-                    onClick={() => onView && onView(role)}
-                  >
+                  <tr key={role._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     {/* Role Name */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Shield className="h-5 w-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0" />
                         <div className="min-w-0">
-                          <div className="font-medium text-gray-900 dark:text-white truncate">
+                          <button
+                            onClick={() => onView && onView(role)}
+                            className="font-medium text-gray-900 dark:text-white truncate hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline cursor-pointer text-left"
+                          >
                             {role.name}
-                          </div>
+                          </button>
                           {role.description && (
                             <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
                               {role.description}
@@ -179,7 +178,7 @@ export function RolesList({
                     </td>
 
                     {/* Actions */}
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
                         {onView && (
                           <Button

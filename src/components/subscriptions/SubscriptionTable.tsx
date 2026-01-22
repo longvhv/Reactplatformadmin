@@ -1,10 +1,11 @@
 /**
  * SubscriptionTable Component
- * Displays tenant subscriptions in a table format with full CRUD operations
+ * Displays subscriptions in table format
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { useState } from 'react';
-import { useRouter } from '../../shim/next-navigation';
+import { useRouter } from '../../components/shim/next-navigation';
 import { 
   CreditCard, Eye, Pencil, Trash2, RefreshCw, Ban, 
   Calendar, DollarSign, Users, HardDrive, AlertCircle,
@@ -160,11 +161,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
               const storagePercentage = calculateUsagePercentage(subscription.current_storage_gb, subscription.max_storage_gb);
 
               return (
-                <tr 
-                  key={subscription._id} 
-                  className="hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => router.push(`/commerce/tenant-subscriptions/${subscription._id}`)}
-                >
+                <tr key={subscription._id} className="hover:bg-gray-50 transition-colors">
                   {/* Subscription Info */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -172,11 +169,12 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                         <CreditCard className="h-5 w-5 text-indigo-600" />
                       </div>
                       <div className="ml-4">
-                        <span
+                        <button
+                          onClick={() => router.push(`/commerce/tenant-subscriptions/${subscription._id}`)}
                           className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
                         >
                           {subscription.subscription_name}
-                        </span>
+                        </button>
                         <div className="text-sm text-gray-500">{subscription.subscription_number}</div>
                         <div className="flex items-center gap-2 mt-1">
                           {subscription.plan_name && (
@@ -262,10 +260,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/commerce/tenant-subscriptions/${subscription._id}`);
-                        }}
+                        onClick={() => router.push(`/commerce/tenant-subscriptions/${subscription._id}`)}
                         title={t('common.view')}
                       >
                         <Eye className="w-4 h-4" />
@@ -273,10 +268,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/commerce/tenant-subscriptions/edit/${subscription._id}`);
-                        }}
+                        onClick={() => router.push(`/commerce/tenant-subscriptions/edit/${subscription._id}`)}
                         title={t('common.edit')}
                       >
                         <Pencil className="w-4 h-4" />
@@ -284,10 +276,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(subscription._id!);
-                        }}
+                        onClick={() => handleDelete(subscription._id!)}
                         className={deleteConfirmId === subscription._id ? 'text-red-600' : ''}
                         title={deleteConfirmId === subscription._id ? t('common.confirmDelete') : t('common.delete')}
                       >

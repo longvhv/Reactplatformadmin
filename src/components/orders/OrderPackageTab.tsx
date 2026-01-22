@@ -101,7 +101,7 @@ export function OrderPackageTab({ order }: OrderPackageTabProps) {
             </div>
 
             <div>
-              <dt className="text-sm font-medium text-gray-500 mb-2">Chu k��� thanh toán</dt>
+              <dt className="text-sm font-medium text-gray-500 mb-2">Chu kỳ thanh toán</dt>
               <dd className="text-sm text-gray-900">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                   {snapshot.billing_cycle}

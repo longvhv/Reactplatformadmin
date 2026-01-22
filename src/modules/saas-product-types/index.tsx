@@ -2,7 +2,7 @@
  * SaaS Product Types Module
  * Module definition for product type management
  * 
- * 🌐 Path: /commerce/saas-product-types
+ * 🌐 Path: /platform/saas-product-types
  */
 
 import { lazy, Suspense } from 'react';
@@ -33,7 +33,7 @@ export const SaasProductTypesModule: ModuleDefinition = {
 
   routes: [
     {
-      path: '/commerce/saas-product-types',
+      path: '/platform/saas-product-types',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <SaasProductTypesPage />
@@ -43,7 +43,7 @@ export const SaasProductTypesModule: ModuleDefinition = {
       description: 'Manage product type categories',
     },
     {
-      path: '/commerce/saas-product-types/add',
+      path: '/platform/saas-product-types/create',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddSaasProductTypePage />
@@ -52,7 +52,7 @@ export const SaasProductTypesModule: ModuleDefinition = {
       title: 'Add SaaS Product Type',
     },
     {
-      path: '/commerce/saas-product-types/edit/:id',
+      path: '/platform/saas-product-types/edit/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditSaasProductTypePage />
@@ -61,7 +61,7 @@ export const SaasProductTypesModule: ModuleDefinition = {
       title: 'Edit SaaS Product Type',
     },
     {
-      path: '/commerce/saas-product-types/:id',
+      path: '/platform/saas-product-types/:id',
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <SaasProductTypeDetailPage />
@@ -76,7 +76,7 @@ export const SaasProductTypesModule: ModuleDefinition = {
       id: 'saas-product-types',
       label: 'saasProductTypes.menu',
       icon: <Package className="w-5 h-5" />,
-      path: '/commerce/saas-product-types',
+      path: '/platform/saas-product-types',
       category: 'Product',
       order: 90,
     },

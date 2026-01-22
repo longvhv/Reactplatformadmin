@@ -16,7 +16,7 @@ const UserRegistrationTelemetryPage = lazy(() =>
   import('../../app/(admin)/platform/user-registrations/page').then(m => ({ default: m.default }))
 );
 const AddUserRegistrationPage = lazy(() => 
-  import('../../app/(admin)/platform/user-registrations/add/page').then(m => ({ default: m.default }))
+  import('../../app/(admin)/platform/user-registrations/create/page').then(m => ({ default: m.default }))
 );
 const EditUserRegistrationPage = lazy(() => 
   import('../../app/(admin)/platform/user-registrations/edit/[id]/page').then(m => ({ default: m.default }))

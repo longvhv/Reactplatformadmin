@@ -17,12 +17,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Building2 } from 'lucide-react';
+import type { Tenant} from '../../../../../data/tenants';
+import { tenantsApi, CreateTenantRequest } from '../../../../../api/tenantsApi';
 import { useLanguage } from '../../../../../providers/LanguageProvider';
-import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { FormPageLayout } from '../../../../../components/layout/FormPageLayout';
 import { EnhancedTenantForm } from '../../../../../components/tenants/EnhancedTenantForm';
-import { showToast } from '../../../../../lib/toast';
-import { tenantsApi, CreateTenantRequest, Tenant } from '../../../../../api/tenantsApi';
-import { tenantSubscriptionsApi, CreateSubscriptionRequest } from '../../../../../api/tenantSubscriptionsApi';
 
 function AddTenantPage() {
   const router = useRouter();

@@ -1,11 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useNavigate } from 'react-router'; // Note: In Next.js App Router, this should be 'next/navigation' usually, but keeping existing import style unless it breaks. 
-// Wait, user said Next.js 14 App Router. 'react-router' is wrong for Next.js. 
-// However, the file listing showed 'pages' and 'app', so it's a mix. 
-// If I see 'react-router' in the original file, I should be careful. 
-// But strictly for Next.js App Router, we use `useRouter` from `next/navigation`.
-
-import { useRouter } from 'next/navigation';
+import { useRouter } from '../components/shim/next-navigation';
 import { getDataClient } from '../lib/data-client';
 
 interface AuthContextType {

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router';
 import {
   applicationsApi,
   isValidAppCode,

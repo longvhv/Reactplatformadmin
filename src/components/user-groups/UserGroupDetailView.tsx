@@ -13,11 +13,11 @@ import {
   Archive,
   ArchiveRestore,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { UserGroup } from '@/api/userGroupsApi';
-import { AuditTrail } from '@/components/common/AuditTrail';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { UserGroup } from '../../api/userGroupsApi';
+import { AuditTrail } from '../common/AuditTrail';
 // import { UserGroupMembersTab } from './UserGroupMembersTab'; // Will create this next
 
 interface UserGroupDetailViewProps {

@@ -5,12 +5,12 @@
 
 'use client';
 
-import { useRouter } from '@/components/shim/next-navigation';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { tenantAppRoutesApi } from '@/api/tenantAppRoutesApi';
-import { EnhancedTenantAppRouteForm } from '@/components/tenant-app-routes/EnhancedTenantAppRouteForm';
-import { showToast } from '@/lib/toast';
-import { DEFAULT_TENANT_ID } from '@/constants/tenant-constants';
+import { useRouter } from '../../../../../../components/shim/next-navigation';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { tenantAppRoutesApi } from '../../../../../../api/tenantAppRoutesApi';
+import { EnhancedTenantAppRouteForm } from '../../../../../../components/tenant-app-routes/EnhancedTenantAppRouteForm';
+import { showToast } from '../../../../../../lib/toast';
+import { DEFAULT_TENANT_ID } from '../../../../../../constants/tenant-constants';
 
 function AddTenantAppRoutePage() {
   const router = useRouter();

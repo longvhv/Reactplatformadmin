@@ -1,11 +1,11 @@
 /**
- * Order Card Component
- * Display subscription order in card format
- * ✅ Updated for new subscription_orders schema (2026-01-15)
+ * OrderCard Component
+ * Displays order information in card format
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React from 'react';
-import { useRouter } from '../../shim/next-navigation';
+import { useRouter } from '../../components/shim/next-navigation';
 import { Order, getStatusColor, getStatusLabel, getTypeColor, getTypeLabel } from '../../api/ordersApi';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';

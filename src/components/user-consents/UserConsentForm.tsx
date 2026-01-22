@@ -7,29 +7,29 @@ import {
   UpdateConsentRequest, 
   ConsentMethod,
   userConsentsApi 
-} from '@/api/userConsentsApi';
-import { usersApi, User } from '@/api/usersApi';
-import { legalDocumentsApi } from '@/api/legalDocumentsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+} from '../../api/userConsentsApi';
+import { usersApi, User } from '../../api/usersApi';
+import { legalDocumentsApi } from '../../api/legalDocumentsApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Switch } from '../ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '../ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { CalendarIcon, Save, X, Info } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { showToast } from '../../lib/toast';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { cn } from '../ui/utils';
 
 interface UserConsentFormProps {
   initialData?: UserConsent;

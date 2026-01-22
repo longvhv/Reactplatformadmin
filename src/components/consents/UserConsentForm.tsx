@@ -30,16 +30,16 @@ import {
   UpdateConsentRequest,
   ConsentMethod,
   ConsentMethodHelper 
-} from '@/api/userConsentsApi';
-import { legalDocumentsApi } from '@/api/legalDocumentsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '../../api/userConsentsApi';
+import { legalDocumentsApi } from '../../api/legalDocumentsApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Checkbox } from '../ui/checkbox';
+import { Textarea } from '../ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 interface UserConsentFormProps {
   initialData?: Partial<UserConsent>;

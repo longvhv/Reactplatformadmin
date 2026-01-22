@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Building2, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from '../shim/next-navigation';
 import { useTranslation } from 'react-i18next';
 
 interface PackageSubscribersTabProps {

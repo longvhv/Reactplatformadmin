@@ -1,12 +1,13 @@
 'use client';
 
-import { useRouter } from '@/components/shim/next-navigation';
+import { useState } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Laptop, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { UserDeviceForm } from '@/components/user-devices/UserDeviceForm';
-import { userDevicesApi, CreateDeviceRequest } from '@/api/userDevicesApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { UserDeviceForm } from '../../../../components/user-devices/UserDeviceForm';
+import { userDevicesApi, CreateDeviceRequest } from '../../../../api/userDevicesApi';
+import { showToast } from '../../../../lib/toast';
 
 export default function CreateUserDevicePage() {
   const router = useRouter();

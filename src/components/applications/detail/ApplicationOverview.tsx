@@ -1,18 +1,17 @@
 /**
- * Application Overview Tab Component
+ * ApplicationOverview Component
+ * Hiển thị thông tin tổng quan của application
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
-  Edit, 
-  Save, 
-  X, 
-  CheckCircle, 
-  AlertCircle,
-  Activity,
+  Code, 
+  FileText, 
   Calendar,
-  Code,
-  FileText,
+  Edit,
+  Check,
+  X,
+  Activity
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -137,7 +136,7 @@ export function ApplicationOverview({ application, onUpdate }: ApplicationOvervi
                 disabled={saving}
                 className="gap-2"
               >
-                <CheckCircle className="w-4 h-4" />
+                <Check className="w-4 h-4" />
                 {saving ? 'Đang lưu...' : 'Lưu'}
               </Button>
             </div>

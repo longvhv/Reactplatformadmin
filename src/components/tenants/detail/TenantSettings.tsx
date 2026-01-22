@@ -3,7 +3,7 @@
  * Settings configuration tab - Stub
  */
 
-import type { Tenant } from '../../../data/tenants';
+import type { Tenant } from '../../data/tenants';
 
 interface TenantSettingsProps {
   tenant: Tenant;

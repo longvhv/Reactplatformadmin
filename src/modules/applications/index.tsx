@@ -15,7 +15,7 @@ const ApplicationsPage = lazy(() =>
  * Lazy-load Application Form Page
  */
 const ApplicationFormPage = lazy(() =>
-  import('../../pages/ApplicationFormPage').then(m => ({ default: m.default }))
+  import('../../pages/ApplicationFormPage')
 );
 
 /**

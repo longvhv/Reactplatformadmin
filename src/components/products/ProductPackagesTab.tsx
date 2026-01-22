@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Package, Users, ExternalLink } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from '../shim/next-navigation';
 import { useTranslation } from 'react-i18next';
 
 interface ProductPackagesTabProps {
@@ -149,7 +149,7 @@ export function ProductPackagesTab({ productId }: ProductPackagesTabProps) {
                   </TableCell>
 
                   <TableCell className="text-right">
-                    <Link href={`/commerce/service-packages/${pkg._id}`}>
+                    <Link to={`/commerce/service-packages/${pkg._id}`}>
                       <Button variant="ghost" size="sm">
                         <ExternalLink className="w-4 h-4" />
                       </Button>

@@ -2,9 +2,9 @@
  * SubscriptionUsageTab - Display subscription usage statistics
  */
 
-import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
-import { Activity, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Badge } from '../ui/badge';
+import { BarChart3, TrendingUp, Activity, Zap } from 'lucide-react';
 
 interface SubscriptionUsageTabProps {
   subscriptionId: string;
@@ -84,7 +84,7 @@ export function SubscriptionUsageTab({ subscriptionId }: SubscriptionUsageTabPro
           <Card className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-orange-50">
-                <Calendar className="w-6 h-6 text-orange-600" />
+                <BarChart3 className="w-6 h-6 text-orange-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Ngày còn lại</p>
@@ -100,7 +100,7 @@ export function SubscriptionUsageTab({ subscriptionId }: SubscriptionUsageTabPro
         <Card className="p-6">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-lg bg-green-50">
-              <DollarSign className="w-6 h-6 text-green-600" />
+              <Zap className="w-6 h-6 text-green-600" />
             </div>
             <div>
               <p className="text-sm text-gray-600">Tổng chi phí</p>

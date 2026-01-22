@@ -6,10 +6,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Database, Search, Table } from 'lucide-react';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Database, Search } from 'lucide-react';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Card } from '../../../../components/ui/card';
+import { Input } from '../../../../components/ui/input';
 
 interface TableSchema {
   name: string;

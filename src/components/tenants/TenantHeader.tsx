@@ -1,5 +1,5 @@
 import { Building2, Crown, ArrowLeft, Settings, MoreVertical } from "lucide-react";
-import { useRouter } from "../../shim/next-navigation";
+import { useNavigate } from "react-router";
 import { useLanguage } from "../../providers/LanguageProvider";
 import { Button } from "../ui/button";
 
@@ -15,7 +15,7 @@ interface TenantHeaderProps {
 }
 
 export function TenantHeader({ tenant }: TenantHeaderProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const { t } = useLanguage();
 
   const statusColors = {
@@ -38,7 +38,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/core/tenants")}
+            onClick={() => navigate("/core/tenants")}
             className="gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -80,7 +80,7 @@ export function TenantHeader({ tenant }: TenantHeaderProps) {
               variant="ghost" 
               size="sm" 
               className="gap-2"
-              onClick={() => router.push(`/core/tenants/edit/${tenant.id}`)}
+              onClick={() => navigate(`/core/tenants/edit/${tenant.id}`)}
             >
               <Settings className="w-4 h-4" />
               {t("tenants.editTenant")}

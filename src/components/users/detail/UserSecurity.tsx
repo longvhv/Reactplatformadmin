@@ -1,17 +1,16 @@
 /**
  * UserSecurity Component
- * Quản lý bảo mật user (MFA, password, ...)
+ * Cài đặt bảo mật của user
  */
 
 import { useState } from 'react';
 import { 
-  Shield,
+  Shield, 
   Lock,
   Key,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock
+  Mail,
+  Check,
+  X
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
@@ -91,12 +90,12 @@ export function UserSecurity({ user, onUpdate }: UserSecurityProps) {
             >
               {user.is_verified ? (
                 <>
-                  <XCircle className="w-4 h-4" />
+                  <X className="w-4 h-4" />
                   Hủy xác thực
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4" />
+                  <Check className="w-4 h-4" />
                   Xác thực
                 </>
               )}
@@ -136,12 +135,12 @@ export function UserSecurity({ user, onUpdate }: UserSecurityProps) {
             >
               {user.mfa_enabled ? (
                 <>
-                  <XCircle className="w-4 h-4" />
+                  <X className="w-4 h-4" />
                   Tắt MFA
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4" />
+                  <Check className="w-4 h-4" />
                   Bật MFA
                 </>
               )}
@@ -239,9 +238,9 @@ export function UserSecurity({ user, onUpdate }: UserSecurityProps) {
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 {user.is_verified ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <Check className="w-5 h-5 text-green-600" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-red-600" />
+                  <X className="w-5 h-5 text-red-600" />
                 )}
                 <span className="font-medium">Email Verified</span>
               </div>
@@ -253,9 +252,9 @@ export function UserSecurity({ user, onUpdate }: UserSecurityProps) {
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 {user.mfa_enabled ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <Check className="w-5 h-5 text-green-600" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-red-600" />
+                  <X className="w-5 h-5 text-red-600" />
                 )}
                 <span className="font-medium">MFA Enabled</span>
               </div>
@@ -267,9 +266,9 @@ export function UserSecurity({ user, onUpdate }: UserSecurityProps) {
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 {user.is_support_staff ? (
-                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                  <Check className="w-5 h-5 text-purple-600" />
                 ) : (
-                  <XCircle className="w-5 h-5 text-gray-400" />
+                  <X className="w-5 h-5 text-gray-400" />
                 )}
                 <span className="font-medium">Support Staff</span>
               </div>

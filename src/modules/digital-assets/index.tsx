@@ -17,7 +17,7 @@ const DigitalAssetDetailPage = lazy(() =>
   import('../../app/(admin)/commerce/digital-assets/[id]/page').then(m => ({ default: m.default }))
 );
 const AddTenantDigitalAssetPage = lazy(() => 
-  import('../../app/(admin)/content/digital-assets/add/page').then(m => ({ default: m.default }))
+  import('../../app/(admin)/content/digital-assets/create/page').then(m => ({ default: m.default }))
 );
 const EditTenantDigitalAssetPage = lazy(() => 
   import('../../app/(admin)/content/digital-assets/edit/[id]/page').then(m => ({ default: m.default }))

@@ -26,6 +26,8 @@ import systemAnnouncementsAPI from "./system-announcements-api.ts";
 import notificationTemplatesAPI from "./notification-templates-api.ts";
 import reservedSlugsAPI from "./reserved-slugs-api.ts";
 import initTenantAPI from "./init-tenant-routes.tsx";
+import digitalAssetsAPI from "./digital-assets-api.ts";
+import serviceDeliveriesAPI from "./service-deliveries-api.ts";
 
 const app = new Hono();
 
@@ -92,6 +94,8 @@ app.route("/make-server-7eedb4e0/api/core", systemAnnouncementsAPI);
 app.route("/make-server-7eedb4e0/api/core", notificationTemplatesAPI);
 app.route("/make-server-7eedb4e0/api/core", reservedSlugsAPI);
 app.route("/make-server-7eedb4e0/api/core", initTenantAPI);
+app.route("/make-server-7eedb4e0/api/core", digitalAssetsAPI);
+app.route("/make-server-7eedb4e0/api/core", serviceDeliveriesAPI);
 
 // Handle OPTIONS preflight for any route
 app.options("*", (c) => {

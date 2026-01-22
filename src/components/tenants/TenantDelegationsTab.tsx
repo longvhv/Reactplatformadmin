@@ -35,9 +35,9 @@ import {
   computeStatus,
 } from '../../api/userDelegationsApi';
 import { supabase } from '../../utils/supabase/client';
-import { Card } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Button } from '../ui/button';
 import { toast } from 'sonner@2.0.3';
 
 interface TenantDelegationsTabProps {

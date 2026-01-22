@@ -1,5 +1,6 @@
 /**
- * Application Settings Component
+ * ApplicationSettings Component
+ * Cài đặt của application
  */
 
 import { useState } from 'react';

@@ -10,8 +10,8 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { RefreshCw, Download, BarChart3, Activity, Globe, Zap, TrendingUp } from 'lucide-react';
 import {
   getTrafficLogs,
@@ -23,15 +23,15 @@ import {
   TrafficLog,
   TrafficLogFilters as FilterType,
   TrafficLogStats as StatsType,
-} from '@/api/trafficLogsApi';
-import { TrafficLogsTable } from '@/components/traffic-logs/TrafficLogsTable';
-import { TrafficLogFilters } from '@/components/traffic-logs/TrafficLogFilters';
-import { TrafficLogStats } from '@/components/traffic-logs/TrafficLogStats';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { showToast } from '@/lib/toast';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+} from '../../../../api/trafficLogsApi';
+import { TrafficLogsTable } from '../../../../components/traffic-logs/TrafficLogsTable';
+import { TrafficLogFilters } from '../../../../components/traffic-logs/TrafficLogFilters';
+import { TrafficLogStats } from '../../../../components/traffic-logs/TrafficLogStats';
+import { Button } from '../../../../components/ui/button';
+import { Card } from '../../../../components/ui/card';
+import { showToast } from '../../../../lib/toast';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
 function TrafficLogsPage() {
   const { t } = useLanguage();

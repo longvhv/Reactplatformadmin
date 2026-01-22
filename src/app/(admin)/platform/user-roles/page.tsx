@@ -1,24 +1,25 @@
 'use client';
 
-import { useRouter } from '@/components/shim/next-navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { 
   Shield, Plus, Search, Filter, Trash2, Edit, CheckCircle, 
   XCircle, Clock, Building, User, Users
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
 import { 
   userRolesApi, 
   UserRole, 
   UserRoleScope,
   UserRoleScopeHelper
-} from '@/api/userRolesApi';
-import { usersApi } from '@/api/usersApi';
-import { rolesApi } from '@/api/rolesApi';
-import { showToast } from '@/lib/toast';
+} from '../../../../api/userRolesApi';
+import { usersApi } from '../../../../api/usersApi';
+import { rolesApi } from '../../../../api/rolesApi';
+import { showToast } from '../../../../lib/toast';
 import { format } from 'date-fns';
 import {
   DropdownMenu,
@@ -26,7 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
+import { cn } from '../../../../components/ui/utils';
 
 export default function UserRolesPage() {
   const router = useRouter();

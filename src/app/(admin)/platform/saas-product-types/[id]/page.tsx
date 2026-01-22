@@ -6,14 +6,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
 import { Layers, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { saasProductTypesApi, SaasProductType } from '@/api/saasProductTypesApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Button } from '../../../../../components/ui/button';
+import { saasProductTypesApi, SaasProductType } from '../../../../../api/saasProductTypesApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../../components/ui/dropdown-menu';
 
 function SaasProductTypeDetailPage() {
   const params = useParams();

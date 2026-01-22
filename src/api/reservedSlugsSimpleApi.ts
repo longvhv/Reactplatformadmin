@@ -4,7 +4,7 @@
  * ✅ CREATED: 2026-01-21
  */
 
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
 

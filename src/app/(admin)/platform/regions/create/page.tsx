@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import { Globe } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { regionsApi } from '@/api/regionsApi';
-import { RegionForm } from '@/components/regions/RegionForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { regionsApi } from '../../../../../api/regionsApi';
+import { RegionForm } from '../../../../../components/regions/RegionForm';
+import { showToast } from '../../../../../lib/toast';
 
 function AddRegionPage() {
   const router = useRouter();

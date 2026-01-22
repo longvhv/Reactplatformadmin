@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { runDiagnostics, getQuickStatus, type DiagnosticResult } from '@/lib/data-client/diagnose';
-import { getSupabaseClient } from '@/lib/supabase';
+import { Button } from '../../../../components/ui/button';
+import { Card } from '../../../../components/ui/card';
+import { runDiagnostics, getQuickStatus, type DiagnosticResult } from '../../../../lib/data-client/diagnose';
+import { getSupabaseClient } from '../../../../lib/supabase';
 
 export default function TestConnectionPage() {
   const [result, setResult] = useState<any>(null);
@@ -42,7 +42,7 @@ export default function TestConnectionPage() {
 
     try {
       // Test 1: Check info.tsx values
-      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
+      const { projectId, publicAnonKey } = await import('../../../../utils/supabase/info');
       
       console.log('[Test] Project ID:', projectId);
       console.log('[Test] Anon Key (first 50 chars):', publicAnonKey?.substring(0, 50));
@@ -79,7 +79,7 @@ export default function TestConnectionPage() {
     setDiagnostics(null);
 
     try {
-      const { getDataClient } = await import('@/lib/data-client');
+      const { getDataClient } = await import('../../../../lib/data-client');
       const client = getDataClient();
 
       console.log('[Test] DataClient:', client);

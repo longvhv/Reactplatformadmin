@@ -9,24 +9,24 @@ import {
   LimitScope,
   ResourceType,
   WindowUnit
-} from '@/api/tenantRateLimitsApi';
-import { tenantsApi, Tenant } from '@/api/tenantsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+} from '../../api/tenantRateLimitsApi';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Switch } from '../ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+} from '../ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Activity, Shield, Settings, Code, AlertTriangle } from 'lucide-react';
-import { showToast } from '@/lib/toast';
+import { showToast } from '../../lib/toast';
 
 interface TenantRateLimitFormProps {
   initialData?: TenantRateLimit;

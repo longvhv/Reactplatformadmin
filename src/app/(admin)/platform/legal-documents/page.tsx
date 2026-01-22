@@ -1,30 +1,40 @@
 'use client';
 
-import { useRouter } from '@/components/shim/next-navigation';
+import { useState, useEffect } from 'react';
+import { useTenants } from '../../../../hooks/useTenants';
+import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { 
-  FileText, Plus, Search, Filter, Trash2, Edit, CheckCircle, 
-  XCircle, Clock, Archive, Eye
+  FileText, 
+  Plus, 
+  Search, 
+  MoreVertical, 
+  Edit, 
+  Trash2,
+  Filter,
+  CheckCircle,
+  Clock,
+  Archive
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
 import { 
   legalDocumentsApi, 
-  LegalDocument, 
-  LegalDocumentStatus, 
-  LegalDocumentType 
-} from '@/api/legalDocumentsApi';
-import { showToast } from '@/lib/toast';
+  LegalDocument,
+  DocumentType,
+  DocumentStatus 
+} from '../../../../api/legalDocumentsApi';
+import { showToast } from '../../../../lib/toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import { useTenants } from '@/hooks/useTenants';
+} from '../../../../components/ui/dropdown-menu';
 
 export default function LegalDocumentsPage() {
   const router = useRouter();
@@ -32,8 +42,8 @@ export default function LegalDocumentsPage() {
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | LegalDocumentStatus>('all');
-  const [typeFilter, setTypeFilter] = useState<'all' | LegalDocumentType>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | DocumentStatus>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | DocumentType>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [tenantMap, setTenantMap] = useState<Record<string, string>>({});
 
@@ -267,7 +277,6 @@ export default function LegalDocumentsPage() {
                                 </DropdownMenuItem>
                             )}
                             
-                            <DropdownMenuSeparator />
                             <DropdownMenuItem 
                               onClick={() => handleDelete(d._id)}
                               className="text-red-600 focus:text-red-600"

@@ -1,5 +1,5 @@
 import { memo, useState, useRef, useEffect } from "react";
-import { useRouter } from "../shim/next-navigation";
+import { useNavigate } from "react-router";
 import { 
   User, Settings, HelpCircle, LogOut, ChevronRight, 
   Crown, Shield, Mail, Bell, Palette, Keyboard, Moon, Sun, Monitor, Database, FileCode
@@ -30,7 +30,7 @@ interface UserProfileDropdownProps {
 export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const navigate = useNavigate();
   const { t } = useLanguage();
 
   // Get current user data
@@ -60,7 +60,7 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
     {
       section: "Account",
       items: [
-        { icon: Settings, label: t('navigation.settings'), shortcut: "⌘,", action: () => router.push("/system/settings") },
+        { icon: Settings, label: t('navigation.settings'), shortcut: "⌘,", action: () => navigate("/system/settings") },
         { icon: Mail, label: "Tin nhắn", badge: "3", action: () => console.log("Messages") },
         { icon: Bell, label: "Thông báo", action: () => console.log("Notifications") },
       ],
@@ -68,20 +68,20 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
     {
       section: "Developer",
       items: [
-        { icon: FileCode, label: t('navigation.devDocs'), action: () => router.push("/system/dev-docs") },
+        { icon: FileCode, label: t('navigation.devDocs'), action: () => navigate("/system/dev-docs") },
       ],
     },
     {
       section: "Preferences",
       items: [
-        { icon: Palette, label: t('navigation.appearance'), action: () => router.push("/system/appearance") },
+        { icon: Palette, label: t('navigation.appearance'), action: () => navigate("/system/appearance") },
         { icon: Keyboard, label: "Phím tắt", shortcut: "⌘K", action: () => console.log("Shortcuts") },
       ],
     },
     {
       section: "Help",
       items: [
-        { icon: HelpCircle, label: t('navigation.help'), action: () => router.push("/system/help") },
+        { icon: HelpCircle, label: t('navigation.help'), action: () => navigate("/system/help") },
         { icon: Shield, label: "Chính sách bảo mật", action: () => console.log("Privacy") },
       ],
     },
@@ -205,6 +205,7 @@ export const UserProfileDropdown = memo(({ theme, onCycleTheme }: UserProfileDro
               </div>
             </div>
 
+            {/* Sign Out */}
             <div className="mt-2 border-t border-border/40 pt-2">
               <div className="px-2">
                 <button

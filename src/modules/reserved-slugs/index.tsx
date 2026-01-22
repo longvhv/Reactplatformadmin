@@ -11,7 +11,7 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Shield } from 'lucide-react';
 
 const ReservedSlugsPage = lazy(() => 
-  import('../../app/(admin)/reserved-slugs/page').then(m => ({ default: m.default }))
+  import('../../app/(admin)/platform/reserved-slugs/page').then(m => ({ default: m.default }))
 );
 const AddReservedSlugPage = lazy(() => 
   import('../../app/(admin)/platform/reserved-slugs/create/page').then(m => ({ default: m.default }))

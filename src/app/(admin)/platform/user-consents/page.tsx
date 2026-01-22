@@ -1,31 +1,32 @@
 'use client';
 
-import { useRouter } from '@/components/shim/next-navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { 
   FileCheck, Plus, Search, Filter, Trash2, Edit, CheckCircle, 
   XCircle, Clock, AlertTriangle 
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { Badge } from '../../../../components/ui/badge';
+import { PageLayout } from '../../../../components/layout/PageLayout';
 import { 
   userConsentsApi, 
   UserConsent, 
   getConsentMethodLabel, 
   getConsentMethodColor,
   formatConsentStatus
-} from '@/api/userConsentsApi';
-import { showToast } from '@/lib/toast';
-import { usersApi } from '@/api/usersApi';
-import { legalDocumentsApi } from '@/api/legalDocumentsApi';
+} from '../../../../api/userConsentsApi';
+import { showToast } from '../../../../lib/toast';
+import { usersApi } from '../../../../api/usersApi';
+import { legalDocumentsApi } from '../../../../api/legalDocumentsApi';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '../../../../components/ui/dropdown-menu';
 import { format } from 'date-fns';
 
 export default function UserConsentsPage() {

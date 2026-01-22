@@ -8,29 +8,95 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
+import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from '../../../../../components/shim/next-navigation';
 import {
-  digitalAssetsApi,
-  DigitalAsset,
-  getAssetTypeLabel,
-  getAssetTypeColor,
-  getAssetStatusLabel,
-  getAssetStatusColor,
-  isAssetExpiringSoon,
-  getDaysUntilExpiry,
-} from '@/api/digitalAssetsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, RefreshCw, Shield, AlertTriangle, CheckCircle, Calendar, Package } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+  Package,
+  Plus,
+  Search,
+  Download,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Key,
+  Shield,
+  Globe,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Lock,
+  Unlock,
+  RefreshCw,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../../../components/ui/dropdown-menu';
+import { Button } from '../../../../../components/ui/button';
+import { Input } from '../../../../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
+import { Badge } from '../../../../../components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../../../../components/ui/dialog';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { useLanguage } from '../../../../../providers/LanguageProvider';
+import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
+import { projectId, publicAnonKey } from '../../../../../utils/supabase/info';
+
+interface DigitalAsset {
+  _id: string;
+  tenant_id: string;
+  order_id?: string;
+  name: string;
+  asset_type: string;
+  status: 'ACTIVE' | 'PENDING' | 'PROVISIONING' | 'EXPIRED' | 'SUSPENDED' | 'TRANSFERRING';
+  auto_renew: boolean;
+  asset_metadata: Record<string, any>;
+  activated_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
+
+// API Client
+const baseUrl = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
+
+const digitalAssetsApi = {
+  getAll: async (): Promise<DigitalAsset[]> => {
+    const response = await fetch(`${baseUrl}/digital-assets`, {
+      headers: {
+        'Authorization': `Bearer ${publicAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch digital assets');
+    }
+    
+    const result = await response.json();
+    return result.data || [];
+  },
+  
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${baseUrl}/digital-assets/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${publicAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to delete digital asset');
+    }
+  },
+};
 
 interface AssetStats {
   total: number;
@@ -137,8 +203,8 @@ function DigitalAssetsPage() {
   const statsCards = stats ? [
     { label: 'Total Assets', value: stats.total, color: 'indigo' as const, icon: Package },
     { label: 'Active', value: stats.active, color: 'green' as const, icon: CheckCircle },
-    { label: 'Expiring Soon', value: stats.expiringSoon, color: 'yellow' as const, icon: AlertTriangle },
-    { label: 'Expired', value: stats.expired, color: 'red' as const, icon: Calendar },
+    { label: 'Expiring Soon', value: stats.expiringSoon, color: 'yellow' as const, icon: AlertCircle },
+    { label: 'Expired', value: stats.expired, color: 'red' as const, icon: Lock },
   ] : [];
 
   return (
@@ -240,11 +306,7 @@ function DigitalAssetsPage() {
                   const expiringSoon = isAssetExpiringSoon(asset);
                   
                   return (
-                    <tr 
-                      key={asset._id} 
-                      className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
-                      onClick={() => router.push(`/commerce/digital-assets/${asset._id}`)}
-                    >
+                    <tr key={asset._id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Shield className="w-4 h-4 text-indigo-600" />
@@ -270,7 +332,7 @@ function DigitalAssetsPage() {
                         {asset.expires_at ? (
                           <div className="flex items-center gap-1">
                             {expiringSoon && (
-                              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                              <AlertCircle className="w-4 h-4 text-yellow-600" />
                             )}
                             <span className={expiringSoon ? 'text-yellow-600' : ''}>
                               {daysLeft !== null ? `${daysLeft} days` : 'N/A'}
@@ -285,20 +347,14 @@ function DigitalAssetsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(`/commerce/digital-assets/${asset._id}`);
-                            }}
+                            onClick={() => router.push(`/commerce/digital-assets/${asset._id}`)}
                           >
                             View
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(asset);
-                            }}
+                            onClick={() => handleDelete(asset)}
                             className="text-red-600"
                           >
                             Delete
@@ -331,6 +387,95 @@ function DigitalAssetsPage() {
       />
     </>
   );
+}
+
+// Helper functions
+function getAssetTypeColor(type?: string): string {
+  switch (type) {
+    case 'DOMAIN':
+      return 'text-blue-600 border-blue-200 bg-blue-50';
+    case 'SSL':
+      return 'text-green-600 border-green-200 bg-green-50';
+    case 'LICENSE_KEY':
+      return 'text-purple-600 border-purple-200 bg-purple-50';
+    case 'SOFTWARE':
+      return 'text-orange-600 border-orange-200 bg-orange-50';
+    case 'SUBSCRIPTION':
+      return 'text-indigo-600 border-indigo-200 bg-indigo-50';
+    default:
+      return 'text-gray-600 border-gray-200 bg-gray-50';
+  }
+}
+
+function getAssetTypeLabel(type?: string): string {
+  switch (type) {
+    case 'DOMAIN':
+      return 'Domain';
+    case 'SSL':
+      return 'SSL Certificate';
+    case 'LICENSE_KEY':
+      return 'License Key';
+    case 'SOFTWARE':
+      return 'Software';
+    case 'SUBSCRIPTION':
+      return 'Subscription';
+    case 'OTHER':
+      return 'Other';
+    default:
+      return type || 'Unknown';
+  }
+}
+
+function getAssetStatusColor(status?: string): string {
+  switch (status) {
+    case 'ACTIVE':
+      return 'bg-green-100 text-green-800 border-green-200';
+    case 'PENDING':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'PROVISIONING':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'EXPIRED':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'SUSPENDED':
+      return 'bg-orange-100 text-orange-800 border-orange-200';
+    case 'TRANSFERRING':
+      return 'bg-purple-100 text-purple-800 border-purple-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+}
+
+function getAssetStatusLabel(status?: string): string {
+  switch (status) {
+    case 'ACTIVE':
+      return 'Active';
+    case 'PENDING':
+      return 'Pending';
+    case 'PROVISIONING':
+      return 'Provisioning';
+    case 'EXPIRED':
+      return 'Expired';
+    case 'SUSPENDED':
+      return 'Suspended';
+    case 'TRANSFERRING':
+      return 'Transferring';
+    default:
+      return status || 'Unknown';
+  }
+}
+
+function getDaysUntilExpiry(asset: DigitalAsset): number | null {
+  if (!asset.expires_at) return null;
+  const now = new Date();
+  const expiry = new Date(asset.expires_at);
+  const diffMs = expiry.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+function isAssetExpiringSoon(asset: DigitalAsset): boolean {
+  const daysLeft = getDaysUntilExpiry(asset);
+  return daysLeft !== null && daysLeft > 0 && daysLeft <= 30;
 }
 
 // Named export for reuse

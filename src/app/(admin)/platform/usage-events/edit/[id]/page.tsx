@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
 import { Activity } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { usageEventsApi, UsageEvent } from '@/api/usageEventsApi';
-import { UsageEventForm } from '@/components/usage-events/UsageEventForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { usageEventsApi, UsageEvent } from '../../../../../../api/usageEventsApi';
+import { UsageEventForm } from '../../../../../../components/usage-events/UsageEventForm';
+import { showToast } from '../../../../../../lib/toast';
 
 function EditUsageEventPage() {
   const params = useParams();

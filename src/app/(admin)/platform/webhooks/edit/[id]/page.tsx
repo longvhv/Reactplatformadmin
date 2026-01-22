@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
 import { Webhook } from 'lucide-react';
-import { FormPageLayout } from '@/components/layouts/FormPageLayout';
-import { webhooksApi } from '@/api/webhooksApi';
-import { WebhookForm } from '@/components/webhooks/WebhookForm';
-import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { webhooksApi } from '../../../../../../api/webhooksApi';
+import { WebhookForm } from '../../../../../../components/webhooks/WebhookForm';
+import { showToast } from '../../../../../../lib/toast';
 
 function EditWebhookPage() {
   const params = useParams();

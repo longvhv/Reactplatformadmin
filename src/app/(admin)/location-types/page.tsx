@@ -8,18 +8,18 @@
 
 import { useState, useEffect } from 'react';
 import { MapPin, Plus, Search, Loader2, AlertCircle, Edit, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { showToast } from '../../../../lib/toast';
 import {
   locationTypesApi,
   LocationType,
   CreateLocationTypeData,
   UpdateLocationTypeData
-} from '@/api/locationTypesApi';
-import { LocationTypeFormDialog } from '@/components/locationTypes/LocationTypeFormDialog';
+} from '../../../../api/locationTypesApi';
+import { LocationTypeFormDialog } from '../../../../components/locationTypes/LocationTypeFormDialog';
 
 // Mock tenant ID for now - in a real app this would come from auth context
 const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000000';

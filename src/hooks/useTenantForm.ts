@@ -5,8 +5,8 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { Tenant, CreateTenantInput } from '@/data/tenants';
-import { validateCreateTenant, validateUpdateTenant } from '@/utils/tenant-validation';
+import type { Tenant, CreateTenantInput } from '../data/tenants';
+import { validateCreateTenant, validateUpdateTenant } from '../utils/tenant-validation';
 
 export interface UseTenantFormProps {
   initialData?: Tenant;

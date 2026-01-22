@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { applicationsApi, Application } from '@/api/applicationsApi';
+import { applicationsApi, Application } from '../api/applicationsApi';
 import { toast } from 'sonner@2.0.3';
 
 export function useApplication(id?: string) {

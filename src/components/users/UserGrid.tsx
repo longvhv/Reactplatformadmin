@@ -4,7 +4,7 @@
  * ✅ Production-ready with card layout
  */
 
-import { useRouter } from '../../shim/next-navigation';
+import { useNavigate } from 'react-router';
 import { 
   Edit, Trash2, Mail, Phone, 
   CheckCircle, Shield, Lock, Calendar 
@@ -42,7 +42,7 @@ export function UserGrid({
   handleDelete,
   handleStatusChange 
 }: UserGridProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -62,8 +62,7 @@ export function UserGrid({
     });
   };
 
-  const handleSelectOne = (e: React.MouseEvent, id: string, checked: boolean) => {
-    e.stopPropagation();
+  const handleSelectOne = (id: string, checked: boolean) => {
     if (checked) {
       setSelectedUsers([...selectedUsers, id]);
     } else {
@@ -76,21 +75,30 @@ export function UserGrid({
       {users.map((user) => (
         <Card 
           key={user._id}
-          className={`relative ${selectedUsers.includes(user._id) ? 'ring-2 ring-primary' : ''} cursor-pointer hover:shadow-md transition-shadow`}
-          onClick={() => router.push(`/admin/users/${user._id}`)}
+          className={`relative ${selectedUsers.includes(user._id) ? 'ring-2 ring-primary' : ''}`}
         >
           {/* Checkbox */}
-          <div className="absolute top-4 right-4 z-10" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute top-4 right-4 z-10">
             <input
               type="checkbox"
               checked={selectedUsers.includes(user._id)}
-              onChange={(e) => handleSelectOne(e as any, user._id, e.target.checked)}
+              onChange={(e) => handleSelectOne(user._id, e.target.checked)}
               className="rounded border-gray-300"
             />
           </div>
 
           <CardHeader className="pb-4">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate(`/platform/users/${user._id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate(`/platform/users/${user._id}`);
+                }
+              }}
+            >
               {user.avatar_url ? (
                 <img 
                   src={user.avatar_url} 
@@ -117,7 +125,17 @@ export function UserGrid({
 
           <CardContent className="space-y-3">
             {/* Email */}
-            <div className="flex items-center gap-2 text-sm">
+            <div 
+              className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"
+              onClick={() => navigate(`/platform/users/${user._id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  navigate(`/platform/users/${user._id}`);
+                }
+              }}
+            >
               <Mail className="w-4 h-4 text-gray-400" />
               <span className="text-gray-600 dark:text-gray-400 truncate">
                 {user.email}
@@ -165,12 +183,12 @@ export function UserGrid({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 pt-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-2 pt-3">
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => router.push(`/admin/users/${user._id}/edit`)}
+                onClick={() => navigate(`/platform/users/edit/${user._id}`)}
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit

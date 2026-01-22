@@ -4,8 +4,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { DataClientFactory, getDataClient, type IDataClient } from '@/lib/data-client';
-import { projectId, publicAnonKey } from '@/utils/supabase/info';
+import { DataClientFactory, getDataClient, type IDataClient } from '../lib/data-client';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 let configuredOnce = false;
 

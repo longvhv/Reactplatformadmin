@@ -1,12 +1,13 @@
 'use client';
 
-import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
 import { Activity, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { TenantRateLimitForm } from '@/components/tenant-rate-limits/TenantRateLimitForm';
-import { tenantRateLimitsApi, TenantRateLimit, UpdateRateLimitRequest } from '@/api/tenantRateLimitsApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../../../components/ui/button';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { TenantRateLimitForm } from '../../../../../../components/tenant-rate-limits/TenantRateLimitForm';
+import { tenantRateLimitsApi, TenantRateLimit, UpdateRateLimitRequest } from '../../../../../../api/tenantRateLimitsApi';
+import { showToast } from '../../../../../../lib/toast';
 
 export default function EditRateLimitPage() {
   const router = useRouter();

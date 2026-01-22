@@ -5,7 +5,7 @@
  */
 
 import { Building2, Users, HardDrive, Calendar, Mail, Phone, Globe, MoreVertical } from 'lucide-react';
-import { useRouter } from '../shim/next-navigation';
+import { useNavigate } from 'react-router';
 import type { Tenant } from '../../data/tenants';
 import { tenantStatusColors, tenantTierColors } from '../../utils/tenant-utils';
 import { Badge } from '../ui/badge';
@@ -28,7 +28,7 @@ interface TenantCardProps {
 
 export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCardProps) {
   const { t } = useLanguage();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // Defensive: Ensure settings exists
   const settings = tenant.settings || {
@@ -50,7 +50,7 @@ export function TenantCard({ tenant, onEdit, onDelete, onViewDetails }: TenantCa
   return (
     <div 
       className="bg-card rounded-xl border border-border/40 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer"
-      onClick={() => router.push(`/admin/tenants/${tenant._id}`)}
+      onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
     >
       <div className="space-y-4">
         {/* Header */}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
 import { Users, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { EnhancedUserForm } from '@/components/users/EnhancedUserForm';
-import { usersApi, User, CreateUserRequest, UpdateUserRequest } from '@/api/usersApi';
-import { showToast } from '@/lib/toast';
+import { Button } from '../../../../../../components/ui/button';
+import { PageLayout } from '../../../../../../components/layout/PageLayout';
+import { EnhancedUserForm } from '../../../../../../components/users/EnhancedUserForm';
+import { usersApi, User, CreateUserRequest, UpdateUserRequest } from '../../../../../../api/usersApi';
+import { showToast } from '../../../../../../lib/toast';
 
 export default function EditUserPage() {
   const router = useRouter();

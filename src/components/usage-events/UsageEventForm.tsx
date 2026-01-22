@@ -9,17 +9,17 @@ import {
   UsageEvent, 
   CreateUsageEventRequest, 
   getEventTypeLabel 
-} from '@/api/usageEventsApi';
-import { tenantsApi, Tenant } from '@/api/tenantsApi';
-import { tenantSubscriptionsApi, TenantSubscription } from '@/api/tenantSubscriptionsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+} from '../../api/usageEventsApi';
+import { tenantsApi, Tenant } from '../../api/tenantsApi';
+import { tenantSubscriptionsApi, TenantSubscription } from '../../api/tenantSubscriptionsApi';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Activity, Save, X, AlertTriangle, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 interface UsageEventFormProps {
   initialData?: UsageEvent;

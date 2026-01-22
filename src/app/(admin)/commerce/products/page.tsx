@@ -4,19 +4,19 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '@/components/shim/next-navigation';
-import { saasProductsApi, SaasProduct, SaasProductFilters } from '@/api/saasProductsApi';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { ProductTable } from '@/components/products/ProductTable';
-import { ProductCard } from '@/components/products/ProductCard';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { useRouter } from '../../../../components/shim/next-navigation';
+import { saasProductsApi, SaasProduct, SaasProductFilters } from '../../../../api/saasProductsApi';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card } from '../../../../components/ui/card';
+import { ProductTable } from '../../../../components/products/ProductTable';
+import { ProductCard } from '../../../../components/products/ProductCard';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../components/common/StatisticsCards';
 import { Plus, Search, Grid, List, Package, CheckCircle, XCircle } from 'lucide-react';
-import { showToast } from '@/lib/toast';
-import { useLanguage } from '@/providers/LanguageProvider';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { showToast } from '../../../../lib/toast';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
 function ProductsPage() {
   const router = useRouter();
@@ -161,7 +161,7 @@ function ProductsPage() {
                 <List className="h-4 w-4" />
               )}
             </Button>
-            <Button onClick={() => router.push('/commerce/products/add')}>
+            <Button onClick={() => router.push('/commerce/products/create')}>
               <Plus className="h-4 w-4 mr-2" />
               {t('products.add')}
             </Button>
@@ -197,7 +197,7 @@ function ProductsPage() {
                 products={filteredProducts}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
-                onView={handleViewDetails}
+                onViewDetails={handleViewDetails}
               />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

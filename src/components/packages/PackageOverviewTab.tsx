@@ -5,7 +5,7 @@
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Calendar, Clock, DollarSign, Tag, Package as PackageIcon } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link } from '../shim/next-navigation';
 
 interface PackageOverviewTabProps {
   packageId: string;

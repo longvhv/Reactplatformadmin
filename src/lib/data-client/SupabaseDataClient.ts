@@ -94,6 +94,8 @@ export class SupabaseDataClient implements IDataClient {
     options?: QueryOptions
   ): Promise<QueryResult<T>> {
     try {
+      console.log(`[SupabaseDataClient] Query resource: ${resource}, options:`, options);
+      
       // Build base query
       let query = this.createQueryBuilder(resource)
         .select(this.buildSelect(options?.select), { count: 'exact' });
@@ -101,11 +103,13 @@ export class SupabaseDataClient implements IDataClient {
       // Apply soft delete filter (default: exclude deleted)
       // Only if table supports soft delete
       if (!options?.includeDeleted && this.supportsSoftDelete(resource)) {
+        console.log(`[SupabaseDataClient] Applying soft delete filter for ${resource}`);
         query = query.is('deleted_at', null);
       }
 
       // Apply filters
       if (options?.filters) {
+        console.log(`[SupabaseDataClient] Applying filters:`, options.filters);
         query = this.applyFilters(query, options.filters);
       }
 
@@ -129,6 +133,8 @@ export class SupabaseDataClient implements IDataClient {
         console.error(`[SupabaseDataClient] Query error on ${resource}:`, error);
         throw this.handleError(error, resource);
       }
+
+      console.log(`[SupabaseDataClient] Query result - count: ${count}, data length: ${data?.length || 0}`);
 
       const total = count ?? undefined;
       const hasMore = options?.limit

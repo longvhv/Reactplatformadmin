@@ -11,9 +11,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Laptop } from "lucide-react";
 
 // Lazy-loaded pages
-const UserDevicesPage = lazy(() => import("../../app/(admin)/platform/user-devices/page").then(m => ({ default: m.default })));
-const CreateUserDevicePage = lazy(() => import("../../app/(admin)/platform/user-devices/create/page").then(m => ({ default: m.default })));
-const EditUserDevicePage = lazy(() => import("../../app/(admin)/platform/user-devices/edit/[id]/page").then(m => ({ default: m.default })));
+const UserDevicesPage = lazy(() => import("../../app/(admin)/platform/user-devices/page"));
+const CreateUserDevicePage = lazy(() => import("../../app/(admin)/platform/user-devices/create/page"));
+const EditUserDevicePage = lazy(() => import("../../app/(admin)/platform/user-devices/edit/[id]/page"));
 
 export const UserDevicesModule: ModuleDefinition = {
   id: "user-devices",

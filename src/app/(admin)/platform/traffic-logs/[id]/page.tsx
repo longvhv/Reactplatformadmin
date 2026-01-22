@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { useParams, useRouter } from '../../../../components/shim/next-navigation';
 import { Activity, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { getTrafficLogById, TrafficLog } from '@/api/trafficLogsApi';
-import { showToast } from '@/lib/toast';
-import { PageLayout } from '@/components/layout/PageLayout';
+import { Button } from '../../../../components/ui/button';
+import { getTrafficLogById, TrafficLog } from '../../../../api/trafficLogsApi';
+import { showToast } from '../../../../lib/toast';
+import { PageLayout } from '../../../../components/layout/PageLayout';
 
 function TrafficLogDetailPage() {
   const params = useParams();

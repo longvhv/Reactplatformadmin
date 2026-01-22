@@ -1,23 +1,45 @@
 /**
- * Tenant Subscription Detail Page
- * 
- * Displays detailed information about a tenant subscription.
- * Handles soft delete and navigation to edit page.
+ * Tenant Subscription Detail Page with Sidebar
+ * ✅ UPDATED: Sidebar layout matching Tenant Detail page
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '@/components/shim/next-navigation';
-import { CreditCard, ArrowLeft, MoreVertical, Edit, Trash2, Calendar, Users, HardDrive } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { tenantSubscriptionsApi, SubscriptionWithDetails } from '@/api/tenantSubscriptionsApi';
-import { showToast } from '@/lib/toast';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
+import { 
+  CreditCard, 
+  ArrowLeft, 
+  Edit, 
+  Trash2, 
+  MoreVertical, 
+  Calendar, 
+  Users, 
+  HardDrive,
+  FileText,
+  History,
+  Settings,
+  Zap,
+  Package,
+  Building2,
+  DollarSign
+} from 'lucide-react';
+import { Button } from '../../../../../components/ui/button';
+import { tenantSubscriptionsApi, SubscriptionWithDetails } from '../../../../../api/tenantSubscriptionsApi';
+import { showToast } from '../../../../../lib/toast';
+import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../../../../../components/ui/dropdown-menu';
+import { Card, CardHeader, CardTitle, CardContent } from '../../../../../components/ui/card';
+import { Badge } from '../../../../../components/ui/badge';
+import { SubscriptionEntitlementsTab } from '../../../../../components/tenant-subscriptions/SubscriptionEntitlementsTab';
+import { SubscriptionHistoryTab } from '../../../../../components/tenant-subscriptions/SubscriptionHistoryTab';
+
+type TabType = 
+  | 'overview' 
+  | 'entitlements' 
+  | 'history'
+  | 'billing'
+  | 'usage';
 
 export default function TenantSubscriptionDetailPage() {
   const params = useParams();
@@ -27,6 +49,7 @@ export default function TenantSubscriptionDetailPage() {
   const [data, setData] = useState<SubscriptionWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
 
   useEffect(() => {
     if (id) loadData();
@@ -68,54 +91,54 @@ export default function TenantSubscriptionDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading subscription...</p>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Subscription Not Found</h2>
+          <p className="text-red-600 mb-4">Subscription not found</p>
           <Button onClick={() => router.push('/platform/tenant-subscriptions')}>
-            <ArrowLeft className="w-4 h-4 mr-2" />Back
+            Back to Subscriptions
           </Button>
         </div>
       </div>
     );
   }
 
-  return (
-    <>
-      <PageLayout
-        icon={CreditCard}
-        title={data.subscription_name}
-        description={`Subscription #${data.subscription_number}`}
-        backButton={{ label: 'Back', onClick: () => router.push('/platform/tenant-subscriptions') }}
-        actions={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/platform/tenant-subscriptions/edit/${id}`)}>
-                <Edit className="w-4 h-4 mr-2" />Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowDeleteDialog(true)} className="text-red-600">
-                <Trash2 className="w-4 h-4 mr-2" />Delete/Cancel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        }
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Info */}
-          <div className="lg:col-span-2 space-y-6">
+  // Sidebar groups structure
+  const sidebarGroups = [
+    {
+      id: 'general',
+      label: 'TỔNG QUAN',
+      items: [
+        { id: 'overview', label: 'Chi tiết', icon: FileText, badge: null },
+        { id: 'usage', label: 'Sử dụng', icon: HardDrive, badge: null },
+        { id: 'billing', label: 'Thanh toán', icon: DollarSign, badge: null },
+      ]
+    },
+    {
+      id: 'features',
+      label: 'TÍNH NĂNG & LỊCH SỬ',
+      items: [
+        { id: 'entitlements', label: 'Quyền lợi', icon: Zap, badge: null },
+        { id: 'history', label: 'Lịch sử', icon: History, badge: null },
+      ]
+    },
+  ];
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Subscription Details</CardTitle>
@@ -137,11 +160,17 @@ export default function TenantSubscriptionDetailPage() {
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Tenant</label>
-                    <div className="mt-1 font-medium">{data.tenant_name || data.tenant_id}</div>
+                    <div className="mt-1 font-medium flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-gray-400" />
+                      {data.tenant_name || data.tenant_id}
+                    </div>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Plan</label>
-                    <div className="mt-1 font-medium">{data.plan_display_name || data.plan_name || 'Custom'}</div>
+                    <div className="mt-1 font-medium flex items-center gap-2">
+                      <Package className="w-4 h-4 text-gray-400" />
+                      {data.plan_display_name || data.plan_name || 'Custom'}
+                    </div>
                   </div>
                 </div>
 
@@ -172,9 +201,21 @@ export default function TenantSubscriptionDetailPage() {
                     )}
                   </div>
                 </div>
+
+                {data.notes && (
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium mb-2">Notes</h4>
+                    <p className="whitespace-pre-wrap text-sm text-gray-600">{data.notes}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </div>
+        );
 
+      case 'usage':
+        return (
+          <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Usage & Limits</CardTitle>
@@ -215,37 +256,13 @@ export default function TenantSubscriptionDetailPage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-6">
-                  <h4 className="text-sm font-medium mb-2">Features</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {data.features && data.features.length > 0 ? (
-                      data.features.map((feature, idx) => (
-                        <Badge key={idx} variant="outline" className="bg-white">
-                          {feature}
-                        </Badge>
-                      ))
-                    ) : (
-                      <span className="text-sm text-gray-500">No specific features configured.</span>
-                    )}
-                  </div>
-                </div>
               </CardContent>
             </Card>
-            
-            {(data.notes) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Notes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="whitespace-pre-wrap text-sm">{data.notes}</p>
-                </CardContent>
-              </Card>
-            )}
           </div>
+        );
 
-          {/* Sidebar */}
+      case 'billing':
+        return (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -253,96 +270,193 @@ export default function TenantSubscriptionDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm text-gray-500">Total Amount</label>
-                  <div className="text-2xl font-bold text-indigo-600">
-                    {data.total_amount.toLocaleString()} {data.currency}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {data.billing_cycle} cycle
-                  </div>
+                  <label className="text-sm text-gray-500">Billing Cycle</label>
+                  <div className="mt-1 font-medium">{data.billing_cycle || 'Monthly'}</div>
                 </div>
-
-                <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Base Price:</span>
-                    <span>{data.base_price.toLocaleString()} {data.currency}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Discount:</span>
-                    <span className="text-green-600">-{data.discount_amount.toLocaleString()} {data.currency}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Tax:</span>
-                    <span>+{data.tax_amount.toLocaleString()} {data.currency}</span>
-                  </div>
+                <div>
+                  <label className="text-sm text-gray-500">Billing Period Start</label>
+                  <div className="mt-1">{data.billing_period_start ? new Date(data.billing_period_start).toLocaleDateString() : 'N/A'}</div>
                 </div>
-
-                <div className="border-t pt-4">
-                  <div className="mb-2">
-                    <label className="text-sm text-gray-500">Payment Status</label>
-                    <div className="font-medium capitalize">{data.payment_status.replace('_', ' ')}</div>
-                  </div>
-                  {data.payment_method && (
-                    <div className="mb-2">
-                      <label className="text-sm text-gray-500">Method</label>
-                      <div className="font-medium">{data.payment_method}</div>
-                    </div>
-                  )}
-                  {data.last_payment_date && (
-                    <div className="mb-2">
-                      <label className="text-sm text-gray-500">Last Payment</label>
-                      <div className="text-sm">{new Date(data.last_payment_date).toLocaleDateString()}</div>
-                    </div>
-                  )}
+                <div>
+                  <label className="text-sm text-gray-500">Billing Period End</label>
+                  <div className="mt-1">{data.billing_period_end ? new Date(data.billing_period_end).toLocaleDateString() : 'N/A'}</div>
                 </div>
+                {data.cancellation_date && (
+                  <div className="border-t pt-4">
+                    <label className="text-sm text-gray-500">Cancellation Date</label>
+                    <div className="mt-1 text-red-600">{new Date(data.cancellation_date).toLocaleDateString()}</div>
+                  </div>
+                )}
+                {data.cancellation_reason && (
+                  <div>
+                    <label className="text-sm text-gray-500">Cancellation Reason</label>
+                    <div className="mt-1 text-sm text-gray-600">{data.cancellation_reason}</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
+          </div>
+        );
 
-            {(data.billing_contact_name || data.billing_contact_email) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Billing Contact</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {data.billing_contact_name && (
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">Name</label>
-                      <div className="font-medium">{data.billing_contact_name}</div>
-                    </div>
-                  )}
-                  {data.billing_contact_email && (
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">Email</label>
-                      <div className="text-sm text-blue-600">{data.billing_contact_email}</div>
-                    </div>
-                  )}
-                  {data.billing_contact_phone && (
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase">Phone</label>
-                      <div className="text-sm">{data.billing_contact_phone}</div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+      case 'entitlements':
+        return <SubscriptionEntitlementsTab subscriptionId={id} />;
 
-            <div className="text-xs text-gray-400 text-center">
-              <div>Created: {new Date(data.created_at).toLocaleString()}</div>
-              <div>Updated: {new Date(data.updated_at).toLocaleString()}</div>
-              <div>ID: {data._id}</div>
+      case 'history':
+        return <SubscriptionHistoryTab subscriptionId={id} />;
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="max-w-[1600px] mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/platform/tenant-subscriptions')}
+                  className="hover:bg-gray-100"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+                
+                <div className="h-8 w-px bg-gray-300" />
+                
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-50 border border-indigo-100">
+                    <CreditCard className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-gray-900">{data.subscription_name}</h1>
+                    <p className="text-sm text-gray-500 font-mono">#{data.subscription_number}</p>
+                  </div>
+                  <Badge className={getStatusColor(data.status)} variant="secondary">
+                    {data.status.toUpperCase()}
+                  </Badge>
+                  {data.is_trial && (
+                    <Badge className="bg-blue-50 text-blue-700" variant="secondary">
+                      TRIAL
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/platform/tenant-subscriptions/edit/${id}`)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => setShowDeleteDialog(true)}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete/Cancel
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </div>
-      </PageLayout>
-      
-      <ConfirmDialog 
-        open={showDeleteDialog} 
-        onOpenChange={setShowDeleteDialog} 
-        title="Cancel Subscription" 
-        description={`Are you sure you want to cancel subscription "${data.subscription_name}"? This will set the status to Cancelled and mark it as deleted.`} 
-        onConfirm={handleDelete} 
-        variant="destructive" 
-      />
+
+        {/* Main Content with Sidebar */}
+        <div className="max-w-[1600px] mx-auto px-6 py-6">
+          <div className="flex gap-6">
+            {/* Sidebar Navigation */}
+            <div className="w-64 flex-shrink-0">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden sticky top-24">
+                <div className="p-3 bg-gray-50 border-b border-gray-200">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Quản lý Đăng ký
+                  </p>
+                </div>
+                <nav className="py-3 px-2">
+                  {sidebarGroups.map((group, groupIndex) => (
+                    <div key={group.id} className={groupIndex > 0 ? 'mt-5' : ''}>
+                      {/* Group header */}
+                      <div className="px-3 mb-1.5">
+                        <h3 className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                          {group.label}
+                        </h3>
+                      </div>
+                      
+                      {/* Group items */}
+                      <div className="space-y-0.5">
+                        {group.items.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = activeTab === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => setActiveTab(item.id as TabType)}
+                              className={`
+                                w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-all duration-150
+                                ${isActive 
+                                  ? 'bg-indigo-600 text-white' 
+                                  : 'text-gray-700 hover:bg-gray-100'
+                                }
+                              `}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                                <span className="font-normal">{item.label}</span>
+                              </div>
+                              {item.badge && (
+                                <Badge variant="secondary" className="ml-auto">
+                                  {item.badge}
+                                </Badge>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </nav>
+              </div>
+            </div>
+
+            {/* Main Content Area */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden p-6">
+                {renderTabContent()}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={handleDelete}
+          title="Confirm Cancellation/Deletion"
+          description={`Are you sure you want to cancel/delete subscription "${data.subscription_name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="destructive"
+        />
+      </div>
     </>
   );
 }

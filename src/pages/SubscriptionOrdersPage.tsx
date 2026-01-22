@@ -1,2 +1,2 @@
-import SubscriptionOrdersPage from '@/app/(admin)/subscriptions/orders/page';
+import SubscriptionOrdersPage from '../app/(admin)/subscriptions/orders/page';
 export default SubscriptionOrdersPage;

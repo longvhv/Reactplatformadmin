@@ -2,7 +2,7 @@
  * Webhooks Module Definition
  * Note: menuItems label and routes title use translation keys that will be resolved at runtime
  * 
- * 🌐 Path: /integrations/webhooks
+ * 🌐 Path: /platform/webhooks
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -14,7 +14,7 @@ const WebhooksPage = lazy(() =>
   import('../../app/(admin)/platform/webhooks/page').then(m => ({ default: m.default }))
 );
 const AddWebhookPage = lazy(() => 
-  import('../../app/(admin)/platform/webhooks/add/page').then(m => ({ default: m.default }))
+  import('../../app/(admin)/platform/webhooks/create/page').then(m => ({ default: m.default }))
 );
 const EditWebhookPage = lazy(() => 
   import('../../app/(admin)/platform/webhooks/edit/[id]/page').then(m => ({ default: m.default }))
@@ -35,7 +35,7 @@ export const WebhooksModule: ModuleDefinition = {
     {
       id: "webhooks",
       label: "navigation.webhooks",
-      path: "/integrations/webhooks",
+      path: "/platform/webhooks",
       icon: <Webhook className="w-5 h-5" />,
       order: 48,
     },
@@ -43,7 +43,7 @@ export const WebhooksModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/integrations/webhooks",
+      path: "/platform/webhooks",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <WebhooksPage />
@@ -52,7 +52,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Webhooks",
     },
     {
-      path: "/integrations/webhooks/add",
+      path: "/platform/webhooks/add",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddWebhookPage />
@@ -61,7 +61,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Add Webhook",
     },
     {
-      path: "/integrations/webhooks/edit/:id",
+      path: "/platform/webhooks/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditWebhookPage />
@@ -70,7 +70,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Edit Webhook",
     },
     {
-      path: "/integrations/webhooks/:id",
+      path: "/platform/webhooks/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <WebhookDetailPage />

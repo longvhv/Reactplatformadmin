@@ -1,2 +1,2 @@
-import LocationTypesPage from '@/app/(admin)/location-types/page';
+import LocationTypesPage from '../app/(admin)/location-types/page';
 export default LocationTypesPage;

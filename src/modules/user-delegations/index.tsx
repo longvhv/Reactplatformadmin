@@ -11,9 +11,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { UserCog } from "lucide-react";
 
 // Lazy-loaded pages
-const UserDelegationsPage = lazy(() => import("../../app/(admin)/platform/user-delegations/page").then(m => ({ default: m.default })));
-const CreateUserDelegationPage = lazy(() => import("../../app/(admin)/platform/user-delegations/create/page").then(m => ({ default: m.default })));
-const EditUserDelegationPage = lazy(() => import("../../app/(admin)/platform/user-delegations/edit/[id]/page").then(m => ({ default: m.default })));
+const UserDelegationsPage = lazy(() => import("../../app/(admin)/platform/user-delegations/page"));
+const CreateUserDelegationPage = lazy(() => import("../../app/(admin)/platform/user-delegations/create/page"));
+const EditUserDelegationPage = lazy(() => import("../../app/(admin)/platform/user-delegations/edit/[id]/page"));
 
 export const UserDelegationsModule: ModuleDefinition = {
   id: "user-delegations",

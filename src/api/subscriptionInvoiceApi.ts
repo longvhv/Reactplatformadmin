@@ -126,13 +126,15 @@ export const subscriptionInvoiceApi = {
    * Calculate total with adjustments
    */
   calculateTotal: (baseAmount: number, adjustments: PriceAdjustment[]): number => {
-    return adjustments.reduce((total, adj) => {
+    const safeAdjustments = adjustments || [];
+    const safeBase = baseAmount || 0;
+    return safeAdjustments.reduce((total, adj) => {
       const amount = adj.amount || 0;
       if (adj.type === 'discount' || adj.type === 'credit') {
         return total - amount;
       }
       return total + amount;
-    }, baseAmount);
+    }, safeBase);
   },
 };
 

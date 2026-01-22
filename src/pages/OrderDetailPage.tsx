@@ -1,2 +1,2 @@
-import OrderDetailPage from '@/app/(admin)/commerce/orders/[id]/page';
+import OrderDetailPage from '../app/(admin)/commerce/orders/[id]/page';
 export default OrderDetailPage;

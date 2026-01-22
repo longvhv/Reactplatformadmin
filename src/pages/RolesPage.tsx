@@ -1,2 +1,2 @@
-import RolesPage from '@/app/(admin)/admin/roles/page';
+import RolesPage from '../app/(admin)/platform/roles/page';
 export default RolesPage;

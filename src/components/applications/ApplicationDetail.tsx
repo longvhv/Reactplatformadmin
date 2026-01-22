@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { Link, useParams, useRouter } from '../../shim/next-navigation';
+import { Link, useParams, useNavigate } from 'react-router';
 import { applicationsApi } from '../../api/applicationsApi';
 import { appCapabilitiesApi, AppCapability } from '../../api/appCapabilitiesApi';
 import { useApplicationWithCapabilities } from '../../hooks/useApplicationWithCapabilities';
@@ -24,9 +24,8 @@ const formatDefaultValue = (val: any) => {
 };
 
 export function ApplicationDetail() {
-  const params = useParams();
-  const code = params?.code as string;
-  const router = useRouter();
+  const { code } = useParams<{ code: string }>();
+  const navigate = useNavigate();
   const { data, loading, error, refresh } = useApplicationWithCapabilities(code);
 
   const [showCapabilityModal, setShowCapabilityModal] = useState(false);
@@ -42,7 +41,7 @@ export function ApplicationDetail() {
     try {
       await applicationsApi.delete(code);
       showToast.success('Success', 'Application deleted successfully');
-      router.push('/core/applications');
+      navigate('/core/applications');
     } catch (error) {
       showToast.error('Error', error instanceof Error ? error.message : 'Unknown error');
     }
@@ -115,7 +114,7 @@ export function ApplicationDetail() {
           </p>
         </div>
         <Link
-          href="/core/applications"
+          to="/core/applications"
           className="inline-flex items-center text-indigo-600 hover:text-indigo-900"
         >
           ← Back to Applications
@@ -128,7 +127,7 @@ export function ApplicationDetail() {
     <div className="space-y-6">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-gray-600">
-        <Link href="/core/applications" className="hover:text-indigo-600">
+        <Link to="/core/applications" className="hover:text-indigo-600">
           Applications
         </Link>
         <span>/</span>
@@ -191,7 +190,7 @@ export function ApplicationDetail() {
           {!data.deleted_at && (
             <div className="flex items-center gap-2">
               <Link
-                href={`/core/applications/${data.code}/edit`}
+                to={`/platform/applications/edit/${data.code}`}
                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 Edit
