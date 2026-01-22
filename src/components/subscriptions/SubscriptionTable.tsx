@@ -1,10 +1,11 @@
 /**
  * SubscriptionTable Component
- * Displays tenant subscriptions in a table format with full CRUD operations
+ * Displays subscriptions in table format
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useRouter } from '../../components/shim/next-navigation';
 import { 
   CreditCard, Eye, Pencil, Trash2, RefreshCw, Ban, 
   Calendar, DollarSign, Users, HardDrive, AlertCircle,
@@ -28,7 +29,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
   onStatusChange,
   loading = false,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { t } = useLanguage();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -120,7 +121,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
         <h3 className="mt-2 text-sm font-medium text-gray-900">{t('subscriptions.noSubscriptions')}</h3>
         <p className="mt-1 text-sm text-gray-500">{t('subscriptions.noSubscriptionsDescription')}</p>
         <div className="mt-6">
-          <Button onClick={() => navigate('/commerce/tenant-subscriptions/create')}>
+          <Button onClick={() => router.push('/commerce/tenant-subscriptions/create')}>
             {t('subscriptions.addSubscription')}
           </Button>
         </div>
@@ -169,7 +170,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       </div>
                       <div className="ml-4">
                         <button
-                          onClick={() => navigate(`/commerce/tenant-subscriptions/${subscription._id}`)}
+                          onClick={() => router.push(`/commerce/tenant-subscriptions/${subscription._id}`)}
                           className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
                         >
                           {subscription.subscription_name}
@@ -259,7 +260,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/commerce/tenant-subscriptions/${subscription._id}`)}
+                        onClick={() => router.push(`/commerce/tenant-subscriptions/${subscription._id}`)}
                         title={t('common.view')}
                       >
                         <Eye className="w-4 h-4" />
@@ -267,7 +268,7 @@ export const SubscriptionTable: React.FC<SubscriptionTableProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => navigate(`/commerce/tenant-subscriptions/edit/${subscription._id}`)}
+                        onClick={() => router.push(`/commerce/tenant-subscriptions/edit/${subscription._id}`)}
                         title={t('common.edit')}
                       >
                         <Pencil className="w-4 h-4" />

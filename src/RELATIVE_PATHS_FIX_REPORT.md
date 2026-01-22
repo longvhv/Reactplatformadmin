@@ -71,7 +71,7 @@ Breakdown: / → app → (admin) → admin → dashboard → page.tsx
 **Cần: 4 levels | Hiện tại: 3 levels | Hành động: Thêm 1 level**
 
 Examples:
-- `/app/(admin)/commerce/invoices/page.tsx`
+- `/app/(admin)/commerce/subscription-invoices/page.tsx`
 - `/app/(admin)/commerce/products/page.tsx`
 - `/app/(admin)/platform/applications/page.tsx`
 - `/app/(admin)/platform/users/page.tsx`
@@ -85,7 +85,7 @@ Examples:
 **Cần: 5 levels | Hiện tại: 4 levels | Hành động: Thêm 1 level**
 
 Examples:
-- `/app/(admin)/commerce/invoices/[id]/page.tsx`
+- `/app/(admin)/commerce/subscription-invoices/[id]/page.tsx`
 - `/app/(admin)/platform/applications/[id]/page.tsx`
 
 **Pattern fix:**
@@ -96,7 +96,7 @@ Examples:
 **Cần: 5 levels | Hiện tại: 6 levels | Hành động: Giảm 1 level**
 
 Examples:
-- `/app/(admin)/commerce/invoices/create/page.tsx`
+- `/app/(admin)/commerce/subscription-invoices/create/page.tsx`
 - `/app/(admin)/platform/applications/create/page.tsx`
 
 **Pattern fix:**
@@ -107,7 +107,7 @@ Examples:
 **Cần: 6 levels | Hiện tại: 7 levels | Hành động: Giảm 1 level**
 
 Examples:
-- `/app/(admin)/commerce/invoices/edit/[id]/page.tsx`
+- `/app/(admin)/commerce/subscription-invoices/edit/[id]/page.tsx`
 - `/app/(admin)/platform/applications/edit/[id]/page.tsx`
 
 **Pattern fix:**

@@ -229,7 +229,7 @@ Checklist này giúp bạn fix và verify từng file một cách có hệ thố
 #### Commerce Routes
 - [ ] `/commerce/products` - Table loads
 - [ ] `/commerce/products/create` - Form displays
-- [ ] `/commerce/invoices` - Table loads
+- [ ] `/commerce/subscription-invoices` - Table loads
 - [ ] `/commerce/subscriptions` - Table loads
 
 #### Tools Routes
@@ -306,7 +306,7 @@ For each form:
 - [ ] **TenantForm** - Save → Navigate to `/admin/tenants`
 - [ ] **ApplicationForm** - Save → Navigate to `/platform/applications`
 - [ ] **ProductForm** - Save → Navigate to `/commerce/products`
-- [ ] **InvoiceForm** - Save → Navigate to `/commerce/invoices`
+- [ ] **InvoiceForm** - Save → Navigate to `/commerce/subscription-invoices`
 - [ ] **WebhookForm** - Save → Navigate to `/platform/webhooks`
 - [ ] **FeatureFlagForm** - Save → Navigate to `/platform/feature-flags`
 - [ ] **LegalDocumentForm** - Save → Navigate to `/platform/legal-documents`

@@ -61,8 +61,8 @@ const TEST_ROUTES: TestRoute[] = [
   // COMMERCE SECTION - Priority: Medium
   { path: '/commerce/products', category: 'commerce', priority: 'medium', expectedElements: ['table'] },
   { path: '/commerce/products/create', category: 'commerce', priority: 'medium', expectedElements: ['form'] },
-  { path: '/commerce/invoices', category: 'commerce', priority: 'medium', expectedElements: ['table'] },
-  { path: '/commerce/invoices/create', category: 'commerce', priority: 'medium', expectedElements: ['form'] },
+  { path: '/commerce/subscription-invoices', category: 'commerce', priority: 'medium', expectedElements: ['table'] },
+  { path: '/commerce/subscription-invoices/create', category: 'commerce', priority: 'medium', expectedElements: ['form'] },
   { path: '/commerce/subscriptions', category: 'commerce', priority: 'medium', expectedElements: ['table'] },
   
   // TOOLS SECTION - Priority: Low

@@ -1,38 +1,58 @@
 /**
  * Invoices Create Form
  * ✅ MIGRATED from /pages/commerce/invoices/add.tsx
+ * ✅ FIXED: Import paths corrected to 5 levels (path has 6 slashes)
+ * ✅ FIXED: Use InvoiceForm component
  */
 'use client';
-import { Fragment, useState } from 'react';
+
+import React, { useState } from 'react';
 import { useRouter } from '../../../../../components/shim/next-navigation';
-import { DollarSign, Plus } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card } from '../../../../../components/ui/card';
+import { FileText } from 'lucide-react';
 import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { invoicesApi } from '../../../../../api/invoicesApi';
+import { InvoiceForm } from '../../../../../components/invoices/InvoiceForm';
+import { subscriptionInvoiceApi, Invoice } from '../../../../../api/subscriptionInvoiceApi';
 import { showToast } from '../../../../../lib/toast';
 
 function CreateInvoicePage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ invoice_number: '', amount: '', customer: '' });
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (data: Omit<Invoice, '_id' | 'created_at' | 'updated_at' | 'version'>) => {
     try {
       setLoading(true);
-      await invoicesApi.create(formData);
-      showToast.success('Success', 'Created successfully');
+      // CreateInvoiceRequest is compatible with the data from form
+      await subscriptionInvoiceApi.create(data);
+      showToast.success('Success', 'Invoice created successfully');
       router.push('/commerce/subscription-invoices');
     } catch (error: any) {
-      showToast.error('Error', error.message || 'Failed to create');
+      console.error('Create invoice error:', error);
+      showToast.error('Error', error.message || 'Failed to create invoice');
     } finally {
       setLoading(false);
     }
   };
 
-  return <Fragment><PageLayout icon={DollarSign} title="Create Invoice" description="Create new invoice"><Card className="p-6"><form onSubmit={handleSubmit} className="space-y-4"><div><label className="block text-sm font-medium mb-2">Invoice Number</label><Input value={formData.invoice_number} onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Amount</label><Input type="number" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} required /></div><div><label className="block text-sm font-medium mb-2">Customer</label><Input value={formData.customer} onChange={(e) => setFormData({ ...formData, customer: e.target.value })} required /></div><div className="flex gap-2 pt-4"><Button type="submit" disabled={loading}><Plus className="w-4 h-4 mr-2" />{loading ? 'Saving...' : 'Save'}</Button><Button type="button" variant="outline" onClick={() => router.push('/commerce/subscription-invoices')}>Cancel</Button></div></form></Card></PageLayout></Fragment>;
+  const handleCancel = () => {
+    router.push('/commerce/subscription-invoices');
+  };
+
+  return (
+    <PageLayout 
+      icon={FileText} 
+      title="Create Invoice" 
+      description="Create a new subscription invoice"
+    >
+      <div className="max-w-5xl mx-auto">
+        <InvoiceForm 
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          loading={loading}
+        />
+      </div>
+    </PageLayout>
+  );
 }
+
 export { CreateInvoicePage };
 export default CreateInvoicePage;

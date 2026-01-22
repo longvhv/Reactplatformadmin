@@ -3,10 +3,11 @@
  * Displays invoices in a table format with full CRUD operations
  * ✅ Schema compatible: subscriptionInvoiceApi is alias to invoiceApi
  * ✅ FIXED 2026-01-15: Use helper functions for payment status (derived field)
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useRouter } from '../../components/shim/next-navigation';
 import { 
   FileText, Pencil, Trash2, Send, DollarSign, 
   Calendar, CreditCard, AlertCircle, CheckCircle, XCircle 
@@ -37,7 +38,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
   onStatusChange,
   loading = false,
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { t } = useLanguage();
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
@@ -66,7 +67,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         <h3 className="mt-2 text-sm font-medium text-gray-900">{t('invoices.noInvoices')}</h3>
         <p className="mt-1 text-sm text-gray-500">{t('invoices.noInvoicesDescription')}</p>
         <div className="mt-6">
-          <Button onClick={() => navigate('/commerce/invoices/add')}>
+          <Button onClick={() => router.push('/commerce/subscription-invoices/create')}>
             {t('invoices.addInvoice')}
           </Button>
         </div>
@@ -111,7 +112,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <FileText className="h-5 w-5 text-indigo-600 mr-2" />
                     <div>
                       <button
-                        onClick={() => navigate(`/commerce/invoices/${invoice._id}`)}
+                        onClick={() => router.push(`/commerce/subscription-invoices/${invoice._id}`)}
                         className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                       >
                         {invoice.invoice_number}
@@ -158,9 +159,14 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {/* ✅ FIX: Use helper function, returns Badge component */}
-                  <Badge className={getStatusBadge(invoice.status).color}>
-                    {getStatusBadge(invoice.status).label}
-                  </Badge>
+                  {(() => {
+                    const badge = getStatusBadge(invoice.status);
+                    return (
+                      <Badge className={badge.color}>
+                        {badge.label}
+                      </Badge>
+                    );
+                  })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {/* ✅ FIX: payment_status is derived, use helper */}
@@ -185,7 +191,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => navigate(`/commerce/invoices/edit/${invoice._id}`)}
+                      onClick={() => router.push(`/commerce/subscription-invoices/edit/${invoice._id}`)}
                       title={t('common.edit')}
                     >
                       <Pencil className="h-4 h-4" />

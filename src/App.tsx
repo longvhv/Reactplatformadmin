@@ -65,8 +65,8 @@ import SaasProductTypesPage from "./app/(admin)/platform/saas-product-types/page
 import AddSaasProductTypePage from "./app/(admin)/platform/saas-product-types/create/page";
 import EditSaasProductTypePage from "./app/(admin)/platform/saas-product-types/edit/[id]/page";
 import SaasProductTypeDetailPage from "./app/(admin)/platform/saas-product-types/[id]/page";
-import SubscriptionDetailPageFullscreen from "./app/(admin)/commerce/subscriptions/[id]/page";
-import AddSubscriptionPage from "./app/(admin)/commerce/subscriptions/create/page";
+import SubscriptionDetailPageFullscreen from "./app/(admin)/platform/tenant-subscriptions/[id]/page";
+import AddSubscriptionPage from "./app/(admin)/platform/tenant-subscriptions/create/page";
 
 // Import module registration to register all modules
 import "./core/lazyModuleRegistration";

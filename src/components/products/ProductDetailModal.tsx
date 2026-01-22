@@ -1,9 +1,9 @@
 /**
- * Product Detail Modal
- * Comprehensive modal for viewing full product details
+ * ProductDetailModal Component
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
-import React from 'react';
+import { useRouter } from '../../components/shim/next-navigation';
 import { Product } from '../../api/productsApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -34,7 +34,7 @@ interface ProductDetailModalProps {
 }
 
 export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailModalProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (!isOpen) return null;
 
@@ -96,7 +96,7 @@ export function ProductDetailModal({ product, isOpen, onClose }: ProductDetailMo
 
   const handleEdit = () => {
     onClose();
-    navigate(`/commerce/products/edit/${product._id}`);
+    router.push(`/commerce/products/edit/${product._id}`);
   };
 
   const renderFeatures = () => {

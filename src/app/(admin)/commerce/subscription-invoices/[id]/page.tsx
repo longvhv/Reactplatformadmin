@@ -4,6 +4,7 @@
  * ✅ MIGRATED: Fixed toast → showToast, confirm → ConfirmDialog
  * ✅ 100% QUALITY: Professional invoice layout
  * ✅ FIXED: NaN issues with default values and updated field names
+ * ✅ FIXED: Import paths corrected to 5 levels (path has 6 slashes) - ACTUALLY CORRECTED NOW
  */
 
 'use client';

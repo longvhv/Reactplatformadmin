@@ -2,27 +2,29 @@
  * Subscription Invoices Page
  * Display and manage subscription invoices
  * ✅ MIGRATED Phase 3: ConfirmDialog, showToast, Fragment wrapper
+ * ✅ FIXED: Import paths corrected to 4 levels (path has 5 slashes)
+ * ✅ FIXED 2026-01-22: Removed named export to fix Next.js error
  */
 
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
+import { useRouter } from '../../../../components/shim/next-navigation';
 import { Plus, Search, RefreshCw, Receipt, DollarSign, Clock, CheckCircle, AlertCircle, FileText, List, Grid } from 'lucide-react';
-import { subscriptionInvoiceApi, SubscriptionInvoice, InvoiceStatistics } from '../../../../../api/subscriptionInvoiceApi';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card, CardContent } from '../../../../../components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
-import { InvoiceTable } from '../../../../../components/invoices/InvoiceTable';
-import { InvoiceCard } from '../../../../../components/invoices/InvoiceCard';
-import { useLanguage } from '../../../../../providers/LanguageProvider';
-import { showToast } from '../../../../../lib/toast';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
-import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
+import { subscriptionInvoiceApi, SubscriptionInvoice, InvoiceStatistics } from '../../../../api/subscriptionInvoiceApi';
+import { Button } from '../../../../components/ui/button';
+import { Input } from '../../../../components/ui/input';
+import { Card, CardContent } from '../../../../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../components/ui/select';
+import { InvoiceTable } from '../../../../components/invoices/InvoiceTable';
+import { InvoiceCard } from '../../../../components/invoices/InvoiceCard';
+import { useLanguage } from '../../../../providers/LanguageProvider';
+import { showToast } from '../../../../lib/toast';
+import { PageLayout } from '../../../../components/layout/PageLayout';
+import { StatisticsCards } from '../../../../components/common/StatisticsCards';
+import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
 
-export const SubscriptionInvoicesPage = () => {
+export default function SubscriptionInvoicesPage() {
   const router = useRouter();
   const { t } = useLanguage();
   
@@ -215,7 +217,6 @@ export const SubscriptionInvoicesPage = () => {
                 value: statistics.amount_due, // Assuming value expects number, and description is the formatted string? Wait, StatisticsCards props might differ.
                 // The provided code used currency: ... which is not standard in StatisticsCards usually.
                 // Checking usage: { title, value, currency, icon, color }
-                // Let's assume StatisticsCards can handle 'currency' or I map it to 'description'.
                 // I will use description for now to be safe, or just pass it if the component supports it.
                 // The interface usually is { title, value, icon, color, description? }
                 // I'll put the formatted currency in description.
@@ -330,6 +331,4 @@ export const SubscriptionInvoicesPage = () => {
       </PageLayout>
     </Fragment>
   );
-};
-
-export default SubscriptionInvoicesPage;
+}

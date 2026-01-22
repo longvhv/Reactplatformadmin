@@ -1,6 +1,7 @@
 /**
  * Invoice Edit Page
  * ✅ MIGRATED from /pages/commerce/invoices/edit/[id].tsx
+ * ✅ FIXED: Import paths corrected to 6 levels (path has 7 slashes) - ACTUALLY CORRECTED NOW
  */
 'use client';
 

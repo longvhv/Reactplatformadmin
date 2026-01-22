@@ -2,10 +2,11 @@
  * FormPageLayout Component
  * Unified layout for Add/Edit pages across all modules
  * Ensures consistent design following Stripe/GitHub standards
+ * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { useRouter } from '../shim/next-navigation';
 import { Button } from '../ui/button';
 import { ArrowLeft, LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
@@ -51,7 +52,7 @@ export function FormPageLayout({
   children,
   headerExtra,
 }: FormPageLayoutProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const bannerStyles = {
     info: {
@@ -80,7 +81,7 @@ export function FormPageLayout({
         {/* Back Button */}
         <Button
           variant="ghost"
-          onClick={() => navigate(backPath, { replace: true })}
+          onClick={() => router.push(backPath)}
           className="mb-6 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

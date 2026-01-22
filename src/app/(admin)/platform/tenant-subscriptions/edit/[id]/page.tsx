@@ -1,5 +1,6 @@
 /**
  * Edit Tenant Subscription Page
+ * ✅ UPDATED: Used SubscriptionForm from components library
  */
 
 'use client';
@@ -9,7 +10,7 @@ import { useParams, useRouter } from '../../../../../../components/shim/next-nav
 import { CreditCard } from 'lucide-react';
 import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
 import { tenantSubscriptionsApi, TenantSubscription } from '../../../../../../api/tenantSubscriptionsApi';
-import { TenantSubscriptionForm } from '../../../../../../components/tenant-subscriptions/TenantSubscriptionForm';
+import { SubscriptionForm } from '../../../../../../components/tenant-subscriptions/SubscriptionForm';
 import { showToast } from '../../../../../../lib/toast';
 
 export default function EditTenantSubscriptionPage() {
@@ -68,12 +69,14 @@ export default function EditTenantSubscriptionPage() {
       backPath="/platform/tenant-subscriptions" 
       backLabel="Back"
     >
-      <TenantSubscriptionForm 
-        initialData={data} 
-        onSubmit={handleSubmit} 
-        loading={loading} 
-        onCancel={() => router.push('/platform/tenant-subscriptions')} 
-      />
+      {data && (
+        <SubscriptionForm 
+          subscription={data} 
+          onSubmit={handleSubmit} 
+          loading={loading} 
+          onCancel={() => router.push('/platform/tenant-subscriptions')} 
+        />
+      )}
     </FormPageLayout>
   );
 }

@@ -246,7 +246,7 @@ export default function TenantsPage() {
 - [ ] AddProductTypePage → `/app/(admin)/commerce/product-types/create/page.tsx`
 - [ ] AddSaasProductTypePage → `/app/(admin)/commerce/saas-product-types/create/page.tsx`
 - [ ] AddOrderPage → `/app/(admin)/commerce/orders/create/page.tsx`
-- [ ] AddInvoicePage → `/app/(admin)/commerce/invoices/create/page.tsx`
+- [ ] AddInvoicePage → `/app/(admin)/commerce/subscription-invoices/create/page.tsx`
 - [ ] AddSubscriptionPage → `/app/(admin)/commerce/subscriptions/create/page.tsx`
 - [ ] AddServiceDeliveryPage → `/app/(admin)/commerce/service-deliveries/create/page.tsx`
 - [ ] AddServicePackagePage → `/app/(admin)/commerce/service-packages/create/page.tsx`
@@ -266,7 +266,7 @@ export default function TenantsPage() {
 - [ ] EditProductTypePage → `/app/(admin)/commerce/product-types/edit/[id]/page.tsx`
 - [ ] EditSaasProductTypePage → `/app/(admin)/commerce/saas-product-types/edit/[id]/page.tsx`
 - [ ] EditOrderPage → `/app/(admin)/commerce/orders/edit/[id]/page.tsx`
-- [ ] EditInvoicePage → `/app/(admin)/commerce/invoices/edit/[id]/page.tsx`
+- [ ] EditInvoicePage → `/app/(admin)/commerce/subscription-invoices/edit/[id]/page.tsx`
 - [ ] EditSubscriptionPage → `/app/(admin)/commerce/subscriptions/edit/[id]/page.tsx`
 - [ ] EditServiceDeliveryPage → `/app/(admin)/commerce/service-deliveries/edit/[id]/page.tsx`
 - [ ] EditServicePackagePage → `/app/(admin)/commerce/service-packages/edit/[id]/page.tsx`
@@ -318,7 +318,7 @@ export default function TenantsPage() {
 - [ ] NotificationsPage (OrdersPage?) - Clarify this
 - [ ] NotificationDetailPage → `/app/(admin)/platform/notifications/[id]/page.tsx`
 - [ ] OrderDetailPage → `/app/(admin)/commerce/orders/[id]/page.tsx`
-- [ ] InvoiceDetailPage → `/app/(admin)/commerce/invoices/[id]/page.tsx`
+- [ ] InvoiceDetailPage → `/app/(admin)/commerce/subscription-invoices/[id]/page.tsx`
 - [ ] SubscriptionDetailPage → `/app/(admin)/commerce/subscriptions/[id]/page.tsx`
 - [ ] SubscriptionOrderDetailPage → `/app/(admin)/commerce/subscription-orders/[id]/page.tsx`
 - [ ] UserRegistrationDetailPage → `/app/(admin)/admin/registration-analytics/[id]/page.tsx`
@@ -371,7 +371,7 @@ COMMERCE GROUP: /commerce/*
 ├── /commerce/product-types       → ProductTypesPage
 ├── /commerce/saas-product-types  → SaasProductTypesPage
 ├── /commerce/orders              → OrdersPage (NotificationsPage?)
-├── /commerce/invoices            → InvoicesPage
+
 ├── /commerce/subscriptions       → SubscriptionsPage
 ├── /commerce/subscription-invoices → SubscriptionInvoicesPage
 ├── /commerce/subscription-orders → SubscriptionOrdersPage

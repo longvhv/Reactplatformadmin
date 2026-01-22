@@ -1,5 +1,7 @@
 /**
  * Add Tenant Subscription Page
+ * ✅ FIXED: Import paths corrected to 5 levels (path has 6 slashes)
+ * ✅ UPDATED: Used SubscriptionForm from components library
  */
 
 'use client';
@@ -7,10 +9,10 @@
 import { useState } from 'react';
 import { useRouter } from '../../../../../components/shim/next-navigation';
 import { CreditCard } from 'lucide-react';
-import { FormPageLayout } from '../../../../components/layouts/FormPageLayout';
-import { tenantSubscriptionsApi } from '../../../../api/tenantSubscriptionsApi';
-import { TenantSubscriptionForm } from '../../../../components/tenant-subscriptions/TenantSubscriptionForm';
-import { showToast } from '../../../../lib/toast';
+import { FormPageLayout } from '../../../../../components/layouts/FormPageLayout';
+import { tenantSubscriptionsApi } from '../../../../../api/tenantSubscriptionsApi';
+import { SubscriptionForm } from '../../../../../components/tenant-subscriptions/SubscriptionForm';
+import { showToast } from '../../../../../lib/toast';
 
 export default function AddTenantSubscriptionPage() {
   const router = useRouter();
@@ -38,7 +40,7 @@ export default function AddTenantSubscriptionPage() {
       backPath="/platform/tenant-subscriptions" 
       backLabel="Back"
     >
-      <TenantSubscriptionForm 
+      <SubscriptionForm 
         onSubmit={handleSubmit} 
         loading={loading} 
         onCancel={() => router.push('/platform/tenant-subscriptions')} 
