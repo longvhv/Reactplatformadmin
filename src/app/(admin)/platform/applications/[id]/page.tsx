@@ -6,25 +6,24 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
-import { ArrowLeft, Settings, Plus, Edit, Trash2, MoreVertical, Power, PowerOff } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Card } from '../../../../../components/ui/card';
-import { applicationsApi, Application } from '../../../../../api/applicationsApi';
-import { appCapabilitiesApi, AppCapability } from '../../../../../api/appCapabilitiesApi';
-import { AppCapabilityForm } from '../../../../../components/applications/AppCapabilityForm';
-import { showToast } from '../../../../../lib/toast';
-import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { Server, ArrowLeft, MoreVertical, Edit, Trash2, Power, PowerOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { applicationsApi, Application } from '@/api/applicationsApi';
+import { appCapabilitiesApi, AppCapability } from '@/api/appCapabilitiesApi';
+import { AppCapabilityForm } from '@/components/applications/AppCapabilityForm';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { PageLayout } from '@/components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../../components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../../components/ui/dialog';
+} from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-const SYSTEM_TENANT_ID = '000000000000000000000001'; // System tenant ID
+const SYSTEM_TENANT_ID = '00000000-0000-0000-0000-000000000000'; // Placeholder for system-level definitions
 
 function ApplicationDetailPage() {
   const params = useParams();
@@ -148,7 +147,7 @@ function ApplicationDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Server className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Application Not Found</h2>
           <Button onClick={() => router.push('/platform/applications')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -162,7 +161,7 @@ function ApplicationDetailPage() {
   return (
     <>
       <PageLayout
-        icon={Settings}
+        icon={Server}
         title={app.name}
         description={app.description || 'Application details'}
         backButton={{
@@ -177,7 +176,7 @@ function ApplicationDetailPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => router.push(`/platform/applications/edit/${id}`)}>
+              <DropdownMenuItem onClick={() => router.push(`/platform/applications/${id}/edit`)}>
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </DropdownMenuItem>

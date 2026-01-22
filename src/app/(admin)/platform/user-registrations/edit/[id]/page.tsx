@@ -4,14 +4,14 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
 import { UserPlus, Save } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { Input } from '../../../../../../components/ui/input';
-import { Card } from '../../../../../../components/ui/card';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { userRegistrationsApi } from '../../../../../../api/userRegistrationsApi';
-import { showToast } from '../../../../../../lib/toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { userRegistrationsApi } from '@/api/userRegistrationsApi';
+import { showToast } from '@/lib/toast';
 
 function UserRegistrationsEditPage() {
   const router = useRouter();

@@ -2,7 +2,7 @@
  * Webhooks Module Definition
  * Note: menuItems label and routes title use translation keys that will be resolved at runtime
  * 
- * 🌐 Path: /platform/webhooks
+ * 🌐 Path: /integrations/webhooks
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -35,7 +35,7 @@ export const WebhooksModule: ModuleDefinition = {
     {
       id: "webhooks",
       label: "navigation.webhooks",
-      path: "/platform/webhooks",
+      path: "/integrations/webhooks",
       icon: <Webhook className="w-5 h-5" />,
       order: 48,
     },
@@ -43,7 +43,7 @@ export const WebhooksModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/platform/webhooks",
+      path: "/integrations/webhooks",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <WebhooksPage />
@@ -52,7 +52,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Webhooks",
     },
     {
-      path: "/platform/webhooks/add",
+      path: "/integrations/webhooks/add",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <AddWebhookPage />
@@ -61,7 +61,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Add Webhook",
     },
     {
-      path: "/platform/webhooks/edit/:id",
+      path: "/integrations/webhooks/edit/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <EditWebhookPage />
@@ -70,7 +70,7 @@ export const WebhooksModule: ModuleDefinition = {
       title: "Edit Webhook",
     },
     {
-      path: "/platform/webhooks/:id",
+      path: "/integrations/webhooks/:id",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <WebhookDetailPage />

@@ -6,7 +6,7 @@ import { Settings, Globe, Shield, Bell, Database, Sliders } from "lucide-react";
 /**
  * Lazy-load Settings Page
  */
-const SettingsPage = lazy(() => import("../../pages/SettingsPage"));
+const SettingsPage = lazy(() => import("../../pages/SettingsPage").then(m => ({ default: m.default })));
 
 /**
  * Settings Module

@@ -1,11 +1,11 @@
 'use client';
-import { useState } from 'react';
-import { Button } from '../../../../components/ui/button';
-import { Card } from '../../../../components/ui/card';
-import { Input } from '../../../../components/ui/input';
+
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { projectId, publicAnonKey } from '../../../../utils/supabase/info';
-import { getSupabaseClient } from '../../../../lib/supabase';
+import { projectId, publicAnonKey } from '@/utils/supabase/info';
 
 const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-7eedb4e0/api/core`;
 

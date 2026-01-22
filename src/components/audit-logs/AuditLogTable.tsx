@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { useRouter } from '../../shim/next-navigation';
 import { AuditLog } from '../../api/auditLogApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -27,7 +27,7 @@ interface AuditLogTableProps {
 }
 
 export function AuditLogTable({ logs, loading, onViewDetails }: AuditLogTableProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { t } = useLanguage();
 
   const getStatusBadge = (status: string) => {
@@ -140,7 +140,14 @@ export function AuditLogTable({ logs, loading, onViewDetails }: AuditLogTablePro
               return (
                 <tr 
                   key={log._id} 
-                  className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+                  className="hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (onViewDetails) {
+                      onViewDetails(log);
+                    } else {
+                      router.push(`/admin/audit-logs/${log._id}`);
+                    }
+                  }}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 dark:text-white">
@@ -207,11 +214,12 @@ export function AuditLogTable({ logs, loading, onViewDetails }: AuditLogTablePro
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         if (onViewDetails) {
                           onViewDetails(log);
                         } else {
-                          navigate(`/admin/audit-logs/${log._id}`);
+                          router.push(`/admin/audit-logs/${log._id}`);
                         }
                       }}
                     >

@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { Monitor, ArrowLeft } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { UserSessionForm } from '../../../../components/user-sessions/UserSessionForm';
-import { userSessionsApi, CreateSessionRequest } from '../../../../api/userSessionsApi';
-import { showToast } from '../../../../lib/toast';
+import { Button } from '@/components/ui/button';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { UserSessionForm } from '@/components/user-sessions/UserSessionForm';
+import { userSessionsApi, CreateSessionRequest } from '@/api/userSessionsApi';
+import { showToast } from '@/lib/toast';
 
 export default function CreateUserSessionPage() {
   const router = useRouter();

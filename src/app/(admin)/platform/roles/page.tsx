@@ -1,24 +1,26 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { 
   Shield, Plus, Search, Filter, Eye, MoreVertical, 
   Lock, Edit, Trash2, Loader2, Users 
 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { Badge } from '../../../../components/ui/badge';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { rolesApi, Role } from '../../../../api/rolesApi';
-import { showToast } from '../../../../lib/toast';
-import { getCurrentTenant } from '../../../../lib/currentTenant';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { rolesApi, Role } from '@/api/rolesApi';
+import { showToast } from '@/lib/toast';
+import { getCurrentTenant } from '@/lib/currentTenant';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../components/ui/dropdown-menu';
-import { TenantSelect } from '../../../../components/common/TenantSelect';
+} from '@/components/ui/dropdown-menu';
+import { TenantSelect } from '@/components/common/TenantSelect';
 
 export default function RolesPage() {
   const router = useRouter();
@@ -195,15 +197,7 @@ export default function RolesPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Shield className="w-4 h-4 text-indigo-600" />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/platform/roles/edit/${role._id}`);
-                          }}
-                          className="font-medium text-gray-900 hover:text-indigo-600 hover:underline cursor-pointer text-left"
-                        >
-                          {role.name}
-                        </button>
+                        <span className="font-medium text-gray-900">{role.name}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

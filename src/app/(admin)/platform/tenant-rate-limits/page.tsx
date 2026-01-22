@@ -1,24 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { 
   Activity, Plus, Search, Filter, Trash2, Edit, CheckCircle, XCircle 
 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { Badge } from '../../../../components/ui/badge';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { tenantRateLimitsApi, TenantRateLimit } from '../../../../api/tenantRateLimitsApi';
-import { showToast } from '../../../../lib/toast';
-import { TenantSelect } from '../../../../components/common/TenantSelect';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { tenantRateLimitsApi, TenantRateLimit } from '@/api/tenantRateLimitsApi';
+import { showToast } from '@/lib/toast';
+import { TenantSelect } from '@/components/common/TenantSelect';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 export default function TenantRateLimitsPage() {
   const router = useRouter();

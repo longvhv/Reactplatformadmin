@@ -1,2 +1,2 @@
-import DatabaseDocsPage from '../app/(admin)/docs/database/page';
+import DatabaseDocsPage from '@/app/(admin)/docs/database/page';
 export default DatabaseDocsPage;

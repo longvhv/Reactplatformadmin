@@ -1,27 +1,30 @@
 /**
- * ApplicationCapabilities Component
- * Quản lý khả năng của application
- * 
- * ✅ FIXED 2026-01-14:
- * - Import correct types from /api/appCapabilityApi
- * - Use correct type enum: FEATURE | LIMIT (not BOOLEAN | NUMBER)
- * - Use correct status field (not is_active)
- * - Add all missing fields: display_order, is_required, validation_rules, status
- * - Display proper capability information
- * - Fix appCode → appId
+ * Application Capabilities Component
+ * Displays and manages capabilities (FEATURE/LIMIT) for an application
  */
 
-import { useState } from 'react';
-import { 
+import React, { useState } from 'react';
+import {
   Plus,
-  Edit,
+  Edit2,
   Trash2,
-  CheckSquare,
-  Hash,
-  Shield,
-  Zap,
+  Check,
+  X,
+  Search,
+  Filter,
+  ChevronDown,
+  ChevronRight,
+  Play,
+  Pause,
+  Archive,
+  ExternalLink,
+  Copy,
   ArrowUp,
   ArrowDown,
+  Shield,
+  CheckSquare,
+  Zap,
+  Hash,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
@@ -30,12 +33,13 @@ import { useCapabilities } from '../../../hooks/useCapabilities';
 import { 
   type CapabilityType, 
   type CapabilityStatus,
+  type Capability,
   type AppCapability,
   type CreateCapabilityRequest,
   type UpdateCapabilityRequest,
 } from '../../../api/appCapabilityApi';
 import { CapabilityForm } from '../../capabilities/CapabilityForm';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 interface ApplicationCapabilitiesProps {
@@ -331,7 +335,7 @@ export function ApplicationCapabilities({ appId, tenantId }: ApplicationCapabili
                         title="Chỉnh sửa"
                         className="hover:bg-blue-50 hover:text-blue-600"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit2 className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"

@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useTranslation } from '../../providers/LanguageProvider';
-import { useNavigate } from 'react-router';
+import { useRouter } from '../shim/next-navigation';
 import { Eye, Edit, Trash2, MoreVertical } from 'lucide-react';
 import {
   Table,
@@ -38,7 +38,7 @@ export const TrafficLogsTable: React.FC<TrafficLogsTableProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -124,7 +124,7 @@ export const TrafficLogsTable: React.FC<TrafficLogsTableProps> = ({
             <TableRow
               key={log._id}
               className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-              onClick={() => navigate(`/core/traffic-logs/${log._id}`)}
+              onClick={() => router.push(`/core/traffic-logs/${log._id}`)}
             >
               <TableCell>
                 <HttpMethodBadge method={log.method} />
@@ -188,7 +188,7 @@ export const TrafficLogsTable: React.FC<TrafficLogsTableProps> = ({
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/core/traffic-logs/${log._id}`);
+                        router.push(`/core/traffic-logs/${log._id}`);
                       }}
                     >
                       <Eye className="mr-2 h-4 w-4" />
@@ -197,7 +197,7 @@ export const TrafficLogsTable: React.FC<TrafficLogsTableProps> = ({
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/core/traffic-logs/${log._id}/edit`);
+                        router.push(`/core/traffic-logs/${log._id}/edit`);
                       }}
                     >
                       <Edit className="mr-2 h-4 w-4" />

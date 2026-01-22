@@ -1,14 +1,13 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { Flag } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { FeatureFlagForm } from '../../../../../../components/feature-flags/FeatureFlagForm';
-import { featureFlagsApi, FeatureFlag, UpdateFeatureFlagRequest } from '../../../../../../api/featureFlagsApi';
-import { showToast } from '../../../../../../lib/toast';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { Flag, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { FeatureFlagForm } from '@/components/feature-flags/FeatureFlagForm';
+import { featureFlagsApi, FeatureFlag, UpdateFeatureFlagRequest } from '@/api/featureFlagsApi';
+import { showToast } from '@/lib/toast';
 
-function EditFeatureFlagPage() {
+export default function EditFeatureFlagPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;

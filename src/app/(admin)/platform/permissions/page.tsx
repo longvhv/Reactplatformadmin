@@ -203,7 +203,7 @@ export default function PermissionsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/platform/permissions/edit/${p._id}`)}>
+                            <DropdownMenuItem onClick={() => router.push(`/platform/permissions/${p._id}/edit`)}>
                               <Edit className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>

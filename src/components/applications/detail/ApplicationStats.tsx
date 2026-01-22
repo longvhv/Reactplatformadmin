@@ -1,6 +1,5 @@
 /**
- * ApplicationStats Component
- * Thống kê của application - Real data from Supabase
+ * Application Stats Component
  */
 
 import { useState, useEffect } from 'react';

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Link } from '../shim/next-navigation';
+import Link from 'next/link';
 import { Building2, Package, CreditCard, Calendar, DollarSign, ExternalLink } from 'lucide-react';
 import { OrderWithDetails, formatCurrency, formatDate } from '../../api/ordersApi';
 
@@ -96,7 +96,7 @@ export function OrderOverviewTab({ order }: OrderOverviewTabProps) {
               <dt className="text-sm font-medium text-gray-500">Tenant</dt>
               <dd className="mt-1 text-sm text-gray-900">
                 <Link 
-                  to={`/admin/tenants/${order.tenant_id}`}
+                  href={`/admin/tenants/${order.tenant_id}`}
                   className="inline-flex items-center text-indigo-600 hover:text-indigo-700"
                 >
                   <Building2 className="w-4 h-4 mr-1" />
@@ -110,7 +110,7 @@ export function OrderOverviewTab({ order }: OrderOverviewTabProps) {
               <dt className="text-sm font-medium text-gray-500">Gói dịch vụ</dt>
               <dd className="mt-1 text-sm text-gray-900">
                 <Link 
-                  to={`/commerce/service-packages/${order.package_id}`}
+                  href={`/commerce/service-packages/${order.package_id}`}
                   className="inline-flex items-center text-indigo-600 hover:text-indigo-700"
                 >
                   <Package className="w-4 h-4 mr-1" />
@@ -152,7 +152,7 @@ export function OrderOverviewTab({ order }: OrderOverviewTabProps) {
                 <dt className="text-sm font-medium text-gray-500">Subscription</dt>
                 <dd className="mt-1 text-sm text-gray-900">
                   <Link 
-                    to={`/commerce/tenant-subscriptions/${order.subscription_id}`}
+                    href={`/commerce/tenant-subscriptions/${order.subscription_id}`}
                     className="inline-flex items-center text-green-600 hover:text-green-700"
                   >
                     Đã tạo - Xem chi tiết

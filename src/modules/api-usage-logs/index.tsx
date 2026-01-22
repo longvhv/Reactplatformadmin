@@ -12,8 +12,8 @@ import { BarChart3 } from 'lucide-react';
 
 // Lazy-loaded pages
 // ✅ MIGRATED: Import from /app/(admin)/ for single source of truth
-const ApiUsageLogsPage = lazy(() => import('../../app/(admin)/platform/api-usage-logs/page'));
-const ApiUsageLogDetailPage = lazy(() => import('../../app/(admin)/platform/api-usage-logs/[id]/page'));
+const ApiUsageLogsPage = lazy(() => import('../../app/(admin)/platform/api-usage-logs/page').then(m => ({ default: m.default })));
+const ApiUsageLogDetailPage = lazy(() => import('../../app/(admin)/platform/api-usage-logs/[id]/page').then(m => ({ default: m.default })));
 
 export const ApiUsageLogsModule: ModuleDefinition = {
   id: 'api-usage-logs',

@@ -1,18 +1,19 @@
 /**
- * Product Edit Page
- * ✅ MIGRATED from /pages/commerce/products/edit/[id].tsx
+ * Edit Product Page
+ * Page for updating an existing SaaS product
+ * ✅ CREATED: 2026-01-21
  */
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
-import { Package, Loader2 } from 'lucide-react';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { EnhancedProductForm } from '../../../../../../components/products/EnhancedProductForm';
-import { saasProductsApi, SaasProduct, UpdateSaasProductRequest } from '../../../../../../api/saasProductsApi';
-import { showToast } from '../../../../../../lib/toast';
-import { useAuth } from '../../../../../../hooks/useAuth';
-import { Button } from '../../../../../../components/ui/button';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { Package, AlertCircle } from 'lucide-react';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { EnhancedProductForm } from '@/components/products/EnhancedProductForm';
+import { saasProductsApi, SaasProduct, UpdateSaasProductRequest } from '@/api/saasProductsApi';
+import { showToast } from '@/lib/toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 function EditProductPage() {
   const params = useParams();

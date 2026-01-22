@@ -25,12 +25,12 @@ import {
   Tag,
   Code
 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { 
   Webhook, 
   CreateWebhookRequest, 
   UpdateWebhookRequest 
-} from '../../api/webhooksApi';
+} from '@/api/webhooksApi';
 
 interface WebhookModalProps {
   isOpen: boolean;

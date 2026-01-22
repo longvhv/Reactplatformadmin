@@ -1,2 +1,2 @@
-import FeatureFlagDetailPage from '../app/(admin)/platform/feature-flags/[id]/page';
+import FeatureFlagDetailPage from '@/app/(admin)/feature-flags/[id]/page';
 export default FeatureFlagDetailPage;

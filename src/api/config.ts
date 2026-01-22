@@ -4,7 +4,7 @@
  * Supports: Supabase (current) and Golang microservices (future)
  */
 
-import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { projectId, publicAnonKey } from '@/utils/supabase/info';
 
 // ==================== CONFIGURATION ====================
 

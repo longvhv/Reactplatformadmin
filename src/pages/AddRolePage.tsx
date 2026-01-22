@@ -1,2 +1,2 @@
-import AddRolePage from '../app/(admin)/platform/roles/create/page';
+import AddRolePage from '@/app/(admin)/admin/roles/create/page';
 export default AddRolePage;

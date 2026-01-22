@@ -10,10 +10,10 @@ import { lazy, Suspense } from "react";
 import { LoadingFallback } from "../../components/LoadingFallback";
 import { Users } from "lucide-react";
 
-// Lazy-loaded pages
-const UsersPage = lazy(() => import("../../app/(admin)/platform/users/page"));
-const CreateUserPage = lazy(() => import("../../app/(admin)/platform/users/create/page"));
-const EditUserPage = lazy(() => import("../../app/(admin)/platform/users/edit/[id]/page"));
+// Lazy-loaded pages (App Router)
+const UsersPage = lazy(() => import("../../app/(admin)/platform/users/page").then(m => ({ default: m.default })));
+const CreateUserPage = lazy(() => import("../../app/(admin)/platform/users/create/page").then(m => ({ default: m.default })));
+const EditUserPage = lazy(() => import("../../app/(admin)/platform/users/edit/[id]/page").then(m => ({ default: m.default })));
 
 export const UsersModule: ModuleDefinition = {
   id: "users",

@@ -415,7 +415,7 @@ export function EnhancedInvoiceForm({
                     <div className="col-span-1 space-y-1">
                       <Label className="text-xs">Thành tiền</Label>
                       <div className="h-10 flex items-center font-semibold text-sm">
-                        {(item.total || 0).toLocaleString()}
+                        {item.total.toLocaleString()}
                       </div>
                     </div>
                     <div className="col-span-1">

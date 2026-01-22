@@ -7,7 +7,7 @@
  */
 
 import { createAdapter, BaseFilters } from './adapters';
-import type { Tenant, TenantStatus, TenantTier, BillingType, DataRegion, ComplianceLevel } from '../data/tenants';
+import type { Tenant, TenantStatus, TenantTier, BillingType, DataRegion, ComplianceLevel } from '@/data/tenants';
 
 // ==================== TYPE HELPERS ====================
 

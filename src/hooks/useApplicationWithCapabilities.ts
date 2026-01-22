@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { applicationsApi, Application } from '../api/applicationsApi';
-import { appCapabilitiesApi, AppCapability } from '../api/appCapabilitiesApi';
+import { applicationsApi, Application } from '@/api/applicationsApi';
+import { appCapabilitiesApi, AppCapability } from '@/api/appCapabilitiesApi';
 import { toast } from 'sonner@2.0.3';
 
 interface ApplicationWithCapabilities extends Application {

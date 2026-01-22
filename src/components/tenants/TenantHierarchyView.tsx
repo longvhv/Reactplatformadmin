@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { ChevronRight, Building2, Users, Database } from "lucide-react";
-import { useNavigate } from "react-router";
+import { useRouter } from "../../shim/next-navigation";
 import { useLanguage } from "../../providers/LanguageProvider";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -24,7 +24,7 @@ interface TenantNode {
 
 export function TenantHierarchyView({ tenants }: TenantHierarchyViewProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Build hierarchy tree from flat array
   const tenantTree = useMemo(() => {
@@ -62,7 +62,7 @@ export function TenantHierarchyView({ tenants }: TenantHierarchyViewProps) {
 
             <div 
               className="flex-1 flex items-center gap-3 cursor-pointer"
-              onClick={() => navigate(`/core/tenants/${node.tenant._id}`)}
+              onClick={() => router.push(`/core/tenants/${node.tenant._id}`)}
             >
               <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
                 <Building2 className="w-4 h-4 text-primary" />

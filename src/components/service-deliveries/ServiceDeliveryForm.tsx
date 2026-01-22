@@ -10,16 +10,16 @@ import {
   CreateServiceDeliveryRequest, 
   UpdateServiceDeliveryRequest,
   DeliveryStatus,
-} from '../../api/tenantServiceDeliveriesApi';
-import { saasProductsApi, SaasProduct } from '../../api/saasProductsApi';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+} from '@/api/tenantServiceDeliveriesApi';
+import { saasProductsApi, SaasProduct } from '@/api/saasProductsApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Package, Save, X, Box, Code } from 'lucide-react';
-import { useTranslation } from '../../providers/LanguageProvider';
+import { useTranslation } from '@/providers/LanguageProvider';
 
 interface ServiceDeliveryFormProps {
   tenantId: string;

@@ -4,13 +4,13 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { FileText, Download, Eye } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Card } from '../../../../components/ui/card';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { reportsApi } from '../../../../api/reportsApi';
-import { showToast } from '../../../../lib/toast';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { reportsApi } from '@/api/reportsApi';
+import { showToast } from '@/lib/toast';
 
 function AnalyticsReportsPage() {
   const router = useRouter();

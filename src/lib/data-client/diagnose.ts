@@ -3,7 +3,7 @@
  * Helps debug connection and configuration issues
  */
 
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
+import { projectId, publicAnonKey } from '@/utils/supabase/info';
 
 export interface DiagnosticResult {
   step: string;

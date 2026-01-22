@@ -78,7 +78,11 @@ export function TemplateTable({
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {templates.map((template) => (
-            <tr key={template._id} className="hover:bg-gray-50">
+            <tr 
+              key={template._id} 
+              className="hover:bg-gray-50 cursor-pointer"
+              onClick={() => onEdit(template)}
+            >
               <td className="px-4 py-3">
                 <div>
                   <div className="text-sm font-medium text-gray-900">
@@ -97,7 +101,10 @@ export function TemplateTable({
               </td>
               <td className="px-4 py-3">
                 <button
-                  onClick={() => onToggleStatus(template)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleStatus(template);
+                  }}
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     template.status === 'active'
                       ? 'bg-green-100 text-green-700'
@@ -116,7 +123,10 @@ export function TemplateTable({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onPreview(template)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPreview(template);
+                      }}
                       title="Preview"
                     >
                       <Eye className="w-4 h-4" />
@@ -125,7 +135,10 @@ export function TemplateTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onDuplicate(template)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDuplicate(template);
+                    }}
                     title="Duplicate"
                   >
                     <Copy className="w-4 h-4" />
@@ -133,14 +146,20 @@ export function TemplateTable({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onEdit(template)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(template);
+                    }}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onDelete(template._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(template._id);
+                    }}
                   >
                     <Trash2 className="w-4 h-4 text-red-600" />
                   </Button>

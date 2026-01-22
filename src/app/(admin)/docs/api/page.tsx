@@ -7,9 +7,9 @@
 
 import { useState } from 'react';
 import { Code, Search, Zap } from 'lucide-react';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { Card } from '../../../../components/ui/card';
-import { Input } from '../../../../components/ui/input';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface ApiEndpoint {
   method: string;

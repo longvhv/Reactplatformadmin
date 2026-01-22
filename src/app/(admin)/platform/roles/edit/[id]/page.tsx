@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
 import { Shield, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { EnhancedRoleForm } from '../../../../../../components/roles/EnhancedRoleForm';
-import { rolesApi, Role, UpdateRoleRequest } from '../../../../../../api/rolesApi';
-import { showToast } from '../../../../../../lib/toast';
+import { Button } from '@/components/ui/button';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { EnhancedRoleForm } from '@/components/roles/EnhancedRoleForm';
+import { rolesApi, Role, UpdateRoleRequest } from '@/api/rolesApi';
+import { showToast } from '@/lib/toast';
 
 export default function EditRolePage() {
   const router = useRouter();

@@ -3,7 +3,7 @@
  * High-level business logic validation
  */
 
-import type { Tenant, TenantTier } from '../../data/tenants';
+import type { Tenant, TenantTier } from '@/data/tenants';
 import type { FieldValidationResult } from './field-validators';
 
 /**

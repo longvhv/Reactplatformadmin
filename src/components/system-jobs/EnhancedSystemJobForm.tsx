@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useRouter } from "../shim/next-navigation";
+import { useRouter } from "../../shim/next-navigation";
 import { Save, AlertTriangle, ArrowLeft, Clock, Activity, Settings, CalendarClock } from "lucide-react";
 import { useLanguage } from "../../providers/LanguageProvider";
 import { Button } from "../ui/button";
@@ -299,7 +299,7 @@ export function EnhancedSystemJobForm({
                   {cronDescription && (
                     <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2 rounded">
                       <CalendarClock className="w-4 h-4" />
-                      <span>Sẽ chạy: {cronDescription}</span>
+                      <span>Sẽ ch��y: {cronDescription}</span>
                     </div>
                   )}
                 </div>

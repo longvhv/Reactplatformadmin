@@ -2,7 +2,7 @@
  * Service Packages Module Definition
  * Note: menuItems label and routes title use translation keys that will be resolved at runtime
  * 
- * 🌐 Path: /platform/service-packages
+ * 🌐 Path: /commerce/service-packages
  */
 
 import { ModuleDefinition } from '../../core/ModuleRegistry';
@@ -10,10 +10,7 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Package2 } from 'lucide-react';
 
-const ServicePackagesPage = lazy(() => import('../../app/(admin)/platform/service-packages/page').then(module => ({ default: module.default })));
-const AddServicePackagePage = lazy(() => import('../../app/(admin)/platform/service-packages/create/page').then(module => ({ default: module.default })));
-const EditServicePackagePage = lazy(() => import('../../app/(admin)/platform/service-packages/edit/[id]/page').then(module => ({ default: module.default })));
-const ServicePackageDetailPage = lazy(() => import('../../app/(admin)/platform/service-packages/[id]/page').then(module => ({ default: module.default })));
+const ServicePackagesPage = lazy(() => import('../../app/(admin)/service-packages/page').then(module => ({ default: module.default })));
 
 export const ServicePackagesModule: ModuleDefinition = {
   id: "service-packages",
@@ -27,7 +24,7 @@ export const ServicePackagesModule: ModuleDefinition = {
     {
       id: "service-packages",
       label: "servicePackages.title", // Translation key
-      path: "/platform/service-packages",
+      path: "/commerce/service-packages",
       icon: <Package2 className="w-5 h-5" />,
       order: 45,
     },
@@ -35,7 +32,7 @@ export const ServicePackagesModule: ModuleDefinition = {
 
   routes: [
     {
-      path: "/platform/service-packages",
+      path: "/commerce/service-packages",
       element: (
         <Suspense fallback={<LoadingFallback />}>
           <ServicePackagesPage />
@@ -43,33 +40,8 @@ export const ServicePackagesModule: ModuleDefinition = {
       ),
       title: "servicePackages.title", // Translation key
     },
-    {
-      path: "/platform/service-packages/create",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <AddServicePackagePage />
-        </Suspense>
-      ),
-      title: "Add Service Package",
-    },
-    {
-      path: "/platform/service-packages/edit/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <EditServicePackagePage />
-        </Suspense>
-      ),
-      title: "Edit Service Package",
-    },
-    {
-      path: "/platform/service-packages/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback />}>
-          <ServicePackageDetailPage />
-        </Suspense>
-      ),
-      title: "Service Package Details",
-    },
+    // Note: /add and /edit/:id routes moved to App.tsx
+    // to ensure correct routing precedence (must come before /:id)
   ],
 
   initialize: async () => {

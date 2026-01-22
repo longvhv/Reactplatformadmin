@@ -16,17 +16,17 @@ import {
   Eye,
   Filter,
 } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Card } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select';
+} from '@/components/ui/select';
 import { userGroupsApi, UserGroup, UserGroupStats } from '../../api/userGroupsApi';
 import { UserGroupForm } from './UserGroupForm';
 import { UserGroupDetailView } from './UserGroupDetailView';

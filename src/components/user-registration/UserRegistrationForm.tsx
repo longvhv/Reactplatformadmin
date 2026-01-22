@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../../providers/LanguageProvider';
-import { useNavigate } from 'react-router';
+import { useRouter } from '../shim/next-navigation';
 import {
   UserRegistrationLog,
   UserRegistrationCreateData,
@@ -37,7 +37,7 @@ export const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
   onSubmit,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const [formData, setFormData] = useState<UserRegistrationCreateData>({
     tenant_id: log?.tenant_id || null,
@@ -193,7 +193,7 @@ export const UserRegistrationForm: React.FC<UserRegistrationFormProps> = ({
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate('/core/user-registration-telemetry')}
+          onClick={() => router.push('/core/user-registration-telemetry')}
           disabled={isLoading}
         >
           {t('common.cancel')}

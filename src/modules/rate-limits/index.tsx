@@ -11,7 +11,7 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Zap } from 'lucide-react';
 
 // Lazy-loaded pages
-const RateLimitsPage = lazy(() => import('../../app/(admin)/rate-limits/page'));
+const RateLimitsPage = lazy(() => import('../../app/(admin)/rate-limits/page').then(m => ({ default: m.default })));
 
 /**
  * Rate Limits Module Definition

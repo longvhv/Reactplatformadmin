@@ -3,7 +3,7 @@
  * Helper functions for tenant management
  */
 
-import type { Tenant, TenantStatus, TenantTier, DataRegion, ComplianceLevel } from '../data/tenants';
+import type { Tenant, TenantStatus, TenantTier, DataRegion, ComplianceLevel } from '@/data/tenants';
 
 // Color mappings matching new schema
 export const tenantStatusColors: Record<TenantStatus, string> = {

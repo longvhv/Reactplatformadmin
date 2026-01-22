@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
 import { ShoppingCart } from 'lucide-react';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
-import { useLanguage } from '../../../../../../providers/LanguageProvider';
-import { OrderForm } from '../../../../../../components/orders/OrderForm';
-import { ordersApi, Order, UpdateOrderRequest } from '../../../../../../api/ordersApi';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { ordersApi, Order, UpdateOrderRequest } from '@/api/ordersApi';
+import { OrderForm } from '@/components/orders/OrderForm';
+import { showToast } from '@/lib/toast';
 
 function EditOrderPage() {
   const params = useParams();

@@ -6,19 +6,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '../../../../components/shim/next-navigation';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
 import { Tag, ArrowLeft, MoreVertical, Edit, Trash2 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { reservedSlugsApi, ReservedSlug } from '../../../../api/reservedSlugsSimpleApi';
-import { showToast } from '../../../../lib/toast';
-import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
-import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Button } from '@/components/ui/button';
+import { reservedSlugsApi, ReservedSlug } from '@/api/reservedSlugsSimpleApi';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { PageLayout } from '@/components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 function ReservedSlugDetailPage() {
   const params = useParams();

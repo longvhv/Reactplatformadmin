@@ -208,7 +208,11 @@ export function TenantWebhooksTab({ tenantId }: TenantWebhooksTabProps) {
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {webhooks.map((webhook) => (
-                  <tr key={webhook._id} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={webhook._id} 
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => handleView(webhook)}
+                  >
                     <td className="px-4 py-3">
                       <div>
                         <p className="font-medium text-gray-900 text-sm">{webhook.name}</p>
@@ -278,7 +282,7 @@ export function TenantWebhooksTab({ tenantId }: TenantWebhooksTabProps) {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => handleView(webhook)}

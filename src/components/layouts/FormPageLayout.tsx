@@ -2,11 +2,10 @@
  * FormPageLayout Component
  * Unified layout for Add/Edit pages across all modules
  * Ensures consistent design following Stripe/GitHub standards
- * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { ReactNode } from 'react';
-import { useRouter } from '../shim/next-navigation';
+import { useRouter } from '../../shim/next-navigation';
 import { Button } from '../ui/button';
 import { ArrowLeft, LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';

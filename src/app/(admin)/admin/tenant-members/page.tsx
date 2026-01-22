@@ -5,12 +5,18 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { Users, UserPlus, Search, Filter, MoreVertical, Edit, Trash2, UserX, Shield } from 'lucide-react';
-import { useRouter } from '../../../../components/shim/next-navigation';
-import { showToast } from '../../../../lib/toast';
-import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
-import { useLanguage } from '../../../../providers/LanguageProvider';
+import { Fragment, useState, useEffect, useMemo } from 'react';
+import { useRouter } from '@/components/shim/next-navigation';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { TenantMembersList, TenantMember } from '@/components/tenantMembers/TenantMembersList';
+import { TenantMemberForm, TenantMemberFormData } from '@/components/tenantMembers/TenantMemberForm';
+import { tenantMembersApi } from '@/api/tenantMembersApi';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { Button } from '@/components/ui/button';
+import { UserPlus, Users, CheckCircle, Clock, AlertCircle, UserX } from 'lucide-react';
 
 function TenantMembersPage() {
   const router = useRouter();

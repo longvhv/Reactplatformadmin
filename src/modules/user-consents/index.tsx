@@ -11,9 +11,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { FileCheck } from "lucide-react";
 
 // Lazy-loaded pages
-const UserConsentsPage = lazy(() => import("../../app/(admin)/platform/user-consents/page"));
-const CreateUserConsentPage = lazy(() => import("../../app/(admin)/platform/user-consents/create/page"));
-const EditUserConsentPage = lazy(() => import("../../app/(admin)/platform/user-consents/edit/[id]/page"));
+const UserConsentsPage = lazy(() => import("../../app/(admin)/platform/user-consents/page").then(m => ({ default: m.default })));
+const CreateUserConsentPage = lazy(() => import("../../app/(admin)/platform/user-consents/create/page").then(m => ({ default: m.default })));
+const EditUserConsentPage = lazy(() => import("../../app/(admin)/platform/user-consents/edit/[id]/page").then(m => ({ default: m.default })));
 
 export const UserConsentsModule: ModuleDefinition = {
   id: "user-consents",

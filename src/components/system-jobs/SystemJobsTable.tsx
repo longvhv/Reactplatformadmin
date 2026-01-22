@@ -3,10 +3,10 @@
  * Display and manage system jobs in a table format
  */
 
-import React, { useState } from 'react';
-import { useTranslation } from '../../providers/LanguageProvider'; // ✅ FIX: Use custom implementation
-import { useNavigate } from 'react-router'; // ✅ FIX: Use react-router not react-router-dom
-import { Play, Pause, RotateCw, MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
+import React from 'react';
+import { useTranslation } from '../../providers/LanguageProvider';
+import { useRouter } from '../../shim/next-navigation';
+import { Play, Pause, MoreVertical, Eye, Edit, Trash2 } from 'lucide-react';
 import { SystemJob } from '../../api/systemJobsApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -44,7 +44,7 @@ export const SystemJobsTable: React.FC<SystemJobsTableProps> = ({
   onDelete,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -151,7 +151,7 @@ export const SystemJobsTable: React.FC<SystemJobsTableProps> = ({
             <TableRow
               key={job.id}
               className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50"
-              onClick={() => navigate(`/platform/system-jobs/${job.id}`)}
+              onClick={() => router.push(`/platform/system-jobs/${job.id}`)}
             >
               <TableCell className="font-medium">
                 <div>
@@ -205,12 +205,12 @@ export const SystemJobsTable: React.FC<SystemJobsTableProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate(`/platform/system-jobs/${job.id}`)}>
+                    <DropdownMenuItem onClick={() => router.push(`/platform/system-jobs/${job.id}`)}>
                       <Eye className="mr-2 h-4 w-4" />
                       {t('common.viewDetails')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => navigate(`/platform/system-jobs/${job.id}/edit`)}
+                      onClick={() => router.push(`/platform/system-jobs/${job.id}/edit`)}
                     >
                       <Edit className="mr-2 h-4 w-4" />
                       {t('common.edit')}

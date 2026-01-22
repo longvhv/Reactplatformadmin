@@ -18,17 +18,17 @@ import { Textarea } from '../ui/textarea';
 import { Package, AlertCircle, Info, CheckCircle } from 'lucide-react';
 
 interface SaasProductTypeFormProps {
-  initialData?: SaasProductType | null;
+  productType?: SaasProductType | null;
   onSubmit: (data: CreateSaasProductTypeRequest | UpdateSaasProductTypeRequest) => Promise<void>;
   onCancel: () => void;
-  loading?: boolean;
+  isLoading?: boolean;
 }
 
 export function SaasProductTypeForm({ 
-  initialData, 
+  productType, 
   onSubmit, 
   onCancel, 
-  loading = false 
+  isLoading = false 
 }: SaasProductTypeFormProps) {
   const [formData, setFormData] = useState({
     code: '',
@@ -41,12 +41,12 @@ export function SaasProductTypeForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
+    if (productType) {
       setFormData({
-        code: initialData.code || '',
-        name: initialData.name || '',
-        description: initialData.description || '',
-        is_active: initialData.is_active !== undefined ? initialData.is_active : true,
+        code: productType.code || '',
+        name: productType.name || '',
+        description: productType.description || '',
+        is_active: productType.is_active !== undefined ? productType.is_active : true,
       });
     } else {
       setFormData({
@@ -56,7 +56,7 @@ export function SaasProductTypeForm({
         is_active: true,
       });
     }
-  }, [initialData]);
+  }, [productType]);
 
   const validateFormCode = (code: string) => {
     if (!code.trim()) {
@@ -78,7 +78,7 @@ export function SaasProductTypeForm({
     const newErrors: Record<string, string> = {};
 
     // Validate code (only for create)
-    if (!initialData) {
+    if (!productType) {
       const codeError = validateFormCode(formData.code);
       if (codeError) {
         newErrors.code = codeError;
@@ -101,13 +101,13 @@ export function SaasProductTypeForm({
 
     setSubmitting(true);
     try {
-      if (initialData) {
+      if (productType) {
         // Update existing product type
         const updateData: UpdateSaasProductTypeRequest = {
           name: formData.name,
           description: formData.description || undefined,
           is_active: formData.is_active,
-          version: initialData.version // Optimistic locking
+          version: productType.version // Optimistic locking
         };
         await onSubmit(updateData);
       } else {
@@ -138,7 +138,7 @@ export function SaasProductTypeForm({
     }
   };
 
-  const isCodeValid = !initialData && formData.code && !validateFormCode(formData.code);
+  const isCodeValid = !productType && formData.code && !validateFormCode(formData.code);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -164,7 +164,7 @@ export function SaasProductTypeForm({
 
         <div className="space-y-4">
           {/* Code (only for create) */}
-          {!initialData && (
+          {!productType && (
             <div>
               <Label htmlFor="code">
                 Mã loại sản phẩm <span className="text-red-500">*</span>
@@ -176,7 +176,7 @@ export function SaasProductTypeForm({
                 onChange={e => handleCodeChange(e.target.value)}
                 className={errors.code ? 'border-red-500' : isCodeValid ? 'border-green-500' : ''}
                 placeholder="VD: SAAS_BASIC, ENT_PLUS"
-                disabled={loading || submitting}
+                disabled={isLoading || submitting}
                 maxLength={50}
               />
               {errors.code && (
@@ -199,12 +199,12 @@ export function SaasProductTypeForm({
           )}
 
           {/* Code Display (for edit) */}
-          {initialData && (
+          {productType && (
             <div>
               <Label>Mã loại sản phẩm</Label>
               <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md">
                 <code className="text-sm font-mono text-gray-900 dark:text-white">
-                  {initialData.code}
+                  {productType.code}
                 </code>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -226,7 +226,7 @@ export function SaasProductTypeForm({
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               className={errors.name ? 'border-red-500' : ''}
               placeholder="VD: SaaS Basic, Enterprise Plus"
-              disabled={loading || submitting}
+              disabled={isLoading || submitting}
             />
             {errors.name && (
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">{errors.name}</p>
@@ -242,7 +242,7 @@ export function SaasProductTypeForm({
               onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="Mô tả về loại sản phẩm này..."
               rows={3}
-              disabled={loading || submitting}
+              disabled={isLoading || submitting}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Tùy chọn: Thêm mô tả chi tiết về loại sản phẩm
@@ -257,7 +257,7 @@ export function SaasProductTypeForm({
                 checked={formData.is_active}
                 onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                 className="mt-1"
-                disabled={loading || submitting}
+                disabled={isLoading || submitting}
               />
               <div className="flex-1">
                 <div className="font-medium text-sm text-gray-900 dark:text-white">
@@ -284,7 +284,7 @@ export function SaasProductTypeForm({
         </Button>
         <Button
           type="submit"
-          disabled={submitting || loading}
+          disabled={submitting || isLoading}
           className="min-w-[120px]"
         >
           {submitting ? (
@@ -293,7 +293,7 @@ export function SaasProductTypeForm({
               Đang lưu...
             </>
           ) : (
-            <>{initialData ? 'Cập nhật' : 'Tạo mới'}</>
+            <>{productType ? 'Cập nhật' : 'Tạo mới'}</>
           )}
         </Button>
       </div>

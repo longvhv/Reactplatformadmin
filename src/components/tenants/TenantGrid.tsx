@@ -1,14 +1,16 @@
+'use client';
+
 /**
  * TenantGrid Component
  * Grid view for tenants
  */
 
 import { Edit, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import type { Tenant } from '../../data/tenants';
+import { useRouter } from '../shim/next-navigation';
+import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import type { Tenant } from '../../api/tenantsApi';
 import { tenantStatusColors, tenantTierColors } from '../../utils/tenant-utils';
 
 interface TenantGridProps {
@@ -18,7 +20,7 @@ interface TenantGridProps {
 }
 
 export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (tenants.length === 0) {
     return (
@@ -30,11 +32,17 @@ export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {tenants.map((tenant) => (
+      {tenants.map((tenant) => {
+         // Safe parse settings
+         const settings = typeof tenant.settings === 'string' 
+         ? JSON.parse(tenant.settings) 
+         : tenant.settings || {};
+
+         return (
         <Card 
           key={tenant._id} 
           className="group hover:shadow-lg transition-all cursor-pointer"
-          onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
+          onClick={() => router.push(`/admin/tenants/${tenant._id}`)}
         >
           <CardHeader>
             <div className="flex items-start justify-between">
@@ -49,7 +57,7 @@ export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
                   className="h-8 w-8"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/admin/tenants/edit/${tenant._id}`);
+                    router.push(`/admin/tenants/${tenant._id}/edit`);
                   }}
                 >
                   <Edit className="w-4 h-4" />
@@ -68,8 +76,8 @@ export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
-              <Badge className={tenantStatusColors[tenant.status]}>{tenant.status}</Badge>
-              <Badge variant="outline" className={tenantTierColors[tenant.tier]}>{tenant.tier}</Badge>
+              <Badge className={tenantStatusColors[tenant.status] || 'bg-gray-100'}>{tenant.status}</Badge>
+              <Badge variant="outline" className={tenantTierColors[tenant.tier] || 'border-gray-200'}>{tenant.tier}</Badge>
             </div>
           </CardHeader>
           <CardContent>
@@ -81,13 +89,13 @@ export function TenantGrid({ tenants, onDelete, onSelect }: TenantGridProps) {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Users:</span>
                 <span className="font-medium">
-                  {tenant.settings.current_users} / {tenant.settings.max_users}
+                  {settings.current_users || 0} / {settings.max_users || '∞'}
                 </span>
               </div>
             </div>
           </CardContent>
         </Card>
-      ))}
+      )})}
     </div>
   );
 }

@@ -3,11 +3,10 @@
  * Displays invoices in a table format with full CRUD operations
  * ✅ Schema compatible: subscriptionInvoiceApi is alias to invoiceApi
  * ✅ FIXED 2026-01-15: Use helper functions for payment status (derived field)
- * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
  */
 
 import React, { useState } from 'react';
-import { useRouter } from '../../components/shim/next-navigation';
+import { useRouter } from '../../shim/next-navigation';
 import { 
   FileText, Pencil, Trash2, Send, DollarSign, 
   Calendar, CreditCard, AlertCircle, CheckCircle, XCircle 
@@ -67,7 +66,7 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
         <h3 className="mt-2 text-sm font-medium text-gray-900">{t('invoices.noInvoices')}</h3>
         <p className="mt-1 text-sm text-gray-500">{t('invoices.noInvoicesDescription')}</p>
         <div className="mt-6">
-          <Button onClick={() => router.push('/commerce/subscription-invoices/create')}>
+          <Button onClick={() => router.push('/subscriptions/invoices/add')}>
             {t('invoices.addInvoice')}
           </Button>
         </div>
@@ -106,17 +105,20 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {invoices.map((invoice) => (
-              <tr key={invoice._id} className="hover:bg-gray-50 transition-colors">
+              <tr 
+                key={invoice._id} 
+                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => router.push(`/subscriptions/invoices/${invoice._id}`)}
+              >
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <FileText className="h-5 w-5 text-indigo-600 mr-2" />
                     <div>
-                      <button
-                        onClick={() => router.push(`/commerce/subscription-invoices/${invoice._id}`)}
+                      <span
                         className="text-sm font-medium text-gray-900 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                       >
                         {invoice.invoice_number}
-                      </button>
+                      </span>
                       <div className="text-xs text-gray-500">
                         {/* ✅ FIX: invoice_date doesn't exist, use created_at */}
                         {formatDate(invoice.created_at)}
@@ -159,14 +161,9 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {/* ✅ FIX: Use helper function, returns Badge component */}
-                  {(() => {
-                    const badge = getStatusBadge(invoice.status);
-                    return (
-                      <Badge className={badge.color}>
-                        {badge.label}
-                      </Badge>
-                    );
-                  })()}
+                  <Badge className={getStatusBadge(invoice.status).color}>
+                    {getStatusBadge(invoice.status).label}
+                  </Badge>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {/* ✅ FIX: payment_status is derived, use helper */}
@@ -191,17 +188,23 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => router.push(`/commerce/subscription-invoices/edit/${invoice._id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/subscriptions/invoices/edit/${invoice._id}`);
+                      }}
                       title={t('common.edit')}
                     >
-                      <Pencil className="h-4 h-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     {/* ✅ FIX: Status must be UPPERCASE */}
                     {invoice.status === 'DRAFT' && onStatusChange && (
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => onStatusChange(invoice._id!, 'OPEN')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStatusChange(invoice._id!, 'OPEN');
+                        }}
                         title={t('invoices.sendInvoice')}
                       >
                         <Send className="h-4 w-4" />
@@ -210,7 +213,10 @@ export const InvoiceTable: React.FC<InvoiceTableProps> = ({
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => handleDelete(invoice._id!)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(invoice._id!);
+                      }}
                       className={deleteConfirmId === invoice._id ? 'text-red-600' : ''}
                       title={deleteConfirmId === invoice._id ? t('invoices.confirmDelete') : t('common.delete')}
                     >

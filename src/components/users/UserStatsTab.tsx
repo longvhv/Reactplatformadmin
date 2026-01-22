@@ -1,18 +1,19 @@
 /**
  * UserStatsTab Component
- * Statistics dashboard for user
+ * Display user statistics and activity metrics
  */
 
 import { useState, useEffect } from 'react';
 import {
-  Users,
-  Shield,
   Activity,
-  Monitor,
-  Building2,
+  Users,
+  FileText,
+  Shield,
   Clock,
   TrendingUp,
+  CheckCircle,
   AlertTriangle,
+  Monitor,
 } from 'lucide-react';
 import { Card } from '../ui/card';
 
@@ -127,7 +128,7 @@ export function UserStatsTab({ userId }: UserStatsTabProps) {
           <Card className="p-6">
             <div className="flex items-center gap-3">
               <div className="p-3 rounded-lg bg-blue-50">
-                <Building2 className="w-6 h-6 text-blue-600" />
+                <FileText className="w-6 h-6 text-blue-600" />
               </div>
               <div>
                 <p className="text-sm text-gray-600">Tổng tenants</p>

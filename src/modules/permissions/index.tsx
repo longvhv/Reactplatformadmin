@@ -4,18 +4,10 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Shield } from "lucide-react";
 
 /**
- * Lazy-load Permissions Pages
+ * Lazy-load Permissions Page
  */
 const PermissionsPage = lazy(() => 
-  import("../../pages/PermissionsPage")
-);
-
-const CreatePermissionPage = lazy(() =>
-  import("../../app/(admin)/platform/permissions/create/page")
-);
-
-const EditPermissionPage = lazy(() =>
-  import("../../app/(admin)/platform/permissions/edit/[id]/page")
+  import("../../pages/PermissionsPage").then(m => ({ default: m.default }))
 );
 
 /**
@@ -41,24 +33,6 @@ export const PermissionsModule: ModuleDefinition = {
         </Suspense>
       ),
       title: "Permissions",
-    },
-    {
-      path: "/platform/permissions/create",
-      element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải form..." />}>
-          <CreatePermissionPage />
-        </Suspense>
-      ),
-      title: "Create Permission",
-    },
-    {
-      path: "/platform/permissions/edit/:id",
-      element: (
-        <Suspense fallback={<LoadingFallback message="Đang tải form..." />}>
-          <EditPermissionPage />
-        </Suspense>
-      ),
-      title: "Edit Permission",
     },
   ],
   menuItems: [

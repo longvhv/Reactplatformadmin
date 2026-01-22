@@ -1,28 +1,15 @@
 /**
  * InvoiceCard Component
  * Displays invoice in a card format for grid/list views
- * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
- * ✅ FIXED 2026-01-22: Use helper functions for payment_status (computed field)
- * ✅ FIXED 2026-01-22: Use correct field names from schema
  */
 
 import React from 'react';
-import { useRouter } from '../../components/shim/next-navigation';
+import { useRouter } from '../../shim/next-navigation';
 import { 
   FileText, Calendar, DollarSign, User, CreditCard, 
   Eye, Pencil, Trash2, AlertCircle 
 } from 'lucide-react';
-import { SubscriptionInvoice } from '../../api/subscriptionInvoiceApi';
-import { 
-  getPaymentStatusBadge, 
-  getStatusBadge, 
-  getCustomerName, 
-  getCustomerEmail,
-  getCustomerPhone,
-  formatCurrency,
-  formatDate,
-  isInvoiceOverdue
-} from '../../utils/invoiceHelpers';
+import { SubscriptionInvoice, InvoiceStatus, PaymentStatus } from '../../api/subscriptionInvoiceApi';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader } from '../ui/card';
@@ -42,13 +29,49 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
   const router = useRouter();
   const { t } = useLanguage();
 
-  // ✅ Use helper functions for computed values
-  const statusBadge = getStatusBadge(invoice.status);
-  const paymentBadge = getPaymentStatusBadge(invoice);
-  const customerName = getCustomerName(invoice);
-  const customerEmail = getCustomerEmail(invoice);
-  const customerPhone = getCustomerPhone(invoice);
-  const overdue = isInvoiceOverdue(invoice);
+  const getStatusConfig = (status: InvoiceStatus) => {
+    const configs = {
+      draft: { color: 'bg-gray-100 text-gray-800', label: t('invoices.status.draft') },
+      sent: { color: 'bg-blue-100 text-blue-800', label: t('invoices.status.sent') },
+      paid: { color: 'bg-green-100 text-green-800', label: t('invoices.status.paid') },
+      overdue: { color: 'bg-red-100 text-red-800', label: t('invoices.status.overdue') },
+      cancelled: { color: 'bg-gray-100 text-gray-800', label: t('invoices.status.cancelled') },
+      refunded: { color: 'bg-purple-100 text-purple-800', label: t('invoices.status.refunded') },
+      partially_paid: { color: 'bg-yellow-100 text-yellow-800', label: t('invoices.status.partiallyPaid') },
+    };
+    return configs[status];
+  };
+
+  const getPaymentStatusConfig = (status: PaymentStatus) => {
+    const configs = {
+      unpaid: { color: 'bg-red-100 text-red-800', label: t('invoices.paymentStatus.unpaid') },
+      paid: { color: 'bg-green-100 text-green-800', label: t('invoices.paymentStatus.paid') },
+      partially_paid: { color: 'bg-yellow-100 text-yellow-800', label: t('invoices.paymentStatus.partiallyPaid') },
+      refunded: { color: 'bg-purple-100 text-purple-800', label: t('invoices.paymentStatus.refunded') },
+      failed: { color: 'bg-red-100 text-red-800', label: t('invoices.paymentStatus.failed') },
+    };
+    return configs[status];
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(amount);
+  };
+
+  const isOverdue = () => {
+    return new Date(invoice.due_date) < new Date() && 
+           invoice.payment_status !== 'paid' && 
+           invoice.status !== 'cancelled';
+  };
+
+  const statusConfig = getStatusConfig(invoice.status);
+  const paymentConfig = getPaymentStatusConfig(invoice.payment_status);
 
   return (
     <Card className="hover:shadow-lg transition-all duration-200 border border-gray-200">
@@ -63,16 +86,15 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
                 {invoice.invoice_number}
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                {/* ✅ FIX: invoice_date doesn't exist, use created_at */}
-                {formatDate(invoice.created_at)}
+                {formatDate(invoice.invoice_date)}
               </p>
             </div>
           </div>
           <div className="flex flex-col gap-1.5 items-end">
-            <Badge className={statusBadge.color}>
-              {statusBadge.label}
+            <Badge className={statusConfig.color}>
+              {statusConfig.label}
             </Badge>
-            {overdue && (
+            {isOverdue() && (
               <div className="flex items-center gap-1 text-red-600">
                 <AlertCircle className="h-3 w-3" />
                 <span className="text-xs font-medium">{t('invoices.overdue')}</span>
@@ -88,11 +110,11 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
           <User className="h-4 w-4 text-gray-400 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {customerName}
+              {invoice.customer_name}
             </p>
-            <p className="text-xs text-gray-500 truncate">{customerEmail}</p>
-            {customerPhone !== '-' && (
-              <p className="text-xs text-gray-500">{customerPhone}</p>
+            <p className="text-xs text-gray-500 truncate">{invoice.customer_email}</p>
+            {invoice.customer_phone && (
+              <p className="text-xs text-gray-500">{invoice.customer_phone}</p>
             )}
           </div>
         </div>
@@ -105,8 +127,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
               <span className="text-xs text-gray-600">{t('invoices.totalAmount')}</span>
             </div>
             <span className="text-sm font-bold text-gray-900">
-              {/* ✅ FIX: currency → currency_code */}
-              {formatCurrency(invoice.total_amount, invoice.currency_code)}
+              {formatCurrency(invoice.total_amount, invoice.currency)}
             </span>
           </div>
 
@@ -114,7 +135,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">{t('invoices.amountPaid')}</span>
               <span className="text-green-600 font-medium">
-                {formatCurrency(invoice.amount_paid, invoice.currency_code)}
+                {formatCurrency(invoice.amount_paid, invoice.currency)}
               </span>
             </div>
           )}
@@ -123,7 +144,7 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">{t('invoices.amountDue')}</span>
               <span className="text-red-600 font-medium">
-                {formatCurrency(invoice.amount_due, invoice.currency_code)}
+                {formatCurrency(invoice.amount_due, invoice.currency)}
               </span>
             </div>
           )}
@@ -136,17 +157,16 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
               <Calendar className="h-3.5 w-3.5" />
               <span>{t('invoices.dueDate')}</span>
             </div>
-            <span className={overdue ? 'text-red-600 font-medium' : 'text-gray-900'}>
+            <span className={isOverdue() ? 'text-red-600 font-medium' : 'text-gray-900'}>
               {formatDate(invoice.due_date)}
             </span>
           </div>
 
-          {/* ✅ FIX: paid_date → paid_at */}
-          {invoice.paid_at && (
+          {invoice.paid_date && (
             <div className="flex items-center justify-between text-xs">
               <span className="text-gray-600">{t('invoices.paidDate')}</span>
               <span className="text-green-600 font-medium">
-                {formatDate(invoice.paid_at)}
+                {formatDate(invoice.paid_date)}
               </span>
             </div>
           )}
@@ -155,14 +175,13 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
         {/* Payment Info */}
         <div className="pt-2 border-t border-gray-100">
           <div className="flex items-center justify-between">
-            <Badge className={paymentBadge.color}>
-              {paymentBadge.label}
+            <Badge className={paymentConfig.color}>
+              {paymentConfig.label}
             </Badge>
-            {/* ✅ FIX: payment_method in metadata JSONB */}
-            {invoice.metadata?.payment_method && (
+            {invoice.payment_method && (
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <CreditCard className="h-3 w-3" />
-                {invoice.metadata.payment_method}
+                {invoice.payment_method}
               </div>
             )}
           </div>
@@ -199,9 +218,9 @@ export const InvoiceCard: React.FC<InvoiceCardProps> = ({
         )}
 
         {/* Notes preview */}
-        {invoice.metadata?.notes && (
+        {invoice.notes && (
           <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
-            <p className="line-clamp-2">{invoice.metadata.notes}</p>
+            <p className="line-clamp-2">{invoice.notes}</p>
           </div>
         )}
       </CardContent>

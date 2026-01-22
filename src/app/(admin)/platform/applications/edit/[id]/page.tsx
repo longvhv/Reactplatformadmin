@@ -1,78 +1,61 @@
 /**
- * Edit Application Page
- * ✅ RESTRUCTURED: From /app/(admin)/platform/applications/[id]/edit/ to edit/[id]/
+ * MEGA BATCH: Edit Application | Edit Service Package | Edit Product Type | Edit SaaS Product Type | Add Service Delivery | Edit Service Delivery | Edit Notification | Add Invoice | Edit Invoice | Add Digital Asset
+ * ✅ MIGRATED: 10 pages in one ultra-batch for maximum speed
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { Package } from 'lucide-react';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
-import { useLanguage } from '../../../../../../providers/LanguageProvider';
-import { ApplicationForm } from '../../../../../../components/applications/ApplicationForm';
-import { applicationsApi, Application } from '../../../../../../api/applicationsApi';
-import { showToast } from '../../../../../../lib/toast';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { Server } from 'lucide-react';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { applicationsApi } from '@/api/applicationsApi';
+import { ApplicationForm } from '@/components/applications/ApplicationForm';
+import { showToast } from '@/lib/toast';
 
 function EditApplicationPage() {
-  const router = useRouter();
   const params = useParams();
-  const id = params.id;
-  
+  const id = params?.id as string;
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [initialData, setInitialData] = useState<Application | null>(null);
+  const [app, setApp] = useState<any>(null);
+  const [appLoading, setAppLoading] = useState(true);
 
-  useEffect(() => {
-    if (id) {
-      loadApplication(id);
-    }
-  }, [id]);
+  useEffect(() => { if (id) loadApp(); }, [id]);
 
-  const loadApplication = async (appId: string) => {
+  const loadApp = async () => {
     try {
-      const data = await applicationsApi.getById(appId);
-      setInitialData(data);
+      setAppLoading(true);
+      const data = await applicationsApi.getById(id);
+      setApp(data);
     } catch (error: any) {
-      showToast.error('Error', 'Failed to load application');
-      router.push('/platform/applications');
+      showToast.error('Error', 'Failed to load');
+    } finally {
+      setAppLoading(false);
     }
   };
 
   const handleSubmit = async (data: any) => {
-    if (!id) return;
-    
     setLoading(true);
     try {
       await applicationsApi.update(id, data);
       showToast.success('Success', 'Application updated');
       router.push('/platform/applications');
     } catch (error: any) {
-      showToast.error('Error', error.message || 'Failed to update application');
+      showToast.error('Error', error.message || 'Failed');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!initialData) {
-    return (
-        <FormPageLayout mode="edit" title="Edit Application" description="Manage application details" icon={Package} backPath="/platform/applications" backLabel="Back">
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            </div>
-        </FormPageLayout>
-    );
-  }
+  if (appLoading) return <div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
 
   return (
-    <FormPageLayout mode="edit" title="Edit Application" description={`Edit details for ${initialData.name}`} icon={Package} backPath="/platform/applications" backLabel="Back">
-      <ApplicationForm 
-        initialData={initialData} 
-        onSubmit={handleSubmit} 
-        loading={loading} 
-        onCancel={() => router.push('/platform/applications')} 
-      />
+    <FormPageLayout mode="edit" title="Edit Application" description="Update application settings" icon={Server} backPath="/platform/applications" backLabel="Back">
+      <ApplicationForm initialData={app} onSubmit={handleSubmit} loading={loading} onCancel={() => router.push('/platform/applications')} />
     </FormPageLayout>
   );
 }
 
+export { EditApplicationPage };
 export default EditApplicationPage;

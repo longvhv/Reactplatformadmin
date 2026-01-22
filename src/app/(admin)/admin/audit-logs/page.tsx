@@ -9,13 +9,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
-import { AuditLogTable } from '../../../../components/audit-logs/AuditLogTable';
-import { useAuditLogs } from '../../../../hooks/useAuditLogs';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { Badge } from '../../../../components/ui/badge';
+import { useRouter } from '@/components/shim/next-navigation';
+import { AuditLogTable } from '@/components/audit-logs/AuditLogTable';
+import { useAuditLogs } from '@/hooks/useAuditLogs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Shield,
   Search,
@@ -30,11 +30,11 @@ import {
   XCircle,
   AlertTriangle,
 } from 'lucide-react';
-import { useLanguage } from '../../../../providers/LanguageProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
 import { useTranslation } from 'react-i18next';
-import { AuditLogFilters, exportAuditLogs } from '../../../../api/auditLogApi';
-import { showToast } from '../../../../lib/toast';
-import { PageLayout } from '../../../../components/layout/PageLayout';
+import { AuditLogFilters, exportAuditLogs } from '@/api/auditLogApi';
+import { showToast } from '@/lib/toast';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 function AuditLogsPage() {
   const router = useRouter();
@@ -86,9 +86,9 @@ function AuditLogsPage() {
   // Stats
   const stats = statistics ? [
     { label: t('common.totalLogs'), value: total || 0, color: 'indigo' as const, icon: Activity },
-    { label: t('common.success'), value: statistics.success_count || 0, color: 'green' as const, icon: CheckCircle },
-    { label: t('common.failed'), value: statistics.failed_count || 0, color: 'red' as const, icon: XCircle },
-    { label: t('common.warning'), value: 0, color: 'yellow' as const, icon: AlertTriangle },
+    { label: t('common.success'), value: statistics.success || 0, color: 'green' as const, icon: CheckCircle },
+    { label: t('common.failed'), value: statistics.failed || 0, color: 'red' as const, icon: XCircle },
+    { label: t('common.warning'), value: statistics.warning || 0, color: 'yellow' as const, icon: AlertTriangle },
   ] : [];
 
   if (loading && logs.length === 0) {

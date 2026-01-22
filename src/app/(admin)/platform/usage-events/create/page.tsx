@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { Activity } from 'lucide-react';
-import { FormPageLayout } from '../../../../components/layouts/FormPageLayout';
-import { usageEventsApi } from '../../../../api/usageEventsApi';
-import { UsageEventForm } from '../../../../components/usage-events/UsageEventForm';
-import { showToast } from '../../../../lib/toast';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { usageEventsApi } from '@/api/usageEventsApi';
+import { UsageEventForm } from '@/components/usage-events/UsageEventForm';
+import { showToast } from '@/lib/toast';
 
 function AddUsageEventPage() {
   const router = useRouter();

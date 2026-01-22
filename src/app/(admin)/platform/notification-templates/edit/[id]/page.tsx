@@ -4,17 +4,17 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { NotificationTemplateForm } from '../../../../../../components/notification-templates/NotificationTemplateForm';
-import { useNotificationTemplate, useNotificationTemplates } from '../../../../../../hooks/useNotificationTemplates';
-import { UpdateTemplateRequest } from '../../../../../../api/notificationTemplateApi';
-import { showToast } from '../../../../../../lib/toast';
+import React, { useState } from 'react';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { Bell, ArrowLeft, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { NotificationTemplateForm } from '@/components/notification-templates/NotificationTemplateForm';
+import { useNotificationTemplate, useNotificationTemplates } from '@/hooks/useNotificationTemplates';
+import { UpdateTemplateRequest } from '@/api/notificationTemplateApi';
+import { showToast } from '@/lib/toast';
 
-function EditNotificationTemplatePage() {
+export default function EditNotificationTemplatePage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.id as string;
@@ -58,7 +58,7 @@ function EditNotificationTemplatePage() {
 
   return (
     <PageLayout
-      icon={Mail}
+      icon={Bell}
       title="Chỉnh sửa Template"
       description={`Cập nhật thông tin cho template: ${template.template_name}`}
       actions={
@@ -79,5 +79,3 @@ function EditNotificationTemplatePage() {
     </PageLayout>
   );
 }
-
-export default EditNotificationTemplatePage;

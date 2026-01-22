@@ -1,11 +1,11 @@
 /**
- * OrderTable Component
- * Displays orders in table format
- * ✅ FIXED 2026-01-22: Changed react-router to Next.js navigation
+ * Order Table Component
+ * Display subscription orders in table format
+ * ✅ Updated for new subscription_orders schema (2026-01-15)
  */
 
 import React from 'react';
-import { useRouter } from '../../components/shim/next-navigation';
+import { useRouter } from '../../shim/next-navigation';
 import { Order, getStatusColor, getStatusLabel, getTypeColor, getTypeLabel } from '../../api/ordersApi';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';
@@ -92,11 +92,19 @@ export function OrderTable({ orders, onEdit, onDelete, loading }: OrderTableProp
           {orders.map((order) => (
             <tr 
               key={order._id} 
-              className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              onClick={() => {
+                if (order._id) {
+                  router.push(`/commerce/subscription-orders/${order._id}`);
+                }
+              }}
             >
               <td className="px-6 py-4 whitespace-nowrap">
                 <button
-                  onClick={() => router.push(`/commerce/subscription-orders/${order._id}`)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/commerce/subscription-orders/${order._id}`);
+                  }}
                   className="text-sm font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-2"
                 >
                   <FileText className="w-4 h-4" />

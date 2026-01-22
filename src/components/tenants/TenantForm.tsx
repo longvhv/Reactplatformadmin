@@ -3,7 +3,7 @@
  * Refactored with useTenantForm hook - Under 300 lines
  */
 
-import { useNavigate } from 'react-router';
+import { useRouter } from '../shim/next-navigation';
 import { ArrowLeft, Save, Building2, MapPin, CreditCard, Settings } from 'lucide-react';
 import { useLanguage } from '../../providers/LanguageProvider';
 import { Button } from '../ui/button';
@@ -26,7 +26,7 @@ interface TenantFormProps {
 
 export function TenantForm({ tenant, tenants = [], onSubmit, isEdit = false }: TenantFormProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const {
     formData,
@@ -41,7 +41,7 @@ export function TenantForm({ tenant, tenants = [], onSubmit, isEdit = false }: T
     initialData: tenant,
     onSubmit: async (data) => {
       await onSubmit(data);
-      navigate('/core/tenants');
+      router.push('/core/tenants');
     },
   });
 
@@ -50,7 +50,7 @@ export function TenantForm({ tenant, tenants = [], onSubmit, isEdit = false }: T
       {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/core/tenants')} className="gap-2 mb-4">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/core/tenants')} className="gap-2 mb-4">
             <ArrowLeft className="w-4 h-4" />
             {t('common.back')}
           </Button>
@@ -124,7 +124,7 @@ export function TenantForm({ tenant, tenants = [], onSubmit, isEdit = false }: T
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-4 mt-6">
-          <Button type="button" variant="outline" onClick={() => navigate('/core/tenants')} disabled={loading}>
+          <Button type="button" variant="outline" onClick={() => router.push('/core/tenants')} disabled={loading}>
             {t('common.cancel')}
           </Button>
           <Button type="submit" disabled={loading} className="gap-2">

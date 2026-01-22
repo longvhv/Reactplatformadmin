@@ -3,11 +3,14 @@
  * Manages single user data fetching and operations
  * 
  * MIGRATED: Now uses DataClient abstraction layer
+ * - Easy to switch between Supabase and Golang API
+ * - Consistent pattern across all hooks
+ * - Type-safe with generics
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useDataClient } from './useDataClient';
-import type { User, UserStatus } from '../api/usersApi';
+import type { User, UserStatus } from '@/api/usersApi';
 
 /**
  * Hook for managing single user operations

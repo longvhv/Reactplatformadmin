@@ -4,7 +4,7 @@
  * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '../utils/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.user_registration_logs table
 export interface UserRegistrationLog {

@@ -1,2 +1,2 @@
-import EditSystemCategoryPage from '../app/(admin)/platform/system-categories/edit/[id]/page';
+import EditSystemCategoryPage from '@/app/(admin)/system-categories/edit/[id]/page';
 export default EditSystemCategoryPage;

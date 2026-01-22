@@ -1,5 +1,5 @@
 import { memo, useState, useEffect } from "react";
-import { useLocation } from "react-router";
+import { usePathname } from "../shim/next-navigation";
 
 /**
  * Loading Progress Bar - Inspired by YouTube & GitHub
@@ -13,7 +13,7 @@ import { useLocation } from "react-router";
 export const LoadingBar = memo(() => {
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const location = useLocation();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Start loading on route change
@@ -35,7 +35,7 @@ export const LoadingBar = memo(() => {
       clearTimeout(timer3);
       clearTimeout(timer4);
     };
-  }, [location.pathname]);
+  }, [pathname]);
 
   if (!isLoading) return null;
 

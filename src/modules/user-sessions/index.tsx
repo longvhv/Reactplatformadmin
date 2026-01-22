@@ -11,9 +11,9 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Monitor } from "lucide-react";
 
 // Lazy-loaded pages
-const UserSessionsPage = lazy(() => import("../../app/(admin)/platform/user-sessions/page"));
-const CreateUserSessionPage = lazy(() => import("../../app/(admin)/platform/user-sessions/create/page"));
-const EditUserSessionPage = lazy(() => import("../../app/(admin)/platform/user-sessions/edit/[id]/page"));
+const UserSessionsPage = lazy(() => import("../../app/(admin)/platform/user-sessions/page").then(m => ({ default: m.default })));
+const CreateUserSessionPage = lazy(() => import("../../app/(admin)/platform/user-sessions/create/page").then(m => ({ default: m.default })));
+const EditUserSessionPage = lazy(() => import("../../app/(admin)/platform/user-sessions/edit/[id]/page").then(m => ({ default: m.default })));
 
 export const UserSessionsModule: ModuleDefinition = {
   id: "user-sessions",

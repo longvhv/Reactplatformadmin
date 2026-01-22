@@ -3,6 +3,12 @@
  * Professional sidebar with hierarchical groups, similar to Stripe/Linear/GitHub design
  */
 
+import { useState, useEffect, useMemo } from 'react';
+import { Link, usePathname } from '../shim/next-navigation';
+import {
+  ChevronLeft,
+  Settings,
+} from 'lucide-react';
 import { ModuleRegistry } from '../../core/ModuleRegistry';
 import { getCurrentTenant, getTenantName } from '../../lib/currentTenant';
 import type { Tenant } from '../../lib/currentTenant';
@@ -51,7 +57,7 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 export function Sidebar() {
-  const location = useLocation();
+  const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [modulesReady, setModulesReady] = useState(false);
   const [registryVersion, setRegistryVersion] = useState(0);
@@ -108,7 +114,7 @@ export function Sidebar() {
       });
     });
     
-    console.log('🔍 DEBUG: Grouped items:', groupedItems);
+    // console.log('🔍 DEBUG: Grouped items:', groupedItems);
 
     // Convert to MenuGroup array in order
     const groups: MenuGroup[] = [];
@@ -130,10 +136,10 @@ export function Sidebar() {
   // Close mobile sidebar on navigation
   useEffect(() => {
     setIsMobileOpen(false);
-  }, [location.pathname]);
+  }, [pathname]);
 
   const isActiveRoute = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+    return pathname === path || pathname.startsWith(`${path}/`);
   };
 
   return (
@@ -187,7 +193,7 @@ export function Sidebar() {
                   return (
                     <Link
                       key={item.path}
-                      to={item.path}
+                      href={item.path}
                       className={`flex items-center justify-between px-3 py-2 rounded-md transition-all duration-150 group ${
                         isActive
                           ? 'bg-primary text-white'
@@ -227,7 +233,7 @@ export function Sidebar() {
         {/* Footer */}
         <div className="border-t border-gray-200 p-2 space-y-0.5">
           <Link
-            to="/admin/profile"
+            href="/admin/profile"
             className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 ${
               isActiveRoute('/admin/profile')
                 ? 'bg-primary text-white'

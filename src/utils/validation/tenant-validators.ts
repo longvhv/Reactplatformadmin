@@ -7,7 +7,7 @@ import type {
   Tenant, 
   CreateTenantInput, 
   UpdateTenantInput,
-} from '../../data/tenants';
+} from '@/data/tenants';
 
 import {
   validateCode,

@@ -11,10 +11,10 @@ import { LoadingFallback } from "../../components/LoadingFallback";
 import { Shield } from "lucide-react";
 
 // Lazy-loaded pages (App Router)
-const RolesPage = lazy(() => import("../../app/(admin)/platform/roles/page"));
-const AddRolePage = lazy(() => import("../../app/(admin)/platform/roles/create/page"));
-const EditRolePage = lazy(() => import("../../app/(admin)/platform/roles/edit/[id]/page"));
-const RoleDetailPage = lazy(() => import("../../app/(admin)/platform/roles/[id]/page"));
+const RolesPage = lazy(() => import("../../app/(admin)/platform/roles/page").then(m => ({ default: m.default })));
+const AddRolePage = lazy(() => import("../../app/(admin)/platform/roles/create/page").then(m => ({ default: m.default })));
+const EditRolePage = lazy(() => import("../../app/(admin)/platform/roles/edit/[id]/page").then(m => ({ default: m.default })));
+const RoleDetailPage = lazy(() => import("../../app/(admin)/platform/roles/edit/[id]/page").then(m => ({ default: m.default }))); // Reuse edit for detail
 
 export const RolesModule: ModuleDefinition = {
   id: "roles",

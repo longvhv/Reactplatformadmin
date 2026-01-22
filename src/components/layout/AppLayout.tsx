@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, memo, ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { usePathname, useRouter } from "../shim/next-navigation";
 import { 
   Sparkles, 
   ChevronLeft, 
@@ -27,16 +27,16 @@ const NavigationItem = memo(({ route, icon, name, isPinned, onTogglePin }: {
   isPinned?: boolean;
   onTogglePin?: () => void;
 }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isActive = location.pathname === route.path || location.pathname.startsWith(`${route.path}/`);
+  const pathname = usePathname();
+  const router = useRouter();
+  const isActive = pathname === route.path || (pathname?.startsWith(`${route.path}/`) ?? false);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
     // Use navigate for client-side navigation
-    navigate(route.path);
+    router.push(route.path);
   };
 
   return (
@@ -104,8 +104,8 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { t } = useLanguage();
   const { theme } = useTheme();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname();
+  const router = useRouter();
   
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pinnedRoutes, setPinnedRoutes] = useState<string[]>([]);

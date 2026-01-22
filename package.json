@@ -50,7 +50,6 @@
           "lucide-react": "^0.487.0",
           "mermaid": "*",
           "next": "*",
-          "next-i18next": "*",
           "next-themes": "^0.4.6",
           "path": "*",
           "react": "^18.3.1",

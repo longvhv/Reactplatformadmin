@@ -7,27 +7,27 @@ import { FolderTree, Layers, MapPin } from "lucide-react";
  * Lazy-load System Category Pages
  */
 const SystemCategoriesPage = lazy(() => 
-  import("../../pages/SystemCategoriesPage")
+  import("../../pages/SystemCategoriesPage").then(m => ({ default: m.default }))
 );
 
 const AddSystemCategoryPage = lazy(() => 
-  import("../../pages/AddSystemCategoryPage")
+  import("../../pages/AddSystemCategoryPage").then(m => ({ default: m.default }))
 );
 
 const EditSystemCategoryPage = lazy(() => 
-  import("../../pages/EditSystemCategoryPage")
+  import("../../pages/EditSystemCategoryPage").then(m => ({ default: m.default }))
 );
 
 const RegionsPage = lazy(() => 
-  import("../../pages/RegionsPage")
+  import("../../pages/RegionsPage").then(m => ({ default: m.default }))
 );
 
 const AddRegionPage = lazy(() => 
-  import("../../pages/AddRegionPage")
+  import("../../pages/AddRegionPage").then(m => ({ default: m.default }))
 );
 
 const EditRegionPage = lazy(() => 
-  import("../../pages/EditRegionPage")
+  import("../../pages/EditRegionPage").then(m => ({ default: m.default }))
 );
 
 /**

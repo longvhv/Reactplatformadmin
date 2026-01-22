@@ -3,7 +3,7 @@
  * Implements data access using Supabase client
  */
 
-import { supabase } from '../../utils/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 import { BaseApiAdapter, BaseFilters } from './base';
 
 /**

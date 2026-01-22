@@ -14,7 +14,7 @@ import {
   type Activity,
   type ChartDataPoint,
   type DashboardOverview,
-} from '../services/dashboardService';
+} from '@/services/dashboardService';
 
 interface UseDashboardReturn {
   stats: DashboardStats[];

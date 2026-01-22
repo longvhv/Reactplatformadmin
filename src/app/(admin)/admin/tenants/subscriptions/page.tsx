@@ -6,15 +6,15 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { Package, Plus, Search } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card } from '../../../../../components/ui/card';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
-import { subscriptionApi, TenantSubscription } from '../../../../../api/subscriptionApi';
-import { showToast } from '../../../../../lib/toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { subscriptionApi, TenantSubscription } from '@/api/subscriptionApi';
+import { showToast } from '@/lib/toast';
 import { CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-react';
 
 function TenantSubscriptionsPage() {

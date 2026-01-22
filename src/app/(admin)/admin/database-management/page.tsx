@@ -4,12 +4,12 @@
  */
 'use client';
 import { Fragment, useState, useEffect } from 'react';
-import { Database, Activity } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Card } from '../../../../components/ui/card';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { databaseApi } from '../../../../api/databaseApi';
-import { showToast } from '../../../../lib/toast';
+import { Database, RefreshCw, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { databaseApi } from '@/api/databaseApi';
+import { showToast } from '@/lib/toast';
 
 function DatabaseManagementPage() {
   const [stats, setStats] = useState<any>(null);

@@ -5,7 +5,7 @@
  * 
  * Usage:
  * ```tsx
- * import { showToast } from '../lib/toast';
+ * import { showToast } from '@/lib/toast';
  * 
  * showToast.success('Success!', 'Your changes have been saved.');
  * showToast.error('Error!', 'Something went wrong.');
@@ -15,7 +15,7 @@
  */
 
 import { toast as sonnerToast } from 'sonner@2.0.3';
-import { Toast, ToastDurations, type ToastVariant } from '../components/ui/toast';
+import { Toast, ToastDurations, type ToastVariant } from '@/components/ui/toast';
 import { ReactNode } from 'react';
 
 interface ToastOptions {

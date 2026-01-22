@@ -1,2 +1,2 @@
-import DigitalAssetsPage from '../app/(admin)/commerce/digital-assets/page';
+import DigitalAssetsPage from '@/app/(admin)/digital-assets/page';
 export default DigitalAssetsPage;

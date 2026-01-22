@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { 
   UserCog, Plus, Search, Filter, Trash2, Edit, CheckCircle, 
   XCircle, Clock, AlertCircle, Shield, ArrowRight, Calendar, StopCircle, RefreshCcw
 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { Badge } from '../../../../components/ui/badge';
-import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { 
   userDelegationsApi, 
   UserDelegation, 
@@ -20,17 +20,17 @@ import {
   getScopeColor,
   getStatusColor,
   formatDate
-} from '../../../../api/userDelegationsApi';
-import { usersApi } from '../../../../api/usersApi';
-import { tenantsApi } from '../../../../api/tenantsApi';
-import { showToast } from '../../../../lib/toast';
+} from '@/api/userDelegationsApi';
+import { usersApi } from '@/api/usersApi';
+import { tenantsApi } from '@/api/tenantsApi';
+import { showToast } from '@/lib/toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from '../../../../components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 export default function UserDelegationsPage() {
   const router = useRouter();

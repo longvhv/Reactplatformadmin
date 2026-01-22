@@ -12,7 +12,7 @@ import {
   RateLimitFilters,
   CreateRateLimitData,
   UpdateRateLimitData,
-} from '../api/tenantRateLimitsApi';
+} from '@/api/tenantRateLimitsApi';
 
 export function useTenantRateLimits(filters?: RateLimitFilters) {
   const [limits, setLimits] = useState<TenantRateLimit[]>([]);

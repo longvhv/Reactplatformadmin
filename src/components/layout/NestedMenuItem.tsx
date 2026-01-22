@@ -1,5 +1,5 @@
 import { useState, memo, useEffect } from "react";
-import { NavLink, useLocation } from "react-router";
+import { usePathname, Link } from "../shim/next-navigation";
 import { ChevronRight, ChevronDown, Circle } from "lucide-react";
 import { MenuItem } from "../../core/ModuleRegistry";
 import { Tooltip } from "../ui/Tooltip";
@@ -28,19 +28,19 @@ interface NestedMenuItemProps {
  */
 export const NestedMenuItem = memo(({ item, level, collapsed, onClose, searchQuery = "" }: NestedMenuItemProps) => {
   const { t } = useLanguage();
-  const location = useLocation();
+  const pathname = usePathname();
   const hasChildren = item.children && item.children.length > 0;
   
   // Check if this item or any child contains the active route
   const containsActiveRoute = (menuItem: MenuItem): boolean => {
-    if (menuItem.path === location.pathname) return true;
+    if (menuItem.path === pathname) return true;
     if (menuItem.children) {
       return menuItem.children.some(child => containsActiveRoute(child));
     }
     return false;
   };
 
-  const isActive = item.path === location.pathname;
+  const isActive = item.path === pathname;
   const hasActiveChild = hasChildren && containsActiveRoute(item);
 
   // Persistent expand state with auto-expand for active routes
@@ -65,7 +65,7 @@ export const NestedMenuItem = memo(({ item, level, collapsed, onClose, searchQue
     if (hasActiveChild && !isExpanded) {
       setIsExpanded(true);
     }
-  }, [hasActiveChild, location.pathname]);
+  }, [hasActiveChild, pathname]);
 
   // Calculate indentation based on level
   const paddingLeft = collapsed ? "px-3" : `pl-${4 + level * 3}`;
@@ -150,8 +150,8 @@ export const NestedMenuItem = memo(({ item, level, collapsed, onClose, searchQue
 
   // Render as NavLink if has path, otherwise as button
   const element = item.path && !hasChildren ? (
-    <NavLink
-      to={item.path}
+    <Link
+      href={item.path}
       onClick={handleClick}
       className={baseClasses}
     >
@@ -168,7 +168,7 @@ export const NestedMenuItem = memo(({ item, level, collapsed, onClose, searchQue
       <div className="relative z-10 flex items-center gap-3 w-full">
         {content}
       </div>
-    </NavLink>
+    </Link>
   ) : (
     <button
       onClick={handleClick}

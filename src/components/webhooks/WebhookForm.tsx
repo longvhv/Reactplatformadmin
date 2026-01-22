@@ -5,10 +5,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Webhook, CreateWebhookRequest, UpdateWebhookRequest } from '../../api/webhooksApi';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Webhook, CreateWebhookRequest, UpdateWebhookRequest } from '@/api/webhooksApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Webhook as WebhookIcon, 
   Link as LinkIcon, 
@@ -21,10 +21,10 @@ import {
   Database,
   FileJson
 } from 'lucide-react';
-import { DEFAULT_TENANT_ID } from '../../constants/tenant-constants';
-import { useTenants } from '../../hooks/useTenants';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Textarea } from '../ui/textarea';
+import { DEFAULT_TENANT_ID } from '@/constants/tenant-constants';
+import { useTenants } from '@/hooks/useTenants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 interface WebhookFormProps {
   initialData?: Webhook;

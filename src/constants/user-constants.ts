@@ -3,7 +3,7 @@
  * Centralized constants for user management
  */
 
-import type { UserRole, UserStatus } from '../data/users';
+import type { UserRole, UserStatus } from '@/data/users';
 
 // Role values
 export const USER_ROLES: readonly UserRole[] = [

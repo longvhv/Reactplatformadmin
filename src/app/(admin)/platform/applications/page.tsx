@@ -9,13 +9,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
-import { useApplications } from '../../../../hooks/useApplications';
-import { useLanguage } from '../../../../providers/LanguageProvider';
-import { Card } from '../../../../components/ui/card';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
+import { useRouter } from '@/components/shim/next-navigation';
+import { useApplications } from '@/hooks/useApplications';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   Server, 
   Plus, 
@@ -34,10 +34,10 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../components/ui/dropdown-menu';
-import { showToast } from '../../../../lib/toast';
-import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
-import { StatisticsCards } from '../../../../components/common/StatisticsCards';
+} from '@/components/ui/dropdown-menu';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
 
 function ApplicationsPage() {
   const { t } = useLanguage();
@@ -187,15 +187,21 @@ function ApplicationsPage() {
               </thead>
               <tbody>
                 {filteredApps.map((app) => (
-                  <tr key={app._id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <tr 
+                    key={app._id} 
+                    className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/platform/applications/${app._id}`)}
+                  >
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <Server className="w-4 h-4 text-indigo-600" />
-                        <span className="font-medium">{app.name}</span>
+                        <span className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 transition-colors">
+                          {app.name}
+                        </span>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <code className="text-xs bg-gray-100 px-2 py-1 rounded">{app.code}</code>
+                      <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">{app.code}</code>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
@@ -222,18 +228,25 @@ function ApplicationsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => router.push(`/platform/applications/${app._id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/platform/applications/${app._id}`);
+                          }}
                         >
                           View
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/edit/${app._id}`)}>
+                            <DropdownMenuItem onClick={() => router.push(`/platform/applications/${app._id}/edit`)}>
                               <Settings className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>

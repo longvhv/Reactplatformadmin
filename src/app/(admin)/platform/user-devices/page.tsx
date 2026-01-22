@@ -1,25 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { 
   Laptop, Plus, Search, Filter, Trash2, Edit, CheckCircle, 
   XCircle, Smartphone, Tablet, Tv, Watch, HelpCircle, MapPin, Globe, Shield
 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { Badge } from '../../../../components/ui/badge';
-import { PageLayout } from '../../../../components/layout/PageLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { 
   userDevicesApi, 
   UserDevice, 
-  DeviceType, 
+  DeviceType,
+  DeviceTypeHelper,
   DeviceStatus,
   DeviceStatusHelper
-} from '../../../../api/userDevicesApi';
-import { usersApi } from '../../../../api/usersApi';
-import { showToast } from '../../../../lib/toast';
+} from '@/api/userDevicesApi';
+import { usersApi } from '@/api/usersApi';
+import { showToast } from '@/lib/toast';
 import { format } from 'date-fns';
 import {
   DropdownMenu,
@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator
-} from '../../../../components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 export default function UserDevicesPage() {
   const router = useRouter();

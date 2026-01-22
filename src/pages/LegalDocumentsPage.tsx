@@ -1,2 +1,2 @@
-import LegalDocumentsPage from '../app/(admin)/platform/legal-documents/page';
+import LegalDocumentsPage from '@/app/(admin)/legal/page';
 export default LegalDocumentsPage;

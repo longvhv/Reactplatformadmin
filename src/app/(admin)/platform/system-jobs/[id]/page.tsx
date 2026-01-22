@@ -1,24 +1,24 @@
 /**
  * System Job Detail Page
- * ✅ MIGRATED from /pages/platform/system-jobs/[id].tsx
+ * ✅ MIGRATED: Using Next.js shim for navigation
  */
 
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
-import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
-import { Clock, ArrowLeft, Edit, Trash2, MoreVertical, Play, Pause } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { systemJobsApi, SystemJob } from '../../../../../api/systemJobsApi';
-import { showToast } from '../../../../../lib/toast';
-import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { Activity, ArrowLeft, MoreVertical, Trash2, RotateCw, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { systemJobsApi, SystemJob } from '@/api/systemJobsApi';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { PageLayout } from '@/components/layout/PageLayout';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '../../../../../components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
 function SystemJobDetailPage() {
   const params = useParams();
@@ -87,7 +87,7 @@ function SystemJobDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Job Not Found</h2>
           <Button onClick={() => router.push('/platform/system-jobs')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -101,7 +101,7 @@ function SystemJobDetailPage() {
   return (
     <>
       <PageLayout
-        icon={Clock}
+        icon={Activity}
         title={job.job_name}
         description={`Type: ${job.job_type}`}
         backButton={{
@@ -112,13 +112,13 @@ function SystemJobDetailPage() {
           <div className="flex items-center gap-2">
             {job.status === 'FAILED' && (
               <Button variant="outline" size="sm" onClick={handleRetry}>
-                <Play className="w-4 h-4 mr-2" />
+                <RotateCw className="w-4 h-4 mr-2" />
                 Retry
               </Button>
             )}
             {(job.status === 'PENDING' || job.status === 'RUNNING') && (
               <Button variant="outline" size="sm" onClick={handleCancel}>
-                <Pause className="w-4 h-4 mr-2" />
+                <X className="w-4 h-4 mr-2" />
                 Cancel
               </Button>
             )}

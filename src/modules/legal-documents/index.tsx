@@ -7,7 +7,7 @@ import { FileText } from "lucide-react";
  * Lazy-load Legal Documents Page
  */
 const LegalDocumentsPage = lazy(() => 
-  import("../../pages/LegalDocumentsPage")
+  import("../../pages/LegalDocumentsPage").then(m => ({ default: m.default }))
 );
 
 /**

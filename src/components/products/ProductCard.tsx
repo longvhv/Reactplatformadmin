@@ -5,25 +5,25 @@
  */
 
 import React from 'react';
-import { SaasProduct } from '../../api/saasProductsApi';
+import { Product } from '../../api/productsApi';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Edit2, Trash2, Star, Copy, Eye } from 'lucide-react';
 
 interface ProductCardProps {
-  product: SaasProduct;
-  onEdit?: (product: SaasProduct) => void;
-  onDelete?: (product: SaasProduct) => void;
-  onViewDetails?: (product: SaasProduct) => void;
-  onDuplicate?: (product: SaasProduct) => void;
-  onToggleFeatured?: (product: SaasProduct) => void;
+  product: Product;
+  onEdit?: (product: Product) => void;
+  onDelete?: (product: Product) => void;
+  onView?: (product: Product) => void;
+  onDuplicate?: (product: Product) => void;
+  onToggleFeatured?: (product: Product) => void;
 }
 
 export function ProductCard({
   product,
   onEdit,
   onDelete,
-  onViewDetails,
+  onView,
   onDuplicate,
   onToggleFeatured,
 }: ProductCardProps) {
@@ -89,7 +89,7 @@ export function ProductCard({
       {/* Product Name & Code */}
       <div className="mb-3">
         <button
-          onClick={() => onViewDetails?.(product)}
+          onClick={() => onView?.(product)}
           className="text-lg font-semibold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left mb-1 w-full"
         >
           {product.name}
@@ -139,11 +139,11 @@ export function ProductCard({
 
       {/* Action Buttons */}
       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        {onViewDetails && (
+        {onView && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onViewDetails(product)}
+            onClick={() => onView(product)}
             className="flex-1"
           >
             <Eye className="w-4 h-4 mr-1" />

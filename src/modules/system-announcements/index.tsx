@@ -10,12 +10,12 @@ import { lazy, Suspense } from 'react';
 import { LoadingFallback } from '../../components/LoadingFallback';
 import { Bell } from 'lucide-react';
 
-// Lazy-loaded pages
-const SystemAnnouncementsPage = lazy(() => import('../../app/(admin)/platform/system-announcements/page'));
-const CreateSystemAnnouncementPage = lazy(() => import('../../app/(admin)/platform/system-announcements/create/page'));
-const EditSystemAnnouncementPage = lazy(() => import('../../app/(admin)/platform/system-announcements/edit/[id]/page'));
-// Reuse edit page for detail view
-const SystemAnnouncementDetailPage = lazy(() => import('../../app/(admin)/platform/system-announcements/edit/[id]/page'));
+// Lazy-loaded pages (App Router)
+const SystemAnnouncementsPage = lazy(() => import('../../app/(admin)/platform/system-announcements/page').then(m => ({ default: m.default })));
+const CreateSystemAnnouncementPage = lazy(() => import('../../app/(admin)/platform/system-announcements/create/page').then(m => ({ default: m.default })));
+const EditSystemAnnouncementPage = lazy(() => import('../../app/(admin)/platform/system-announcements/edit/[id]/page').then(m => ({ default: m.default })));
+// Detail page not implemented separately yet, reusing edit or list
+const SystemAnnouncementDetailPage = lazy(() => import('../../app/(admin)/platform/system-announcements/edit/[id]/page').then(m => ({ default: m.default })));
 
 export const SystemAnnouncementsModule: ModuleDefinition = {
   id: 'system-announcements',

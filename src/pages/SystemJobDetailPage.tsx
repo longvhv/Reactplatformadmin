@@ -1,2 +1,2 @@
-import SystemJobDetailPage from '../app/(admin)/platform/system-jobs/[id]/page';
+import SystemJobDetailPage from '@/app/(admin)/system-jobs/[id]/page';
 export default SystemJobDetailPage;

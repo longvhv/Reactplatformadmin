@@ -1,17 +1,19 @@
 /**
  * UserSessions Component
- * Quản lý phiên đăng nhập của user
+ * Quản lý sessions của user
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
-  Monitor, 
-  Smartphone, 
+  Monitor,
+  Smartphone,
   Tablet,
+  Clock,
   MapPin,
-  Calendar,
-  LogOut,
-  Trash2
+  Activity,
+  Power,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { useUserSessions } from '../../../hooks/useUserSessions';

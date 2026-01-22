@@ -1,2 +1,2 @@
-import AuthLogsPage from '../app/(admin)/admin/auth-logs/page';
+import AuthLogsPage from '@/app/(admin)/admin/auth-logs/page';
 export default AuthLogsPage;

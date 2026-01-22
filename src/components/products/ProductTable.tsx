@@ -15,7 +15,7 @@ interface ProductTableProps {
   products: SaasProduct[];
   onEdit?: (product: SaasProduct) => void;
   onDelete?: (product: SaasProduct) => void;
-  onViewDetails?: (product: SaasProduct) => void;
+  onView?: (product: SaasProduct) => void;
   onDuplicate?: (product: SaasProduct) => void;
   onToggleFeatured?: (product: SaasProduct) => void;
   loading?: boolean;
@@ -25,7 +25,7 @@ export function ProductTable({
   products,
   onEdit,
   onDelete,
-  onViewDetails,
+  onView,
   onDuplicate,
   onToggleFeatured,
   loading,
@@ -113,19 +113,20 @@ export function ProductTable({
         </thead>
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           {products.map((product) => (
-            <tr key={product._id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+            <tr 
+              key={product._id} 
+              className="hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition-colors"
+              onClick={() => onView?.(product)}
+            >
               <td className="px-4 py-4">
                 <div className="flex items-center gap-2">
                   {product.is_featured && (
                     <Star className="w-4 h-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />
                   )}
                   <div>
-                    <button
-                      onClick={() => onViewDetails?.(product)}
-                      className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left"
-                    >
+                    <div className="font-medium text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left">
                       {product.name}
-                    </button>
+                    </div>
                     <div className="text-sm font-mono text-gray-500 dark:text-gray-400">
                       {product.code}
                     </div>
@@ -162,7 +163,10 @@ export function ProductTable({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onEdit(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(product);
+                      }}
                       title="Chỉnh sửa"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -172,7 +176,10 @@ export function ProductTable({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onDuplicate(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDuplicate(product);
+                      }}
                       title="Nhân bản"
                     >
                       <Copy className="w-4 h-4" />
@@ -182,7 +189,10 @@ export function ProductTable({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onToggleFeatured(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFeatured(product);
+                      }}
                       title={product.is_featured ? 'Bỏ nổi bật' : 'Đánh dấu nổi bật'}
                     >
                       <Star className={`w-4 h-4 ${product.is_featured ? 'fill-yellow-500 text-yellow-500' : ''}`} />
@@ -192,7 +202,10 @@ export function ProductTable({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => onDelete(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(product);
+                      }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400"
                       title="Xóa"
                     >

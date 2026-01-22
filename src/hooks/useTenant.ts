@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useDataClient } from './useDataClient';
-import type { Tenant, TenantStatus } from '../data/tenants';
+import type { Tenant, TenantStatus } from '@/data/tenants';
 
 /**
  * Hook for managing single tenant operations

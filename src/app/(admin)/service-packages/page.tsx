@@ -6,14 +6,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useRouter } from '@/components/shim/next-navigation';
 import { Package2, Plus, Search, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { showToast } from '../../../../lib/toast';
-import { servicePackagesApi, ServicePackage } from '../../../../api/servicePackagesApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { showToast } from '@/lib/toast';
+import { servicePackagesApi, ServicePackage } from '@/api/servicePackagesApi';
 
 function ServicePackagesPage() {
   const router = useRouter();

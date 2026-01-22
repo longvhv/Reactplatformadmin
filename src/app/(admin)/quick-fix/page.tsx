@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '../../../../components/ui/button';
-import { Card } from '../../../../components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from '../../../../components/ui/alert';
-import { getSupabaseClient } from '../../../../lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { getSupabaseClient } from '@/lib/supabase';
 
 export default function QuickFixPage() {
   const [step, setStep] = useState(0);
@@ -27,7 +27,7 @@ export default function QuickFixPage() {
 
   const step1_checkConfig = async () => {
     await runTest('Check Configuration', async () => {
-      const { projectId, publicAnonKey } = await import('../../../../utils/supabase/info');
+      const { projectId, publicAnonKey } = await import('@/utils/supabase/info');
       
       if (!projectId || projectId === 'your-project-id') {
         throw new Error('Project ID not configured');
@@ -44,7 +44,7 @@ export default function QuickFixPage() {
 
   const step2_testConnection = async () => {
     await runTest('Test Supabase Connection', async () => {
-      const { projectId } = await import('../../../../utils/supabase/info');
+      const { projectId } = await import('@/utils/supabase/info');
       
       // Use singleton Supabase client (prevents Multiple GoTrueClient warning)
       const supabase = getSupabaseClient();

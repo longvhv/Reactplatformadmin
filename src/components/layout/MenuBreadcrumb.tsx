@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { useLocation } from "react-router";
+import { usePathname } from "../shim/next-navigation";
 import { ChevronRight } from "lucide-react";
 import { ModuleRegistry, MenuItem } from "../../core/ModuleRegistry";
 
@@ -10,7 +10,7 @@ import { ModuleRegistry, MenuItem } from "../../core/ModuleRegistry";
  * Shows the hierarchy path: Module > Level 1 > Level 2 > Level 3
  */
 export const MenuBreadcrumb = memo(() => {
-  const location = useLocation();
+  const pathname = usePathname();
   const registry = ModuleRegistry.getInstance();
 
   const breadcrumbs = useMemo(() => {
@@ -25,7 +25,7 @@ export const MenuBreadcrumb = memo(() => {
         for (const item of items) {
           const currentPath = [...parentPath, { label: item.label, icon: item.icon }];
 
-          if (item.path === location.pathname) {
+          if (item.path === pathname) {
             path.push(...currentPath);
             return true;
           }
@@ -43,7 +43,7 @@ export const MenuBreadcrumb = memo(() => {
     }
 
     return path;
-  }, [location.pathname, registry]);
+  }, [pathname, registry]);
 
   if (breadcrumbs.length === 0) return null;
 

@@ -8,30 +8,30 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useLanguage } from '../../../../providers/LanguageProvider';
-import { useRouter } from '../../../../components/shim/next-navigation';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { useRouter } from '@/components/shim/next-navigation';
 import { Plus, RefreshCw, Search, Filter, Activity, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import {
   systemJobsApi,
   SystemJob,
   SystemJobFilters,
-} from '../../../../api/systemJobsApi';
-import { SystemJobsTable } from '../../../../components/system-jobs/SystemJobsTable';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
+} from '@/api/systemJobsApi';
+import { SystemJobsTable } from '@/components/system-jobs/SystemJobsTable';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../../../components/ui/select';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { showToast } from '../../../../lib/toast';
-import { JOB_TYPES, JOB_PRIORITIES } from '../../../../data/system-jobs-demo';
-import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
-import { StatisticsCards } from '../../../../components/common/StatisticsCards';
+} from '@/components/ui/select';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { showToast } from '@/lib/toast';
+import { JOB_TYPES, JOB_PRIORITIES } from '@/data/system-jobs-demo';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
 
 function SystemJobsPage() {
   const { t } = useLanguage();

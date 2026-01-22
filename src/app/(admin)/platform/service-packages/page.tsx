@@ -6,22 +6,20 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '../../../../components/shim/next-navigation';
-import { Package, Plus, Search, Eye, Edit2, Trash2 } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
-import { Input } from '../../../../components/ui/input';
-import { Card } from '../../../../components/ui/card';
-import { PageLayout } from '../../../../components/layout/PageLayout';
-import { servicePackagesApi, ServicePackage } from '../../../../api/servicePackagesApi';
-import { showToast } from '../../../../lib/toast';
-import { ConfirmDialog } from '../../../../components/common/ConfirmDialog';
+import { useRouter } from '@/components/shim/next-navigation';
+import { Package, Plus, Search, Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { servicePackagesApi, ServicePackage } from '@/api/servicePackagesApi';
+import { showToast } from '@/lib/toast';
 
 function ServicePackagesPage() {
   const router = useRouter();
   const [items, setItems] = useState<ServicePackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; item: ServicePackage | null }>({ open: false, item: null });
 
   useEffect(() => {
     loadItems();
@@ -36,19 +34,6 @@ function ServicePackagesPage() {
       showToast.error('Error', 'Failed to load service packages');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!deleteDialog.item) return;
-    try {
-      await servicePackagesApi.delete(deleteDialog.item._id, deleteDialog.item.version);
-      showToast.success('Success', 'Service package deleted');
-      loadItems();
-    } catch (error: any) {
-      showToast.error('Error', error.message || 'Failed to delete');
-    } finally {
-      setDeleteDialog({ open: false, item: null });
     }
   };
 
@@ -128,35 +113,8 @@ function ServicePackagesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/platform/service-packages/${item._id}`);
-                        }}
-                      >
+                      <Button variant="ghost" size="sm">
                         <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/platform/service-packages/edit/${item._id}`);
-                        }}
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeleteDialog({ open: true, item });
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </td>
                   </tr>
@@ -166,14 +124,6 @@ function ServicePackagesPage() {
           </div>
         )}
       </Card>
-      <ConfirmDialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}
-        title="Delete Service Package"
-        description={`Are you sure you want to delete "${deleteDialog.item?.package_name}"? This action cannot be undone.`}
-        onConfirm={handleDelete}
-        variant="destructive"
-      />
     </PageLayout>
   );
 }

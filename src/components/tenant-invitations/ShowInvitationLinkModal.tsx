@@ -4,10 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { TenantInvitation, tenantInvitationsApi } from '../../api/tenantInvitationsApi';
-import { Button } from '../ui/button';
+import { TenantInvitation, tenantInvitationsApi } from '@/api/tenantInvitationsApi';
+import { Button } from '@/components/ui/button';
 import { AlertTriangle, Check, Copy } from 'lucide-react';
-import { useTranslation } from '../../providers/LanguageProvider';
+import { useTranslation } from '@/providers/LanguageProvider';
 
 interface ShowInvitationLinkModalProps {
   invitation: TenantInvitation;

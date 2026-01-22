@@ -1,14 +1,16 @@
 /**
  * useUsers Hook
- * Manages multiple users data fetching and operations
+ * Hook for managing users with full CRUD operations
  * 
- * MIGRATED: Now uses DataClient abstraction layer
+ * ✅ UPDATED: Compliant with public.users schema
+ * - No optimistic locking (no version field)
+ * - Correct filters
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { useDataClient } from './useDataClient';
-import type { User, UserFilters, CreateUserRequest, UpdateUserRequest } from '../api/usersApi';
+import type { User, UserFilters, CreateUserRequest, UpdateUserRequest } from '@/api/usersApi';
 
 interface UseUsersOptions {
   autoLoad?: boolean;

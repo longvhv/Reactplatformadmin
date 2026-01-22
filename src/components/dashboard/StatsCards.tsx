@@ -10,11 +10,8 @@ import {
   CreditCard,
   Building2,
   UserCheck,
-  LucideIcon,
 } from 'lucide-react';
 import type { Stat } from '../../types/dashboard.types';
-import { useLanguage } from '../../providers/LanguageProvider';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 interface StatsCardsProps {
   stats: Stat[];

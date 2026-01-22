@@ -4,7 +4,7 @@
  * ✅ Production-ready with Supabase integration
  */
 
-import { supabase } from '../utils/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 
 // Types matching telemetry.auth_logs table
 export interface AuthLog {

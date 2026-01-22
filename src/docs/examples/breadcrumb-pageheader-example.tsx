@@ -5,8 +5,8 @@
  * and PageHeader component in pages
  */
 
-import { PageHeader } from '../../components/common';
-import { Button } from '../../components/ui/button';
+import { PageHeader } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { Plus, Download, Filter } from 'lucide-react';
 
 // ============================================

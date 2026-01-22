@@ -11,9 +11,9 @@ import { LoadingFallback } from '../../components/LoadingFallback';
 import { Mail } from 'lucide-react';
 
 // Lazy-loaded pages (App Router)
-const NotificationTemplatesPage = lazy(() => import('../../app/(admin)/platform/notification-templates/page'));
-const CreateNotificationTemplatePage = lazy(() => import('../../app/(admin)/platform/notification-templates/create/page'));
-const EditNotificationTemplatePage = lazy(() => import('../../app/(admin)/platform/notification-templates/edit/[id]/page'));
+const NotificationTemplatesPage = lazy(() => import('../../app/(admin)/platform/notification-templates/page').then(m => ({ default: m.default })));
+const CreateNotificationTemplatePage = lazy(() => import('../../app/(admin)/platform/notification-templates/create/page').then(m => ({ default: m.default })));
+const EditNotificationTemplatePage = lazy(() => import('../../app/(admin)/platform/notification-templates/edit/[id]/page').then(m => ({ default: m.default })));
 
 export const NotificationTemplatesModule: ModuleDefinition = {
   id: 'notification-templates',

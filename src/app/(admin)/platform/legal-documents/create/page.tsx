@@ -1,8 +1,9 @@
 'use client';
 
+import React from 'react';
+import { LegalDocumentForm } from '@/components/legal/LegalDocumentForm';
+import { PageLayout } from '@/components/layout/PageLayout';
 import { FileText } from 'lucide-react';
-import { LegalDocumentForm } from '../../../../../components/legal/LegalDocumentForm';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
 
 export default function CreateLegalDocumentPage() {
   return (

@@ -5,8 +5,7 @@
  */
 
 import { getSupabaseClient } from '../lib/supabase';
-import { supabase } from '../utils/supabase/client';
-import { BaseFilters } from './adapters';
+import { supabase } from '@/utils/supabase/client';
 
 // ==================== TYPES ====================
 

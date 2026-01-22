@@ -8,44 +8,29 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
-import {
-  Package,
-  Plus,
-  Search,
-  Download,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Key,
-  Shield,
-  Globe,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Lock,
-  Unlock,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from '@/components/shim/next-navigation';
 import {
   digitalAssetsApi,
   DigitalAsset,
-  DigitalAssetType,
-  DigitalAssetStatus,
-  CreateDigitalAssetRequest,
-  UpdateDigitalAssetRequest,
-} from '../../../../../api/digitalAssetsApi';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../../components/ui/card';
-import { Badge } from '../../../../../components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../../../components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../../../../components/ui/dialog';
-import { showToast } from '../../../../../lib/toast';
-import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
-import { useLanguage } from '../../../../../providers/LanguageProvider';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
+  getAssetTypeLabel,
+  getAssetTypeColor,
+  getAssetStatusLabel,
+  getAssetStatusColor,
+  isAssetExpiringSoon,
+  getDaysUntilExpiry,
+} from '@/api/digitalAssetsApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Search, RefreshCw, Shield, AlertTriangle, CheckCircle, Calendar, Package } from 'lucide-react';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
 
 interface AssetStats {
   total: number;
@@ -152,8 +137,8 @@ function DigitalAssetsPage() {
   const statsCards = stats ? [
     { label: 'Total Assets', value: stats.total, color: 'indigo' as const, icon: Package },
     { label: 'Active', value: stats.active, color: 'green' as const, icon: CheckCircle },
-    { label: 'Expiring Soon', value: stats.expiringSoon, color: 'yellow' as const, icon: AlertCircle },
-    { label: 'Expired', value: stats.expired, color: 'red' as const, icon: Lock },
+    { label: 'Expiring Soon', value: stats.expiringSoon, color: 'yellow' as const, icon: AlertTriangle },
+    { label: 'Expired', value: stats.expired, color: 'red' as const, icon: Calendar },
   ] : [];
 
   return (
@@ -255,7 +240,11 @@ function DigitalAssetsPage() {
                   const expiringSoon = isAssetExpiringSoon(asset);
                   
                   return (
-                    <tr key={asset._id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <tr 
+                      key={asset._id} 
+                      className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/commerce/digital-assets/${asset._id}`)}
+                    >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Shield className="w-4 h-4 text-indigo-600" />
@@ -281,7 +270,7 @@ function DigitalAssetsPage() {
                         {asset.expires_at ? (
                           <div className="flex items-center gap-1">
                             {expiringSoon && (
-                              <AlertCircle className="w-4 h-4 text-yellow-600" />
+                              <AlertTriangle className="w-4 h-4 text-yellow-600" />
                             )}
                             <span className={expiringSoon ? 'text-yellow-600' : ''}>
                               {daysLeft !== null ? `${daysLeft} days` : 'N/A'}
@@ -296,14 +285,20 @@ function DigitalAssetsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/commerce/digital-assets/${asset._id}`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/commerce/digital-assets/${asset._id}`);
+                            }}
                           >
                             View
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(asset)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(asset);
+                            }}
                             className="text-red-600"
                           >
                             Delete

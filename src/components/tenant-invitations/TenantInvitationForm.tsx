@@ -9,16 +9,16 @@ import {
   TenantInvitation, 
   CreateInvitationRequest, 
   UpdateInvitationRequest
-} from '../../api/tenantInvitationsApi';
-import { departmentsApi, Department } from '../../api/departmentsApi';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
+} from '@/api/tenantInvitationsApi';
+import { departmentsApi, Department } from '@/api/departmentsApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, Save, X, Calendar, Building } from 'lucide-react';
-import { useTranslation } from '../../providers/LanguageProvider';
+import { useTranslation } from '@/providers/LanguageProvider';
 
 interface TenantInvitationFormProps {
   tenantId: string;

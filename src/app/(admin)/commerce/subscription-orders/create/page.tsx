@@ -6,12 +6,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from '../../../../../../components/shim/next-navigation';
-import { ShoppingCart, Plus } from 'lucide-react';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
-import { ordersApi, CreateOrderRequest } from '../../../../../../api/ordersApi';
-import { OrderForm } from '../../../../../../components/orders/OrderForm';
-import { showToast } from '../../../../../../lib/toast';
+import { useRouter } from '@/components/shim/next-navigation';
+import { ShoppingCart } from 'lucide-react';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { ordersApi, CreateOrderRequest } from '@/api/ordersApi';
+import { OrderForm } from '@/components/orders/OrderForm';
+import { showToast } from '@/lib/toast';
 
 function AddOrderPage() {
   const router = useRouter();

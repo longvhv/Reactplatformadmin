@@ -9,25 +9,25 @@ import {
   DelegationScopeHelper,
   DelegationStatus,
   DelegationStatusHelper
-} from '../../api/userDelegationsApi';
-import { usersApi, User } from '../../api/usersApi';
-import { tenantsApi } from '../../api/tenantsApi';
-import type { Tenant } from '../../data/tenants';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Switch } from '../ui/switch';
+} from '@/api/userDelegationsApi';
+import { usersApi, User } from '@/api/usersApi';
+import { tenantsApi } from '@/api/tenantsApi';
+import type { Tenant } from '@/data/tenants';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Save, UserCog, Calendar as CalendarIcon, FileText, Shield } from 'lucide-react';
-import { showToast } from '../../lib/toast';
-import { Textarea } from '../ui/textarea';
+import { showToast } from '@/lib/toast';
+import { Textarea } from '@/components/ui/textarea';
 
 interface UserDelegationFormProps {
   initialData?: UserDelegation;

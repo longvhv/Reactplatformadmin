@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { useRouter } from "../../shim/next-navigation";
 import { 
   Building2, Edit, Trash2, ExternalLink, Users, Database, 
   Shield, MapPin, CreditCard, Calendar, Network 
@@ -25,7 +25,7 @@ interface EnhancedTenantCardProps {
 
 export function EnhancedTenantCard({ tenant, onDelete, showHierarchy = true }: EnhancedTenantCardProps) {
   const { t } = useLanguage();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const userPercentage = tenant.settings?.max_users 
     ? (tenant.settings.current_users || 0) / tenant.settings.max_users * 100 
@@ -53,7 +53,7 @@ export function EnhancedTenantCard({ tenant, onDelete, showHierarchy = true }: E
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/admin/tenants/${tenant._id}`)}
+              onClick={() => router.push(`/admin/tenants/${tenant._id}`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <ExternalLink className="w-4 h-4" />
@@ -61,7 +61,7 @@ export function EnhancedTenantCard({ tenant, onDelete, showHierarchy = true }: E
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(`/admin/tenants/edit/${tenant._id}`)}
+              onClick={() => router.push(`/admin/tenants/${tenant._id}/edit`)}
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <Edit className="w-4 h-4" />

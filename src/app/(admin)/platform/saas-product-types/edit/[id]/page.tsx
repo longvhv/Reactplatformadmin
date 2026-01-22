@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '../../../../../../components/shim/next-navigation';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
 import { Layers } from 'lucide-react';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
-import { saasProductTypesApi } from '../../../../../../api/saasProductTypesApi';
-import { SaasProductTypeForm } from '../../../../../../components/saas-product-types/SaasProductTypeForm';
-import { showToast } from '../../../../../../lib/toast';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
+import { saasProductTypesApi } from '@/api/saasProductTypesApi';
+import { SaasProductTypeForm } from '@/components/saas-product-types/SaasProductTypeForm';
+import { showToast } from '@/lib/toast';
 
 function EditSaasProductTypePage() {
   const params = useParams();

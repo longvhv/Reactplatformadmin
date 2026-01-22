@@ -1,18 +1,16 @@
-'use client';
-
 /**
  * Integration Detail Page
  * ✅ MIGRATED from /pages/platform/integrations/[id].tsx
  */
-
-import { useState, useEffect, Fragment } from 'react';
-import { useRouter, useParams } from '../../../../../components/shim/next-navigation';
-import { Plug, ArrowLeft } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { Card } from '../../../../../components/ui/card';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { integrationsApi } from '../../../../../api/integrationsApi';
-import { showToast } from '../../../../../lib/toast';
+'use client';
+import { Fragment, useState, useEffect } from 'react';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { Plug, Edit, Trash2, Power } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { integrationsApi } from '@/api/integrationsApi';
+import { showToast } from '@/lib/toast';
 
 function IntegrationDetailPage() {
   const router = useRouter();

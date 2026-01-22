@@ -6,12 +6,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from '../../../../../components/shim/next-navigation';
-import { ArrowLeft, Shield } from 'lucide-react';
-import { Button } from '../../../../../components/ui/button';
-import { auditLogApi, AuditLog } from '../../../../../api/auditLogApi';
-import { showToast } from '../../../../../lib/toast';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
+import { useParams, useRouter } from '@/components/shim/next-navigation';
+import { Shield, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { auditLogApi, AuditLog } from '@/api/auditLogApi';
+import { showToast } from '@/lib/toast';
+import { PageLayout } from '@/components/layout/PageLayout';
 
 function AuditLogDetailPage() {
   const params = useParams();

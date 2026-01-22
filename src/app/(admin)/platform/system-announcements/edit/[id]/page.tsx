@@ -5,14 +5,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
 import { Bell, ArrowLeft, Loader2 } from 'lucide-react';
-import { Button } from '../../../../../../components/ui/button';
-import { PageLayout } from '../../../../../../components/layout/PageLayout';
-import { AnnouncementForm } from '../../../../../../components/announcements/AnnouncementForm';
-import { useSystemAnnouncement, useSystemAnnouncements } from '../../../../../../hooks/useSystemAnnouncements';
-import { UpdateSystemAnnouncementRequest } from '../../../../../../api/systemAnnouncementsApi';
-import { showToast } from '../../../../../../lib/toast';
+import { Button } from '@/components/ui/button';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { AnnouncementForm } from '@/components/announcements/AnnouncementForm';
+import { useSystemAnnouncement, useSystemAnnouncements } from '@/hooks/useSystemAnnouncements';
+import { UpdateSystemAnnouncementRequest } from '@/api/systemAnnouncementsApi';
+import { showToast } from '@/lib/toast';
 
 export default function EditSystemAnnouncementPage() {
   const router = useRouter();

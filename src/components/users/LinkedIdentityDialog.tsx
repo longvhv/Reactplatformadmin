@@ -1,6 +1,9 @@
-'use client';
+/**
+ * LinkedIdentityDialog Component
+ * Dialog for adding/editing user linked identities
+ */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,27 +11,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '../ui/dialog';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../ui/select';
-import { Checkbox } from '../ui/checkbox';
-import { Textarea } from '../ui/textarea';
+} from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   userLinkedIdentitiesApi, 
-  CreateLinkedIdentityRequest, 
-  UpdateLinkedIdentityRequest, 
-  IdentityProvider, 
+  UserLinkedIdentity, 
   IDENTITY_PROVIDERS, 
   IDENTITY_STATUSES 
-} from '../../api/userLinkedIdentitiesApi';
+} from '@/api/userLinkedIdentitiesApi';
 import { toast } from 'sonner@2.0.3';
 import { Link2, Save, X } from 'lucide-react';
 

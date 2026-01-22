@@ -5,12 +5,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter, useParams } from '../../../../../../components/shim/next-navigation';
-import { EnhancedSystemJobForm } from '../../../../../../components/system-jobs/EnhancedSystemJobForm';
-import { useSystemJob, useSystemJobs } from '../../../../../../hooks/useSystemJobs';
-import { UpdateJobRequest } from '../../../../../../api/systemJobsApi';
-import { showToast } from '../../../../../../lib/toast';
-import { FormPageLayout } from '../../../../../../components/layouts/FormPageLayout';
+import { useRouter, useParams } from '@/components/shim/next-navigation';
+import { EnhancedSystemJobForm } from '@/components/system-jobs/EnhancedSystemJobForm';
+import { useSystemJob, useSystemJobs } from '@/hooks/useSystemJobs';
+import { UpdateJobRequest } from '@/api/systemJobsApi';
+import { showToast } from '@/lib/toast';
+import { FormPageLayout } from '@/components/layouts/FormPageLayout';
 import { Settings, Loader2 } from 'lucide-react';
 
 export default function EditSystemJobPage() {

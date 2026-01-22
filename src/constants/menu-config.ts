@@ -174,14 +174,14 @@ export const MENU_GROUPS: MenuGroupConfig[] = [
         id: 'saas-product-types',
         label: 'SaaS Product Types',
         translationKey: 'navigation.saasProductTypes',
-        path: '/platform/saas-product-types',
+        path: '/commerce/saas-product-types',
         icon: Box,
       },
       {
         id: 'service-packages',
         label: 'Service Packages',
         translationKey: 'navigation.servicePackages',
-        path: '/platform/service-packages',
+        path: '/commerce/service-packages',
         icon: Briefcase,
       },
       {

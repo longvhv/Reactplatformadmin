@@ -3,37 +3,35 @@
  * Main list page for subscription orders
  * ✅ MIGRATED: Using Next.js shim for navigation
  * ✅ Phase 3: ConfirmDialog, showToast, Fragment wrapper
- * ✅ SCHEMA ALIGNED: Matches public.subscription_orders table
  */
 
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { useRouter } from '../../../../../components/shim/next-navigation';
-import { Plus, Search, RefreshCw, Eye, Trash2, ShoppingCart, Clock, CheckCircle, DollarSign, List, Grid, Edit2 } from 'lucide-react';
+import { useRouter } from '@/components/shim/next-navigation';
+import { Plus, Search, Filter, RefreshCw, Eye, Trash2, ShoppingCart, Clock, CheckCircle, XCircle, DollarSign, AlertCircle, List, Grid, Edit2, Box } from 'lucide-react';
 import {
   ordersApi,
   Order,
-  OrderWithDetails,
-} from '../../../../../api/ordersApi';
-import { Button } from '../../../../../components/ui/button';
-import { Input } from '../../../../../components/ui/input';
-import { Card } from '../../../../../components/ui/card';
+  OrderStatus,
+} from '@/api/ordersApi';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../../../../components/ui/select';
-import { OrderDetailModal } from '../../../../../components/orders/OrderDetailModal';
-import { Badge } from '../../../../../components/ui/badge';
-import { useLanguage } from '../../../../../providers/LanguageProvider';
-import { PageLayout } from '../../../../../components/layout/PageLayout';
-import { StatisticsCards } from '../../../../../components/common/StatisticsCards';
-import { showToast } from '../../../../../lib/toast';
-import { ConfirmDialog } from '../../../../../components/common/ConfirmDialog';
-import { formatCurrency } from '../../../../../lib/format';
+} from '@/components/ui/select';
+import { OrderDetailModal } from '@/components/orders/OrderDetailModal';
+import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/providers/LanguageProvider';
+import { PageLayout } from '@/components/layout/PageLayout';
+import { StatisticsCards } from '@/components/common/StatisticsCards';
+import { showToast } from '@/lib/toast';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 // Stats interface
 interface OrderStats {
@@ -112,9 +110,8 @@ function SubscriptionOrdersPage() {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(order =>
-        order.order_number?.toLowerCase().includes(term) ||
-        (order as OrderWithDetails).tenant_name?.toLowerCase().includes(term) ||
-        order.tenant_id?.toLowerCase().includes(term)
+        order.order_code?.toLowerCase().includes(term) ||
+        order.tenant_name?.toLowerCase().includes(term)
       );
     }
 
@@ -137,11 +134,11 @@ function SubscriptionOrdersPage() {
       totalRevenue: orders
         .filter(o => o.status === 'PAID')
         .reduce((sum, o) => sum + (o.total_amount || 0), 0),
-      newOrders: orders.filter(o => o.type === 'NEW').length,
-      renewalOrders: orders.filter(o => o.type === 'RENEWAL').length,
-      upgradeOrders: orders.filter(o => o.type === 'UPGRADE').length,
-      downgradeOrders: orders.filter(o => o.type === 'DOWNGRADE').length,
-      addOnOrders: orders.filter(o => o.type === 'ADD_ON').length,
+      newOrders: orders.filter(o => o.order_type === 'new').length,
+      renewalOrders: orders.filter(o => o.order_type === 'renewal').length,
+      upgradeOrders: orders.filter(o => o.order_type === 'upgrade').length,
+      downgradeOrders: orders.filter(o => o.order_type === 'downgrade').length,
+      addOnOrders: orders.filter(o => o.order_type === 'add_on').length,
     };
     setStats(newStats);
   };
@@ -150,7 +147,7 @@ function SubscriptionOrdersPage() {
     setConfirmDialog({
       open: true,
       title: 'Delete Order',
-      description: `Are you sure you want to delete order "${order.order_number}"?`,
+      description: `Are you sure you want to delete order "${order.order_code}"?`,
       onConfirm: async () => {
         try {
           await ordersApi.delete(order._id);
@@ -169,14 +166,14 @@ function SubscriptionOrdersPage() {
     setIsModalOpen(true);
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { label: string; color: string }> = {
-      DRAFT: { label: t('common.draft') || 'Draft', color: 'bg-gray-100 text-gray-800' },
-      PENDING: { label: t('common.pending') || 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-      PAID: { label: t('common.paid') || 'Paid', color: 'bg-green-100 text-green-800' },
-      CANCELLED: { label: t('common.cancelled') || 'Cancelled', color: 'bg-red-100 text-red-800' },
-      FAILED: { label: t('common.failed') || 'Failed', color: 'bg-red-100 text-red-800' },
-      REFUNDED: { label: t('common.refunded') || 'Refunded', color: 'bg-purple-100 text-purple-800' },
+  const getStatusBadge = (status: OrderStatus) => {
+    const statusConfig = {
+      DRAFT: { label: t('common.draft'), color: 'bg-gray-100 text-gray-800' },
+      PENDING: { label: t('common.pending'), color: 'bg-yellow-100 text-yellow-800' },
+      PAID: { label: t('common.paid'), color: 'bg-green-100 text-green-800' },
+      CANCELLED: { label: t('common.cancelled'), color: 'bg-red-100 text-red-800' },
+      FAILED: { label: t('common.failed'), color: 'bg-red-100 text-red-800' },
+      REFUNDED: { label: t('common.refunded'), color: 'bg-purple-100 text-purple-800' },
     };
     const config = statusConfig[status] || statusConfig.DRAFT;
     return <Badge className={config.color}>{config.label}</Badge>;
@@ -186,7 +183,7 @@ function SubscriptionOrdersPage() {
     { label: 'Total Orders', value: stats.total, color: 'indigo' as const, icon: ShoppingCart },
     { label: 'Paid', value: stats.paid, color: 'green' as const, icon: CheckCircle },
     { label: 'Pending', value: stats.pending, color: 'yellow' as const, icon: Clock },
-    { label: 'Revenue', value: formatCurrency(stats.totalRevenue, orders[0]?.currency_code || 'VND'), color: 'blue' as const, icon: DollarSign },
+    { label: 'Revenue', value: `$${stats.totalRevenue.toLocaleString()}`, color: 'blue' as const, icon: DollarSign },
   ] : [];
 
   return (
@@ -241,7 +238,7 @@ function SubscriptionOrdersPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
-                placeholder="Search by order number, tenant..."
+                placeholder="Search by order code, tenant..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -253,13 +250,13 @@ function SubscriptionOrdersPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t('common.allStatuses') || 'All Statuses'}</SelectItem>
-                <SelectItem value="DRAFT">{t('common.draft') || 'Draft'}</SelectItem>
-                <SelectItem value="PENDING">{t('common.pending') || 'Pending'}</SelectItem>
-                <SelectItem value="PAID">{t('common.paid') || 'Paid'}</SelectItem>
-                <SelectItem value="CANCELLED">{t('common.cancelled') || 'Cancelled'}</SelectItem>
-                <SelectItem value="FAILED">{t('common.failed') || 'Failed'}</SelectItem>
-                <SelectItem value="REFUNDED">{t('common.refunded') || 'Refunded'}</SelectItem>
+                <SelectItem value="all">{t('common.allStatuses')}</SelectItem>
+                <SelectItem value="DRAFT">{t('common.draft')}</SelectItem>
+                <SelectItem value="PENDING">{t('common.pending')}</SelectItem>
+                <SelectItem value="PAID">{t('common.paid')}</SelectItem>
+                <SelectItem value="CANCELLED">{t('common.cancelled')}</SelectItem>
+                <SelectItem value="FAILED">{t('common.failed')}</SelectItem>
+                <SelectItem value="REFUNDED">{t('common.refunded')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -276,7 +273,7 @@ function SubscriptionOrdersPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 font-semibold text-sm">Order Number</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm">Order Code</th>
                     <th className="text-left py-3 px-4 font-semibold text-sm">Tenant</th>
                     <th className="text-left py-3 px-4 font-semibold text-sm">Type</th>
                     <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
@@ -287,31 +284,23 @@ function SubscriptionOrdersPage() {
                 </thead>
                 <tbody>
                   {filteredOrders.map((order) => (
-                    <tr key={order._id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <tr 
+                      key={order._id} 
+                      className="border-b hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer transition-colors"
+                      onClick={() => router.push(`/commerce/subscription-orders/${order._id}`)}
+                    >
                       <td className="py-3 px-4">
-                        <button 
-                          onClick={() => router.push(`/commerce/subscription-orders/${order._id}`)}
-                          className="hover:underline focus:outline-none"
-                        >
-                          <code className="text-xs bg-gray-100 px-2 py-1 rounded text-indigo-600 hover:text-indigo-800">
-                            {order.order_number}
-                          </code>
-                        </button>
+                        <code className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-medium hover:text-indigo-600">
+                          {order.order_code}
+                        </code>
                       </td>
+                      <td className="py-3 px-4">{order.tenant_name}</td>
                       <td className="py-3 px-4">
-                         <button 
-                          onClick={() => router.push(`/commerce/subscription-orders/${order._id}`)}
-                          className="hover:text-indigo-600 hover:underline focus:outline-none text-left"
-                        >
-                          {(order as OrderWithDetails).tenant_name || order.tenant_id}
-                        </button>
-                      </td>
-                      <td className="py-3 px-4">
-                        <Badge variant="outline">{order.type}</Badge>
+                        <Badge variant="outline">{order.order_type}</Badge>
                       </td>
                       <td className="py-3 px-4">{getStatusBadge(order.status)}</td>
                       <td className="py-3 px-4 text-right font-medium">
-                        {formatCurrency(order.total_amount, order.currency_code)}
+                        ${order.total_amount?.toFixed(2)}
                       </td>
                       <td className="py-3 px-4">
                         {new Date(order.created_at).toLocaleDateString()}
@@ -321,21 +310,30 @@ function SubscriptionOrdersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleViewDetails(order)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDetails(order);
+                            }}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => router.push(`/commerce/subscription-orders/${order._id}`)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/commerce/subscription-orders/${order._id}`);
+                            }}
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(order)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(order);
+                            }}
                             className="text-red-600"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -358,31 +356,24 @@ function SubscriptionOrdersPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOrders.map((order) => (
-              <Card 
-                key={order._id} 
-                className="p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/commerce/subscription-orders/${order._id}`)}
-              >
+              <Card key={order._id} className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded text-indigo-600">
-                      {order.order_number}
+                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {order.order_code}
                     </code>
-                    <p className="text-sm text-gray-600 mt-1">{(order as OrderWithDetails).tenant_name || order.tenant_id}</p>
+                    <p className="text-sm text-gray-600 mt-1">{order.tenant_name}</p>
                   </div>
                   {getStatusBadge(order.status)}
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="text-2xl font-bold">
-                    {formatCurrency(order.total_amount, order.currency_code)}
+                    ${order.total_amount?.toFixed(2)}
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewDetails(order);
-                    }}
+                    onClick={() => handleViewDetails(order)}
                   >
                     View
                   </Button>
