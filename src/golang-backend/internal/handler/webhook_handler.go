@@ -103,9 +103,6 @@ func (h *WebhookHandler) Update(c *gin.Context) {
 		return
 	}
 
-	userID, _ := contextutil.GetUserID(ctx)
-	req.UpdatedBy = userID
-
 	webhook, err := h.webhookService.UpdateWebhook(ctx, webhookID, req)
 	if err != nil {
 		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
@@ -131,53 +128,6 @@ func (h *WebhookHandler) Delete(c *gin.Context) {
 	}
 
 	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "webhook deleted successfully"})
-}
-
-// Test tests a webhook
-func (h *WebhookHandler) Test(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	webhookID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
-		return
-	}
-
-	var req struct {
-		Payload map[string]interface{} `json:"payload"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
-		return
-	}
-
-	result, err := h.webhookService.TestWebhook(ctx, webhookID, req.Payload)
-	if err != nil {
-		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
-		return
-	}
-
-	httputil.SuccessResponse(c, http.StatusOK, result)
-}
-
-// Verify verifies a webhook
-func (h *WebhookHandler) Verify(c *gin.Context) {
-	ctx := c.Request.Context()
-
-	webhookID, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
-		return
-	}
-
-	webhook, err := h.webhookService.VerifyWebhook(ctx, webhookID)
-	if err != nil {
-		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
-		return
-	}
-
-	httputil.SuccessResponse(c, http.StatusOK, webhook)
 }
 
 // Enable enables a webhook
@@ -218,6 +168,50 @@ func (h *WebhookHandler) Disable(c *gin.Context) {
 	httputil.SuccessResponse(c, http.StatusOK, webhook)
 }
 
+// Test tests webhook delivery
+func (h *WebhookHandler) Test(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	result, err := h.webhookService.TestWebhook(ctx, webhookID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, result)
+}
+
+// Trigger manually triggers a webhook
+func (h *WebhookHandler) Trigger(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	var payload map[string]interface{}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid payload", nil)
+		return
+	}
+
+	result, err := h.webhookService.TriggerWebhook(ctx, webhookID, payload)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, result)
+}
+
 // GetDeliveries gets webhook deliveries
 func (h *WebhookHandler) GetDeliveries(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -229,13 +223,71 @@ func (h *WebhookHandler) GetDeliveries(c *gin.Context) {
 	}
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	status := c.Query("status")
 
-	deliveries, total, err := h.webhookService.GetDeliveries(ctx, webhookID, page, limit)
+	deliveries, total, err := h.webhookService.GetDeliveries(ctx, webhookID, status, page, limit)
 	if err != nil {
 		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
 	httputil.PaginatedResponse(c, http.StatusOK, deliveries, total, page, limit)
+}
+
+// RetryDelivery retries a failed delivery
+func (h *WebhookHandler) RetryDelivery(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	deliveryID, err := uuid.Parse(c.Param("delivery_id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid delivery id", nil)
+		return
+	}
+
+	result, err := h.webhookService.RetryDelivery(ctx, deliveryID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, result)
+}
+
+// GetStats gets webhook statistics
+func (h *WebhookHandler) GetStats(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	stats, err := h.webhookService.GetStats(ctx, webhookID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, stats)
+}
+
+// RotateSecret rotates webhook secret
+func (h *WebhookHandler) RotateSecret(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	webhook, err := h.webhookService.RotateSecret(ctx, webhookID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, webhook)
 }

@@ -117,6 +117,65 @@ function AppContent() {
     return unsubscribe;
   }, []);
   
+  // ✅ CRITICAL: Filter and validate routes before rendering
+  const validRoutes = moduleRoutes.filter(route => {
+    if (!route) {
+      console.warn('Found null/undefined route');
+      return false;
+    }
+    if (!route.path) {
+      console.warn('Found route without path:', route);
+      return false;
+    }
+    if (route.element === undefined || route.element === null) {
+      console.warn('Found route with undefined/null element:', route.path);
+      return false;
+    }
+    return true;
+  });
+  
+  console.log('Total routes from registry:', moduleRoutes.length);
+  console.log('Valid routes after filtering:', validRoutes.length);
+  
+  // ✅ DEFENSIVE: Prepare debug routes separately to avoid conditional rendering issues
+  const debugRoutes = process.env.NODE_ENV === "development" ? [
+    <Route key="debug-traffic" path="/debug/traffic-schema" element={
+      <ProtectedRoute>
+        <AppLayout>
+          <TrafficSchemaDebug />
+        </AppLayout>
+      </ProtectedRoute>
+    } />,
+    <Route key="debug-subscriptions" path="/debug/subscriptions-schema" element={
+      <ProtectedRoute>
+        <AppLayout>
+          <SubscriptionsSchemaDebug />
+        </AppLayout>
+      </ProtectedRoute>
+    } />,
+    <Route key="debug-jobs" path="/debug/jobs-schema" element={
+      <ProtectedRoute>
+        <AppLayout>
+          <JobsSchemaDebug />
+        </AppLayout>
+      </ProtectedRoute>
+    } />,
+    <Route key="debug-tenants" path="/debug/tenants-schema" element={
+      <ProtectedRoute>
+        <AppLayout>
+          <TenantsSchemaDebug />
+        </AppLayout>
+      </ProtectedRoute>
+    } />,
+    <Route key="debug-users" path="/debug/users-schema" element={
+      <ProtectedRoute>
+        <AppLayout>
+          <UsersSchemaDebug />
+        </AppLayout>
+      </ProtectedRoute>
+    } />
+  ] : [];
+  
   return (
     <Routes>
       {/* Login Route - Public */}
@@ -248,9 +307,9 @@ function AppContent() {
       <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
       
       {/* Dynamic routes from ModuleRegistry - wrapped with AppLayout */}
-      {moduleRoutes.map((route, index) => (
+      {validRoutes.map((route, index) => (
         <Route 
-          key={route.path ? `${route.path}-${index}` : index}
+          key={`module-route-${route.path}-${index}`}
           path={route.path} 
           element={
             <ProtectedRoute>
@@ -263,45 +322,7 @@ function AppContent() {
       ))}
       
       {/* Debug routes - Development only */}
-      {process.env.NODE_ENV === "development" && (
-        <>
-          <Route path="/debug/traffic-schema" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <TrafficSchemaDebug />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/debug/subscriptions-schema" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <SubscriptionsSchemaDebug />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/debug/jobs-schema" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <JobsSchemaDebug />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/debug/tenants-schema" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <TenantsSchemaDebug />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/debug/users-schema" element={
-            <ProtectedRoute>
-              <AppLayout>
-                <UsersSchemaDebug />
-              </AppLayout>
-            </ProtectedRoute>
-          } />
-        </>
-      )}
+      {debugRoutes}
       
       {/* Catch-all route - redirect to dashboard */}
       <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

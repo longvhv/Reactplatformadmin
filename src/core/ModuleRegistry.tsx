@@ -155,7 +155,22 @@ export class ModuleRegistry {
     this.getEnabledModules().forEach((module) => {
       // Defensive check: ensure module.routes exists and is an array
       if (module && Array.isArray(module.routes)) {
-        routes.push(...module.routes);
+        // ✅ Filter out any invalid routes (undefined, null, or missing required fields)
+        const validRoutes = module.routes.filter(route => 
+          route && 
+          typeof route === 'object' && 
+          route.path && 
+          route.element !== undefined && 
+          route.element !== null
+        );
+        
+        if (validRoutes.length !== module.routes.length) {
+          console.warn(
+            `Module ${module.id} has ${module.routes.length - validRoutes.length} invalid routes filtered out`
+          );
+        }
+        
+        routes.push(...validRoutes);
       } else {
         console.warn(`Module ${module?.id || 'unknown'} has invalid routes:`, module?.routes);
       }

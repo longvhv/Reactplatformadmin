@@ -35,8 +35,9 @@ func (h *APIKeyHandler) List(c *gin.Context) {
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	status := c.Query("status")
 
-	keys, total, err := h.apiKeyService.ListByTenant(ctx, tenantID, page, limit)
+	keys, total, err := h.apiKeyService.ListByTenant(ctx, tenantID, status, page, limit)
 	if err != nil {
 		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
@@ -77,17 +78,13 @@ func (h *APIKeyHandler) Create(c *gin.Context) {
 	userID, _ := contextutil.GetUserID(ctx)
 	req.CreatedBy = userID
 
-	key, plainKey, err := h.apiKeyService.CreateAPIKey(ctx, req)
+	key, err := h.apiKeyService.CreateAPIKey(ctx, req)
 	if err != nil {
 		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	httputil.SuccessResponse(c, http.StatusCreated, gin.H{
-		"api_key":   key,
-		"plain_key": plainKey,
-		"warning":   "Please save this key, it will not be shown again",
-	})
+	httputil.SuccessResponse(c, http.StatusCreated, key)
 }
 
 // Update updates an API key
@@ -152,6 +149,25 @@ func (h *APIKeyHandler) Revoke(c *gin.Context) {
 	httputil.SuccessResponse(c, http.StatusOK, key)
 }
 
+// Activate activates an API key
+func (h *APIKeyHandler) Activate(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	keyID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid key id", nil)
+		return
+	}
+
+	key, err := h.apiKeyService.ActivateAPIKey(ctx, keyID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, key)
+}
+
 // Rotate rotates an API key
 func (h *APIKeyHandler) Rotate(c *gin.Context) {
 	ctx := c.Request.Context()
@@ -162,15 +178,58 @@ func (h *APIKeyHandler) Rotate(c *gin.Context) {
 		return
 	}
 
-	key, plainKey, err := h.apiKeyService.RotateAPIKey(ctx, keyID)
+	key, err := h.apiKeyService.RotateAPIKey(ctx, keyID)
 	if err != nil {
 		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
+	httputil.SuccessResponse(c, http.StatusOK, key)
+}
+
+// GetUsage gets API key usage statistics
+func (h *APIKeyHandler) GetUsage(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	keyID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid key id", nil)
+		return
+	}
+
+	usage, err := h.apiKeyService.GetUsageStats(ctx, keyID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, usage)
+}
+
+// Validate validates an API key
+func (h *APIKeyHandler) Validate(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req struct {
+		APIKey string `json:"api_key" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	key, valid, err := h.apiKeyService.ValidateAPIKey(ctx, req.APIKey)
+	if err != nil || !valid {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "invalid API key", nil)
+		return
+	}
+
 	httputil.SuccessResponse(c, http.StatusOK, gin.H{
-		"api_key":   key,
-		"plain_key": plainKey,
-		"warning":   "Please save this new key, it will not be shown again",
+		"valid":      true,
+		"key_id":     key.ID,
+		"tenant_id":  key.TenantID,
+		"scopes":     key.Scopes,
+		"expires_at": key.ExpiresAt,
 	})
 }
