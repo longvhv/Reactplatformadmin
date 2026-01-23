@@ -3,141 +3,156 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/models"
 	"github.com/vhv-platform/backend/internal/repository"
+	"github.com/vhv-platform/backend/pkg/cache"
 )
 
-// RoleService handles business logic for roles
 type RoleService struct {
-	repo *repository.RoleRepository
+	roleRepo repository.RoleRepository
+	cache    cache.Cache
 }
 
-// NewRoleService creates a new role service
-func NewRoleService(repo *repository.RoleRepository) *RoleService {
-	return &RoleService{repo: repo}
+func NewRoleService(roleRepo repository.RoleRepository, cache cache.Cache) *RoleService {
+	return &RoleService{
+		roleRepo: roleRepo,
+		cache:    cache,
+	}
 }
 
-// GetAll retrieves all roles with filters
-func (s *RoleService) GetAll(ctx context.Context, filters models.RoleFilters) ([]models.Role, error) {
-	return s.repo.GetAll(ctx, filters)
-}
-
-// GetByID retrieves a role by ID
-func (s *RoleService) GetByID(ctx context.Context, id string) (*models.Role, error) {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid role ID format")
+// GetByID gets role by ID
+func (s *RoleService) GetByID(ctx context.Context, id uuid.UUID) (*models.Role, error) {
+	cacheKey := cache.RoleCacheKey(id.String())
+	var role models.Role
+	err := s.cache.GetJSON(ctx, cacheKey, &role)
+	if err == nil {
+		return &role, nil
 	}
 
-	return s.repo.GetByID(ctx, id)
-}
-
-// Create creates a new role
-func (s *RoleService) Create(ctx context.Context, req models.CreateRoleRequest) (*models.Role, error) {
-	// Validate request
-	if err := s.validateCreateRequest(req); err != nil {
-		return nil, err
-	}
-
-	return s.repo.Create(ctx, req)
-}
-
-// Update updates a role
-func (s *RoleService) Update(ctx context.Context, id string, req models.UpdateRoleRequest) (*models.Role, error) {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid role ID format")
-	}
-
-	// Validate request
-	if err := s.validateUpdateRequest(req); err != nil {
-		return nil, err
-	}
-
-	// Check if role exists and get current data
-	currentRole, err := s.repo.GetByID(ctx, id)
+	dbRole, err := s.roleRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Cannot modify SYSTEM roles (except permissions)
-	if currentRole.Type == models.RoleTypeSystem {
-		if req.Name != nil || req.Description != nil {
-			return nil, fmt.Errorf("cannot modify name or description of SYSTEM roles")
-		}
-	}
-
-	return s.repo.Update(ctx, id, req)
+	_ = s.cache.SetJSON(ctx, cacheKey, dbRole, cache.RoleTTL)
+	return dbRole, nil
 }
 
-// Delete deletes a role
-func (s *RoleService) Delete(ctx context.Context, id string) error {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return fmt.Errorf("invalid role ID format")
-	}
-
-	// Check if role exists and is not SYSTEM
-	role, err := s.repo.GetByID(ctx, id)
+// ListByTenant lists roles by tenant
+func (s *RoleService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.Role, int64, error) {
+	offset := (page - 1) * limit
+	roles, total, err := s.roleRepo.ListByTenant(ctx, tenantID, limit, offset)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
-	if role.Type == models.RoleTypeSystem {
-		return fmt.Errorf("cannot delete SYSTEM roles")
-	}
-
-	// TODO: Check if role is assigned to any users
-	// This should be done with a join to user_roles table
-
-	return s.repo.Delete(ctx, id)
+	return roles, total, nil
 }
 
-// validateCreateRequest validates create role request
-func (s *RoleService) validateCreateRequest(req models.CreateRoleRequest) error {
-	// Validate tenant ID
-	if !isValidUUID(req.TenantID) {
-		return fmt.Errorf("invalid tenant ID format")
+// CreateRole creates a new role
+func (s *RoleService) CreateRole(ctx context.Context, req CreateRoleRequest) (*models.Role, error) {
+	if req.Name == "" {
+		return nil, fmt.Errorf("role name is required")
 	}
 
-	// Validate name
-	name := strings.TrimSpace(req.Name)
-	if name == "" {
-		return fmt.Errorf("role name is required")
+	// Check if role name exists in tenant
+	exists, err := s.roleRepo.ExistsByName(ctx, req.TenantID, req.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check role name: %w", err)
 	}
-	if len(name) > 100 {
-		return fmt.Errorf("role name cannot exceed 100 characters")
-	}
-
-	// Validate type
-	if req.Type != "" && req.Type != models.RoleTypeSystem && req.Type != models.RoleTypeCustom {
-		return fmt.Errorf("invalid role type: must be SYSTEM or CUSTOM")
+	if exists {
+		return nil, fmt.Errorf("role name already exists in tenant")
 	}
 
-	return nil
+	role := &models.Role{
+		ID:              uuid.New(),
+		TenantID:        req.TenantID,
+		Name:            req.Name,
+		Description:     req.Description,
+		Type:            req.Type,
+		PermissionCodes: req.PermissionCodes,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		Version:         1,
+	}
+
+	if role.Type == "" {
+		role.Type = "CUSTOM"
+	}
+
+	if err := s.roleRepo.Create(ctx, role); err != nil {
+		return nil, fmt.Errorf("failed to create role: %w", err)
+	}
+
+	return role, nil
 }
 
-// validateUpdateRequest validates update role request
-func (s *RoleService) validateUpdateRequest(req models.UpdateRoleRequest) error {
-	// Validate name if provided
+// UpdateRole updates a role
+func (s *RoleService) UpdateRole(ctx context.Context, id uuid.UUID, req UpdateRoleRequest) (*models.Role, error) {
+	role, err := s.roleRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("role not found: %w", err)
+	}
+
+	// Cannot update system roles
+	if role.Type == "SYSTEM" {
+		return nil, fmt.Errorf("cannot update system role")
+	}
+
 	if req.Name != nil {
-		name := strings.TrimSpace(*req.Name)
-		if name == "" {
-			return fmt.Errorf("role name cannot be empty")
+		// Check if new name exists
+		exists, err := s.roleRepo.ExistsByName(ctx, role.TenantID, *req.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check role name: %w", err)
 		}
-		if len(name) > 100 {
-			return fmt.Errorf("role name cannot exceed 100 characters")
+		if exists && *req.Name != role.Name {
+			return nil, fmt.Errorf("role name already exists in tenant")
 		}
+		role.Name = *req.Name
 	}
 
-	return nil
+	if req.Description != nil {
+		role.Description = req.Description
+	}
+
+	if req.PermissionCodes != nil {
+		role.PermissionCodes = req.PermissionCodes
+	}
+
+	role.UpdatedAt = time.Now()
+	role.Version++
+
+	if err := s.roleRepo.Update(ctx, role); err != nil {
+		return nil, fmt.Errorf("failed to update role: %w", err)
+	}
+
+	cacheKey := cache.RoleCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	return role, nil
 }
 
-// isValidUUID checks if string is valid UUID
-func isValidUUID(s string) bool {
-	_, err := uuid.Parse(s)
-	return err == nil
+// DeleteRole deletes a role
+func (s *RoleService) DeleteRole(ctx context.Context, id uuid.UUID) error {
+	role, err := s.roleRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("role not found: %w", err)
+	}
+
+	// Cannot delete system roles
+	if role.Type == "SYSTEM" {
+		return fmt.Errorf("cannot delete system role")
+	}
+
+	if err := s.roleRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete role: %w", err)
+	}
+
+	cacheKey := cache.RoleCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	return nil
 }

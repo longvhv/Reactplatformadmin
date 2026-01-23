@@ -1,0 +1,132 @@
+UserGroup:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        code:
+          type: string
+          description: Group code
+          example: "MANAGERS"
+        name:
+          type: string
+          description: Group name
+          example: "Managers"
+        description:
+          type: string
+          nullable: true
+          description: Group description
+          example: "All department managers"
+        group_type:
+          type: string
+          nullable: true
+          description: Type of group
+          example: "ROLE_BASED"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+          default: "ACTIVE"
+          description: Group status
+          example: "ACTIVE"
+        order:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Display order
+          example: 1
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - code
+        - name
+        - status
+
+CreateUserGroupRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    code:
+      type: string
+      example: "MANAGERS"
+    name:
+      type: string
+      example: "Managers"
+    description:
+      type: string
+      nullable: true
+    group_type:
+      type: string
+      nullable: true
+    order:
+      type: integer
+      minimum: 0
+      default: 0
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - code
+    - name
+
+UpdateUserGroupRequest:
+  type: object
+  properties:
+    code:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    group_type:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, ARCHIVED]
+    order:
+      type: integer
+      minimum: 0
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+UserGroupListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserGroup'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserGroupResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserGroup'
+  required:
+    - success
+    - data

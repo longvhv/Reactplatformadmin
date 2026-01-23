@@ -1,0 +1,248 @@
+ApiKey:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated tenant ID (null for platform-level keys)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          format: uuid
+          description: User who created the API key
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: API key name/description
+          example: "Production API Key"
+        key_prefix:
+          type: string
+          description: Key prefix for identification (e.g., sk_live_)
+          example: "sk_live_"
+        key_hash:
+          type: string
+          description: Hashed API key (never store plain text)
+          example: "hash_abc123..."
+        key_type:
+          type: string
+          enum:
+            - PUBLISHABLE
+            - SECRET
+            - RESTRICTED
+          description: API key type
+          example: "SECRET"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - REVOKED
+            - EXPIRED
+          description: API key status
+          example: "ACTIVE"
+        scopes:
+          type: array
+          items:
+            type: string
+          description: Permission scopes
+          example:
+            - "read:users"
+            - "write:orders"
+            - "read:invoices"
+        rate_limit:
+          type: object
+          nullable: true
+          properties:
+            requests_per_minute:
+              type: integer
+              minimum: 0
+            requests_per_hour:
+              type: integer
+              minimum: 0
+            requests_per_day:
+              type: integer
+              minimum: 0
+          description: Rate limit configuration
+        allowed_ips:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Whitelisted IP addresses
+          example:
+            - "192.168.1.0/24"
+            - "10.0.0.100"
+        allowed_origins:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Allowed CORS origins
+          example:
+            - "https://example.com"
+            - "https://app.example.com"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Expiration date (null for never expires)
+          example: "2027-01-22T00:00:00Z"
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last usage timestamp
+          example: "2026-01-22T14:30:00Z"
+        usage_count:
+          type: integer
+          minimum: 0
+          description: Total usage count
+          example: 12543
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - user_id
+        - name
+        - key_prefix
+        - key_hash
+        - key_type
+        - status
+
+CreateApiKeyRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    name:
+      type: string
+      example: "Development API Key"
+    key_type:
+      type: string
+      enum: [PUBLISHABLE, SECRET, RESTRICTED]
+      example: "SECRET"
+    scopes:
+      type: array
+      items:
+        type: string
+      minItems: 1
+      example:
+        - "read:*"
+        - "write:orders"
+    rate_limit:
+      type: object
+      nullable: true
+      properties:
+        requests_per_minute:
+          type: integer
+          minimum: 0
+          example: 100
+        requests_per_hour:
+          type: integer
+          minimum: 0
+        requests_per_day:
+          type: integer
+          minimum: 0
+    allowed_ips:
+      type: array
+      items:
+        type: string
+      nullable: true
+    allowed_origins:
+      type: array
+      items:
+        type: string
+      nullable: true
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Optional expiration date
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - name
+    - key_type
+    - scopes
+
+UpdateApiKeyRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, REVOKED, EXPIRED]
+    scopes:
+      type: array
+      items:
+        type: string
+      minItems: 1
+    rate_limit:
+      type: object
+      nullable: true
+      properties:
+        requests_per_minute:
+          type: integer
+          minimum: 0
+        requests_per_hour:
+          type: integer
+          minimum: 0
+        requests_per_day:
+          type: integer
+          minimum: 0
+    allowed_ips:
+      type: array
+      items:
+        type: string
+      nullable: true
+    allowed_origins:
+      type: array
+      items:
+        type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+ApiKeyResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      allOf:
+        - $ref: '#/ApiKey'
+        - type: object
+          properties:
+            plain_key:
+              type: string
+              description: Plain text key (only shown once at creation)
+              example: "sk_live_abc123xyz789..."
+  required:
+    - success
+    - data
+
+ApiKeyListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/ApiKey'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta

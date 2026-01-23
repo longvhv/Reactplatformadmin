@@ -1,0 +1,207 @@
+/api-keys:
+  get:
+    summary: List API keys
+    description: Retrieve a paginated list of API keys
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: key_type
+        in: query
+        schema:
+          type: string
+          enum: [PUBLISHABLE, SECRET, RESTRICTED]
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [ACTIVE, INACTIVE, REVOKED, EXPIRED]
+    responses:
+      '200':
+        description: API keys retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/api-key.yaml#/ApiKeyListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create API key
+    description: Generate a new API key
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/api-key.yaml#/CreateApiKeyRequest'
+    responses:
+      '201':
+        description: API key created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/api-key.yaml#/ApiKeyResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/api-keys/{id}:
+  get:
+    summary: Get API key by ID
+    description: Retrieve a single API key (without plain key)
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: API key retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/api-key.yaml#/ApiKeyResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update API key
+    description: Update API key configuration
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/api-key.yaml#/UpdateApiKeyRequest'
+    responses:
+      '200':
+        description: API key updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/api-key.yaml#/ApiKeyResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete API key
+    description: Revoke and delete an API key
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/api-keys/{id}/revoke:
+  post:
+    summary: Revoke API key
+    description: Revoke an API key (changes status to REVOKED)
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: API key revoked successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/api-key.yaml#/ApiKeyResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/api-keys/{id}/regenerate:
+  post:
+    summary: Regenerate API key
+    description: Generate a new key while keeping the same configuration
+    tags:
+      - API Keys
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: API key regenerated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/api-key.yaml#/ApiKeyResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

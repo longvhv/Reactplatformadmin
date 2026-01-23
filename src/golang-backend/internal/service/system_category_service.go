@@ -2,43 +2,102 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type SystemCategoryService interface {
-	CreateCategory(ctx context.Context, req *models.CreateSystemCategoryRequest) (*models.SystemCategory, error)
-	GetCategory(ctx context.Context, id uuid.UUID) (*models.SystemCategory, error)
-	GetCategoryByCode(ctx context.Context, tenantID uuid.UUID, code string) (*models.SystemCategory, error)
-	ListCategories(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, categoryType *string, status *int16) ([]*models.SystemCategory, int, error)
-	ListCategoriesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemCategory, error)
-	ListCategoriesByType(ctx context.Context, tenantID uuid.UUID, categoryType string) ([]*models.SystemCategory, error)
-	UpdateCategory(ctx context.Context, id uuid.UUID, req *models.UpdateSystemCategoryRequest) (*models.SystemCategory, error)
-	DeleteCategory(ctx context.Context, id uuid.UUID) error
-	SoftDeleteCategory(ctx context.Context, id uuid.UUID, deletedBy uuid.UUID) error
+type SystemCategoryService struct {
+	categoryRepo repository.SystemCategoryRepository
 }
 
-type systemCategoryService struct {
-	repo repository.SystemCategoryRepository
+func NewSystemCategoryService(categoryRepo repository.SystemCategoryRepository) *SystemCategoryService {
+	return &SystemCategoryService{
+		categoryRepo: categoryRepo,
+	}
 }
 
-func NewSystemCategoryService(repo repository.SystemCategoryRepository) SystemCategoryService {
-	return &systemCategoryService{repo: repo}
+type CreateSystemCategoryRequest struct {
+	TenantID        uuid.UUID              `json:"tenant_id" binding:"required"`
+	Type            string                 `json:"type" binding:"required"`
+	Code            string                 `json:"code" binding:"required"`
+	Name            string                 `json:"name" binding:"required"`
+	Status          int                    `json:"status"`
+	Order           int                    `json:"order"`
+	Description     *string                `json:"description"`
+	ParentID        *string                `json:"parent_id"`
+	GroupCategoryID *string                `json:"group_category_id"`
+	CollectionName  string                 `json:"collection_name"`
+	ExtraFields     []interface{}          `json:"extra_fields"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	IsSystem        bool                   `json:"is_system"`
+	IsEditable      bool                   `json:"is_editable"`
+	CreatedBy       uuid.UUID              `json:"-"`
 }
 
-func (s *systemCategoryService) CreateCategory(ctx context.Context, req *models.CreateSystemCategoryRequest) (*models.SystemCategory, error) {
-	collectionName := "system_categories"
-	if req.CollectionName != nil {
-		collectionName = *req.CollectionName
+type UpdateSystemCategoryRequest struct {
+	Name            *string                `json:"name"`
+	Status          *int                   `json:"status"`
+	Order           *int                   `json:"order"`
+	Description     *string                `json:"description"`
+	ParentID        *string                `json:"parent_id"`
+	GroupCategoryID *string                `json:"group_category_id"`
+	ExtraFields     []interface{}          `json:"extra_fields"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	UpdatedBy       uuid.UUID              `json:"-"`
+}
+
+// GetByID gets category by ID
+func (s *SystemCategoryService) GetByID(ctx context.Context, id uuid.UUID) (*models.SystemCategory, error) {
+	return s.categoryRepo.GetByID(ctx, id)
+}
+
+// GetByCode gets category by code
+func (s *SystemCategoryService) GetByCode(ctx context.Context, tenantID uuid.UUID, code string) (*models.SystemCategory, error) {
+	return s.categoryRepo.GetByCode(ctx, tenantID, code)
+}
+
+// ListByTenant lists categories by tenant
+func (s *SystemCategoryService) ListByTenant(ctx context.Context, tenantID uuid.UUID, categoryType string, status *int, page, limit int) ([]*models.SystemCategory, int64, error) {
+	offset := (page - 1) * limit
+	return s.categoryRepo.ListByTenant(ctx, tenantID, categoryType, status, limit, offset)
+}
+
+// GetByType gets categories by type
+func (s *SystemCategoryService) GetByType(ctx context.Context, tenantID uuid.UUID, categoryType string) ([]*models.SystemCategory, error) {
+	categories, _, err := s.categoryRepo.ListByTenant(ctx, tenantID, categoryType, nil, 1000, 0)
+	return categories, err
+}
+
+// CreateCategory creates a new category
+func (s *SystemCategoryService) CreateCategory(ctx context.Context, req CreateSystemCategoryRequest) (*models.SystemCategory, error) {
+	// Check if code exists for this tenant
+	existing, err := s.categoryRepo.GetByCode(ctx, req.TenantID, req.Code)
+	if err == nil && existing != nil {
+		return nil, fmt.Errorf("category code already exists for this tenant")
 	}
 
-	order := 0
-	if req.Order != nil {
-		order = *req.Order
+	status := req.Status
+	if status == 0 {
+		status = 1
+	}
+
+	collectionName := req.CollectionName
+	if collectionName == "" {
+		collectionName = "system_categories"
+	}
+
+	extraFields := req.ExtraFields
+	if extraFields == nil {
+		extraFields = []interface{}{}
+	}
+
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
 	}
 
 	category := &models.SystemCategory{
@@ -47,53 +106,38 @@ func (s *systemCategoryService) CreateCategory(ctx context.Context, req *models.
 		Type:            req.Type,
 		Code:            req.Code,
 		Name:            req.Name,
-		Status:          1, // active by default
-		Order:           order,
+		Status:          status,
+		Order:           req.Order,
 		Description:     req.Description,
 		ParentID:        req.ParentID,
 		GroupCategoryID: req.GroupCategoryID,
 		CollectionName:  collectionName,
-		ExtraFields:     req.ExtraFields,
-		Metadata:        req.Metadata,
-		IsSystem:        false,
-		IsEditable:      true,
+		ExtraFields:     extraFields,
+		Metadata:        metadata,
+		IsSystem:        req.IsSystem,
+		IsEditable:      req.IsEditable,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
+		CreatedBy:       &req.CreatedBy,
 		Version:         1,
 	}
 
-	err := s.repo.Create(ctx, category)
-	if err != nil {
-		return nil, err
+	if err := s.categoryRepo.Create(ctx, category); err != nil {
+		return nil, fmt.Errorf("failed to create category: %w", err)
 	}
 
 	return category, nil
 }
 
-func (s *systemCategoryService) GetCategory(ctx context.Context, id uuid.UUID) (*models.SystemCategory, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *systemCategoryService) GetCategoryByCode(ctx context.Context, tenantID uuid.UUID, code string) (*models.SystemCategory, error) {
-	return s.repo.GetByCode(ctx, tenantID, code)
-}
-
-func (s *systemCategoryService) ListCategories(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, categoryType *string, status *int16) ([]*models.SystemCategory, int, error) {
-	return s.repo.List(ctx, page, pageSize, tenantID, categoryType, status)
-}
-
-func (s *systemCategoryService) ListCategoriesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemCategory, error) {
-	return s.repo.ListByTenant(ctx, tenantID)
-}
-
-func (s *systemCategoryService) ListCategoriesByType(ctx context.Context, tenantID uuid.UUID, categoryType string) ([]*models.SystemCategory, error) {
-	return s.repo.ListByType(ctx, tenantID, categoryType)
-}
-
-func (s *systemCategoryService) UpdateCategory(ctx context.Context, id uuid.UUID, req *models.UpdateSystemCategoryRequest) (*models.SystemCategory, error) {
-	category, err := s.repo.GetByID(ctx, id)
+// UpdateCategory updates a category
+func (s *SystemCategoryService) UpdateCategory(ctx context.Context, id uuid.UUID, req UpdateSystemCategoryRequest) (*models.SystemCategory, error) {
+	category, err := s.categoryRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("category not found: %w", err)
+	}
+
+	if !category.IsEditable {
+		return nil, fmt.Errorf("category is not editable")
 	}
 
 	if req.Name != nil {
@@ -121,18 +165,41 @@ func (s *systemCategoryService) UpdateCategory(ctx context.Context, id uuid.UUID
 		category.Metadata = req.Metadata
 	}
 
-	err = s.repo.Update(ctx, category)
-	if err != nil {
-		return nil, err
+	category.UpdatedAt = time.Now()
+	category.UpdatedBy = &req.UpdatedBy
+	category.Version++
+
+	if err := s.categoryRepo.Update(ctx, category); err != nil {
+		return nil, fmt.Errorf("failed to update category: %w", err)
 	}
 
 	return category, nil
 }
 
-func (s *systemCategoryService) DeleteCategory(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// DeleteCategory deletes a category
+func (s *SystemCategoryService) DeleteCategory(ctx context.Context, id uuid.UUID) error {
+	category, err := s.categoryRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("category not found: %w", err)
+	}
+
+	if category.IsSystem {
+		return fmt.Errorf("cannot delete system category")
+	}
+
+	if !category.IsEditable {
+		return fmt.Errorf("category is not editable")
+	}
+
+	return s.categoryRepo.Delete(ctx, id)
 }
 
-func (s *systemCategoryService) SoftDeleteCategory(ctx context.Context, id uuid.UUID, deletedBy uuid.UUID) error {
-	return s.repo.SoftDelete(ctx, id, deletedBy)
+// GetChildren gets child categories
+func (s *SystemCategoryService) GetChildren(ctx context.Context, tenantID uuid.UUID, parentCode string) ([]*models.SystemCategory, error) {
+	return s.categoryRepo.GetChildren(ctx, tenantID, parentCode)
+}
+
+// GetByGroup gets categories by group
+func (s *SystemCategoryService) GetByGroup(ctx context.Context, tenantID uuid.UUID, groupID string) ([]*models.SystemCategory, error) {
+	return s.categoryRepo.GetByGroup(ctx, tenantID, groupID)
 }

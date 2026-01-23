@@ -1,0 +1,154 @@
+/departments:
+  get:
+    summary: List departments
+    description: Retrieve a paginated list of departments
+    tags:
+      - Departments
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [ACTIVE, INACTIVE, ARCHIVED]
+      - name: parent_department_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Departments retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/department.yaml#/DepartmentListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create department
+    description: Create a new department
+    tags:
+      - Departments
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/department.yaml#/CreateDepartmentRequest'
+    responses:
+      '201':
+        description: Department created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/department.yaml#/DepartmentResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/departments/{id}:
+  get:
+    summary: Get department by ID
+    description: Retrieve a single department
+    tags:
+      - Departments
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Department retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/department.yaml#/DepartmentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update department
+    description: Update department details
+    tags:
+      - Departments
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/department.yaml#/UpdateDepartmentRequest'
+    responses:
+      '200':
+        description: Department updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/department.yaml#/DepartmentResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete department
+    description: Delete a department (soft delete)
+    tags:
+      - Departments
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

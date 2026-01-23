@@ -1,0 +1,133 @@
+/tenant-service-deliveries:
+  get:
+    summary: List service deliveries
+    description: Retrieve tenant service deliveries
+    tags:
+      - Tenant Service Deliveries
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: product_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: subscription_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
+    responses:
+      '200':
+        description: Deliveries retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-service-delivery.yaml#/TenantServiceDeliveryListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create service delivery
+    description: Create a new service delivery
+    tags:
+      - Tenant Service Deliveries
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-service-delivery.yaml#/CreateTenantServiceDeliveryRequest'
+    responses:
+      '201':
+        description: Delivery created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-service-delivery.yaml#/TenantServiceDeliveryResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-service-deliveries/{id}:
+  get:
+    summary: Get delivery by ID
+    description: Retrieve a single service delivery
+    tags:
+      - Tenant Service Deliveries
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Delivery retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-service-delivery.yaml#/TenantServiceDeliveryResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update delivery
+    description: Update service delivery progress
+    tags:
+      - Tenant Service Deliveries
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-service-delivery.yaml#/UpdateTenantServiceDeliveryRequest'
+    responses:
+      '200':
+        description: Delivery updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-service-delivery.yaml#/TenantServiceDeliveryResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

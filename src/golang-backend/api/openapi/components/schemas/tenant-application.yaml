@@ -1,0 +1,175 @@
+TenantApplication:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        application_id:
+          type: string
+          format: uuid
+          description: Associated application ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        subscription_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated subscription ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        status:
+          type: string
+          enum:
+            - TRIAL
+            - ACTIVE
+            - SUSPENDED
+            - CANCELLED
+            - EXPIRED
+          description: Application status for this tenant
+          example: "ACTIVE"
+        enabled_at:
+          type: string
+          format: date-time
+          description: When application was enabled
+          example: "2026-01-15T10:00:00Z"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Expiration date (null for permanent)
+          example: null
+        trial_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Trial period end date
+          example: "2026-01-29T23:59:59Z"
+        settings:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: Application-specific settings
+          example:
+            theme: "dark"
+            notifications_enabled: true
+        features:
+          type: array
+          items:
+            type: string
+          description: Enabled features
+          example:
+            - "advanced_reporting"
+            - "api_access"
+        usage_stats:
+          type: object
+          nullable: true
+          properties:
+            total_users:
+              type: integer
+              minimum: 0
+            storage_used_mb:
+              type: number
+              format: decimal
+            api_calls_today:
+              type: integer
+              minimum: 0
+          description: Usage statistics
+        last_accessed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last access time
+          example: "2026-01-22T14:30:00Z"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - application_id
+        - status
+        - enabled_at
+
+EnableApplicationRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    application_id:
+      type: string
+      format: uuid
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    subscription_id:
+      type: string
+      format: uuid
+      nullable: true
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    trial_days:
+      type: integer
+      minimum: 0
+      nullable: true
+      description: Trial period in days
+      example: 14
+    settings:
+      type: object
+      additionalProperties: true
+      nullable: true
+    features:
+      type: array
+      items:
+        type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - application_id
+
+UpdateTenantApplicationRequest:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [TRIAL, ACTIVE, SUSPENDED, CANCELLED, EXPIRED]
+    settings:
+      type: object
+      additionalProperties: true
+      nullable: true
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+TenantApplicationListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantApplication'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantApplicationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantApplication'
+  required:
+    - success
+    - data

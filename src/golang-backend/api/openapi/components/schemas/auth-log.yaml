@@ -1,0 +1,99 @@
+AuthLog:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: User ID (null for failed login attempts)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Tenant ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        action:
+          type: string
+          description: Authentication action
+          example: "LOGIN"
+        status:
+          type: string
+          description: Action status
+          example: "SUCCESS"
+        ip_address:
+          type: string
+          nullable: true
+          description: IP address
+          example: "192.168.1.100"
+        user_agent:
+          type: string
+          nullable: true
+          description: User agent string
+          example: "Mozilla/5.0..."
+        browser:
+          type: string
+          nullable: true
+          description: Browser name
+          example: "Chrome"
+        os:
+          type: string
+          nullable: true
+          description: Operating system
+          example: "Windows 10"
+        device_type:
+          type: string
+          nullable: true
+          description: Device type
+          example: "Desktop"
+        location:
+          type: string
+          nullable: true
+          description: Geographic location
+          example: "Ho Chi Minh City, Vietnam"
+        country_code:
+          type: string
+          nullable: true
+          description: Country code
+          example: "VN"
+        error_message:
+          type: string
+          nullable: true
+          description: Error message for failed attempts
+          example: null
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - action
+        - status
+
+AuthLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/AuthLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+AuthLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/AuthLog'
+  required:
+    - success
+    - data

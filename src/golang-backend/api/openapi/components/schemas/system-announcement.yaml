@@ -1,0 +1,223 @@
+SystemAnnouncement:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        title:
+          type: string
+          description: Announcement title
+          example: "System Maintenance Notice"
+        content:
+          type: string
+          description: Announcement content
+          example: "We will perform scheduled maintenance on..."
+        type:
+          type: string
+          default: "info"
+          description: Announcement type
+          example: "warning"
+        priority:
+          type: string
+          default: "normal"
+          description: Priority level
+          example: "high"
+        category:
+          type: string
+          nullable: true
+          description: Category
+          example: "maintenance"
+        status:
+          type: string
+          default: "draft"
+          description: Status
+          example: "published"
+        is_published:
+          type: boolean
+          default: false
+          description: Published status
+          example: true
+        is_pinned:
+          type: boolean
+          default: false
+          description: Pinned status
+          example: true
+        start_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start date
+          example: "2026-01-25T00:00:00Z"
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date
+          example: "2026-01-26T00:00:00Z"
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Publication timestamp
+          example: "2026-01-22T10:00:00Z"
+        target_audience:
+          type: object
+          description: Target audience
+          default:
+            all: true
+          example:
+            roles: ["admin", "manager"]
+        display_location:
+          type: array
+          items:
+            type: string
+          description: Display locations
+          default: ["dashboard"]
+          example: ["dashboard", "header"]
+        icon:
+          type: string
+          nullable: true
+          description: Icon identifier
+          example: "alert-triangle"
+        color:
+          type: string
+          nullable: true
+          description: Color
+          example: "#FF6B00"
+        link_url:
+          type: string
+          nullable: true
+          description: Link URL
+          example: "https://status.example.com"
+      required:
+        - tenant_id
+        - title
+        - content
+
+CreateSystemAnnouncementRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    title:
+      type: string
+    content:
+      type: string
+    type:
+      type: string
+      default: "info"
+    priority:
+      type: string
+      default: "normal"
+    category:
+      type: string
+      nullable: true
+    is_pinned:
+      type: boolean
+      default: false
+    start_date:
+      type: string
+      format: date-time
+      nullable: true
+    end_date:
+      type: string
+      format: date-time
+      nullable: true
+    target_audience:
+      type: object
+      nullable: true
+    display_location:
+      type: array
+      items:
+        type: string
+      nullable: true
+    icon:
+      type: string
+      nullable: true
+    color:
+      type: string
+      nullable: true
+    link_url:
+      type: string
+      nullable: true
+  required:
+    - tenant_id
+    - title
+    - content
+
+UpdateSystemAnnouncementRequest:
+  type: object
+  properties:
+    title:
+      type: string
+    content:
+      type: string
+    type:
+      type: string
+    priority:
+      type: string
+    category:
+      type: string
+      nullable: true
+    status:
+      type: string
+    is_pinned:
+      type: boolean
+    start_date:
+      type: string
+      format: date-time
+      nullable: true
+    end_date:
+      type: string
+      format: date-time
+      nullable: true
+    target_audience:
+      type: object
+    display_location:
+      type: array
+      items:
+        type: string
+    icon:
+      type: string
+      nullable: true
+    color:
+      type: string
+      nullable: true
+    link_url:
+      type: string
+      nullable: true
+  minProperties: 1
+
+SystemAnnouncementListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/SystemAnnouncement'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+SystemAnnouncementResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/SystemAnnouncement'
+  required:
+    - success
+    - data

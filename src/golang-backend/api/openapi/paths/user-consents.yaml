@@ -1,0 +1,146 @@
+/user-consents:
+  get:
+    summary: List user consents
+    description: Retrieve user consents
+    tags:
+      - User Consents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: legal_document_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: consent_given
+        in: query
+        schema:
+          type: boolean
+      - name: withdrawn
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Consents retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-consent.yaml#/UserConsentListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create consent
+    description: Record user consent
+    tags:
+      - User Consents
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-consent.yaml#/CreateUserConsentRequest'
+    responses:
+      '201':
+        description: Consent recorded successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-consent.yaml#/UserConsentResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-consents/{id}:
+  get:
+    summary: Get consent by ID
+    description: Retrieve a single consent
+    tags:
+      - User Consents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Consent retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-consent.yaml#/UserConsentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-consents/{id}/withdraw:
+  post:
+    summary: Withdraw consent
+    description: Withdraw user consent
+    tags:
+      - User Consents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-consent.yaml#/WithdrawConsentRequest'
+    responses:
+      '200':
+        description: Consent withdrawn successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-consent.yaml#/UserConsentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-consents/me:
+  get:
+    summary: Get my consents
+    description: Retrieve current user's consents
+    tags:
+      - User Consents
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: Consents retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-consent.yaml#/UserConsentListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

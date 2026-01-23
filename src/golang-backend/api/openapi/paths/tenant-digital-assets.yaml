@@ -1,0 +1,163 @@
+/tenant-digital-assets:
+  get:
+    summary: List digital assets
+    description: Retrieve tenant digital assets
+    tags:
+      - Tenant Digital Assets
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: asset_type
+        in: query
+        schema:
+          type: string
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [PENDING, PROVISIONING, ACTIVE, EXPIRED, SUSPENDED, TRANSFERRING]
+    responses:
+      '200':
+        description: Assets retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-digital-asset.yaml#/TenantDigitalAssetListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create digital asset
+    description: Register a new digital asset
+    tags:
+      - Tenant Digital Assets
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-digital-asset.yaml#/CreateTenantDigitalAssetRequest'
+    responses:
+      '201':
+        description: Asset created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-digital-asset.yaml#/TenantDigitalAssetResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-digital-assets/{id}:
+  get:
+    summary: Get asset by ID
+    description: Retrieve a single digital asset
+    tags:
+      - Tenant Digital Assets
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Asset retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-digital-asset.yaml#/TenantDigitalAssetResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update asset
+    description: Update digital asset details
+    tags:
+      - Tenant Digital Assets
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-digital-asset.yaml#/UpdateTenantDigitalAssetRequest'
+    responses:
+      '200':
+        description: Asset updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-digital-asset.yaml#/TenantDigitalAssetResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-digital-assets/{id}/renew:
+  post:
+    summary: Renew asset
+    description: Renew digital asset subscription
+    tags:
+      - Tenant Digital Assets
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              duration_months:
+                type: integer
+                minimum: 1
+                example: 12
+    responses:
+      '200':
+        description: Asset renewed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-digital-asset.yaml#/TenantDigitalAssetResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

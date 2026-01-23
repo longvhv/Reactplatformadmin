@@ -1,0 +1,185 @@
+/content-view-logs:
+  get:
+    summary: List content view logs
+    description: Retrieve content view logs
+    tags:
+      - Content View Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: object_type
+        in: query
+        schema:
+          type: string
+      - name: object_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: device_type
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: Logs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/content-view-log.yaml#/ContentViewLogListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create content view log
+    description: Record content view event
+    tags:
+      - Content View Logs
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/content-view-log.yaml#/CreateContentViewLogRequest'
+    responses:
+      '201':
+        description: Log created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/content-view-log.yaml#/ContentViewLogResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/content-view-logs/{id}:
+  get:
+    summary: Get log by ID
+    description: Retrieve a single content view log
+    tags:
+      - Content View Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Log retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/content-view-log.yaml#/ContentViewLogResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/content-view-logs/analytics:
+  get:
+    summary: Get content analytics
+    description: Get content view analytics and statistics
+    tags:
+      - Content View Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: object_type
+        in: query
+        schema:
+          type: string
+      - name: object_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: group_by
+        in: query
+        schema:
+          type: string
+          enum: [hour, day, week, month]
+          default: "day"
+    responses:
+      '200':
+        description: Analytics retrieved
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    total_views:
+                      type: integer
+                    unique_visitors:
+                      type: integer
+                    avg_duration:
+                      type: number
+                    by_device:
+                      type: object
+                    top_content:
+                      type: array
+                      items:
+                        type: object
+                    trend:
+                      type: array
+                      items:
+                        type: object
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

@@ -1,0 +1,116 @@
+UsageEvent:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Event ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    subscription_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Subscription ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    app_code:
+      type: string
+      nullable: true
+      description: Application code
+      example: "PORTAL"
+    event_type:
+      type: string
+      nullable: true
+      description: Event type
+      example: "api_call"
+    quantity:
+      type: number
+      nullable: true
+      description: Quantity
+      example: 1
+    unit:
+      type: string
+      nullable: true
+      description: Unit
+      example: "request"
+    metadata:
+      type: object
+      nullable: true
+      description: Event metadata
+      example:
+        endpoint: "/api/v1/users"
+        method: "GET"
+    data_region:
+      type: string
+      nullable: true
+      description: Data region
+      example: "asia-southeast1"
+    timestamp:
+      type: string
+      format: date-time
+      description: Event timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - timestamp
+
+CreateUsageEventRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    subscription_id:
+      type: string
+      format: uuid
+      nullable: true
+    app_code:
+      type: string
+      nullable: true
+    event_type:
+      type: string
+    quantity:
+      type: number
+      default: 1
+    unit:
+      type: string
+    metadata:
+      type: object
+      nullable: true
+  required:
+    - event_type
+
+UsageEventListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UsageEvent'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UsageEventResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UsageEvent'
+  required:
+    - success
+    - data

@@ -1,0 +1,181 @@
+/packages:
+  get:
+    summary: List all packages
+    description: Retrieve a paginated list of packages with optional filters
+    tags:
+      - Packages
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+      - name: package_type
+        in: query
+        schema:
+          type: string
+          enum: [BUNDLE, COMBO, ENTERPRISE]
+      - name: is_popular
+        in: query
+        schema:
+          type: boolean
+      - name: is_recommended
+        in: query
+        schema:
+          type: boolean
+      - name: billing_cycle
+        in: query
+        schema:
+          type: string
+          enum: [MONTHLY, QUARTERLY, YEARLY, ONE_TIME]
+    responses:
+      '200':
+        description: Packages retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/package.yaml#/PackageListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new package
+    description: Create a new package (admin only)
+    tags:
+      - Packages
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/package.yaml#/CreatePackageRequest'
+    responses:
+      '201':
+        description: Package created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/package.yaml#/PackageResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/packages/{id}:
+  get:
+    summary: Get package by ID
+    description: Retrieve a single package by ID
+    tags:
+      - Packages
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Package retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/package.yaml#/PackageResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update package
+    description: Update package information (admin only)
+    tags:
+      - Packages
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/package.yaml#/UpdatePackageRequest'
+    responses:
+      '200':
+        description: Package updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/package.yaml#/PackageResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete package
+    description: Soft delete a package (admin only)
+    tags:
+      - Packages
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/packages/code/{code}:
+  get:
+    summary: Get package by code
+    description: Retrieve a package by its unique code
+    tags:
+      - Packages
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/CodeParam'
+    responses:
+      '200':
+        description: Package retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/package.yaml#/PackageResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

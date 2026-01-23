@@ -1,0 +1,190 @@
+UserMFAMethod:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: User ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        method_type:
+          type: string
+          enum:
+            - TOTP
+            - SMS
+            - EMAIL
+            - WEBAUTHN
+            - BACKUP_CODES
+            - PUSH_NOTIFICATION
+            - BIOMETRIC
+            - HARDWARE_TOKEN
+            - OTHER
+          description: MFA method type
+          example: "TOTP"
+        method_name:
+          type: string
+          nullable: true
+          description: Method name
+          example: "Google Authenticator"
+        sms_phone_number:
+          type: string
+          nullable: true
+          description: SMS phone number
+          example: "+84901234567"
+        sms_phone_verified:
+          type: boolean
+          default: false
+          description: Phone verified
+          example: true
+        email_address:
+          type: string
+          nullable: true
+          description: Email address
+          example: "user@example.com"
+        email_verified:
+          type: boolean
+          default: false
+          description: Email verified
+          example: true
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - SUSPENDED
+            - REVOKED
+            - PENDING
+          default: "PENDING"
+          description: Method status
+          example: "ACTIVE"
+        is_verified:
+          type: boolean
+          default: false
+          description: Is verified
+          example: true
+        is_primary:
+          type: boolean
+          default: false
+          description: Is primary method
+          example: true
+        is_enforced:
+          type: boolean
+          default: false
+          description: Is enforced
+          example: false
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last used timestamp
+          example: "2026-01-22T10:30:00Z"
+        last_verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last verified timestamp
+          example: "2026-01-22T09:00:00Z"
+        success_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Success count
+          example: 42
+        failure_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Failure count
+          example: 2
+        device_name:
+          type: string
+          nullable: true
+          description: Device name
+          example: "iPhone 13 Pro"
+        device_type:
+          type: string
+          nullable: true
+          description: Device type
+          example: "mobile"
+        backup_codes_used:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Backup codes used
+          example: 1
+        backup_codes_total:
+          type: integer
+          minimum: 0
+          default: 10
+          description: Total backup codes
+          example: 10
+      required:
+        - user_id
+        - method_type
+        - status
+        - is_verified
+        - is_primary
+        - is_enforced
+
+CreateMFAMethodRequest:
+  type: object
+  properties:
+    method_type:
+      type: string
+      enum: [TOTP, SMS, EMAIL, WEBAUTHN, BACKUP_CODES, PUSH_NOTIFICATION, BIOMETRIC, HARDWARE_TOKEN, OTHER]
+    method_name:
+      type: string
+      nullable: true
+    sms_phone_number:
+      type: string
+      nullable: true
+    email_address:
+      type: string
+      nullable: true
+    device_name:
+      type: string
+      nullable: true
+  required:
+    - method_type
+
+UpdateMFAMethodRequest:
+  type: object
+  properties:
+    method_name:
+      type: string
+    is_primary:
+      type: boolean
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED, REVOKED]
+  minProperties: 1
+
+MFAMethodListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserMFAMethod'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+MFAMethodResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserMFAMethod'
+  required:
+    - success
+    - data

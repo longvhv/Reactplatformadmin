@@ -1,0 +1,188 @@
+/tenant-applications:
+  get:
+    summary: List tenant applications
+    description: Retrieve applications enabled for tenants
+    tags:
+      - Tenant Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: application_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [TRIAL, ACTIVE, SUSPENDED, CANCELLED, EXPIRED]
+    responses:
+      '200':
+        description: Tenant applications retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-application.yaml#/TenantApplicationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Enable application for tenant
+    description: Enable an application for a tenant
+    tags:
+      - Tenant Applications
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-application.yaml#/EnableApplicationRequest'
+    responses:
+      '201':
+        description: Application enabled successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-application.yaml#/TenantApplicationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-applications/{id}:
+  get:
+    summary: Get tenant application by ID
+    description: Retrieve a single tenant application
+    tags:
+      - Tenant Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Tenant application retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-application.yaml#/TenantApplicationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update tenant application
+    description: Update tenant application settings
+    tags:
+      - Tenant Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-application.yaml#/UpdateTenantApplicationRequest'
+    responses:
+      '200':
+        description: Tenant application updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-application.yaml#/TenantApplicationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Disable application for tenant
+    description: Disable an application for a tenant
+    tags:
+      - Tenant Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-applications/tenant/{tenant_id}:
+  get:
+    summary: Get all applications for a tenant
+    description: Retrieve all enabled applications for a specific tenant
+    tags:
+      - Tenant Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tenant_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [TRIAL, ACTIVE, SUSPENDED, CANCELLED, EXPIRED]
+    responses:
+      '200':
+        description: Tenant applications retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-application.yaml#/TenantApplicationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

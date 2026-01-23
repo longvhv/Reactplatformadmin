@@ -1,0 +1,156 @@
+/user-roles:
+  get:
+    summary: List user roles
+    description: Retrieve user role assignments
+    tags:
+      - User Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: role_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: scope
+        in: query
+        schema:
+          type: string
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: User roles retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-role.yaml#/UserRoleListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Assign role to user
+    description: Assign a role to a user
+    tags:
+      - User Roles
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-role.yaml#/AssignUserRoleRequest'
+    responses:
+      '201':
+        description: Role assigned successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-role.yaml#/UserRoleResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-roles/{id}:
+  get:
+    summary: Get user role by ID
+    description: Retrieve a single user role assignment
+    tags:
+      - User Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: User role retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-role.yaml#/UserRoleResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update user role
+    description: Update user role assignment
+    tags:
+      - User Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-role.yaml#/UpdateUserRoleRequest'
+    responses:
+      '200':
+        description: User role updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-role.yaml#/UserRoleResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Revoke user role
+    description: Revoke role assignment from user
+    tags:
+      - User Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

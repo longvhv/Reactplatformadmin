@@ -6,173 +6,185 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type RegionHandler struct {
-	service service.RegionService
+	regionService *service.RegionService
+	authzService  *service.AuthorizationService
 }
 
-func NewRegionHandler(service service.RegionService) *RegionHandler {
-	return &RegionHandler{service: service}
+func NewRegionHandler(regionService *service.RegionService, authzService *service.AuthorizationService) *RegionHandler {
+	return &RegionHandler{
+		regionService: regionService,
+		authzService:  authzService,
+	}
 }
 
-func (h *RegionHandler) CreateRegion(c *gin.Context) {
-	var req models.CreateRegionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// List lists regions
+func (h *RegionHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	region, err := h.service.CreateRegion(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, region)
-}
-
-func (h *RegionHandler) GetRegion(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid region ID"})
-		return
-	}
-
-	region, err := h.service.GetRegion(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, region)
-}
-
-func (h *RegionHandler) GetRegionByCode(c *gin.Context) {
-	code := c.Param("code")
-	region, err := h.service.GetRegionByCode(c.Request.Context(), code)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, region)
-}
-
-func (h *RegionHandler) ListRegions(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "100"))
+	regionType := c.Query("type")
+	parentID := c.Query("parent_id")
+	status := c.Query("status")
 
-	var regionType *string
-	if rt := c.Query("type"); rt != "" {
-		regionType = &rt
-	}
-
-	var parentID *uuid.UUID
-	if pid := c.Query("parent_id"); pid != "" {
-		parsed, err := uuid.Parse(pid)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parent_id"})
-			return
+	var parentUUID *uuid.UUID
+	if parentID != "" {
+		parsed, err := uuid.Parse(parentID)
+		if err == nil {
+			parentUUID = &parsed
 		}
-		parentID = &parsed
 	}
 
-	regions, total, err := h.service.ListRegions(c.Request.Context(), page, pageSize, regionType, parentID)
+	var statusInt *int
+	if status != "" {
+		s, _ := strconv.Atoi(status)
+		statusInt = &s
+	}
+
+	regions, total, err := h.regionService.ListRegions(ctx, regionType, parentUUID, statusInt, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      regions,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, regions, total, page, limit)
 }
 
-func (h *RegionHandler) ListRegionsByType(c *gin.Context) {
-	regionType := c.Param("type")
-	regions, err := h.service.ListRegionsByType(c.Request.Context(), regionType)
+// GetByID gets region by ID
+func (h *RegionHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	regionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid region id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, regions)
+	region, err := h.regionService.GetByID(ctx, regionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "region not found", nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, region)
 }
 
-func (h *RegionHandler) ListRegionsByParent(c *gin.Context) {
-	parentID, err := uuid.Parse(c.Param("parent_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parent ID"})
+// GetByCode gets region by code
+func (h *RegionHandler) GetByCode(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	code := c.Param("code")
+	if code == "" {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "code required", nil)
 		return
 	}
 
-	regions, err := h.service.ListRegionsByParent(c.Request.Context(), parentID)
+	region, err := h.regionService.GetByCode(ctx, code)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "region not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, regions)
+	httputil.SuccessResponse(c, http.StatusOK, region)
 }
 
-func (h *RegionHandler) UpdateRegion(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid region ID"})
-		return
-	}
+// Create creates a region
+func (h *RegionHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateRegionRequest
+	var req service.CreateRegionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	region, err := h.service.UpdateRegion(c.Request.Context(), id, &req)
+	region, err := h.regionService.CreateRegion(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, region)
+	httputil.SuccessResponse(c, http.StatusCreated, region)
 }
 
-func (h *RegionHandler) DeleteRegion(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a region
+func (h *RegionHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	regionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid region ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid region id", nil)
 		return
 	}
 
-	if err := h.service.DeleteRegion(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateRegionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Region deleted successfully"})
+	region, err := h.regionService.UpdateRegion(ctx, regionID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, region)
 }
 
-func (h *RegionHandler) SoftDeleteRegion(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Delete deletes a region
+func (h *RegionHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	regionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid region ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid region id", nil)
 		return
 	}
 
-	// TODO: Get deletedBy from auth context
-	deletedBy := uuid.Nil
-
-	if err := h.service.SoftDeleteRegion(c.Request.Context(), id, deletedBy); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.regionService.DeleteRegion(ctx, regionID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Region soft deleted successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "region deleted successfully"})
+}
+
+// GetChildren gets child regions
+func (h *RegionHandler) GetChildren(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	parentID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid region id", nil)
+		return
+	}
+
+	children, err := h.regionService.GetChildren(ctx, parentID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, children)
+}
+
+// GetHierarchy gets region hierarchy tree
+func (h *RegionHandler) GetHierarchy(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	regionType := c.DefaultQuery("type", "NATION")
+
+	hierarchy, err := h.regionService.GetHierarchy(ctx, regionType)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, hierarchy)
 }

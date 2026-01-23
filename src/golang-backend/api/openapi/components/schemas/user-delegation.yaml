@@ -1,0 +1,202 @@
+UserDelegation:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        delegator_id:
+          type: string
+          format: uuid
+          description: Delegator user ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        delegate_id:
+          type: string
+          format: uuid
+          description: Delegate user ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Tenant ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        scope:
+          type: string
+          enum:
+            - admin
+            - manager
+            - editor
+            - viewer
+            - approver
+            - reviewer
+            - auditor
+            - custom
+          nullable: true
+          description: Delegation scope
+          example: "manager"
+        permissions:
+          type: array
+          items:
+            type: string
+          description: Delegated permissions
+          default: []
+          example: ["users.read", "users.update"]
+        reason:
+          type: string
+          nullable: true
+          description: Delegation reason
+          example: "On vacation"
+        notes:
+          type: string
+          nullable: true
+          description: Additional notes
+          example: "Handle urgent matters only"
+        start_date:
+          type: string
+          format: date-time
+          description: Start date
+          example: "2026-01-20T00:00:00Z"
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date
+          example: "2026-01-27T23:59:59Z"
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+            - expired
+            - revoked
+            - suspended
+          default: "active"
+          description: Delegation status
+          example: "active"
+        activated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activation timestamp
+          example: "2026-01-20T00:00:00Z"
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Revocation timestamp
+          example: null
+        revoked_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: Revoked by user ID
+          example: null
+        revoked_reason:
+          type: string
+          nullable: true
+          description: Revocation reason
+          example: null
+        auto_expire:
+          type: boolean
+          default: true
+          description: Auto-expire on end date
+          example: true
+        notified_before_expiry:
+          type: boolean
+          default: false
+          description: Expiry notification sent
+          example: false
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - delegator_id
+        - delegate_id
+        - start_date
+        - status
+
+CreateUserDelegationRequest:
+  type: object
+  properties:
+    delegate_id:
+      type: string
+      format: uuid
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    scope:
+      type: string
+      enum: [admin, manager, editor, viewer, approver, reviewer, auditor, custom]
+    permissions:
+      type: array
+      items:
+        type: string
+    reason:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+    start_date:
+      type: string
+      format: date-time
+    end_date:
+      type: string
+      format: date-time
+      nullable: true
+    auto_expire:
+      type: boolean
+      default: true
+  required:
+    - delegate_id
+    - start_date
+
+UpdateUserDelegationRequest:
+  type: object
+  properties:
+    scope:
+      type: string
+      enum: [admin, manager, editor, viewer, approver, reviewer, auditor, custom]
+    permissions:
+      type: array
+      items:
+        type: string
+    notes:
+      type: string
+      nullable: true
+    end_date:
+      type: string
+      format: date-time
+      nullable: true
+    status:
+      type: string
+      enum: [pending, active, suspended]
+  minProperties: 1
+
+UserDelegationListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserDelegation'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserDelegationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserDelegation'
+  required:
+    - success
+    - data

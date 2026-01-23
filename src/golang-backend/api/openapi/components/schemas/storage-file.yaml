@@ -1,0 +1,190 @@
+StorageFile:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Parent folder ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        is_folder:
+          type: boolean
+          default: false
+          description: Whether this is a folder
+          example: false
+        original_name:
+          type: string
+          description: Original filename
+          example: "document.pdf"
+        storage_path:
+          type: string
+          nullable: true
+          description: Storage path
+          example: "/uploads/2026/01/abc123.pdf"
+        public_url:
+          type: string
+          nullable: true
+          description: Public URL
+          example: "https://cdn.example.com/abc123.pdf"
+        category:
+          type: string
+          enum:
+            - MEDIA
+            - DOCUMENT
+            - ARCHIVE
+            - EXPORT
+            - SYSTEM
+          default: "MEDIA"
+          description: File category
+          example: "DOCUMENT"
+        mime_type:
+          type: string
+          description: MIME type
+          example: "application/pdf"
+        extension:
+          type: string
+          nullable: true
+          description: File extension
+          example: "pdf"
+        file_size:
+          type: integer
+          format: int64
+          minimum: 0
+          description: File size in bytes
+          example: 1048576
+        items_snapshot:
+          type: array
+          items:
+            type: object
+          description: Folder contents snapshot
+          default: []
+        metadata:
+          $ref: './common.yaml#/Metadata'
+        storage_provider:
+          type: string
+          enum:
+            - S3
+            - R2
+            - MINIO
+            - CLOUDFLARE
+          default: "S3"
+          description: Storage provider
+          example: "S3"
+        visibility:
+          type: string
+          default: "PRIVATE"
+          description: File visibility
+          example: "PRIVATE"
+        status:
+          type: string
+          enum:
+            - UPLOADING
+            - PROCESSING
+            - READY
+            - FAILED
+          default: "PROCESSING"
+          description: File status
+          example: "READY"
+        uploaded_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: Uploader user ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+      required:
+        - tenant_id
+        - is_folder
+        - original_name
+        - mime_type
+        - file_size
+        - storage_provider
+        - status
+
+CreateStorageFileRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    is_folder:
+      type: boolean
+      default: false
+    original_name:
+      type: string
+    category:
+      type: string
+      enum: [MEDIA, DOCUMENT, ARCHIVE, EXPORT, SYSTEM]
+      default: "MEDIA"
+    mime_type:
+      type: string
+    storage_provider:
+      type: string
+      enum: [S3, R2, MINIO, CLOUDFLARE]
+      default: "S3"
+    visibility:
+      type: string
+      default: "PRIVATE"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - original_name
+    - mime_type
+
+UpdateStorageFileRequest:
+  type: object
+  properties:
+    original_name:
+      type: string
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    category:
+      type: string
+      enum: [MEDIA, DOCUMENT, ARCHIVE, EXPORT, SYSTEM]
+    visibility:
+      type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+StorageFileListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/StorageFile'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+StorageFileResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/StorageFile'
+  required:
+    - success
+    - data

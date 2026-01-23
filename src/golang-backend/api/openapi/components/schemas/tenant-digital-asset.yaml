@@ -1,0 +1,139 @@
+TenantDigitalAsset:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        order_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Order ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        asset_type:
+          type: string
+          description: Asset type
+          example: "DOMAIN"
+        name:
+          type: string
+          description: Asset name
+          example: "example.com"
+        status:
+          type: string
+          enum:
+            - PENDING
+            - PROVISIONING
+            - ACTIVE
+            - EXPIRED
+            - SUSPENDED
+            - TRANSFERRING
+          default: "PENDING"
+          description: Asset status
+          example: "ACTIVE"
+        auto_renew:
+          type: boolean
+          default: true
+          description: Auto-renewal enabled
+          example: true
+        asset_metadata:
+          type: object
+          description: Asset metadata
+          default: {}
+          example:
+            registrar: "GoDaddy"
+            nameservers: ["ns1.example.com", "ns2.example.com"]
+        activated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Activation timestamp
+          example: "2026-01-01T00:00:00Z"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Expiration timestamp
+          example: "2027-01-01T00:00:00Z"
+      required:
+        - tenant_id
+        - asset_type
+        - name
+        - status
+
+CreateTenantDigitalAssetRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    order_id:
+      type: string
+      format: uuid
+      nullable: true
+    asset_type:
+      type: string
+    name:
+      type: string
+    auto_renew:
+      type: boolean
+      default: true
+    asset_metadata:
+      type: object
+      default: {}
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+  required:
+    - tenant_id
+    - asset_type
+    - name
+
+UpdateTenantDigitalAssetRequest:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [PENDING, PROVISIONING, ACTIVE, EXPIRED, SUSPENDED, TRANSFERRING]
+    auto_renew:
+      type: boolean
+    asset_metadata:
+      type: object
+    expires_at:
+      type: string
+      format: date-time
+      nullable: true
+  minProperties: 1
+
+TenantDigitalAssetListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantDigitalAsset'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantDigitalAssetResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantDigitalAsset'
+  required:
+    - success
+    - data

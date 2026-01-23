@@ -2,197 +2,179 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type DepartmentService interface {
-	CreateDepartment(ctx context.Context, req *models.CreateDepartmentRequest) (*models.Department, error)
-	GetDepartment(ctx context.Context, id uuid.UUID) (*models.Department, error)
-	GetDepartmentByCode(ctx context.Context, tenantID uuid.UUID, code string) (*models.Department, error)
-	ListDepartments(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, status *string) ([]*models.Department, int, error)
-	ListDepartmentsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.Department, error)
-	ListDepartmentsByParent(ctx context.Context, parentID uuid.UUID) ([]*models.Department, error)
-	ListDepartmentsByStatus(ctx context.Context, tenantID uuid.UUID, status string) ([]*models.Department, error)
-	ListDepartmentsByManager(ctx context.Context, managerID uuid.UUID) ([]*models.Department, error)
-	GetHierarchy(ctx context.Context, tenantID uuid.UUID) ([]*models.Department, error)
-	UpdateDepartment(ctx context.Context, id uuid.UUID, req *models.UpdateDepartmentRequest) (*models.Department, error)
-	UpdateDepartmentStatus(ctx context.Context, id uuid.UUID, status string) error
-	DeleteDepartment(ctx context.Context, id uuid.UUID) error
-	SoftDeleteDepartment(ctx context.Context, id uuid.UUID, deletedBy string) error
+type DepartmentService struct {
+	departmentRepo repository.DepartmentRepository
 }
 
-type departmentService struct {
-	repo repository.DepartmentRepository
+func NewDepartmentService(departmentRepo repository.DepartmentRepository) *DepartmentService {
+	return &DepartmentService{
+		departmentRepo: departmentRepo,
+	}
 }
 
-func NewDepartmentService(repo repository.DepartmentRepository) DepartmentService {
-	return &departmentService{repo: repo}
+type CreateDepartmentRequest struct {
+	TenantID           uuid.UUID              `json:"tenant_id" binding:"required"`
+	Code               string                 `json:"code" binding:"required"`
+	Name               string                 `json:"name" binding:"required"`
+	ParentDepartmentID *uuid.UUID             `json:"parent_department_id"`
+	ManagerID          *uuid.UUID             `json:"manager_id"`
+	Description        *string                `json:"description"`
+	Status             string                 `json:"status"`
+	Order              int                    `json:"order"`
+	Metadata           map[string]interface{} `json:"metadata"`
 }
 
-func (s *departmentService) CreateDepartment(ctx context.Context, req *models.CreateDepartmentRequest) (*models.Department, error) {
-	now := time.Now()
-	dept := &models.Department{
-		ID:        uuid.New(),
-		TenantID:  req.TenantID,
-		Code:      req.Code,
-		Name:      req.Name,
-		Status:    "ACTIVE",
-		Order:     req.Order,
-		CreatedAt: now,
-		UpdatedAt: now,
-		Version:   1,
+type UpdateDepartmentRequest struct {
+	Name               *string                `json:"name"`
+	ParentDepartmentID *uuid.UUID             `json:"parent_department_id"`
+	ManagerID          *uuid.UUID             `json:"manager_id"`
+	Description        *string                `json:"description"`
+	Status             *string                `json:"status"`
+	Order              *int                   `json:"order"`
+	Metadata           map[string]interface{} `json:"metadata"`
+}
+
+// GetByID gets department by ID
+func (s *DepartmentService) GetByID(ctx context.Context, id uuid.UUID) (*models.Department, error) {
+	return s.departmentRepo.GetByID(ctx, id)
+}
+
+// ListByTenant lists departments by tenant
+func (s *DepartmentService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.Department, int64, error) {
+	offset := (page - 1) * limit
+	return s.departmentRepo.ListByTenant(ctx, tenantID, limit, offset)
+}
+
+// CreateDepartment creates a new department
+func (s *DepartmentService) CreateDepartment(ctx context.Context, req CreateDepartmentRequest) (*models.Department, error) {
+	if req.Code == "" {
+		return nil, fmt.Errorf("department code is required")
 	}
 
-	if req.ParentDepartmentID != nil {
-		dept.ParentDepartmentID.String = req.ParentDepartmentID.String()
-		dept.ParentDepartmentID.Valid = true
+	// Check if code exists in tenant
+	exists, err := s.departmentRepo.ExistsByCode(ctx, req.TenantID, req.Code)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check department code: %w", err)
+	}
+	if exists {
+		return nil, fmt.Errorf("department code already exists")
 	}
 
-	if req.ManagerID != nil {
-		dept.ManagerID.String = req.ManagerID.String()
-		dept.ManagerID.Valid = true
+	status := req.Status
+	if status == "" {
+		status = "ACTIVE"
 	}
 
-	if req.Description != "" {
-		dept.Description.String = req.Description
-		dept.Description.Valid = true
+	department := &models.Department{
+		ID:                 uuid.New(),
+		TenantID:           req.TenantID,
+		Code:               req.Code,
+		Name:               req.Name,
+		ParentDepartmentID: req.ParentDepartmentID,
+		ManagerID:          req.ManagerID,
+		Description:        req.Description,
+		Status:             status,
+		Order:              req.Order,
+		Metadata:           req.Metadata,
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
+		Version:            1,
 	}
 
-	if req.CreatedBy != nil {
-		dept.CreatedBy.String = req.CreatedBy.String()
-		dept.CreatedBy.Valid = true
-	}
-
-	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		dept.Metadata = metadataJSON
-	} else {
-		dept.Metadata = []byte("{}")
-	}
-
-	if err := s.repo.Create(ctx, dept); err != nil {
+	if err := s.departmentRepo.Create(ctx, department); err != nil {
 		return nil, fmt.Errorf("failed to create department: %w", err)
 	}
 
-	return dept, nil
+	return department, nil
 }
 
-func (s *departmentService) GetDepartment(ctx context.Context, id uuid.UUID) (*models.Department, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *departmentService) GetDepartmentByCode(ctx context.Context, tenantID uuid.UUID, code string) (*models.Department, error) {
-	return s.repo.GetByCode(ctx, tenantID, code)
-}
-
-func (s *departmentService) ListDepartments(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, status *string) ([]*models.Department, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+// UpdateDepartment updates a department
+func (s *DepartmentService) UpdateDepartment(ctx context.Context, id uuid.UUID, req UpdateDepartmentRequest) (*models.Department, error) {
+	department, err := s.departmentRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("department not found: %w", err)
 	}
 
-	return s.repo.List(ctx, page, pageSize, tenantID, status)
+	if req.Name != nil {
+		department.Name = *req.Name
+	}
+	if req.ParentDepartmentID != nil {
+		// Check for circular reference
+		if *req.ParentDepartmentID == id {
+			return nil, fmt.Errorf("department cannot be its own parent")
+		}
+		department.ParentDepartmentID = req.ParentDepartmentID
+	}
+	if req.ManagerID != nil {
+		department.ManagerID = req.ManagerID
+	}
+	if req.Description != nil {
+		department.Description = req.Description
+	}
+	if req.Status != nil {
+		department.Status = *req.Status
+	}
+	if req.Order != nil {
+		department.Order = *req.Order
+	}
+	if req.Metadata != nil {
+		department.Metadata = req.Metadata
+	}
+
+	department.UpdatedAt = time.Now()
+	department.Version++
+
+	if err := s.departmentRepo.Update(ctx, department); err != nil {
+		return nil, fmt.Errorf("failed to update department: %w", err)
+	}
+
+	return department, nil
 }
 
-func (s *departmentService) ListDepartmentsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.Department, error) {
-	return s.repo.ListByTenantID(ctx, tenantID)
+// DeleteDepartment deletes a department
+func (s *DepartmentService) DeleteDepartment(ctx context.Context, id uuid.UUID) error {
+	// Check if department has children
+	hasChildren, err := s.departmentRepo.HasChildren(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to check children: %w", err)
+	}
+	if hasChildren {
+		return fmt.Errorf("cannot delete department with children")
+	}
+
+	return s.departmentRepo.Delete(ctx, id)
 }
 
-func (s *departmentService) ListDepartmentsByParent(ctx context.Context, parentID uuid.UUID) ([]*models.Department, error) {
-	return s.repo.ListByParentID(ctx, parentID)
-}
-
-func (s *departmentService) ListDepartmentsByStatus(ctx context.Context, tenantID uuid.UUID, status string) ([]*models.Department, error) {
-	return s.repo.ListByStatus(ctx, tenantID, status)
-}
-
-func (s *departmentService) ListDepartmentsByManager(ctx context.Context, managerID uuid.UUID) ([]*models.Department, error) {
-	return s.repo.ListByManager(ctx, managerID)
-}
-
-func (s *departmentService) GetHierarchy(ctx context.Context, tenantID uuid.UUID) ([]*models.Department, error) {
-	return s.repo.GetHierarchy(ctx, tenantID)
-}
-
-func (s *departmentService) UpdateDepartment(ctx context.Context, id uuid.UUID, req *models.UpdateDepartmentRequest) (*models.Department, error) {
-	dept, err := s.repo.GetByID(ctx, id)
+// GetTree gets department tree structure
+func (s *DepartmentService) GetTree(ctx context.Context, tenantID uuid.UUID) ([]*models.Department, error) {
+	departments, _, err := s.departmentRepo.ListByTenant(ctx, tenantID, 1000, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	if req.Name != nil {
-		dept.Name = *req.Name
+	// Build tree structure
+	deptMap := make(map[uuid.UUID]*models.Department)
+	var rootDepts []*models.Department
+
+	// First pass: create map
+	for _, dept := range departments {
+		deptMap[dept.ID] = dept
 	}
 
-	if req.ParentDepartmentID != nil {
-		dept.ParentDepartmentID.String = req.ParentDepartmentID.String()
-		dept.ParentDepartmentID.Valid = true
-	}
-
-	if req.ManagerID != nil {
-		dept.ManagerID.String = req.ManagerID.String()
-		dept.ManagerID.Valid = true
-	}
-
-	if req.Description != nil {
-		if *req.Description == "" {
-			dept.Description.Valid = false
-		} else {
-			dept.Description.String = *req.Description
-			dept.Description.Valid = true
+	// Second pass: build tree
+	for _, dept := range departments {
+		if dept.ParentDepartmentID == nil {
+			rootDepts = append(rootDepts, dept)
 		}
 	}
 
-	if req.Status != nil {
-		dept.Status = *req.Status
-	}
-
-	if req.Order != nil {
-		dept.Order = *req.Order
-	}
-
-	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(*req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		dept.Metadata = metadataJSON
-	}
-
-	if req.UpdatedBy != nil {
-		dept.UpdatedBy.String = req.UpdatedBy.String()
-		dept.UpdatedBy.Valid = true
-	}
-
-	dept.UpdatedAt = time.Now()
-
-	if err := s.repo.Update(ctx, dept); err != nil {
-		return nil, fmt.Errorf("failed to update department: %w", err)
-	}
-
-	return dept, nil
-}
-
-func (s *departmentService) UpdateDepartmentStatus(ctx context.Context, id uuid.UUID, status string) error {
-	return s.repo.UpdateStatus(ctx, id, status)
-}
-
-func (s *departmentService) DeleteDepartment(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
-}
-
-func (s *departmentService) SoftDeleteDepartment(ctx context.Context, id uuid.UUID, deletedBy string) error {
-	return s.repo.SoftDelete(ctx, id, deletedBy)
+	return rootDepts, nil
 }

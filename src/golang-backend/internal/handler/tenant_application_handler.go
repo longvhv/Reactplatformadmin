@@ -1,258 +1,203 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TenantApplicationHandler struct {
-	service *service.TenantApplicationService
+	tenantAppService *service.TenantApplicationService
+	authzService     *service.AuthorizationService
 }
 
-func NewTenantApplicationHandler(service *service.TenantApplicationService) *TenantApplicationHandler {
-	return &TenantApplicationHandler{service: service}
+func NewTenantApplicationHandler(tenantAppService *service.TenantApplicationService, authzService *service.AuthorizationService) *TenantApplicationHandler {
+	return &TenantApplicationHandler{
+		tenantAppService: tenantAppService,
+		authzService:     authzService,
+	}
 }
 
-// CreateApplication godoc
-// @Summary Create a new tenant application
-// @Tags tenant-applications
-// @Accept json
-// @Produce json
-// @Param application body models.CreateTenantApplicationRequest true "Application data"
-// @Success 201 {object} models.TenantApplication
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications [post]
-func (h *TenantApplicationHandler) CreateApplication(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateTenantApplicationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+// List lists tenant applications
+func (h *TenantApplicationHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	app, err := h.service.CreateApplication(&req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	isActive := c.Query("is_active")
+
+	var isActivePtr *bool
+	if isActive != "" {
+		val := isActive == "true"
+		isActivePtr = &val
+	}
+
+	apps, total, err := h.tenantAppService.ListByTenant(ctx, tenantID, isActivePtr, page, limit)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, app)
+	httputil.PaginatedResponse(c, http.StatusOK, apps, total, page, limit)
 }
 
-// GetApplication godoc
-// @Summary Get a tenant application by ID
-// @Tags tenant-applications
-// @Produce json
-// @Param id path string true "Application ID"
-// @Success 200 {object} models.TenantApplication
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications/{id} [get]
-func (h *TenantApplicationHandler) GetApplication(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetByID gets tenant application by ID
+func (h *TenantApplicationHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	app, err := h.service.GetApplication(id)
+	appID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid app id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, app)
-}
-
-// GetApplicationByTenantAndApp godoc
-// @Summary Get a tenant application by tenant ID and app code
-// @Tags tenant-applications
-// @Produce json
-// @Param tenant_id path string true "Tenant ID"
-// @Param app_code path string true "App Code"
-// @Success 200 {object} models.TenantApplication
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenants/{tenant_id}/applications/{app_code} [get]
-func (h *TenantApplicationHandler) GetApplicationByTenantAndApp(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenantID := vars["tenant_id"]
-	appCode := vars["app_code"]
-
-	app, err := h.service.GetApplicationByTenantAndApp(tenantID, appCode)
+	app, err := h.tenantAppService.GetByID(ctx, appID)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "application not found", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, app)
+	httputil.SuccessResponse(c, http.StatusOK, app)
 }
 
-// ListApplications godoc
-// @Summary List tenant applications
-// @Tags tenant-applications
-// @Produce json
-// @Param tenant_id query string false "Filter by tenant ID"
-// @Param app_code query string false "Filter by app code"
-// @Param is_active query bool false "Filter by active status"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications [get]
-func (h *TenantApplicationHandler) ListApplications(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+// GetByAppCode gets tenant application by app code
+func (h *TenantApplicationHandler) GetByAppCode(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var tenantID *string
-	if tid := query.Get("tenant_id"); tid != "" {
-		tenantID = &tid
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
 	}
 
-	var appCode *string
-	if ac := query.Get("app_code"); ac != "" {
-		appCode = &ac
+	appCode := c.Param("code")
+	if appCode == "" {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "app code required", nil)
+		return
 	}
 
-	var isActive *bool
-	if ia := query.Get("is_active"); ia != "" {
-		active := ia == "true"
-		isActive = &active
-	}
-
-	page, _ := strconv.Atoi(query.Get("page"))
-	pageSize, _ := strconv.Atoi(query.Get("page_size"))
-
-	apps, total, err := h.service.ListApplications(tenantID, appCode, isActive, page, pageSize)
+	app, err := h.tenantAppService.GetByAppCode(ctx, tenantID, appCode)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "application not found", nil)
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":      apps,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	}
-
-	respondWithJSON(w, http.StatusOK, response)
+	httputil.SuccessResponse(c, http.StatusOK, app)
 }
 
-// ListApplicationsByTenant godoc
-// @Summary List applications for a specific tenant
-// @Tags tenant-applications
-// @Produce json
-// @Param tenant_id path string true "Tenant ID"
-// @Success 200 {array} models.TenantApplication
-// @Failure 500 {object} map[string]string
-// @Router /tenants/{tenant_id}/applications [get]
-func (h *TenantApplicationHandler) ListApplicationsByTenant(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenantID := vars["tenant_id"]
+// Create creates a tenant application
+func (h *TenantApplicationHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	apps, err := h.service.ListApplicationsByTenant(tenantID)
+	var req service.CreateTenantApplicationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	app, err := h.tenantAppService.CreateTenantApplication(ctx, req)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, apps)
+	httputil.SuccessResponse(c, http.StatusCreated, app)
 }
 
-// UpdateApplication godoc
-// @Summary Update a tenant application
-// @Tags tenant-applications
-// @Accept json
-// @Produce json
-// @Param id path string true "Application ID"
-// @Param application body models.UpdateTenantApplicationRequest true "Update data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications/{id} [put]
-func (h *TenantApplicationHandler) UpdateApplication(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Update updates a tenant application
+func (h *TenantApplicationHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateTenantApplicationRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	appID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid app id", nil)
 		return
 	}
 
-	if err := h.service.UpdateApplication(id, &req); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	var req service.UpdateTenantApplicationRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Application updated successfully"})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	app, err := h.tenantAppService.UpdateTenantApplication(ctx, appID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, app)
 }
 
-// DeleteApplication godoc
-// @Summary Delete a tenant application
-// @Tags tenant-applications
-// @Accept json
-// @Produce json
-// @Param id path string true "Application ID"
-// @Param body body map[string]string false "Request body with deleted_by field"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications/{id} [delete]
-func (h *TenantApplicationHandler) DeleteApplication(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Delete deletes a tenant application
+func (h *TenantApplicationHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var body struct {
-		DeletedBy *string `json:"deleted_by,omitempty"`
-	}
-	json.NewDecoder(r.Body).Decode(&body)
-
-	if err := h.service.DeleteApplication(id, body.DeletedBy); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	appID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid app id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Application deleted successfully"})
+	if err := h.tenantAppService.DeleteTenantApplication(ctx, appID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "application deleted successfully"})
 }
 
-// ActivateApplication godoc
-// @Summary Activate a tenant application
-// @Tags tenant-applications
-// @Produce json
-// @Param id path string true "Application ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications/{id}/activate [post]
-func (h *TenantApplicationHandler) ActivateApplication(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Activate activates a tenant application
+func (h *TenantApplicationHandler) Activate(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.ActivateApplication(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	appID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid app id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Application activated successfully"})
+	app, err := h.tenantAppService.ActivateApplication(ctx, appID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, app)
 }
 
-// DeactivateApplication godoc
-// @Summary Deactivate a tenant application
-// @Tags tenant-applications
-// @Produce json
-// @Param id path string true "Application ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-applications/{id}/deactivate [post]
-func (h *TenantApplicationHandler) DeactivateApplication(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Deactivate deactivates a tenant application
+func (h *TenantApplicationHandler) Deactivate(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.DeactivateApplication(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	appID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid app id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Application deactivated successfully"})
+	app, err := h.tenantAppService.DeactivateApplication(ctx, appID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, app)
 }

@@ -1,0 +1,26 @@
+{
+  "name": "vhv-platform-api",
+  "version": "1.0.0",
+  "description": "Multi-tenant SaaS Platform API - OpenAPI Specification",
+  "scripts": {
+    "validate": "redocly lint api/openapi/openapi.yaml --skip-rule=no-unused-schemas",
+    "bundle": "redocly bundle api/openapi/openapi.yaml -o api/openapi/bundled.yaml",
+    "docs": "redocly build-docs api/openapi/openapi.yaml -o api/docs/index.html",
+    "serve": "redocly preview-docs api/openapi/openapi.yaml",
+    "lint": "redocly lint api/openapi/openapi.yaml",
+    "stats": "bash scripts/validate-openapi.sh"
+  },
+  "keywords": [
+    "openapi",
+    "api",
+    "saas",
+    "multi-tenant",
+    "golang"
+  ],
+  "devDependencies": {
+    "@redocly/cli": "^1.10.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

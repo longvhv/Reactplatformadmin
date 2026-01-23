@@ -6,212 +6,211 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type SystemAnnouncementHandler struct {
-	service service.SystemAnnouncementService
+	announcementService *service.SystemAnnouncementService
+	authzService        *service.AuthorizationService
 }
 
-func NewSystemAnnouncementHandler(service service.SystemAnnouncementService) *SystemAnnouncementHandler {
-	return &SystemAnnouncementHandler{service: service}
+func NewSystemAnnouncementHandler(announcementService *service.SystemAnnouncementService, authzService *service.AuthorizationService) *SystemAnnouncementHandler {
+	return &SystemAnnouncementHandler{
+		announcementService: announcementService,
+		authzService:        authzService,
+	}
 }
 
-func (h *SystemAnnouncementHandler) CreateAnnouncement(c *gin.Context) {
-	var req models.CreateSystemAnnouncementRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists announcements
+func (h *SystemAnnouncementHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	announcement, err := h.service.CreateAnnouncement(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, announcement)
-}
-
-func (h *SystemAnnouncementHandler) GetAnnouncement(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
-		return
-	}
-
-	announcement, err := h.service.GetAnnouncement(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, announcement)
-}
-
-func (h *SystemAnnouncementHandler) ListAnnouncements(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	announcementType := c.Query("type")
+	status := c.Query("status")
 
-	var tenantID *uuid.UUID
-	if tid := c.Query("tenant_id"); tid != "" {
-		parsed, err := uuid.Parse(tid)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	announcements, total, err := h.service.ListAnnouncements(c.Request.Context(), page, pageSize, tenantID, status)
+	announcements, total, err := h.announcementService.ListByTenant(ctx, tenantID, announcementType, status, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      announcements,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, announcements, total, page, limit)
 }
 
-func (h *SystemAnnouncementHandler) ListAnnouncementsByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+// GetActive gets active announcements
+func (h *SystemAnnouncementHandler) GetActive(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	announcements, err := h.service.ListAnnouncementsByTenant(c.Request.Context(), tenantID)
+	announcements, err := h.announcementService.GetActiveAnnouncements(ctx, tenantID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, announcements)
+	httputil.SuccessResponse(c, http.StatusOK, announcements)
 }
 
-func (h *SystemAnnouncementHandler) ListPublishedAnnouncements(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// GetByID gets announcement by ID
+func (h *SystemAnnouncementHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	announcementID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid announcement id", nil)
 		return
 	}
 
-	announcements, err := h.service.ListPublishedAnnouncements(c.Request.Context(), tenantID)
+	announcement, err := h.announcementService.GetByID(ctx, announcementID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "announcement not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, announcements)
+	httputil.SuccessResponse(c, http.StatusOK, announcement)
 }
 
-func (h *SystemAnnouncementHandler) UpdateAnnouncement(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
-		return
-	}
+// Create creates an announcement
+func (h *SystemAnnouncementHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateSystemAnnouncementRequest
+	var req service.CreateSystemAnnouncementRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	announcement, err := h.service.UpdateAnnouncement(c.Request.Context(), id, &req)
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID.String()
+
+	announcement, err := h.announcementService.CreateAnnouncement(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, announcement)
+	httputil.SuccessResponse(c, http.StatusCreated, announcement)
 }
 
-func (h *SystemAnnouncementHandler) DeleteAnnouncement(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates an announcement
+func (h *SystemAnnouncementHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	announcementID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid announcement id", nil)
 		return
 	}
 
-	if err := h.service.DeleteAnnouncement(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateSystemAnnouncementRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Announcement deleted successfully"})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID.String()
+
+	announcement, err := h.announcementService.UpdateAnnouncement(ctx, announcementID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, announcement)
 }
 
-func (h *SystemAnnouncementHandler) SoftDeleteAnnouncement(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Delete deletes an announcement
+func (h *SystemAnnouncementHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	announcementID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid announcement id", nil)
 		return
 	}
 
-	// TODO: Get deletedBy from auth context
-	deletedBy := "system"
-
-	if err := h.service.SoftDeleteAnnouncement(c.Request.Context(), id, deletedBy); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.announcementService.DeleteAnnouncement(ctx, announcementID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Announcement soft deleted successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "announcement deleted successfully"})
 }
 
-func (h *SystemAnnouncementHandler) PublishAnnouncement(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Publish publishes an announcement
+func (h *SystemAnnouncementHandler) Publish(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	announcementID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid announcement id", nil)
 		return
 	}
 
-	if err := h.service.PublishAnnouncement(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	announcement, err := h.announcementService.PublishAnnouncement(ctx, announcementID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Announcement published successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, announcement)
 }
 
-func (h *SystemAnnouncementHandler) IncrementView(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Archive archives an announcement
+func (h *SystemAnnouncementHandler) Archive(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	announcementID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid announcement id", nil)
 		return
 	}
 
-	if err := h.service.IncrementView(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	announcement, err := h.announcementService.ArchiveAnnouncement(ctx, announcementID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "View count incremented"})
+	httputil.SuccessResponse(c, http.StatusOK, announcement)
 }
 
-func (h *SystemAnnouncementHandler) IncrementClick(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// MarkAsRead marks announcement as read
+func (h *SystemAnnouncementHandler) MarkAsRead(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	announcementID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid announcement ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid announcement id", nil)
 		return
 	}
 
-	if err := h.service.IncrementClick(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "user not authenticated", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Click count incremented"})
+	if err := h.announcementService.MarkAsRead(ctx, announcementID, userID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "marked as read"})
 }

@@ -1,0 +1,364 @@
+/auth/login:
+  post:
+    summary: User login
+    description: Authenticate user with email and password, returns JWT tokens
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/LoginRequest'
+          examples:
+            admin:
+              summary: Admin login
+              value:
+                email: "admin@saas.coquan.vn"
+                password: "Vhv@2026"
+            user:
+              summary: Regular user login
+              value:
+                email: "user@example.com"
+                password: "UserPass123!"
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth.yaml#/AuthResponse'
+            example:
+              success: true
+              data:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                expires_in: 86400
+                token_type: "Bearer"
+                user:
+                  _id: "550e8400-e29b-41d4-a716-446655440000"
+                  email: "admin@saas.coquan.vn"
+                  full_name: "System Admin"
+                  status: "ACTIVE"
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        description: Invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "INVALID_CREDENTIALS"
+                message: "Invalid email or password"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/register:
+  post:
+    summary: User registration
+    description: Create a new user account
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/RegisterRequest'
+          example:
+            email: "newuser@example.com"
+            password: "SecurePass123!"
+            full_name: "Nguyễn Văn A"
+            phone_number: "+84901234567"
+            locale: "vi"
+    responses:
+      '201':
+        description: Registration successful
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth.yaml#/AuthResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '409':
+        description: Email already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "EMAIL_EXISTS"
+                message: "Email already exists"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/logout:
+  post:
+    summary: User logout
+    description: Invalidate current session and JWT token
+    tags:
+      - Authentication
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: Logout successful
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth.yaml#/LogoutResponse'
+            example:
+              success: true
+              data:
+                message: "Logged out successfully"
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/refresh:
+  post:
+    summary: Refresh access token
+    description: Get a new access token using refresh token
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/RefreshTokenRequest'
+          example:
+            refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    responses:
+      '200':
+        description: Token refreshed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth.yaml#/AuthResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        description: Invalid or expired refresh token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "INVALID_REFRESH_TOKEN"
+                message: "Invalid or expired refresh token"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/me:
+  get:
+    summary: Get current user profile
+    description: Get authenticated user's profile information
+    tags:
+      - Authentication
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: Profile retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/change-password:
+  post:
+    summary: Change password
+    description: Change authenticated user's password
+    tags:
+      - Authentication
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/ChangePasswordRequest'
+          example:
+            current_password: "OldPass123!"
+            new_password: "NewSecurePass456!"
+    responses:
+      '200':
+        description: Password changed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Password changed successfully"
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        description: Current password is incorrect
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "INVALID_PASSWORD"
+                message: "Current password is incorrect"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/forgot-password:
+  post:
+    summary: Request password reset
+    description: Send password reset email to user
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/ForgotPasswordRequest'
+          example:
+            email: "user@example.com"
+    responses:
+      '200':
+        description: Password reset email sent
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Password reset email sent successfully"
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '404':
+        description: Email not found (returns success for security)
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "If the email exists, a reset link has been sent"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/reset-password:
+  post:
+    summary: Reset password
+    description: Reset password using token from email
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/ResetPasswordRequest'
+          example:
+            token: "abc123def456"
+            new_password: "ResetPass789!"
+    responses:
+      '200':
+        description: Password reset successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "Password reset successfully"
+      '400':
+        description: Invalid or expired token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "INVALID_TOKEN"
+                message: "Invalid or expired reset token"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth/verify-email:
+  post:
+    summary: Verify email address
+    description: Verify user email using token from verification email
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/VerifyEmailRequest'
+          example:
+            token: "abc123verification"
+    responses:
+      '200':
+        description: Email verified successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth.yaml#/VerifyEmailResponse'
+      '400':
+        description: Invalid or expired token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "INVALID_TOKEN"
+                message: "Invalid or expired verification token"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

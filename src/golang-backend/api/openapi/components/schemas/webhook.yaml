@@ -1,0 +1,234 @@
+Webhook:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Webhook name
+          example: "Order Created Hook"
+        description:
+          type: string
+          nullable: true
+          description: Description
+          example: "Notify when new order is created"
+        url:
+          type: string
+          description: Webhook URL
+          example: "https://example.com/webhooks/orders"
+        method:
+          type: string
+          enum: [POST, GET, PUT, PATCH, DELETE]
+          default: "POST"
+          description: HTTP method
+          example: "POST"
+        event_types:
+          type: array
+          items:
+            type: string
+          description: Event types to subscribe
+          example: ["order.created", "order.updated"]
+        event_filter:
+          type: object
+          nullable: true
+          description: Event filter
+          example:
+            status: "paid"
+        secret_key:
+          type: string
+          nullable: true
+          description: Secret key for signature
+          example: "whsec_abc123xyz789"
+          writeOnly: true
+        auth_type:
+          type: string
+          enum: [none, basic, bearer, api_key, oauth2]
+          default: "none"
+          description: Authentication type
+          example: "bearer"
+        auth_config:
+          type: object
+          nullable: true
+          description: Auth configuration
+          example:
+            token: "bearer_token_here"
+        headers:
+          type: object
+          description: Custom headers
+          default: {}
+          example:
+            X-Custom-Header: "value"
+        timeout_ms:
+          type: integer
+          minimum: 1
+          maximum: 60000
+          default: 5000
+          description: Timeout in milliseconds
+          example: 5000
+        retry_config:
+          type: object
+          description: Retry configuration
+          default:
+            max_retries: 3
+            retry_delay: 1000
+            backoff_multiplier: 2
+          example:
+            max_retries: 3
+            retry_delay: 1000
+            backoff_multiplier: 2
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+        is_verified:
+          type: boolean
+          default: false
+          description: Verified status
+          example: true
+        verification_token:
+          type: string
+          nullable: true
+          description: Verification token
+          example: null
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Verification timestamp
+          example: "2026-01-20T00:00:00Z"
+        last_triggered_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last trigger timestamp
+          example: "2026-01-22T10:30:00Z"
+        last_success_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last success timestamp
+          example: "2026-01-22T10:30:00Z"
+      required:
+        - tenant_id
+        - name
+        - url
+        - event_types
+
+CreateWebhookRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    url:
+      type: string
+    method:
+      type: string
+      enum: [POST, GET, PUT, PATCH, DELETE]
+      default: "POST"
+    event_types:
+      type: array
+      items:
+        type: string
+    event_filter:
+      type: object
+      nullable: true
+    auth_type:
+      type: string
+      enum: [none, basic, bearer, api_key, oauth2]
+      default: "none"
+    auth_config:
+      type: object
+      nullable: true
+    headers:
+      type: object
+      nullable: true
+    timeout_ms:
+      type: integer
+      minimum: 1
+      maximum: 60000
+      default: 5000
+    retry_config:
+      type: object
+      nullable: true
+  required:
+    - tenant_id
+    - name
+    - url
+    - event_types
+
+UpdateWebhookRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    url:
+      type: string
+    method:
+      type: string
+      enum: [POST, GET, PUT, PATCH, DELETE]
+    event_types:
+      type: array
+      items:
+        type: string
+    event_filter:
+      type: object
+      nullable: true
+    auth_type:
+      type: string
+      enum: [none, basic, bearer, api_key, oauth2]
+    auth_config:
+      type: object
+      nullable: true
+    headers:
+      type: object
+    timeout_ms:
+      type: integer
+      minimum: 1
+      maximum: 60000
+    is_active:
+      type: boolean
+  minProperties: 1
+
+WebhookListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Webhook'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+WebhookResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Webhook'
+  required:
+    - success
+    - data

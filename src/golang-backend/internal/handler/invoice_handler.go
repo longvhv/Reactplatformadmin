@@ -2,160 +2,154 @@ package handler
 
 import (
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vhv-platform/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/service"
-	"github.com/vhv-platform/backend/internal/utils"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type InvoiceHandler struct {
-	service *service.InvoiceService
+	invoiceService *service.InvoiceService
+	authzService   *service.AuthorizationService
 }
 
-func NewInvoiceHandler(service *service.InvoiceService) *InvoiceHandler {
-	return &InvoiceHandler{service: service}
+func NewInvoiceHandler(invoiceService *service.InvoiceService, authzService *service.AuthorizationService) *InvoiceHandler {
+	return &InvoiceHandler{
+		invoiceService: invoiceService,
+		authzService:   authzService,
+	}
 }
 
-func (h *InvoiceHandler) GetAll(c *gin.Context) {
-	filters := models.InvoiceFilters{}
+// List lists invoices
+func (h *InvoiceHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if tenantID := c.Query("tenant_id"); tenantID != "" {
-		filters.TenantID = &tenantID
-	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
-	if subID := c.Query("subscription_id"); subID != "" {
-		filters.SubscriptionID = &subID
-	}
-
-	if orderID := c.Query("order_id"); orderID != "" {
-		filters.OrderID = &orderID
-	}
-
-	if statusStr := c.Query("status"); statusStr != "" {
-		status := models.InvoiceStatus(statusStr)
-		filters.Status = &status
-	}
-
-	if search := c.Query("search"); search != "" {
-		filters.Search = &search
-	}
-
-	if startDate := c.Query("start_date"); startDate != "" {
-		if t, err := time.Parse(time.RFC3339, startDate); err == nil {
-			filters.StartDate = &t
-		}
-	}
-
-	if endDate := c.Query("end_date"); endDate != "" {
-		if t, err := time.Parse(time.RFC3339, endDate); err == nil {
-			filters.EndDate = &t
-		}
-	}
-
-	if overdueStr := c.Query("overdue"); overdueStr != "" {
-		overdue := overdueStr == "true"
-		filters.Overdue = &overdue
-	}
-
-	invoices, err := h.service.GetAll(c.Request.Context(), filters)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, invoices)
+	invoices, total, err := h.invoiceService.ListByTenant(ctx, tenantID, page, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.PaginatedResponse(c, http.StatusOK, invoices, total, page, limit)
 }
 
+// GetByID gets invoice by ID
 func (h *InvoiceHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
+	ctx := c.Request.Context()
 
-	invoice, err := h.service.GetByID(c.Request.Context(), id)
+	invoiceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "invoice not found" || err.Error() == "invalid invoice ID format" {
-			utils.NotFoundResponse(c, "Invoice")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid invoice id", nil)
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, invoice)
+	invoice, err := h.invoiceService.GetByID(ctx, invoiceID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "invoice not found", nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, invoice)
 }
 
-func (h *InvoiceHandler) GetByInvoiceNumber(c *gin.Context) {
-	invoiceNumber := c.Param("number")
-
-	invoice, err := h.service.GetByInvoiceNumber(c.Request.Context(), invoiceNumber)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	if invoice == nil {
-		utils.NotFoundResponse(c, "Invoice")
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, invoice)
-}
-
+// Create creates an invoice
 func (h *InvoiceHandler) Create(c *gin.Context) {
-	var req models.CreateInvoiceRequest
+	ctx := c.Request.Context()
 
+	var req service.CreateInvoiceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	invoice, err := h.service.Create(c.Request.Context(), req)
+	invoice, err := h.invoiceService.CreateInvoice(ctx, req)
 	if err != nil {
-		if err.Error() == "invoice number already exists" {
-			utils.ErrorResponse(c, http.StatusConflict, "INVOICE_EXISTS", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "CREATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusCreated, invoice)
+	httputil.SuccessResponse(c, http.StatusCreated, invoice)
 }
 
+// Update updates an invoice
 func (h *InvoiceHandler) Update(c *gin.Context) {
-	id := c.Param("id")
+	ctx := c.Request.Context()
 
-	var req models.UpdateInvoiceRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	invoice, err := h.service.Update(c.Request.Context(), id, req)
+	invoiceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "invoice not found" || err.Error() == "invalid invoice ID format" {
-			utils.NotFoundResponse(c, "Invoice")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "UPDATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid invoice id", nil)
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, invoice)
+	var req service.UpdateInvoiceRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	invoice, err := h.invoiceService.UpdateInvoice(ctx, invoiceID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, invoice)
 }
 
+// Delete deletes an invoice
 func (h *InvoiceHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
+	ctx := c.Request.Context()
 
-	err := h.service.Delete(c.Request.Context(), id)
+	invoiceID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "invoice not found" || err.Error() == "invalid invoice ID format" {
-			utils.NotFoundResponse(c, "Invoice")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "DELETE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid invoice id", nil)
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusNoContent, nil)
+	if err := h.invoiceService.DeleteInvoice(ctx, invoiceID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "invoice deleted successfully"})
+}
+
+// Pay marks invoice as paid
+func (h *InvoiceHandler) Pay(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	invoiceID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid invoice id", nil)
+		return
+	}
+
+	var req struct {
+		PaymentMethod string `json:"payment_method"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	invoice, err := h.invoiceService.PayInvoice(ctx, invoiceID, req.PaymentMethod)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, invoice)
 }

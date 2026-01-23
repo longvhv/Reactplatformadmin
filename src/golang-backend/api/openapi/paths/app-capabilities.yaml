@@ -1,0 +1,159 @@
+/app-capabilities:
+  get:
+    summary: List app capabilities
+    description: Retrieve application capabilities
+    tags:
+      - App Capabilities
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: app_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: [FEATURE, LIMIT]
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [active, inactive, archived]
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Capabilities retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/app-capability.yaml#/AppCapabilityListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create app capability
+    description: Create a new capability
+    tags:
+      - App Capabilities
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/app-capability.yaml#/CreateAppCapabilityRequest'
+    responses:
+      '201':
+        description: Capability created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/app-capability.yaml#/AppCapabilityResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/app-capabilities/{id}:
+  get:
+    summary: Get capability by ID
+    description: Retrieve a single capability
+    tags:
+      - App Capabilities
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Capability retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/app-capability.yaml#/AppCapabilityResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update capability
+    description: Update capability details
+    tags:
+      - App Capabilities
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/app-capability.yaml#/UpdateAppCapabilityRequest'
+    responses:
+      '200':
+        description: Capability updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/app-capability.yaml#/AppCapabilityResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete capability
+    description: Delete capability (soft delete)
+    tags:
+      - App Capabilities
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

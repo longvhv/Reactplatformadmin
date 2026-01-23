@@ -14,6 +14,7 @@ type UserIdentityRepository interface {
 	Create(ctx context.Context, identity *models.UserIdentity) error
 	GetByID(ctx context.Context, id uuid.UUID) (*models.UserIdentity, error)
 	GetByTypeAndValue(ctx context.Context, identityType, identityValue string) (*models.UserIdentity, error)
+	GetByUserIDAndType(ctx context.Context, userID uuid.UUID, identityType string) (*models.UserIdentity, error)
 	ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.UserIdentity, error)
 	Update(ctx context.Context, identity *models.UserIdentity) error
 	UpdateLastLogin(ctx context.Context, id uuid.UUID) error
@@ -49,6 +50,13 @@ func (r *userIdentityRepository) GetByTypeAndValue(ctx context.Context, identity
 	var identity models.UserIdentity
 	query := `SELECT * FROM user_identities WHERE identity_type = $1 AND identity_value = $2`
 	err := r.db.GetContext(ctx, &identity, query, identityType, identityValue)
+	return &identity, err
+}
+
+func (r *userIdentityRepository) GetByUserIDAndType(ctx context.Context, userID uuid.UUID, identityType string) (*models.UserIdentity, error) {
+	var identity models.UserIdentity
+	query := `SELECT * FROM user_identities WHERE user_id = $1 AND identity_type = $2`
+	err := r.db.GetContext(ctx, &identity, query, userID, identityType)
 	return &identity, err
 }
 

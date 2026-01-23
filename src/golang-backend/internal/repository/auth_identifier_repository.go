@@ -12,6 +12,7 @@ import (
 type AuthIdentifierRepository interface {
 	Create(ctx context.Context, identifier *models.AuthIdentifier) error
 	GetByHash(ctx context.Context, tenantID uuid.UUID, identifierHash []byte) (*models.AuthIdentifier, error)
+	GetByIdentifier(ctx context.Context, identifier, identifierType string) (*models.AuthIdentifier, error)
 	ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.AuthIdentifier, error)
 	Delete(ctx context.Context, tenantID uuid.UUID, identifierHash []byte) error
 }
@@ -37,6 +38,16 @@ func (r *authIdentifierRepository) GetByHash(ctx context.Context, tenantID uuid.
 	query := `SELECT * FROM auth_identifiers WHERE tenant_id = $1 AND identifier_hash = $2`
 	err := r.db.GetContext(ctx, &identifier, query, tenantID, identifierHash)
 	return &identifier, err
+}
+
+func (r *authIdentifierRepository) GetByIdentifier(ctx context.Context, identifier, identifierType string) (*models.AuthIdentifier, error) {
+	var authIdentifier models.AuthIdentifier
+	query := `SELECT * FROM auth_identifiers WHERE original_value = $1 AND identifier_type = $2 LIMIT 1`
+	err := r.db.GetContext(ctx, &authIdentifier, query, identifier, identifierType)
+	if err != nil {
+		return nil, err
+	}
+	return &authIdentifier, nil
 }
 
 func (r *authIdentifierRepository) ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.AuthIdentifier, error) {

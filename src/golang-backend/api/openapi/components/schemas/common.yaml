@@ -1,0 +1,202 @@
+BaseModel:
+  type: object
+  description: Base model with common fields for all entities
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Unique identifier (UUID v4)
+      example: "550e8400-e29b-41d4-a716-446655440000"
+      readOnly: true
+    created_at:
+      type: string
+      format: date-time
+      description: Timestamp when the entity was created
+      example: "2026-01-22T10:30:00Z"
+      readOnly: true
+    updated_at:
+      type: string
+      format: date-time
+      description: Timestamp when the entity was last updated
+      example: "2026-01-22T15:45:00Z"
+      readOnly: true
+    deleted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Timestamp when the entity was soft deleted (null if not deleted)
+      example: null
+      readOnly: true
+    created_by:
+      type: string
+      format: uuid
+      nullable: true
+      description: ID of the user who created the entity
+      example: "550e8400-e29b-41d4-a716-446655440001"
+      readOnly: true
+    updated_by:
+      type: string
+      format: uuid
+      nullable: true
+      description: ID of the user who last updated the entity
+      example: "550e8400-e29b-41d4-a716-446655440002"
+      readOnly: true
+    deleted_by:
+      type: string
+      format: uuid
+      nullable: true
+      description: ID of the user who deleted the entity
+      example: null
+      readOnly: true
+    version:
+      type: integer
+      format: int64
+      minimum: 1
+      description: Optimistic locking version number
+      example: 1
+      readOnly: true
+  required:
+    - _id
+    - created_at
+    - updated_at
+    - version
+
+PaginationMeta:
+  type: object
+  description: Pagination metadata
+  properties:
+    page:
+      type: integer
+      minimum: 1
+      description: Current page number
+      example: 1
+    page_size:
+      type: integer
+      minimum: 1
+      maximum: 100
+      description: Number of items per page
+      example: 20
+    total_pages:
+      type: integer
+      minimum: 0
+      description: Total number of pages
+      example: 5
+    total_count:
+      type: integer
+      minimum: 0
+      description: Total number of items
+      example: 95
+    has_next:
+      type: boolean
+      description: Whether there is a next page
+      example: true
+    has_prev:
+      type: boolean
+      description: Whether there is a previous page
+      example: false
+  required:
+    - page
+    - page_size
+    - total_pages
+    - total_count
+    - has_next
+    - has_prev
+
+UserStatus:
+  type: string
+  enum:
+    - ACTIVE
+    - INACTIVE
+    - SUSPENDED
+    - PENDING
+    - BANNED
+  description: User account status
+  example: "ACTIVE"
+
+TenantStatus:
+  type: string
+  enum:
+    - ACTIVE
+    - INACTIVE
+    - SUSPENDED
+    - TRIAL
+    - CANCELLED
+  description: Tenant account status
+  example: "ACTIVE"
+
+OrderStatus:
+  type: string
+  enum:
+    - PENDING
+    - PROCESSING
+    - COMPLETED
+    - CANCELLED
+    - FAILED
+    - REFUNDED
+  description: Order status
+  example: "COMPLETED"
+
+InvoiceStatus:
+  type: string
+  enum:
+    - DRAFT
+    - PENDING
+    - PAID
+    - OVERDUE
+    - CANCELLED
+    - REFUNDED
+  description: Invoice status
+  example: "PAID"
+
+PaymentMethod:
+  type: string
+  enum:
+    - CREDIT_CARD
+    - BANK_TRANSFER
+    - PAYPAL
+    - STRIPE
+    - MOMO
+    - VNPAY
+  description: Payment method
+  example: "CREDIT_CARD"
+
+BillingCycle:
+  type: string
+  enum:
+    - MONTHLY
+    - QUARTERLY
+    - YEARLY
+    - ONE_TIME
+  description: Billing cycle
+  example: "MONTHLY"
+
+Currency:
+  type: string
+  enum:
+    - USD
+    - VND
+    - EUR
+  description: Currency code (ISO 4217)
+  example: "USD"
+
+Locale:
+  type: string
+  enum:
+    - vi
+    - en
+    - es
+    - ja
+    - ko
+    - zh
+  description: Language/locale code (ISO 639-1)
+  example: "vi"
+
+Metadata:
+  type: object
+  additionalProperties: true
+  description: Flexible metadata object for storing custom data
+  example:
+    custom_field_1: "value1"
+    custom_field_2: 123
+    nested_object:
+      key: "value"

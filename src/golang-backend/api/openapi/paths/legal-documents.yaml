@@ -1,0 +1,214 @@
+/legal-documents:
+  get:
+    summary: List legal documents
+    description: Retrieve legal documents
+    tags:
+      - Legal Documents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: [terms_of_service, privacy_policy, cookie_policy, gdpr, eula, sla, dpa, other]
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [draft, published, archived]
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: language
+        in: query
+        schema:
+          type: string
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Documents retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/legal-document.yaml#/LegalDocumentListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create legal document
+    description: Create a new legal document
+    tags:
+      - Legal Documents
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/legal-document.yaml#/CreateLegalDocumentRequest'
+    responses:
+      '201':
+        description: Document created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/legal-document.yaml#/LegalDocumentResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/legal-documents/{id}:
+  get:
+    summary: Get document by ID
+    description: Retrieve a single legal document
+    tags:
+      - Legal Documents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Document retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/legal-document.yaml#/LegalDocumentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update document
+    description: Update legal document
+    tags:
+      - Legal Documents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/legal-document.yaml#/UpdateLegalDocumentRequest'
+    responses:
+      '200':
+        description: Document updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/legal-document.yaml#/LegalDocumentResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete document
+    description: Delete legal document (soft delete)
+    tags:
+      - Legal Documents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/legal-documents/slug/{slug}:
+  get:
+    summary: Get document by slug
+    description: Retrieve legal document by slug
+    tags:
+      - Legal Documents
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: language
+        in: query
+        schema:
+          type: string
+          default: "vi"
+    responses:
+      '200':
+        description: Document retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/legal-document.yaml#/LegalDocumentResponse'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/legal-documents/{id}/publish:
+  post:
+    summary: Publish document
+    description: Publish legal document
+    tags:
+      - Legal Documents
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Document published successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/legal-document.yaml#/LegalDocumentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

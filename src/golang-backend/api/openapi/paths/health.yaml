@@ -1,0 +1,47 @@
+get:
+  summary: Health check
+  description: Check if the API is running and healthy
+  tags:
+    - System
+  responses:
+    '200':
+      description: API is healthy
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+              message:
+                type: string
+                example: "VHV Platform API is running"
+              version:
+                type: string
+                example: "1.0.0"
+              timestamp:
+                type: string
+                format: date-time
+                example: "2026-01-22T10:30:00Z"
+            required:
+              - status
+              - message
+          example:
+            status: "ok"
+            message: "VHV Platform API is running"
+            version: "1.0.0"
+            timestamp: "2026-01-22T10:30:00Z"
+    '500':
+      description: API is unhealthy
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "error"
+              message:
+                type: string
+                example: "API is experiencing issues"

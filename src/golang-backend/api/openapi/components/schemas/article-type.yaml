@@ -1,0 +1,110 @@
+ArticleType:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        app_code:
+          type: string
+          description: Application code
+          example: "BLOG"
+        code:
+          type: string
+          description: Type code
+          example: "NEWS"
+        name:
+          type: string
+          description: Type name
+          example: "News Article"
+        icon_url:
+          type: string
+          nullable: true
+          description: Icon URL
+          example: "https://example.com/icons/news.svg"
+        config_schema:
+          type: object
+          description: Configuration schema
+          default: {}
+          example:
+            fields:
+              - name: "author"
+                type: "string"
+        is_system:
+          type: boolean
+          default: false
+          description: System type
+          example: false
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+      required:
+        - app_code
+        - code
+        - name
+
+CreateArticleTypeRequest:
+  type: object
+  properties:
+    app_code:
+      type: string
+    code:
+      type: string
+    name:
+      type: string
+    icon_url:
+      type: string
+      nullable: true
+    config_schema:
+      type: object
+      default: {}
+    is_active:
+      type: boolean
+      default: true
+  required:
+    - app_code
+    - code
+    - name
+
+UpdateArticleTypeRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    icon_url:
+      type: string
+      nullable: true
+    config_schema:
+      type: object
+    is_active:
+      type: boolean
+  minProperties: 1
+
+ArticleTypeListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/ArticleType'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+ArticleTypeResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/ArticleType'
+  required:
+    - success
+    - data

@@ -1,0 +1,210 @@
+UserDevice:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: User ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        device_name:
+          type: string
+          nullable: true
+          description: Device name
+          example: "iPhone 13 Pro"
+        device_type:
+          type: string
+          nullable: true
+          description: Device type
+          example: "mobile"
+        os_name:
+          type: string
+          nullable: true
+          description: Operating system
+          example: "iOS"
+        os_version:
+          type: string
+          nullable: true
+          description: OS version
+          example: "15.6"
+        browser_name:
+          type: string
+          nullable: true
+          description: Browser name
+          example: "Safari"
+        browser_version:
+          type: string
+          nullable: true
+          description: Browser version
+          example: "15.6"
+        app_name:
+          type: string
+          nullable: true
+          description: App name
+          example: "MyApp Mobile"
+        app_version:
+          type: string
+          nullable: true
+          description: App version
+          example: "1.2.3"
+        ip_address:
+          type: string
+          nullable: true
+          description: IP address
+          example: "192.168.1.100"
+        user_agent:
+          type: string
+          nullable: true
+          description: User agent string
+          example: "Mozilla/5.0..."
+        location:
+          type: object
+          default: {}
+          description: Location info
+          example:
+            city: "Ho Chi Minh City"
+            country: "Vietnam"
+        is_trusted:
+          type: boolean
+          default: false
+          description: Trusted device
+          example: true
+        fingerprint:
+          type: string
+          nullable: true
+          description: Device fingerprint
+          example: "abc123xyz789"
+        push_token:
+          type: string
+          nullable: true
+          description: Push notification token
+          example: "fcm_token_123"
+        first_seen_at:
+          type: string
+          format: date-time
+          description: First seen timestamp
+          example: "2026-01-01T00:00:00Z"
+        last_used_at:
+          type: string
+          format: date-time
+          description: Last used timestamp
+          example: "2026-01-22T10:30:00Z"
+        login_count:
+          type: integer
+          minimum: 0
+          default: 1
+          description: Login count
+          example: 42
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - blocked
+            - revoked
+          default: "active"
+          description: Device status
+          example: "active"
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Revocation timestamp
+          example: null
+        revoked_reason:
+          type: string
+          nullable: true
+          description: Revocation reason
+          example: null
+        metadata:
+          type: object
+          default: {}
+          description: Additional metadata
+          example: {}
+      required:
+        - user_id
+        - status
+
+RegisterDeviceRequest:
+  type: object
+  properties:
+    device_name:
+      type: string
+      nullable: true
+    device_type:
+      type: string
+      nullable: true
+    os_name:
+      type: string
+      nullable: true
+    os_version:
+      type: string
+      nullable: true
+    browser_name:
+      type: string
+      nullable: true
+    browser_version:
+      type: string
+      nullable: true
+    app_name:
+      type: string
+      nullable: true
+    app_version:
+      type: string
+      nullable: true
+    fingerprint:
+      type: string
+      nullable: true
+    push_token:
+      type: string
+      nullable: true
+    metadata:
+      type: object
+      nullable: true
+
+UpdateDeviceRequest:
+  type: object
+  properties:
+    device_name:
+      type: string
+    is_trusted:
+      type: boolean
+    push_token:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [active, inactive, blocked, revoked]
+    metadata:
+      type: object
+  minProperties: 1
+
+UserDeviceListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserDevice'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserDeviceResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserDevice'
+  required:
+    - success
+    - data

@@ -1,0 +1,112 @@
+SaaSBusinessReport:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Report ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    report_date:
+      type: string
+      format: date
+      nullable: true
+      description: Report date
+      example: "2026-01-22"
+    partner_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Partner ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    revenue_category:
+      type: string
+      nullable: true
+      description: Revenue category
+      example: "subscription"
+    total_revenue:
+      type: number
+      nullable: true
+      description: Total revenue
+      example: 10000000
+    currency_code:
+      type: string
+      default: "VND"
+      description: Currency code
+      example: "VND"
+    tenant_count:
+      type: integer
+      nullable: true
+      description: Tenant count
+      example: 50
+    details_json:
+      type: object
+      description: Additional details
+      default: {}
+      example:
+        breakdown:
+          new: 5
+          renewal: 45
+    created_at:
+      type: string
+      format: date-time
+      description: Creation timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - created_at
+
+CreateSaaSBusinessReportRequest:
+  type: object
+  properties:
+    report_date:
+      type: string
+      format: date
+    partner_id:
+      type: string
+      format: uuid
+      nullable: true
+    revenue_category:
+      type: string
+    total_revenue:
+      type: number
+    currency_code:
+      type: string
+      default: "VND"
+    tenant_count:
+      type: integer
+    details_json:
+      type: object
+      nullable: true
+  required:
+    - report_date
+    - revenue_category
+    - total_revenue
+
+SaaSBusinessReportListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/SaaSBusinessReport'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+SaaSBusinessReportResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/SaaSBusinessReport'
+  required:
+    - success
+    - data

@@ -1,0 +1,75 @@
+SuccessResponse:
+  description: Successful response with data
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            description: Response data (structure varies by endpoint)
+          meta:
+            $ref: '../schemas/common.yaml#/PaginationMeta'
+        required:
+          - success
+
+OKResponse:
+  description: OK - Request successful
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            description: Response data
+        required:
+          - success
+          - data
+
+CreatedResponse:
+  description: Created - Resource successfully created
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: object
+            description: Created resource
+        required:
+          - success
+          - data
+
+NoContentResponse:
+  description: No Content - Request successful but no content to return
+
+PaginatedResponse:
+  description: Successful response with pagination
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: true
+          data:
+            type: array
+            items:
+              type: object
+          meta:
+            $ref: '../schemas/common.yaml#/PaginationMeta'
+        required:
+          - success
+          - data
+          - meta

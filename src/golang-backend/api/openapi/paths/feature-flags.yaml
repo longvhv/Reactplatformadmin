@@ -1,0 +1,181 @@
+/feature-flags:
+  get:
+    summary: List feature flags
+    description: Retrieve feature flags
+    tags:
+      - Feature Flags
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: environment
+        in: query
+        schema:
+          type: string
+      - name: is_enabled
+        in: query
+        schema:
+          type: boolean
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Flags retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/feature-flag.yaml#/FeatureFlagListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create feature flag
+    description: Create a new feature flag
+    tags:
+      - Feature Flags
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/feature-flag.yaml#/CreateFeatureFlagRequest'
+    responses:
+      '201':
+        description: Flag created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/feature-flag.yaml#/FeatureFlagResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/feature-flags/{id}:
+  get:
+    summary: Get flag by ID
+    description: Retrieve a single feature flag
+    tags:
+      - Feature Flags
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Flag retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/feature-flag.yaml#/FeatureFlagResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update flag
+    description: Update feature flag
+    tags:
+      - Feature Flags
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/feature-flag.yaml#/UpdateFeatureFlagRequest'
+    responses:
+      '200':
+        description: Flag updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/feature-flag.yaml#/FeatureFlagResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete flag
+    description: Delete feature flag
+    tags:
+      - Feature Flags
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/feature-flags/{id}/toggle:
+  post:
+    summary: Toggle flag
+    description: Enable/disable feature flag
+    tags:
+      - Feature Flags
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              is_enabled:
+                type: boolean
+                example: true
+            required:
+              - is_enabled
+    responses:
+      '200':
+        description: Flag toggled successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/feature-flag.yaml#/FeatureFlagResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

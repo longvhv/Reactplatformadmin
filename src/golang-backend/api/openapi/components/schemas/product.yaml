@@ -1,0 +1,260 @@
+Product:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        application_id:
+          type: string
+          format: uuid
+          description: Associated application ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Stock Keeping Unit (unique identifier)
+          example: "HRMS-PREMIUM-MONTHLY"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Product name
+          example: "HRMS Premium Plan - Monthly"
+        description:
+          type: string
+          nullable: true
+          description: Product description
+          example: "Premium HRMS features with monthly billing"
+        product_type:
+          type: string
+          enum:
+            - SUBSCRIPTION
+            - LICENSE
+            - ADDON
+            - CREDIT
+            - SERVICE
+          description: Product type
+          example: "SUBSCRIPTION"
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+          description: Product status
+          example: "ACTIVE"
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Product price
+          example: 99.99
+        currency:
+          $ref: './common.yaml#/Currency'
+        billing_cycle:
+          type: string
+          enum:
+            - MONTHLY
+            - QUARTERLY
+            - YEARLY
+            - ONE_TIME
+          description: Billing cycle
+          example: "MONTHLY"
+        trial_days:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Trial period in days
+          example: 14
+        setup_fee:
+          type: number
+          format: decimal
+          minimum: 0
+          nullable: true
+          description: One-time setup fee
+          example: 199.00
+        is_taxable:
+          type: boolean
+          description: Whether product is taxable
+          default: true
+          example: true
+        tax_rate:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Tax rate percentage
+          example: 10.0
+        max_quantity:
+          type: integer
+          minimum: -1
+          nullable: true
+          description: Maximum purchasable quantity (-1 for unlimited)
+          example: 10
+        min_quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Minimum purchasable quantity
+          example: 1
+        unit:
+          type: string
+          nullable: true
+          description: Unit of measurement
+          example: "user"
+        features:
+          type: array
+          items:
+            type: string
+          description: Product features
+          example:
+            - "Up to 100 employees"
+            - "Advanced reporting"
+            - "API access"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - application_id
+        - sku
+        - name
+        - product_type
+        - status
+        - price
+        - currency
+        - billing_cycle
+
+CreateProductRequest:
+  type: object
+  properties:
+    application_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    sku:
+      type: string
+      example: "CRM-STARTER-YEARLY"
+    name:
+      type: string
+      example: "CRM Starter Plan - Yearly"
+    description:
+      type: string
+      nullable: true
+      example: "Essential CRM features with annual billing"
+    product_type:
+      type: string
+      enum: [SUBSCRIPTION, LICENSE, ADDON, CREDIT, SERVICE]
+      example: "SUBSCRIPTION"
+    status:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+      default: "DRAFT"
+    price:
+      type: number
+      format: decimal
+      minimum: 0
+      example: 999.00
+    currency:
+      $ref: './common.yaml#/Currency'
+    billing_cycle:
+      type: string
+      enum: [MONTHLY, QUARTERLY, YEARLY, ONE_TIME]
+      example: "YEARLY"
+    trial_days:
+      type: integer
+      minimum: 0
+      nullable: true
+      example: 30
+    setup_fee:
+      type: number
+      format: decimal
+      nullable: true
+    is_taxable:
+      type: boolean
+      default: true
+    tax_rate:
+      type: number
+      format: decimal
+      nullable: true
+      example: 10.0
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - application_id
+    - sku
+    - name
+    - product_type
+    - price
+    - currency
+    - billing_cycle
+
+UpdateProductRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+    price:
+      type: number
+      format: decimal
+      minimum: 0
+    trial_days:
+      type: integer
+      minimum: 0
+      nullable: true
+    setup_fee:
+      type: number
+      format: decimal
+      nullable: true
+    is_taxable:
+      type: boolean
+    tax_rate:
+      type: number
+      format: decimal
+      nullable: true
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+ProductListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Product'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+ProductResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Product'
+  required:
+    - success
+    - data

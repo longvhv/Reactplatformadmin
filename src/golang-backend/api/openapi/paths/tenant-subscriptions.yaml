@@ -1,0 +1,222 @@
+/tenant-subscriptions:
+  get:
+    summary: List tenant subscriptions
+    description: Retrieve a paginated list of tenant subscriptions
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [active, trial, suspended, expired, cancelled, pending]
+      - name: billing_cycle
+        in: query
+        schema:
+          type: string
+          enum: [monthly, quarterly, yearly, custom]
+      - name: is_trial
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Subscriptions retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-subscription.yaml#/TenantSubscriptionListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create tenant subscription
+    description: Create a new subscription for a tenant
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-subscription.yaml#/CreateTenantSubscriptionRequest'
+    responses:
+      '201':
+        description: Subscription created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-subscription.yaml#/TenantSubscriptionResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-subscriptions/{id}:
+  get:
+    summary: Get subscription by ID
+    description: Retrieve a single tenant subscription
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Subscription retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-subscription.yaml#/TenantSubscriptionResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update subscription
+    description: Update tenant subscription details
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-subscription.yaml#/UpdateTenantSubscriptionRequest'
+    responses:
+      '200':
+        description: Subscription updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-subscription.yaml#/TenantSubscriptionResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete subscription
+    description: Delete a tenant subscription (soft delete)
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-subscriptions/{id}/cancel:
+  post:
+    summary: Cancel subscription
+    description: Cancel a tenant subscription
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              reason:
+                type: string
+                description: Cancellation reason
+                example: "Customer requested cancellation"
+              cancel_immediately:
+                type: boolean
+                default: false
+                description: Cancel immediately or at period end
+    responses:
+      '200':
+        description: Subscription cancelled successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-subscription.yaml#/TenantSubscriptionResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-subscriptions/{id}/renew:
+  post:
+    summary: Renew subscription
+    description: Manually renew a tenant subscription
+    tags:
+      - Tenant Subscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Subscription renewed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-subscription.yaml#/TenantSubscriptionResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

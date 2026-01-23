@@ -1,0 +1,83 @@
+SaaSProductType:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z0-9_]+$'
+          description: Type code (uppercase alphanumeric with underscores)
+          example: "CLOUD_STORAGE"
+        name:
+          type: string
+          description: Type name
+          example: "Cloud Storage"
+        description:
+          type: string
+          nullable: true
+          description: Description
+          example: "Cloud-based file storage service"
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+      required:
+        - code
+        - name
+
+CreateSaaSProductTypeRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: '^[A-Z0-9_]+$'
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+  required:
+    - code
+    - name
+
+UpdateSaaSProductTypeRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    is_active:
+      type: boolean
+  minProperties: 1
+
+SaaSProductTypeListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/SaaSProductType'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+SaaSProductTypeResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/SaaSProductType'
+  required:
+    - success
+    - data

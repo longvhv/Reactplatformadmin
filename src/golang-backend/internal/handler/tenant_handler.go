@@ -2,151 +2,175 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vhv-platform/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/service"
-	"github.com/vhv-platform/backend/internal/utils"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
-// TenantHandler handles HTTP requests for tenants
 type TenantHandler struct {
-	service *service.TenantService
+	tenantService *service.TenantService
+	authzService  *service.AuthorizationService
 }
 
-// NewTenantHandler creates a new tenant handler
-func NewTenantHandler(service *service.TenantService) *TenantHandler {
-	return &TenantHandler{service: service}
+func NewTenantHandler(tenantService *service.TenantService, authzService *service.AuthorizationService) *TenantHandler {
+	return &TenantHandler{
+		tenantService: tenantService,
+		authzService:  authzService,
+	}
 }
 
-// GetAll handles GET /api/v1/tenants
-func (h *TenantHandler) GetAll(c *gin.Context) {
-	filters := models.TenantFilters{}
-
-	if tierStr := c.Query("tier"); tierStr != "" {
-		tier := models.TenantTier(tierStr)
-		filters.Tier = &tier
-	}
-
-	if statusStr := c.Query("status"); statusStr != "" {
-		status := models.TenantStatus(statusStr)
-		filters.Status = &status
-	}
-
-	if parentID := c.Query("parent_tenant_id"); parentID != "" {
-		filters.ParentTenantID = &parentID
-	}
-
-	if region := c.Query("data_region"); region != "" {
-		filters.DataRegion = &region
-	}
-
-	if search := c.Query("search"); search != "" {
-		filters.Search = &search
-	}
-
-	tenants, err := h.service.GetAll(c.Request.Context(), filters)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
+// List lists user's tenants
+func (h *TenantHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "unauthorized", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, tenants)
+	
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	
+	tenants, total, err := h.tenantService.ListByUser(ctx, userID, page, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.PaginatedResponse(c, http.StatusOK, tenants, total, page, limit)
 }
 
-// GetByID handles GET /api/v1/tenants/:id
+// GetByID gets tenant by ID
 func (h *TenantHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	tenant, err := h.service.GetByID(c.Request.Context(), id)
+	ctx := c.Request.Context()
+	
+	tenantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "tenant not found" || err.Error() == "invalid tenant ID format" {
-			utils.NotFoundResponse(c, "Tenant")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tenant id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, tenant)
+	
+	tenant, err := h.tenantService.GetByID(ctx, tenantID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "tenant not found", nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, tenant)
 }
 
-// GetByCode handles GET /api/v1/tenants/code/:code
-func (h *TenantHandler) GetByCode(c *gin.Context) {
-	code := c.Param("code")
-
-	tenant, err := h.service.GetByCode(c.Request.Context(), code)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	if tenant == nil {
-		utils.NotFoundResponse(c, "Tenant")
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, tenant)
-}
-
-// Create handles POST /api/v1/tenants
+// Create creates a tenant
 func (h *TenantHandler) Create(c *gin.Context) {
-	var req models.CreateTenantRequest
-
+	ctx := c.Request.Context()
+	
+	var req service.CreateTenantRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
-
-	tenant, err := h.service.Create(c.Request.Context(), req)
+	
+	tenant, err := h.tenantService.CreateTenant(ctx, req)
 	if err != nil {
-		if err.Error() == "tenant code already exists" {
-			utils.ErrorResponse(c, http.StatusConflict, "CODE_EXISTS", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "CREATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusCreated, tenant)
+	
+	httputil.SuccessResponse(c, http.StatusCreated, tenant)
 }
 
-// Update handles PATCH /api/v1/tenants/:id
+// Update updates a tenant
 func (h *TenantHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-
-	var req models.UpdateTenantRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	tenant, err := h.service.Update(c.Request.Context(), id, req)
+	ctx := c.Request.Context()
+	
+	tenantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "tenant not found" || err.Error() == "invalid tenant ID format" {
-			utils.NotFoundResponse(c, "Tenant")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "UPDATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tenant id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, tenant)
+	
+	var req service.UpdateTenantRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+	
+	tenant, err := h.tenantService.UpdateTenant(ctx, tenantID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, tenant)
 }
 
-// Delete handles DELETE /api/v1/tenants/:id
+// Delete deletes a tenant
 func (h *TenantHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	err := h.service.Delete(c.Request.Context(), id)
+	ctx := c.Request.Context()
+	
+	tenantID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "tenant not found" || err.Error() == "invalid tenant ID format" {
-			utils.NotFoundResponse(c, "Tenant")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "DELETE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tenant id", nil)
 		return
 	}
+	
+	if err := h.tenantService.DeleteTenant(ctx, tenantID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "tenant deleted successfully"})
+}
 
-	utils.SuccessResponse(c, http.StatusNoContent, nil)
+// GetSettings gets tenant settings
+func (h *TenantHandler) GetSettings(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	tenantID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tenant id", nil)
+		return
+	}
+	
+	tenant, err := h.tenantService.GetByID(ctx, tenantID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "tenant not found", nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"settings": tenant.Settings})
+}
+
+// UpdateSettings updates tenant settings
+func (h *TenantHandler) UpdateSettings(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	tenantID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tenant id", nil)
+		return
+	}
+	
+	var settings map[string]interface{}
+	if err := c.ShouldBindJSON(&settings); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+	
+	// Update tenant with new settings
+	req := service.UpdateTenantRequest{
+		Settings: settings,
+	}
+	
+	tenant, err := h.tenantService.UpdateTenant(ctx, tenantID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, tenant)
 }

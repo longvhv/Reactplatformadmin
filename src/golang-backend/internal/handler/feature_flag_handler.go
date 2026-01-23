@@ -6,232 +6,215 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type FeatureFlagHandler struct {
-	service service.FeatureFlagService
+	flagService  *service.FeatureFlagService
+	authzService *service.AuthorizationService
 }
 
-func NewFeatureFlagHandler(service service.FeatureFlagService) *FeatureFlagHandler {
-	return &FeatureFlagHandler{service: service}
-}
-
-func (h *FeatureFlagHandler) CreateFlag(c *gin.Context) {
-	var req models.CreateFeatureFlagRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func NewFeatureFlagHandler(flagService *service.FeatureFlagService, authzService *service.AuthorizationService) *FeatureFlagHandler {
+	return &FeatureFlagHandler{
+		flagService:  flagService,
+		authzService: authzService,
 	}
-
-	flag, err := h.service.CreateFlag(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, flag)
 }
 
-func (h *FeatureFlagHandler) ListFlags(c *gin.Context) {
+// List lists feature flags
+func (h *FeatureFlagHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	category := c.Query("category")
 
-	var environment *string
-	if env := c.Query("environment"); env != "" {
-		environment = &env
-	}
-
-	var isEnabled *bool
-	if enabledStr := c.Query("is_enabled"); enabledStr != "" {
-		enabled := enabledStr == "true"
-		isEnabled = &enabled
-	}
-
-	flags, total, err := h.service.ListFlags(c.Request.Context(), page, pageSize, environment, isEnabled)
+	flags, total, err := h.flagService.ListFlags(ctx, category, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      flags,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, flags, total, page, limit)
 }
 
-func (h *FeatureFlagHandler) GetFlag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets flag by ID
+func (h *FeatureFlagHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	flagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid flag ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid flag id", nil)
 		return
 	}
 
-	flag, err := h.service.GetFlag(c.Request.Context(), id)
+	flag, err := h.flagService.GetByID(ctx, flagID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "flag not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, flag)
+	httputil.SuccessResponse(c, http.StatusOK, flag)
 }
 
-func (h *FeatureFlagHandler) GetFlagByKey(c *gin.Context) {
+// GetByKey gets flag by key
+func (h *FeatureFlagHandler) GetByKey(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	key := c.Param("key")
 	if key == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "key is required"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "key required", nil)
 		return
 	}
 
-	flag, err := h.service.GetFlagByKey(c.Request.Context(), key)
+	flag, err := h.flagService.GetByKey(ctx, key)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "flag not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, flag)
+	httputil.SuccessResponse(c, http.StatusOK, flag)
 }
 
-func (h *FeatureFlagHandler) UpdateFlag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid flag ID"})
-		return
-	}
+// Create creates a flag
+func (h *FeatureFlagHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateFeatureFlagRequest
+	var req service.CreateFeatureFlagRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	flag, err := h.service.UpdateFlag(c.Request.Context(), id, &req)
+	flag, err := h.flagService.CreateFlag(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, flag)
+	httputil.SuccessResponse(c, http.StatusCreated, flag)
 }
 
-func (h *FeatureFlagHandler) DeleteFlag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a flag
+func (h *FeatureFlagHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	flagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid flag ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid flag id", nil)
 		return
 	}
 
-	if err := h.service.DeleteFlag(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateFeatureFlagRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	flag, err := h.flagService.UpdateFlag(ctx, flagID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, flag)
 }
 
-func (h *FeatureFlagHandler) ListFlagsByEnvironment(c *gin.Context) {
-	environment := c.Param("environment")
-	if environment == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "environment is required"})
-		return
-	}
+// Delete deletes a flag
+func (h *FeatureFlagHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	flags, err := h.service.ListFlagsByEnvironment(c.Request.Context(), environment)
+	flagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid flag id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": flags})
+	if err := h.flagService.DeleteFlag(ctx, flagID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "flag deleted successfully"})
 }
 
-func (h *FeatureFlagHandler) ListEnabledFlags(c *gin.Context) {
-	environment := c.DefaultQuery("environment", "production")
+// Enable enables a flag
+func (h *FeatureFlagHandler) Enable(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	flags, err := h.service.ListEnabledFlags(c.Request.Context(), environment)
+	flagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid flag id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": flags})
+	flag, err := h.flagService.EnableFlag(ctx, flagID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, flag)
 }
 
-func (h *FeatureFlagHandler) EnableFlag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Disable disables a flag
+func (h *FeatureFlagHandler) Disable(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	flagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid flag ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid flag id", nil)
 		return
 	}
 
-	if err := h.service.EnableFlag(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	flag, err := h.flagService.DisableFlag(ctx, flagID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "flag enabled successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, flag)
 }
 
-func (h *FeatureFlagHandler) DisableFlag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid flag ID"})
-		return
-	}
-
-	if err := h.service.DisableFlag(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "flag disabled successfully"})
-}
-
-func (h *FeatureFlagHandler) UpdateRolloutPercentage(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid flag ID"})
-		return
-	}
+// Evaluate evaluates a flag for a context
+func (h *FeatureFlagHandler) Evaluate(c *gin.Context) {
+	ctx := c.Request.Context()
 
 	var req struct {
-		Percentage int `json:"percentage" binding:"required,min=0,max=100"`
+		FlagKey      string                 `json:"flag_key" binding:"required"`
+		UserID       *string                `json:"user_id"`
+		TenantID     *string                `json:"tenant_id"`
+		Context      map[string]interface{} `json:"context"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.UpdateRolloutPercentage(c.Request.Context(), id, req.Percentage); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	var userID, tenantID *uuid.UUID
+	if req.UserID != nil {
+		parsed, err := uuid.Parse(*req.UserID)
+		if err == nil {
+			userID = &parsed
+		}
+	}
+	if req.TenantID != nil {
+		parsed, err := uuid.Parse(*req.TenantID)
+		if err == nil {
+			tenantID = &parsed
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "rollout percentage updated successfully"})
-}
-
-func (h *FeatureFlagHandler) IsFeatureEnabled(c *gin.Context) {
-	key := c.Param("key")
-	if key == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "key is required"})
-		return
-	}
-
-	environment := c.DefaultQuery("environment", "production")
-
-	enabled, err := h.service.IsFeatureEnabled(c.Request.Context(), key, environment)
+	isEnabled, err := h.flagService.EvaluateFlag(ctx, req.FlagKey, userID, tenantID, req.Context)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"key":         key,
-		"environment": environment,
-		"enabled":     enabled,
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{
+		"flag_key":   req.FlagKey,
+		"is_enabled": isEnabled,
 	})
 }

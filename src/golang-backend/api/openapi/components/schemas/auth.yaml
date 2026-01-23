@@ -1,0 +1,190 @@
+LoginRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: User email address
+      example: "admin@saas.coquan.vn"
+    password:
+      type: string
+      format: password
+      description: User password
+      example: "Vhv@2026"
+  required:
+    - email
+    - password
+
+RegisterRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: User email address
+      example: "newuser@example.com"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      maxLength: 128
+      description: User password (min 8 characters)
+      example: "SecurePass123!"
+    full_name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: User full name
+      example: "Nguyễn Văn A"
+    phone_number:
+      type: string
+      nullable: true
+      description: User phone number
+      example: "+84901234567"
+    locale:
+      $ref: './common.yaml#/Locale'
+  required:
+    - email
+    - password
+    - full_name
+
+RefreshTokenRequest:
+  type: object
+  properties:
+    refresh_token:
+      type: string
+      description: Refresh token obtained from login
+      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  required:
+    - refresh_token
+
+ChangePasswordRequest:
+  type: object
+  properties:
+    current_password:
+      type: string
+      format: password
+      description: Current password
+      example: "OldPass123!"
+    new_password:
+      type: string
+      format: password
+      minLength: 8
+      maxLength: 128
+      description: New password (min 8 characters)
+      example: "NewSecurePass456!"
+  required:
+    - current_password
+    - new_password
+
+ForgotPasswordRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address to send reset link
+      example: "user@example.com"
+  required:
+    - email
+
+ResetPasswordRequest:
+  type: object
+  properties:
+    token:
+      type: string
+      description: Password reset token from email
+      example: "abc123def456"
+    new_password:
+      type: string
+      format: password
+      minLength: 8
+      maxLength: 128
+      description: New password
+      example: "ResetPass789!"
+  required:
+    - token
+    - new_password
+
+AuthData:
+  type: object
+  properties:
+    access_token:
+      type: string
+      description: JWT access token
+      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiZW1haWwiOiJhZG1pbkBzYWFzLmNvcXVhbi52biIsImV4cCI6MTcwNjAwMDAwMCwiaWF0IjoxNzA1OTk5OTAwfQ.abc123"
+    refresh_token:
+      type: string
+      description: JWT refresh token (7 days expiry)
+      example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwidHlwZSI6InJlZnJlc2giLCJleHAiOjE3MDY2MDQ3MDAsImlhdCI6MTcwNTk5OTkwMH0.def456"
+    expires_in:
+      type: integer
+      format: int64
+      description: Token expiry time in seconds
+      example: 86400
+    token_type:
+      type: string
+      description: Token type (always "Bearer")
+      example: "Bearer"
+    user:
+      $ref: './user.yaml#/User'
+  required:
+    - access_token
+    - refresh_token
+    - expires_in
+    - token_type
+    - user
+
+AuthResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/AuthData'
+  required:
+    - success
+    - data
+
+LogoutResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Logged out successfully"
+  required:
+    - success
+
+VerifyEmailRequest:
+  type: object
+  properties:
+    token:
+      type: string
+      description: Email verification token
+      example: "abc123verification"
+  required:
+    - token
+
+VerifyEmailResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Email verified successfully"
+        user:
+          $ref: './user.yaml#/User'
+  required:
+    - success

@@ -1,0 +1,359 @@
+TenantSubscription:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        plan_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Service plan ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        order_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Original order ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        subscription_number:
+          type: string
+          description: Unique subscription number
+          example: "SUB-2026-00001"
+        subscription_name:
+          type: string
+          description: Subscription name
+          example: "Premium Plan - Annual"
+        start_date:
+          type: string
+          format: date
+          description: Subscription start date
+          example: "2026-01-01"
+        end_date:
+          type: string
+          format: date
+          description: Subscription end date
+          example: "2027-01-01"
+        trial_end_date:
+          type: string
+          format: date
+          nullable: true
+          description: Trial period end date
+          example: "2026-01-15"
+        renewal_date:
+          type: string
+          format: date
+          nullable: true
+          description: Next renewal date
+          example: "2027-01-01"
+        status:
+          type: string
+          enum:
+            - active
+            - trial
+            - suspended
+            - expired
+            - cancelled
+            - pending
+          description: Subscription status
+          example: "active"
+        auto_renew:
+          type: boolean
+          default: true
+          description: Whether subscription auto-renews
+          example: true
+        is_trial:
+          type: boolean
+          default: false
+          description: Whether subscription is in trial
+          example: false
+        plan_name:
+          type: string
+          nullable: true
+          description: Plan name snapshot
+          example: "Premium Plan"
+        billing_cycle:
+          type: string
+          enum:
+            - monthly
+            - quarterly
+            - yearly
+            - custom
+          description: Billing cycle
+          example: "yearly"
+        base_price:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Base price
+          example: 1200.00
+        discount_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          nullable: true
+          description: Discount amount
+          example: 120.00
+        tax_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          nullable: true
+          description: Tax amount
+          example: 108.00
+        total_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Total amount
+          example: 1188.00
+        currency:
+          type: string
+          default: "USD"
+          description: Currency code
+          example: "USD"
+        max_users:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Maximum users allowed
+          example: 50
+        current_users:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Current number of users
+          example: 25
+        max_storage_gb:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Maximum storage in GB
+          example: 500
+        current_storage_gb:
+          type: number
+          format: decimal
+          minimum: 0
+          nullable: true
+          description: Current storage usage in GB
+          example: 125.5
+        features:
+          type: array
+          items:
+            type: object
+          nullable: true
+          description: Enabled features
+          example: []
+        limits:
+          type: object
+          nullable: true
+          description: Resource limits
+          example: {}
+        payment_method:
+          type: string
+          nullable: true
+          description: Payment method
+          example: "credit_card"
+        payment_status:
+          type: string
+          enum:
+            - paid
+            - unpaid
+            - partially_paid
+            - failed
+            - refunded
+          nullable: true
+          description: Payment status
+          example: "paid"
+        last_payment_date:
+          type: string
+          format: date
+          nullable: true
+          description: Last payment date
+          example: "2026-01-01"
+        next_payment_date:
+          type: string
+          format: date
+          nullable: true
+          description: Next payment date
+          example: "2027-01-01"
+        billing_contact_name:
+          type: string
+          nullable: true
+          description: Billing contact name
+          example: "John Doe"
+        billing_contact_email:
+          type: string
+          format: email
+          nullable: true
+          description: Billing contact email
+          example: "billing@example.com"
+        billing_contact_phone:
+          type: string
+          nullable: true
+          description: Billing contact phone
+          example: "+84-901-234-567"
+        notes:
+          type: string
+          nullable: true
+          description: Additional notes
+        metadata:
+          $ref: './common.yaml#/Metadata'
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Tags for categorization
+      required:
+        - tenant_id
+        - subscription_number
+        - subscription_name
+        - start_date
+        - end_date
+        - status
+        - billing_cycle
+        - base_price
+        - total_amount
+
+CreateTenantSubscriptionRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    plan_id:
+      type: string
+      format: uuid
+      nullable: true
+    order_id:
+      type: string
+      format: uuid
+      nullable: true
+    subscription_name:
+      type: string
+      example: "Premium Plan - Annual"
+    start_date:
+      type: string
+      format: date
+    end_date:
+      type: string
+      format: date
+    trial_days:
+      type: integer
+      minimum: 0
+      nullable: true
+      example: 14
+    billing_cycle:
+      type: string
+      enum: [monthly, quarterly, yearly, custom]
+      example: "yearly"
+    base_price:
+      type: number
+      format: decimal
+    currency:
+      type: string
+      default: "USD"
+    max_users:
+      type: integer
+      minimum: 1
+      nullable: true
+    max_storage_gb:
+      type: integer
+      minimum: 1
+      nullable: true
+    features:
+      type: array
+      items:
+        type: object
+      nullable: true
+    limits:
+      type: object
+      nullable: true
+    billing_contact_name:
+      type: string
+      nullable: true
+    billing_contact_email:
+      type: string
+      format: email
+      nullable: true
+    billing_contact_phone:
+      type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - subscription_name
+    - start_date
+    - end_date
+    - billing_cycle
+    - base_price
+
+UpdateTenantSubscriptionRequest:
+  type: object
+  properties:
+    subscription_name:
+      type: string
+    end_date:
+      type: string
+      format: date
+    status:
+      type: string
+      enum: [active, trial, suspended, expired, cancelled, pending]
+    auto_renew:
+      type: boolean
+    max_users:
+      type: integer
+      minimum: 1
+    max_storage_gb:
+      type: integer
+      minimum: 1
+    payment_method:
+      type: string
+    billing_contact_name:
+      type: string
+    billing_contact_email:
+      type: string
+      format: email
+    billing_contact_phone:
+      type: string
+    notes:
+      type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+TenantSubscriptionListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantSubscription'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantSubscriptionResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantSubscription'
+  required:
+    - success
+    - data

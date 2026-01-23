@@ -2,231 +2,296 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type StorageFileService interface {
-	CreateFile(ctx context.Context, req *models.CreateStorageFileRequest) (*models.StorageFile, error)
-	GetFile(ctx context.Context, id uuid.UUID) (*models.StorageFile, error)
-	ListFiles(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, category, status *string, isFolder *bool) ([]*models.StorageFile, int, error)
-	ListFilesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.StorageFile, error)
-	ListFilesByParent(ctx context.Context, parentID uuid.UUID) ([]*models.StorageFile, error)
-	ListFilesByCategory(ctx context.Context, category string) ([]*models.StorageFile, error)
-	ListFolders(ctx context.Context, tenantID uuid.UUID) ([]*models.StorageFile, error)
-	UpdateFile(ctx context.Context, id uuid.UUID, req *models.UpdateStorageFileRequest) (*models.StorageFile, error)
-	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
-	DeleteFile(ctx context.Context, id uuid.UUID) error
-	SoftDeleteFile(ctx context.Context, id uuid.UUID) error
-	GetTotalSize(ctx context.Context, tenantID uuid.UUID) (int64, error)
+type StorageFileService struct {
+	storageRepo repository.StorageFileRepository
 }
 
-type storageFileService struct {
-	repo repository.StorageFileRepository
+func NewStorageFileService(storageRepo repository.StorageFileRepository) *StorageFileService {
+	return &StorageFileService{
+		storageRepo: storageRepo,
+	}
 }
 
-func NewStorageFileService(repo repository.StorageFileRepository) StorageFileService {
-	return &storageFileService{repo: repo}
+type UploadFileRequest struct {
+	TenantID        uuid.UUID              `json:"tenant_id" binding:"required"`
+	ParentID        *uuid.UUID             `json:"parent_id"`
+	OriginalName    string                 `json:"original_name" binding:"required"`
+	StoragePath     *string                `json:"storage_path"`
+	PublicURL       *string                `json:"public_url"`
+	Category        string                 `json:"category"`
+	MimeType        string                 `json:"mime_type" binding:"required"`
+	FileSize        int64                  `json:"file_size" binding:"required"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	StorageProvider string                 `json:"storage_provider"`
+	Visibility      string                 `json:"visibility"`
+	UploadedBy      uuid.UUID              `json:"-"`
 }
 
-func (s *storageFileService) CreateFile(ctx context.Context, req *models.CreateStorageFileRequest) (*models.StorageFile, error) {
-	now := time.Now()
+type CreateFolderRequest struct {
+	TenantID     uuid.UUID              `json:"tenant_id" binding:"required"`
+	ParentID     *uuid.UUID             `json:"parent_id"`
+	FolderName   string                 `json:"folder_name" binding:"required"`
+	Category     string                 `json:"category"`
+	Metadata     map[string]interface{} `json:"metadata"`
+	UploadedBy   uuid.UUID              `json:"-"`
+}
+
+type UpdateStorageFileRequest struct {
+	OriginalName *string                `json:"original_name"`
+	Category     *string                `json:"category"`
+	Visibility   *string                `json:"visibility"`
+	Status       *string                `json:"status"`
+	Metadata     map[string]interface{} `json:"metadata"`
+}
+
+// GetByID gets file by ID
+func (s *StorageFileService) GetByID(ctx context.Context, id uuid.UUID) (*models.StorageFile, error) {
+	return s.storageRepo.GetByID(ctx, id)
+}
+
+// ListByTenant lists files by tenant
+func (s *StorageFileService) ListByTenant(ctx context.Context, tenantID uuid.UUID, category string, parentID *uuid.UUID, page, limit int) ([]*models.StorageFile, int64, error) {
+	offset := (page - 1) * limit
+	return s.storageRepo.ListByTenant(ctx, tenantID, category, parentID, limit, offset)
+}
+
+// UploadFile uploads a file
+func (s *StorageFileService) UploadFile(ctx context.Context, req UploadFileRequest) (*models.StorageFile, error) {
+	// Extract extension from original name
+	extension := strings.TrimPrefix(filepath.Ext(req.OriginalName), ".")
+
+	category := req.Category
+	if category == "" {
+		category = s.detectCategory(req.MimeType)
+	}
+
+	storageProvider := req.StorageProvider
+	if storageProvider == "" {
+		storageProvider = "S3"
+	}
+
+	visibility := req.Visibility
+	if visibility == "" {
+		visibility = "PRIVATE"
+	}
+
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
 	file := &models.StorageFile{
 		ID:              uuid.New(),
 		TenantID:        req.TenantID,
-		IsFolder:        req.IsFolder,
+		ParentID:        req.ParentID,
+		IsFolder:        false,
 		OriginalName:    req.OriginalName,
-		Category:        req.Category,
+		StoragePath:     req.StoragePath,
+		PublicURL:       req.PublicURL,
+		Category:        category,
 		MimeType:        req.MimeType,
+		Extension:       &extension,
 		FileSize:        req.FileSize,
-		StorageProvider: "S3",
-		Visibility:      "PRIVATE",
-		Status:          "PROCESSING",
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		ItemsSnapshot:   []interface{}{},
+		Metadata:        metadata,
+		StorageProvider: storageProvider,
+		Visibility:      visibility,
+		Status:          "UPLOADING",
+		UploadedBy:      &req.UploadedBy,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
 		Version:         1,
 	}
 
-	if req.ParentID != nil {
-		file.ParentID.String = req.ParentID.String()
-		file.ParentID.Valid = true
+	if err := s.storageRepo.Create(ctx, file); err != nil {
+		return nil, fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	if req.StoragePath != "" {
-		file.StoragePath.String = req.StoragePath
-		file.StoragePath.Valid = true
-	}
-
-	if req.PublicURL != "" {
-		file.PublicURL.String = req.PublicURL
-		file.PublicURL.Valid = true
-	}
-
-	if req.Extension != "" {
-		file.Extension.String = req.Extension
-		file.Extension.Valid = true
-	}
-
-	if req.StorageProvider != "" {
-		file.StorageProvider = req.StorageProvider
-	}
-
-	if req.Visibility != "" {
-		file.Visibility = req.Visibility
-	}
-
-	if req.UploadedBy != nil {
-		file.UploadedBy.String = req.UploadedBy.String()
-		file.UploadedBy.Valid = true
-	}
-
-	// Set items snapshot
-	if req.ItemsSnapshot != nil {
-		itemsJSON, err := json.Marshal(req.ItemsSnapshot)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal items_snapshot: %w", err)
-		}
-		file.ItemsSnapshot = itemsJSON
-	} else {
-		file.ItemsSnapshot = []byte("[]")
-	}
-
-	// Set metadata
-	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		file.Metadata = metadataJSON
-	} else {
-		file.Metadata = []byte("{}")
-	}
-
-	if err := s.repo.Create(ctx, file); err != nil {
-		return nil, fmt.Errorf("failed to create storage file: %w", err)
-	}
+	// TODO: Upload to actual storage provider (S3, R2, MinIO, etc.)
+	// After upload completes, update status to READY
+	file.Status = "READY"
+	_ = s.storageRepo.Update(ctx, file)
 
 	return file, nil
 }
 
-func (s *storageFileService) GetFile(ctx context.Context, id uuid.UUID) (*models.StorageFile, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *storageFileService) ListFiles(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, category, status *string, isFolder *bool) ([]*models.StorageFile, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
+// CreateFolder creates a folder
+func (s *StorageFileService) CreateFolder(ctx context.Context, req CreateFolderRequest) (*models.StorageFile, error) {
+	category := req.Category
+	if category == "" {
+		category = "MEDIA"
 	}
 
-	return s.repo.List(ctx, page, pageSize, tenantID, category, status, isFolder)
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
+	folder := &models.StorageFile{
+		ID:              uuid.New(),
+		TenantID:        req.TenantID,
+		ParentID:        req.ParentID,
+		IsFolder:        true,
+		OriginalName:    req.FolderName,
+		Category:        category,
+		MimeType:        "application/x-directory",
+		FileSize:        0,
+		ItemsSnapshot:   []interface{}{},
+		Metadata:        metadata,
+		StorageProvider: "S3",
+		Visibility:      "PRIVATE",
+		Status:          "READY",
+		UploadedBy:      &req.UploadedBy,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		Version:         1,
+	}
+
+	if err := s.storageRepo.Create(ctx, folder); err != nil {
+		return nil, fmt.Errorf("failed to create folder: %w", err)
+	}
+
+	return folder, nil
 }
 
-func (s *storageFileService) ListFilesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.StorageFile, error) {
-	return s.repo.ListByTenantID(ctx, tenantID)
-}
-
-func (s *storageFileService) ListFilesByParent(ctx context.Context, parentID uuid.UUID) ([]*models.StorageFile, error) {
-	return s.repo.ListByParentID(ctx, parentID)
-}
-
-func (s *storageFileService) ListFilesByCategory(ctx context.Context, category string) ([]*models.StorageFile, error) {
-	return s.repo.ListByCategory(ctx, category)
-}
-
-func (s *storageFileService) ListFolders(ctx context.Context, tenantID uuid.UUID) ([]*models.StorageFile, error) {
-	return s.repo.ListFolders(ctx, tenantID)
-}
-
-func (s *storageFileService) UpdateFile(ctx context.Context, id uuid.UUID, req *models.UpdateStorageFileRequest) (*models.StorageFile, error) {
-	file, err := s.repo.GetByID(ctx, id)
+// UpdateFile updates a file
+func (s *StorageFileService) UpdateFile(ctx context.Context, id uuid.UUID, req UpdateStorageFileRequest) (*models.StorageFile, error) {
+	file, err := s.storageRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("file not found: %w", err)
 	}
 
 	if req.OriginalName != nil {
 		file.OriginalName = *req.OriginalName
 	}
-
-	if req.StoragePath != nil {
-		if *req.StoragePath == "" {
-			file.StoragePath.Valid = false
-		} else {
-			file.StoragePath.String = *req.StoragePath
-			file.StoragePath.Valid = true
-		}
-	}
-
-	if req.PublicURL != nil {
-		if *req.PublicURL == "" {
-			file.PublicURL.Valid = false
-		} else {
-			file.PublicURL.String = *req.PublicURL
-			file.PublicURL.Valid = true
-		}
-	}
-
 	if req.Category != nil {
 		file.Category = *req.Category
 	}
-
-	if req.FileSize != nil {
-		file.FileSize = *req.FileSize
-	}
-
 	if req.Visibility != nil {
 		file.Visibility = *req.Visibility
 	}
-
 	if req.Status != nil {
 		file.Status = *req.Status
 	}
-
-	if req.ItemsSnapshot != nil {
-		itemsJSON, err := json.Marshal(*req.ItemsSnapshot)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal items_snapshot: %w", err)
-		}
-		file.ItemsSnapshot = itemsJSON
-	}
-
 	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(*req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		file.Metadata = metadataJSON
+		file.Metadata = req.Metadata
 	}
 
 	file.UpdatedAt = time.Now()
+	file.Version++
 
-	if err := s.repo.Update(ctx, file); err != nil {
-		return nil, fmt.Errorf("failed to update storage file: %w", err)
+	if err := s.storageRepo.Update(ctx, file); err != nil {
+		return nil, fmt.Errorf("failed to update file: %w", err)
 	}
 
 	return file, nil
 }
 
-func (s *storageFileService) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
-	return s.repo.UpdateStatus(ctx, id, status)
+// DeleteFile deletes a file
+func (s *StorageFileService) DeleteFile(ctx context.Context, id uuid.UUID) error {
+	file, err := s.storageRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("file not found: %w", err)
+	}
+
+	// If folder, check if it has children
+	if file.IsFolder {
+		hasChildren, err := s.storageRepo.HasChildren(ctx, id)
+		if err != nil {
+			return fmt.Errorf("failed to check children: %w", err)
+		}
+		if hasChildren {
+			return fmt.Errorf("cannot delete folder with children")
+		}
+	}
+
+	if err := s.storageRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete file: %w", err)
+	}
+
+	// TODO: Delete from actual storage provider
+
+	return nil
 }
 
-func (s *storageFileService) DeleteFile(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// MoveFile moves a file to another folder
+func (s *StorageFileService) MoveFile(ctx context.Context, id uuid.UUID, newParentID *uuid.UUID) (*models.StorageFile, error) {
+	file, err := s.storageRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("file not found: %w", err)
+	}
+
+	// Validate new parent exists and is a folder
+	if newParentID != nil {
+		parent, err := s.storageRepo.GetByID(ctx, *newParentID)
+		if err != nil {
+			return nil, fmt.Errorf("parent folder not found: %w", err)
+		}
+		if !parent.IsFolder {
+			return nil, fmt.Errorf("parent must be a folder")
+		}
+		if parent.TenantID != file.TenantID {
+			return nil, fmt.Errorf("cannot move file to different tenant")
+		}
+	}
+
+	file.ParentID = newParentID
+	file.UpdatedAt = time.Now()
+	file.Version++
+
+	if err := s.storageRepo.Update(ctx, file); err != nil {
+		return nil, fmt.Errorf("failed to move file: %w", err)
+	}
+
+	return file, nil
 }
 
-func (s *storageFileService) SoftDeleteFile(ctx context.Context, id uuid.UUID) error {
-	return s.repo.SoftDelete(ctx, id)
+// GetPublicURL gets public URL for a file
+func (s *StorageFileService) GetPublicURL(ctx context.Context, id uuid.UUID) (string, error) {
+	file, err := s.storageRepo.GetByID(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("file not found: %w", err)
+	}
+
+	if file.IsFolder {
+		return "", fmt.Errorf("cannot get public URL for folder")
+	}
+
+	if file.PublicURL != nil && *file.PublicURL != "" {
+		return *file.PublicURL, nil
+	}
+
+	// TODO: Generate signed URL from storage provider
+	publicURL := fmt.Sprintf("https://storage.example.com/%s/%s", file.TenantID.String(), file.ID.String())
+
+	file.PublicURL = &publicURL
+	file.UpdatedAt = time.Now()
+
+	_ = s.storageRepo.Update(ctx, file)
+
+	return publicURL, nil
 }
 
-func (s *storageFileService) GetTotalSize(ctx context.Context, tenantID uuid.UUID) (int64, error) {
-	return s.repo.GetTotalSize(ctx, tenantID)
+// Helper functions
+func (s *StorageFileService) detectCategory(mimeType string) string {
+	if strings.HasPrefix(mimeType, "image/") || strings.HasPrefix(mimeType, "video/") || strings.HasPrefix(mimeType, "audio/") {
+		return "MEDIA"
+	}
+	if strings.HasPrefix(mimeType, "application/pdf") || strings.Contains(mimeType, "document") || strings.Contains(mimeType, "text") {
+		return "DOCUMENT"
+	}
+	if strings.Contains(mimeType, "zip") || strings.Contains(mimeType, "compressed") {
+		return "ARCHIVE"
+	}
+	return "MEDIA"
 }

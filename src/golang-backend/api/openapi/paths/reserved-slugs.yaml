@@ -1,0 +1,156 @@
+/reserved-slugs:
+  get:
+    summary: List reserved slugs
+    description: Retrieve reserved slugs
+    tags:
+      - Reserved Slugs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: entity_type
+        in: query
+        schema:
+          type: string
+      - name: is_system
+        in: query
+        schema:
+          type: boolean
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Slugs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/reserved-slug.yaml#/ReservedSlugListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create reserved slug
+    description: Reserve a slug
+    tags:
+      - Reserved Slugs
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/reserved-slug.yaml#/CreateReservedSlugRequest'
+    responses:
+      '201':
+        description: Slug reserved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/reserved-slug.yaml#/ReservedSlugResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/reserved-slugs/{id}:
+  get:
+    summary: Get slug by ID
+    description: Retrieve a single reserved slug
+    tags:
+      - Reserved Slugs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Slug retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/reserved-slug.yaml#/ReservedSlugResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete reserved slug
+    description: Release a reserved slug
+    tags:
+      - Reserved Slugs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/reserved-slugs/check/{slug}:
+  get:
+    summary: Check slug availability
+    description: Check if a slug is available
+    tags:
+      - Reserved Slugs
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+      - name: entity_type
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Availability checked
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    available:
+                      type: boolean
+                      example: false
+                    reason:
+                      type: string
+                      nullable: true
+                      example: "Reserved by system"
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

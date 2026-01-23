@@ -1,0 +1,173 @@
+AppCapability:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        app_id:
+          type: string
+          format: uuid
+          description: Application ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        code:
+          type: string
+          description: Capability code
+          example: "MAX_USERS"
+        name:
+          type: string
+          description: Capability name
+          example: "Maximum Users"
+        description:
+          type: string
+          nullable: true
+          description: Capability description
+          example: "Maximum number of users allowed"
+        type:
+          type: string
+          enum:
+            - FEATURE
+            - LIMIT
+          default: "FEATURE"
+          description: Capability type
+          example: "LIMIT"
+        default_value:
+          type: object
+          description: Default value
+          default: {}
+          example:
+            value: 100
+            unit: "users"
+        display_order:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Display order
+          example: 1
+        is_required:
+          type: boolean
+          default: false
+          description: Is this capability required
+          example: true
+        validation_rules:
+          type: object
+          description: Validation rules
+          default: {}
+          example:
+            min: 1
+            max: 10000
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - archived
+          default: "active"
+          description: Status
+          example: "active"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - app_id
+        - code
+        - name
+        - type
+        - status
+
+CreateAppCapabilityRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    app_id:
+      type: string
+      format: uuid
+    code:
+      type: string
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    type:
+      type: string
+      enum: [FEATURE, LIMIT]
+      default: "FEATURE"
+    default_value:
+      type: object
+      nullable: true
+    display_order:
+      type: integer
+      minimum: 0
+      default: 0
+    is_required:
+      type: boolean
+      default: false
+    validation_rules:
+      type: object
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - app_id
+    - code
+    - name
+
+UpdateAppCapabilityRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    default_value:
+      type: object
+    display_order:
+      type: integer
+      minimum: 0
+    is_required:
+      type: boolean
+    validation_rules:
+      type: object
+    status:
+      type: string
+      enum: [active, inactive, archived]
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+AppCapabilityListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/AppCapability'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+AppCapabilityResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/AppCapability'
+  required:
+    - success
+    - data

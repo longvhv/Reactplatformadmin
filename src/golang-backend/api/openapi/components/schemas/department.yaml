@@ -1,0 +1,149 @@
+Department:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        code:
+          type: string
+          description: Department code
+          example: "IT"
+        name:
+          type: string
+          description: Department name
+          example: "Information Technology"
+        parent_department_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Parent department ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        manager_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Department manager (tenant member ID)
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        description:
+          type: string
+          nullable: true
+          description: Department description
+          example: "Responsible for all IT infrastructure and support"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+          default: "ACTIVE"
+          description: Department status
+          example: "ACTIVE"
+        order:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Display order
+          example: 1
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - code
+        - name
+        - status
+
+CreateDepartmentRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    code:
+      type: string
+      example: "IT"
+    name:
+      type: string
+      example: "Information Technology"
+    parent_department_id:
+      type: string
+      format: uuid
+      nullable: true
+    manager_id:
+      type: string
+      format: uuid
+      nullable: true
+    description:
+      type: string
+      nullable: true
+    order:
+      type: integer
+      minimum: 0
+      default: 0
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - code
+    - name
+
+UpdateDepartmentRequest:
+  type: object
+  properties:
+    code:
+      type: string
+    name:
+      type: string
+    parent_department_id:
+      type: string
+      format: uuid
+      nullable: true
+    manager_id:
+      type: string
+      format: uuid
+      nullable: true
+    description:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, ARCHIVED]
+    order:
+      type: integer
+      minimum: 0
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+DepartmentListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Department'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+DepartmentResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Department'
+  required:
+    - success
+    - data

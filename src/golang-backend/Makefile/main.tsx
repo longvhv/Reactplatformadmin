@@ -4,6 +4,7 @@
 APP_NAME=vhv-platform-api
 DOCKER_IMAGE=$(APP_NAME):latest
 GO_FILES=$(shell find . -name '*.go' -type f)
+OPENAPI_SPEC=api/openapi/openapi.yaml
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -165,6 +166,40 @@ merge-golang-api: ## Merge golang-api into golang-backend
 	@echo "  1. Review merged handlers"
 	@echo "  2. Refactor to new structure"
 	@echo "  3. Update imports and dependencies"
+
+# OpenAPI Specification Commands
+openapi-validate: ## Validate OpenAPI specification
+	@echo "Validating OpenAPI specification..."
+	@npx @redocly/cli lint $(OPENAPI_SPEC) --skip-rule=no-unused-schemas
+
+openapi-bundle: ## Bundle OpenAPI files into single spec
+	@echo "Bundling OpenAPI specification..."
+	@npx @redocly/cli bundle $(OPENAPI_SPEC) -o api/openapi/bundled.yaml
+	@echo "✅ Bundled spec created at api/openapi/bundled.yaml"
+
+openapi-lint: ## Lint OpenAPI specification with strict rules
+	@echo "Linting OpenAPI specification..."
+	@npx @redocly/cli lint $(OPENAPI_SPEC)
+
+openapi-docs: ## Generate API documentation
+	@echo "Generating API documentation..."
+	@npx @redocly/cli build-docs $(OPENAPI_SPEC) -o api/docs/index.html
+	@echo "✅ Documentation generated at api/docs/index.html"
+
+openapi-serve: ## Serve OpenAPI documentation locally
+	@echo "Starting documentation server at http://localhost:8080"
+	@npx @redocly/cli preview-docs $(OPENAPI_SPEC)
+
+openapi-stats: ## Show OpenAPI specification statistics
+	@echo "OpenAPI Specification Statistics:"
+	@echo "================================="
+	@echo "Path files: $$(ls -1 api/openapi/paths/*.yaml 2>/dev/null | wc -l)"
+	@echo "Schema files: $$(ls -1 api/openapi/components/schemas/*.yaml 2>/dev/null | wc -l)"
+	@echo "Total endpoints: $$(grep -r 'summary:' api/openapi/paths/*.yaml 2>/dev/null | wc -l)"
+	@echo ""
+	@bash scripts/validate-openapi.sh
+
+openapi-all: openapi-validate openapi-bundle openapi-docs ## Validate, bundle and generate docs
 
 check: lint vet test ## Run all checks (lint, vet, test)
 

@@ -3,99 +3,162 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
 
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/models"
 	"github.com/vhv-platform/backend/internal/repository"
+	"github.com/vhv-platform/backend/pkg/cache"
 )
 
 type ProductService struct {
-	repo *repository.ProductRepository
+	productRepo repository.ProductRepository
+	cache       cache.Cache
 }
 
-func NewProductService(repo *repository.ProductRepository) *ProductService {
-	return &ProductService{repo: repo}
-}
-
-func (s *ProductService) GetAll(ctx context.Context, filters models.ProductFilters) ([]models.Product, error) {
-	return s.repo.GetAll(ctx, filters)
-}
-
-func (s *ProductService) GetByID(ctx context.Context, id string) (*models.Product, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid product ID format")
+func NewProductService(productRepo repository.ProductRepository, cache cache.Cache) *ProductService {
+	return &ProductService{
+		productRepo: productRepo,
+		cache:       cache,
 	}
-	return s.repo.GetByID(ctx, id)
 }
 
-func (s *ProductService) GetByCode(ctx context.Context, applicationID, code string) (*models.Product, error) {
-	if !isValidUUID(applicationID) {
-		return nil, fmt.Errorf("invalid application ID format")
+// GetByID gets product by ID
+func (s *ProductService) GetByID(ctx context.Context, id uuid.UUID) (*models.Product, error) {
+	// Try cache first
+	cacheKey := cache.ProductCacheKey(id.String())
+	var product models.Product
+	err := s.cache.GetJSON(ctx, cacheKey, &product)
+	if err == nil {
+		return &product, nil
 	}
-	return s.repo.GetByCode(ctx, applicationID, code)
-}
 
-func (s *ProductService) Create(ctx context.Context, req models.CreateProductRequest) (*models.Product, error) {
-	if err := s.validateCreateRequest(req); err != nil {
+	// Get from database
+	dbProduct, err := s.productRepo.GetByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
-	existing, _ := s.repo.GetByCode(ctx, req.ApplicationID, req.Code)
-	if existing != nil {
-		return nil, fmt.Errorf("product code already exists for this application")
-	}
+	// Cache product
+	_ = s.cache.SetJSON(ctx, cacheKey, dbProduct, cache.ProductTTL)
 
-	return s.repo.Create(ctx, req)
+	return dbProduct, nil
 }
 
-func (s *ProductService) Update(ctx context.Context, id string, req models.UpdateProductRequest) (*models.Product, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid product ID format")
+// ListByTenant lists products by tenant
+func (s *ProductService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.Product, int64, error) {
+	offset := (page - 1) * limit
+	products, total, err := s.productRepo.ListByTenant(ctx, tenantID, limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 
-	if err := s.validateUpdateRequest(req); err != nil {
-		return nil, err
-	}
-
-	return s.repo.Update(ctx, id, req)
+	return products, total, nil
 }
 
-func (s *ProductService) Delete(ctx context.Context, id string) error {
-	if !isValidUUID(id) {
-		return fmt.Errorf("invalid product ID format")
+// CreateProduct creates a new product
+func (s *ProductService) CreateProduct(ctx context.Context, req CreateProductRequest) (*models.Product, error) {
+	// Validate product code
+	if req.Code == "" {
+		return nil, fmt.Errorf("product code is required")
 	}
-	return s.repo.Delete(ctx, id)
+
+	// Check if code exists in tenant
+	exists, err := s.productRepo.ExistsByCode(ctx, req.TenantID, req.Code)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check product code: %w", err)
+	}
+	if exists {
+		return nil, fmt.Errorf("product code already exists")
+	}
+
+	// Create product
+	product := &models.Product{
+		ID:             uuid.New(),
+		TenantID:       req.TenantID,
+		Name:           req.Name,
+		Code:           req.Code,
+		Description:    req.Description,
+		Type:           req.Type,
+		Category:       req.Category,
+		Price:          req.Price,
+		Currency:       req.Currency,
+		IsActive:       req.IsActive,
+		IsVisible:      req.IsVisible,
+		Features:       req.Features,
+		Specifications: req.Specifications,
+		Metadata:       req.Metadata,
+	}
+
+	if err := s.productRepo.Create(ctx, product); err != nil {
+		return nil, fmt.Errorf("failed to create product: %w", err)
+	}
+
+	return product, nil
 }
 
-func (s *ProductService) validateCreateRequest(req models.CreateProductRequest) error {
-	code := strings.TrimSpace(req.Code)
-	if code == "" {
-		return fmt.Errorf("product code is required")
-	}
-	if !isValidCode(code) {
-		return fmt.Errorf("product code must be 2-50 alphanumeric characters with hyphens")
-	}
-
-	name := strings.TrimSpace(req.Name)
-	if name == "" {
-		return fmt.Errorf("product name is required")
-	}
-	if len(name) > 255 {
-		return fmt.Errorf("product name cannot exceed 255 characters")
+// UpdateProduct updates a product
+func (s *ProductService) UpdateProduct(ctx context.Context, id uuid.UUID, req UpdateProductRequest) (*models.Product, error) {
+	// Get existing product
+	product, err := s.productRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("product not found: %w", err)
 	}
 
-	return nil
-}
-
-func (s *ProductService) validateUpdateRequest(req models.UpdateProductRequest) error {
+	// Update fields
 	if req.Name != nil {
-		name := strings.TrimSpace(*req.Name)
-		if name == "" {
-			return fmt.Errorf("product name cannot be empty")
-		}
-		if len(name) > 255 {
-			return fmt.Errorf("product name cannot exceed 255 characters")
-		}
+		product.Name = *req.Name
 	}
+	if req.Description != nil {
+		product.Description = req.Description
+	}
+	if req.Type != nil {
+		product.Type = *req.Type
+	}
+	if req.Category != nil {
+		product.Category = req.Category
+	}
+	if req.Price != nil {
+		product.Price = *req.Price
+	}
+	if req.Currency != nil {
+		product.Currency = *req.Currency
+	}
+	if req.IsActive != nil {
+		product.IsActive = *req.IsActive
+	}
+	if req.IsVisible != nil {
+		product.IsVisible = *req.IsVisible
+	}
+	if req.Features != nil {
+		product.Features = req.Features
+	}
+	if req.Specifications != nil {
+		product.Specifications = req.Specifications
+	}
+	if req.Metadata != nil {
+		product.Metadata = req.Metadata
+	}
+
+	if err := s.productRepo.Update(ctx, product); err != nil {
+		return nil, fmt.Errorf("failed to update product: %w", err)
+	}
+
+	// Invalidate cache
+	cacheKey := cache.ProductCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	return product, nil
+}
+
+// DeleteProduct deletes a product
+func (s *ProductService) DeleteProduct(ctx context.Context, id uuid.UUID) error {
+	if err := s.productRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete product: %w", err)
+	}
+
+	// Invalidate cache
+	cacheKey := cache.ProductCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
 	return nil
 }

@@ -1,251 +1,444 @@
-# VHV Platform - Golang Backend API
+# VHV Platform Backend API
 
-Golang backend API cho VHV Platform - High-performance, scalable API server thay thế Supabase.
+Production-ready Golang backend for VHV Platform with Clean Architecture, YugabyteDB, ClickHouse, and Dragonfly cache.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Go 1.21 or higher
-- PostgreSQL 14+
-- Redis (optional, for caching)
-- Make (for using Makefile commands)
+- Go 1.22+
+- Docker & Docker Compose
+- golang-migrate CLI tool
 
-### Installation
+### One-Command Setup
 
-1. **Clone và setup:**
 ```bash
-cd golang-backend
-make setup-dev
+chmod +x scripts/quick-start.sh
+./scripts/quick-start.sh
 ```
 
-2. **Configure environment:**
-```bash
-cp .env.example .env
-# Edit .env with your database credentials
-```
+This will:
+- ✅ Check all requirements
+- ✅ Create .env file
+- ✅ Start YugabyteDB, ClickHouse, Dragonfly
+- ✅ Run database migrations
+- ✅ Seed test data
+- ✅ Download dependencies
 
-3. **Run migrations:**
-```bash
-make migrate-up
-```
+### Start Development Server
 
-4. **Start server:**
 ```bash
-make run
-# hoặc với hot-reload:
 make dev
 ```
 
-Server sẽ chạy tại `http://localhost:8080`
+API will be available at `http://localhost:8080`
 
-## 📁 Project Structure
+### Test Credentials
+
+```
+Email:    admin@saas.coquan.vn
+Password: Admin@2026
+```
+
+## 📦 Project Structure
 
 ```
 golang-backend/
-├── cmd/api/              # Application entry point
-├── internal/             # Private application code
-│   ├── config/          # Configuration management
-│   ├── models/          # Data models (structs)
-│   ├── repository/      # Database operations
-│   ├── service/         # Business logic
-│   ├── handler/         # HTTP handlers (controllers)
-│   ├── middleware/      # HTTP middleware
-│   ├── validator/       # Validation logic
-│   └── utils/           # Utilities
-├── pkg/                  # Public libraries
-├── migrations/           # Database migrations
-├── docs/                 # Documentation
-├── scripts/              # Helper scripts
-└── test/                 # Tests
+├── cmd/
+│   └── api/
+│       └── main.go              # Application entry point
+├── internal/
+│   ├── config/                  # Configuration management
+│   ├── handler/                 # HTTP handlers (controllers)
+│   ├── middleware/              # HTTP middleware
+│   ├── models/                  # Domain models
+│   ├── repository/              # Data access layer
+│   │   ├── yugabyte/           # YugabyteDB repositories
+│   │   └── clickhouse/         # ClickHouse repositories
+│   └── service/                # Business logic layer
+├── pkg/
+│   ├── auth/                   # Authentication & authorization
+│   ├── cache/                  # Cache management
+│   ├── database/               # Database connections
+│   └── logger/                 # Logging utilities
+├── migrations/                 # Database migrations
+├── scripts/                    # Utility scripts
+├── docker-compose.yaml         # Docker services configuration
+├── Makefile                    # Build & development commands
+└── .env                        # Environment variables
 ```
 
-## 🛠️ Available Commands
+## 🏗️ Architecture
+
+### Clean Architecture Layers
+
+1. **Handler Layer** (`internal/handler/`)
+   - HTTP request/response handling
+   - Input validation
+   - Route definitions
+
+2. **Service Layer** (`internal/service/`)
+   - Business logic
+   - Use case implementation
+   - Cross-cutting concerns
+
+3. **Repository Layer** (`internal/repository/`)
+   - Data persistence
+   - Database queries
+   - External data sources
+
+4. **Models Layer** (`internal/models/`)
+   - Domain entities
+   - Value objects
+   - DTOs
+
+### Technology Stack
+
+- **Framework**: Chi Router
+- **Primary Database**: YugabyteDB (distributed SQL)
+- **Analytics Database**: ClickHouse
+- **Cache**: Dragonfly (Redis-compatible)
+- **Authentication**: JWT
+- **Logging**: Zap
+- **Migrations**: golang-migrate
+
+## 🔌 API Endpoints
+
+### Authentication (4 endpoints)
+```
+POST   /api/v1/auth/register     - Register new user
+POST   /api/v1/auth/login        - Login user
+POST   /api/v1/auth/refresh      - Refresh access token
+POST   /api/v1/auth/logout       - Logout user
+```
+
+### Users (6 endpoints)
+```
+GET    /api/v1/users/me          - Get current user
+PATCH  /api/v1/users/me          - Update current user
+GET    /api/v1/users             - List users
+GET    /api/v1/users/:id         - Get user by ID
+PATCH  /api/v1/users/:id         - Update user
+DELETE /api/v1/users/:id         - Delete user
+```
+
+### Tenants (10 endpoints)
+```
+POST   /api/v1/tenants                    - Create tenant
+GET    /api/v1/tenants                    - List tenants
+GET    /api/v1/tenants/:id                - Get tenant
+GET    /api/v1/tenants/code/:code         - Get tenant by code
+PATCH  /api/v1/tenants/:id                - Update tenant
+DELETE /api/v1/tenants/:id                - Delete tenant
+POST   /api/v1/tenants/:id/activate       - Activate tenant
+POST   /api/v1/tenants/:id/deactivate     - Deactivate tenant
+POST   /api/v1/tenants/:tenantID/members  - Add member
+GET    /api/v1/tenants/:tenantID/members  - List members
+```
+
+### Departments (5 endpoints)
+```
+POST   /api/v1/tenants/:tenantID/departments  - Create department
+GET    /api/v1/tenants/:tenantID/departments  - List departments
+GET    /api/v1/departments/:id                - Get department
+PATCH  /api/v1/departments/:id                - Update department
+DELETE /api/v1/departments/:id                - Delete department
+```
+
+### Roles (8 endpoints)
+```
+POST   /api/v1/roles                          - Create role
+GET    /api/v1/roles                          - List roles
+GET    /api/v1/roles/:id                      - Get role
+PATCH  /api/v1/roles/:id                      - Update role
+DELETE /api/v1/roles/:id                      - Delete role
+POST   /api/v1/roles/:id/permissions          - Assign permission
+GET    /api/v1/roles/:id/permissions          - Get role permissions
+DELETE /api/v1/roles/:id/permissions/:permID  - Remove permission
+```
+
+### Permissions (5 endpoints)
+```
+POST   /api/v1/permissions      - Create permission
+GET    /api/v1/permissions      - List permissions
+GET    /api/v1/permissions/:id  - Get permission
+PATCH  /api/v1/permissions/:id  - Update permission
+DELETE /api/v1/permissions/:id  - Delete permission
+```
+
+### Webhooks (6 endpoints)
+```
+POST   /api/v1/tenants/:tenantID/webhooks  - Create webhook
+GET    /api/v1/tenants/:tenantID/webhooks  - List webhooks
+GET    /api/v1/webhooks/:id                - Get webhook
+PATCH  /api/v1/webhooks/:id                - Update webhook
+DELETE /api/v1/webhooks/:id                - Delete webhook
+POST   /api/v1/webhooks/:id/test           - Test webhook
+```
+
+### Applications (6 endpoints)
+```
+POST   /api/v1/applications           - Create application
+GET    /api/v1/applications           - List applications
+GET    /api/v1/applications/:id       - Get application
+GET    /api/v1/applications/code/:code - Get by code
+PATCH  /api/v1/applications/:id       - Update application
+DELETE /api/v1/applications/:id       - Delete application
+```
+
+### Locations (5 endpoints)
+```
+POST   /api/v1/tenants/:tenantID/locations  - Create location
+GET    /api/v1/tenants/:tenantID/locations  - List locations
+GET    /api/v1/locations/:id                - Get location
+PATCH  /api/v1/locations/:id                - Update location
+DELETE /api/v1/locations/:id                - Delete location
+```
+
+**Total: 51 API Endpoints**
+
+## 🛠️ Makefile Commands
 
 ### Development
 ```bash
-make help           # Show all available commands
-make init           # Initialize project
-make deps           # Download dependencies
-make build          # Build binary
-make run            # Run application
-make dev            # Run with hot-reload
-```
-
-### Testing
-```bash
-make test           # Run all tests
-make test-unit      # Run unit tests only
-make test-integration  # Run integration tests
-make coverage       # Generate coverage report
-make benchmark      # Run benchmarks
-```
-
-### Code Quality
-```bash
-make lint           # Run linter
-make fmt            # Format code
-make vet            # Run go vet
-make check          # Run lint + vet + test
-```
-
-### Database
-```bash
-make migrate-create name=migration_name  # Create new migration
-make migrate-up     # Run migrations
-make migrate-down   # Rollback last migration
-make migrate-reset  # Reset all migrations
+make dev              # Start with hot reload
+make run              # Run without hot reload
+make build            # Build binary
 ```
 
 ### Docker
 ```bash
-make docker-build   # Build Docker image
-make docker-run     # Run in Docker container
-make docker-compose-up    # Start all services
-make docker-compose-down  # Stop all services
+make docker-up        # Start infrastructure
+make docker-down      # Stop all services
+make docker-full      # Start all including API
+make docker-logs      # View logs
 ```
 
-### Migration from golang-api
+### Database
 ```bash
-make merge-golang-api  # Merge golang-api handlers into this project
+make migrate-up       # Run migrations
+make migrate-down     # Rollback last migration
+make migrate-reset    # Reset database
+make migrate-create   # Create new migration
+make seed             # Seed test data
 ```
 
-## 📚 API Documentation
-
-### Health Check
+### Database Shells
 ```bash
-GET /health
+make db-shell-yugabyte    # YugabyteDB shell
+make db-shell-clickhouse  # ClickHouse shell
+make cache-shell          # Redis/Dragonfly shell
 ```
 
-### Tenants API
+### Testing
 ```bash
-GET    /api/v1/tenants           # List all tenants
-GET    /api/v1/tenants/:id       # Get tenant by ID
-POST   /api/v1/tenants           # Create tenant
-PATCH  /api/v1/tenants/:id       # Update tenant
-DELETE /api/v1/tenants/:id       # Delete tenant
+make test             # Run tests
+make test-coverage    # Run with coverage
+make check-api        # Test API endpoints
 ```
 
-### Users API
+### Code Quality
 ```bash
-GET    /api/v1/users             # List all users
-GET    /api/v1/users/:id         # Get user by ID
-POST   /api/v1/users             # Create user
-PATCH  /api/v1/users/:id         # Update user
-DELETE /api/v1/users/:id         # Delete user
+make fmt              # Format code
+make lint             # Run linter
+make vet              # Run go vet
 ```
 
-### Roles API
+### Utilities
 ```bash
-GET    /api/v1/roles             # List all roles
-GET    /api/v1/roles/:id         # Get role by ID
-POST   /api/v1/roles             # Create role
-PATCH  /api/v1/roles/:id         # Update role
-DELETE /api/v1/roles/:id         # Delete role
+make help             # Show all commands
+make clean            # Clean build artifacts
+make backup-db        # Backup database
+make install-tools    # Install dev tools
 ```
-
-**Full API documentation:** [docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)
 
 ## 🔧 Configuration
 
-### Environment Variables
+Configuration is loaded from environment variables. Copy `.env.example` to `.env` and update values:
 
 ```env
 # Server
-PORT=8080
-ENV=development
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
 
 # Database
 DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=your_password
+DB_PORT=5433
+DB_USER=yugabyte
+DB_PASSWORD=yugabyte
 DB_NAME=vhv_platform
-DB_SSL_MODE=disable
 
 # JWT
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRY=24h
-
-# CORS
-CORS_ORIGINS=http://localhost:3000
+JWT_SECRET=your-secret-key
+JWT_ACCESS_TOKEN_EXPIRY=15m
+JWT_REFRESH_TOKEN_EXPIRY=168h
 ```
+
+## 📊 Database Schema
+
+### Core Tables
+- `users` - User accounts
+- `tenants` - Tenant organizations
+- `tenant_members` - Tenant membership
+- `departments` - Organizational departments
+- `locations` - Physical/virtual locations
+- `roles` - Access control roles
+- `permissions` - Granular permissions
+- `user_roles` - User-role assignments
+- `role_permissions` - Role-permission assignments
+- `webhooks` - Webhook configurations
+- `applications` - Application registry
+
+### Analytics Tables (ClickHouse)
+- `activity_logs` - User activity tracking
+- `api_logs` - API request logs
+- `webhook_logs` - Webhook delivery logs
 
 ## 🧪 Testing
 
-### Run Tests
+### Run All Tests
 ```bash
-# All tests
 make test
-
-# Unit tests only
-make test-unit
-
-# Integration tests
-make test-integration
-
-# With coverage
-make coverage
 ```
 
-### Example Test
-```go
-func TestTenantService_Create(t *testing.T) {
-    service := setupTestService()
-    
-    tenant := &models.Tenant{
-        Code: "test",
-        Name: "Test Tenant",
-        Tier: "FREE",
-    }
-    
-    err := service.Create(context.Background(), tenant)
-    assert.NoError(t, err)
-}
+### Test Specific Package
+```bash
+go test -v ./internal/service/...
 ```
 
-## 📊 Performance
+### Run API Integration Tests
+```bash
+chmod +x scripts/test-api.sh
+./scripts/test-api.sh
+```
 
-Target metrics:
-- **Response Time**: < 100ms (p95)
-- **Throughput**: > 1000 req/s
-- **Memory**: < 500MB
-- **CPU**: < 50%
+### Test with Coverage
+```bash
+make test-coverage
+open coverage.html
+```
 
-## 🔄 Migration from Supabase
+## 📝 API Examples
 
-See [MIGRATION_PLAN.md](MIGRATION_PLAN.md) for detailed migration strategy.
+### Register User
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "SecurePass@123",
+    "full_name": "John Doe"
+  }'
+```
 
-### Dual-Stack Approach
-1. Implement Golang API alongside Supabase
-2. Use feature flags to switch between backends
-3. Migrate module by module
-4. Validate each migration
-5. Gradual rollout
+### Login
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@saas.coquan.vn",
+    "password": "Admin@2026"
+  }'
+```
 
-## 📖 Additional Documentation
+### Get Current User
+```bash
+curl http://localhost:8080/api/v1/users/me \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
 
-- [Migration Plan](MIGRATION_PLAN.md) - Complete migration strategy
-- [API Documentation](docs/API_DOCUMENTATION.md) - Full API reference
-- [Setup Guide](docs/SETUP.md) - Detailed setup instructions
-- [Architecture](docs/ARCHITECTURE.md) - System architecture
+### Create Tenant
+```bash
+curl -X POST http://localhost:8080/api/v1/tenants \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "code": "ACME",
+    "name": "ACME Corporation",
+    "type": "enterprise"
+  }'
+```
+
+## 🚀 Deployment
+
+### Build for Production
+```bash
+make build
+```
+
+### Run Production Build
+```bash
+./bin/vhv-api
+```
+
+### Docker Deployment
+```bash
+docker-compose --profile full up -d
+```
+
+## 🔒 Security
+
+- ✅ JWT-based authentication
+- ✅ Password hashing with bcrypt
+- ✅ CORS configuration
+- ✅ Request ID tracking
+- ✅ Rate limiting ready
+- ✅ SQL injection prevention
+- ✅ Input validation
+
+## 📈 Performance
+
+- ✅ Database connection pooling
+- ✅ Redis caching layer
+- ✅ Query optimization with indexes
+- ✅ Pagination support
+- ✅ Distributed database (YugabyteDB)
+- ✅ Hot reload for development
+
+## 🐛 Troubleshooting
+
+### Database Connection Failed
+```bash
+# Check if services are running
+docker-compose ps
+
+# Restart services
+make docker-restart
+```
+
+### Migration Failed
+```bash
+# Reset and rerun migrations
+make migrate-reset
+```
+
+### Port Already in Use
+```bash
+# Change port in .env
+SERVER_PORT=8081
+```
+
+## 📚 Documentation
+
+- API Documentation: See `API_REFERENCE.md`
+- Architecture: See `ARCHITECTURE.md`
+- Database Schema: See `docs/Tables.md`
 
 ## 🤝 Contributing
 
-1. Follow Go best practices
-2. Write tests for new features
-3. Update documentation
-4. Run `make check` before committing
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `make test`
+5. Format code: `make fmt`
+6. Submit a pull request
 
-## 📝 License
+## 📄 License
 
-Proprietary - VHV Platform
+Copyright © 2026 VHV Platform
 
-## 👥 Team
+## 💬 Support
 
-VHV Platform Development Team
-
----
-
-**Last Updated**: 2026-01-20  
-**Version**: 1.0.0
+For issues and questions:
+- Create an issue in the repository
+- Contact: admin@saas.coquan.vn

@@ -1,0 +1,118 @@
+Tag:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Tag name
+          example: "Important"
+        slug:
+          type: string
+          description: URL-friendly slug
+          example: "important"
+          pattern: "^[a-z0-9-]+$"
+        description:
+          type: string
+          nullable: true
+          description: Tag description
+          example: "High priority items"
+        color:
+          type: string
+          nullable: true
+          description: Hex color code
+          example: "#FF5733"
+          pattern: "^#[A-Fa-f0-9]{6}$"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+        usage_count:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Number of times used
+          example: 42
+      required:
+        - tenant_id
+        - name
+        - slug
+
+CreateTagRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    name:
+      type: string
+      example: "Important"
+    slug:
+      type: string
+      pattern: "^[a-z0-9-]+$"
+      example: "important"
+    description:
+      type: string
+      nullable: true
+    color:
+      type: string
+      nullable: true
+      pattern: "^#[A-Fa-f0-9]{6}$"
+      example: "#FF5733"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - name
+    - slug
+
+UpdateTagRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    slug:
+      type: string
+      pattern: "^[a-z0-9-]+$"
+    description:
+      type: string
+      nullable: true
+    color:
+      type: string
+      nullable: true
+      pattern: "^#[A-Fa-f0-9]{6}$"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+TagListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Tag'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TagResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Tag'
+  required:
+    - success
+    - data

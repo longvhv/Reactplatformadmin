@@ -1,0 +1,88 @@
+WebhookDeliveryLog:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Log ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    webhook_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Webhook ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    event_type:
+      type: string
+      nullable: true
+      description: Event type
+      example: "order.created"
+    target_url:
+      type: string
+      nullable: true
+      description: Target URL
+      example: "https://example.com/webhooks/orders"
+    status_code:
+      type: integer
+      nullable: true
+      description: HTTP status code
+      example: 200
+    is_success:
+      type: boolean
+      nullable: true
+      description: Delivery success
+      example: true
+    latency_ms:
+      type: integer
+      nullable: true
+      description: Latency in milliseconds
+      example: 234
+    attempt_number:
+      type: integer
+      minimum: 1
+      default: 1
+      description: Attempt number
+      example: 1
+    created_at:
+      type: string
+      format: date-time
+      description: Creation timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - created_at
+
+WebhookDeliveryLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/WebhookDeliveryLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+WebhookDeliveryLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/WebhookDeliveryLog'
+  required:
+    - success
+    - data

@@ -1,184 +1,183 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
 type TenantMemberService struct {
-	repo *repository.TenantMemberRepository
+	memberRepo repository.TenantMemberRepository
 }
 
-func NewTenantMemberService(repo *repository.TenantMemberRepository) *TenantMemberService {
-	return &TenantMemberService{repo: repo}
+func NewTenantMemberService(memberRepo repository.TenantMemberRepository) *TenantMemberService {
+	return &TenantMemberService{
+		memberRepo: memberRepo,
+	}
 }
 
-// CreateMember creates a new tenant member
-func (s *TenantMemberService) CreateMember(req *models.CreateTenantMemberRequest) (*models.TenantMember, error) {
-	// Check if member already exists
-	existing, _ := s.repo.GetByTenantAndUser(req.TenantID, req.UserID)
-	if existing != nil {
+type AddTenantMemberRequest struct {
+	TenantID      uuid.UUID              `json:"tenant_id" binding:"required"`
+	UserID        uuid.UUID              `json:"user_id" binding:"required"`
+	Role          string                 `json:"role" binding:"required"`
+	EmployeeCode  *string                `json:"employee_code"`
+	InternalEmail *string                `json:"internal_email"`
+	JobTitle      *string                `json:"job_title"`
+	Permissions   []string               `json:"permissions"`
+	Metadata      map[string]interface{} `json:"metadata"`
+}
+
+type UpdateTenantMemberRequest struct {
+	Role          *string                `json:"role"`
+	EmployeeCode  *string                `json:"employee_code"`
+	InternalEmail *string                `json:"internal_email"`
+	JobTitle      *string                `json:"job_title"`
+	Status        *string                `json:"status"`
+	Permissions   []string               `json:"permissions"`
+	Metadata      map[string]interface{} `json:"metadata"`
+}
+
+// GetByID gets tenant member by ID
+func (s *TenantMemberService) GetByID(ctx context.Context, id uuid.UUID) (*models.TenantMember, error) {
+	return s.memberRepo.GetByID(ctx, id)
+}
+
+// ListByTenant lists members by tenant
+func (s *TenantMemberService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.TenantMember, int64, error) {
+	offset := (page - 1) * limit
+	return s.memberRepo.ListByTenant(ctx, tenantID, limit, offset)
+}
+
+// ListByUser lists members by user
+func (s *TenantMemberService) ListByUser(ctx context.Context, userID uuid.UUID) ([]*models.TenantMember, error) {
+	return s.memberRepo.ListByUser(ctx, userID)
+}
+
+// AddMember adds a member to tenant
+func (s *TenantMemberService) AddMember(ctx context.Context, req AddTenantMemberRequest) (*models.TenantMember, error) {
+	// Check if user is already a member
+	exists, err := s.memberRepo.Exists(ctx, req.TenantID, req.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check membership: %w", err)
+	}
+	if exists {
 		return nil, fmt.Errorf("user is already a member of this tenant")
 	}
 
+	now := time.Now()
 	member := &models.TenantMember{
-		TenantID:     req.TenantID,
-		UserID:       req.UserID,
-		Role:         req.Role,
-		Status:       req.Status,
-		JoinedAt:     req.JoinedAt,
-		ManagerID:    req.ManagerID,
-		Permissions:  req.Permissions,
-		Metadata:     req.Metadata,
+		ID:            uuid.New(),
+		TenantID:      req.TenantID,
+		UserID:        req.UserID,
+		Role:          req.Role,
+		EmployeeCode:  req.EmployeeCode,
+		InternalEmail: req.InternalEmail,
+		JobTitle:      req.JobTitle,
+		Status:        "ACTIVE",
+		JoinedAt:      &now,
+		Permissions:   req.Permissions,
+		Metadata:      req.Metadata,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+		Version:       1,
 	}
 
-	if req.EmployeeCode != "" {
-		member.EmployeeCode.String = req.EmployeeCode
-		member.EmployeeCode.Valid = true
-	}
-	if req.InternalEmail != "" {
-		member.InternalEmail.String = req.InternalEmail
-		member.InternalEmail.Valid = true
-	}
-	if req.JobTitle != "" {
-		member.JobTitle.String = req.JobTitle
-		member.JobTitle.Valid = true
-	}
-
-	if member.Status == "" {
-		member.Status = "ACTIVE"
-	}
-	if member.JoinedAt == nil {
-		now := time.Now()
-		member.JoinedAt = &now
-	}
-	if member.Permissions == nil {
-		member.Permissions = models.JSONB("[]")
-	}
-	if member.Metadata == nil {
-		member.Metadata = models.JSONB("{}")
-	}
-
-	err := s.repo.Create(member)
-	if err != nil {
-		return nil, err
+	if err := s.memberRepo.Create(ctx, member); err != nil {
+		return nil, fmt.Errorf("failed to add member: %w", err)
 	}
 
 	return member, nil
 }
 
-// GetMember retrieves a tenant member by ID
-func (s *TenantMemberService) GetMember(id uuid.UUID) (*models.TenantMember, error) {
-	return s.repo.GetByID(id)
-}
-
-// GetMemberByTenantAndUser retrieves a tenant member by tenant and user ID
-func (s *TenantMemberService) GetMemberByTenantAndUser(tenantID, userID uuid.UUID) (*models.TenantMember, error) {
-	return s.repo.GetByTenantAndUser(tenantID, userID)
-}
-
-// ListMembers retrieves tenant members with pagination and filters
-func (s *TenantMemberService) ListMembers(page, pageSize int, filters map[string]interface{}) ([]models.TenantMember, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
+// UpdateMember updates tenant member
+func (s *TenantMemberService) UpdateMember(ctx context.Context, id uuid.UUID, req UpdateTenantMemberRequest) (*models.TenantMember, error) {
+	member, err := s.memberRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("member not found: %w", err)
 	}
 
-	return s.repo.List(page, pageSize, filters)
-}
-
-// ListMembersByTenant retrieves all members of a specific tenant
-func (s *TenantMemberService) ListMembersByTenant(tenantID uuid.UUID, page, pageSize int) ([]models.TenantMember, int, error) {
-	return s.repo.ListByTenantID(tenantID, page, pageSize)
-}
-
-// UpdateMember updates a tenant member
-func (s *TenantMemberService) UpdateMember(id uuid.UUID, req *models.UpdateTenantMemberRequest) (*models.TenantMember, error) {
-	updates := make(map[string]interface{})
-
+	if req.Role != nil {
+		member.Role = *req.Role
+	}
 	if req.EmployeeCode != nil {
-		updates["employee_code"] = *req.EmployeeCode
+		member.EmployeeCode = req.EmployeeCode
 	}
 	if req.InternalEmail != nil {
-		updates["internal_email"] = *req.InternalEmail
+		member.InternalEmail = req.InternalEmail
 	}
 	if req.JobTitle != nil {
-		updates["job_title"] = *req.JobTitle
-	}
-	if req.ManagerID != nil {
-		updates["manager_id"] = *req.ManagerID
-	}
-	if req.Role != nil {
-		updates["role"] = *req.Role
+		member.JobTitle = req.JobTitle
 	}
 	if req.Status != nil {
-		updates["status"] = *req.Status
-	}
-	if req.JoinedAt != nil {
-		updates["joined_at"] = *req.JoinedAt
-	}
-	if req.LeftAt != nil {
-		updates["left_at"] = *req.LeftAt
+		member.Status = *req.Status
 	}
 	if req.Permissions != nil {
-		updates["permissions"] = req.Permissions
+		member.Permissions = req.Permissions
 	}
 	if req.Metadata != nil {
-		updates["metadata"] = req.Metadata
+		member.Metadata = req.Metadata
 	}
 
-	return s.repo.Update(id, updates)
+	member.UpdatedAt = time.Now()
+	member.Version++
+
+	if err := s.memberRepo.Update(ctx, member); err != nil {
+		return nil, fmt.Errorf("failed to update member: %w", err)
+	}
+
+	return member, nil
 }
 
-// DeleteMember soft deletes a tenant member
-func (s *TenantMemberService) DeleteMember(id uuid.UUID) error {
-	return s.repo.Delete(id)
+// RemoveMember removes member from tenant
+func (s *TenantMemberService) RemoveMember(ctx context.Context, id uuid.UUID) error {
+	member, err := s.memberRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("member not found: %w", err)
+	}
+
+	// Cannot remove OWNER if they're the last owner
+	if member.Role == "OWNER" {
+		count, err := s.memberRepo.CountOwners(ctx, member.TenantID)
+		if err != nil {
+			return fmt.Errorf("failed to count owners: %w", err)
+		}
+		if count <= 1 {
+			return fmt.Errorf("cannot remove the last owner")
+		}
+	}
+
+	return s.memberRepo.Delete(ctx, id)
 }
 
-// UpdateMemberStatus updates the status of a tenant member
-func (s *TenantMemberService) UpdateMemberStatus(id uuid.UUID, status string) error {
-	// Validate status
-	validStatuses := map[string]bool{
-		"ACTIVE":     true,
-		"RESIGNED":   true,
-		"ONBOARDING": true,
-		"SUSPENDED":  true,
+// UpdateMemberRole updates member's role
+func (s *TenantMemberService) UpdateMemberRole(ctx context.Context, id uuid.UUID, role string) (*models.TenantMember, error) {
+	member, err := s.memberRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("member not found: %w", err)
 	}
 
-	if !validStatuses[status] {
-		return fmt.Errorf("invalid status: %s", status)
+	// Check if changing from OWNER role and they're the last owner
+	if member.Role == "OWNER" && role != "OWNER" {
+		count, err := s.memberRepo.CountOwners(ctx, member.TenantID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count owners: %w", err)
+		}
+		if count <= 1 {
+			return nil, fmt.Errorf("cannot change role of the last owner")
+		}
 	}
 
-	return s.repo.UpdateStatus(id, status)
-}
+	member.Role = role
+	member.UpdatedAt = time.Now()
+	member.Version++
 
-// UpdateMemberRole updates the role of a tenant member
-func (s *TenantMemberService) UpdateMemberRole(id uuid.UUID, role string) error {
-	// Validate role
-	validRoles := map[string]bool{
-		"OWNER":  true,
-		"ADMIN":  true,
-		"MEMBER": true,
-		"VIEWER": true,
+	if err := s.memberRepo.Update(ctx, member); err != nil {
+		return nil, fmt.Errorf("failed to update member role: %w", err)
 	}
 
-	if !validRoles[role] {
-		return fmt.Errorf("invalid role: %s", role)
-	}
-
-	return s.repo.UpdateRole(id, role)
-}
-
-// GetActiveCount returns the count of active members in a tenant
-func (s *TenantMemberService) GetActiveCount(tenantID uuid.UUID) (int, error) {
-	return s.repo.GetActiveCount(tenantID)
+	return member, nil
 }

@@ -1,0 +1,234 @@
+ErrorResponse:
+  description: Error response
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Machine-readable error code
+                example: "VALIDATION_ERROR"
+              message:
+                type: string
+                description: Human-readable error message
+                example: "Validation failed"
+              details:
+                type: object
+                description: Additional error details
+                additionalProperties: true
+            required:
+              - code
+              - message
+        required:
+          - success
+          - error
+
+BadRequestError:
+  description: Bad Request - Invalid request parameters
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "BAD_REQUEST"
+              message:
+                type: string
+                example: "Invalid request parameters"
+        required:
+          - success
+          - error
+
+UnauthorizedError:
+  description: Unauthorized - Authentication required or failed
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "UNAUTHORIZED"
+              message:
+                type: string
+                example: "Authentication required"
+        required:
+          - success
+          - error
+
+ForbiddenError:
+  description: Forbidden - Insufficient permissions
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "FORBIDDEN"
+              message:
+                type: string
+                example: "You don't have permission to access this resource"
+        required:
+          - success
+          - error
+
+NotFoundError:
+  description: Not Found - Resource not found
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "NOT_FOUND"
+              message:
+                type: string
+                example: "Resource not found"
+        required:
+          - success
+          - error
+
+ConflictError:
+  description: Conflict - Resource already exists or conflict with current state
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "CONFLICT"
+              message:
+                type: string
+                example: "Email already exists"
+        required:
+          - success
+          - error
+
+ValidationError:
+  description: Validation Error - Request validation failed
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "VALIDATION_ERROR"
+              message:
+                type: string
+                example: "Validation failed"
+              details:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    type: string
+                example:
+                  email:
+                    - "Email is required"
+                    - "Email format is invalid"
+                  full_name:
+                    - "Full name must be between 1 and 255 characters"
+        required:
+          - success
+          - error
+
+InternalServerError:
+  description: Internal Server Error - Something went wrong on the server
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "INTERNAL_ERROR"
+              message:
+                type: string
+                example: "An internal server error occurred"
+        required:
+          - success
+          - error
+
+RateLimitError:
+  description: Too Many Requests - Rate limit exceeded
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                example: "RATE_LIMIT_EXCEEDED"
+              message:
+                type: string
+                example: "Rate limit exceeded. Please try again later."
+              details:
+                type: object
+                properties:
+                  retry_after:
+                    type: integer
+                    description: Seconds until rate limit resets
+                    example: 60
+        required:
+          - success
+          - error

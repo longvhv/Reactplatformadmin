@@ -1,0 +1,362 @@
+/roles:
+  get:
+    summary: List all roles
+    description: Retrieve a paginated list of roles with optional filters
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: role_type
+        in: query
+        schema:
+          type: string
+          enum:
+            - SYSTEM
+            - TENANT
+            - CUSTOM
+        description: Filter by role type
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+        description: Filter by active status
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+        description: Filter by tenant ID
+    responses:
+      '200':
+        description: Roles retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/role.yaml#/RoleListResponse'
+            example:
+              success: true
+              data:
+                - _id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "SUPER_ADMIN"
+                  name: "Super Administrator"
+                  role_type: "SYSTEM"
+                  priority: 100
+                  is_active: true
+                  permissions_count: 50
+                  users_count: 2
+                - _id: "550e8400-e29b-41d4-a716-446655440001"
+                  code: "TENANT_ADMIN"
+                  name: "Tenant Administrator"
+                  role_type: "TENANT"
+                  priority: 80
+                  is_active: true
+                  permissions_count: 30
+                  users_count: 5
+              meta:
+                page: 1
+                page_size: 20
+                total_pages: 1
+                total_count: 2
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new role
+    description: Create a new role with optional permissions (admin only)
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/role.yaml#/CreateRoleRequest'
+          examples:
+            custom_role:
+              summary: Create custom role
+              value:
+                code: "CONTENT_MANAGER"
+                name: "Content Manager"
+                description: "Manages content and media"
+                role_type: "CUSTOM"
+                priority: 60
+                permission_ids:
+                  - "660e8400-e29b-41d4-a716-446655440000"
+                  - "660e8400-e29b-41d4-a716-446655440001"
+            tenant_role:
+              summary: Create tenant role
+              value:
+                code: "BILLING_ADMIN"
+                name: "Billing Administrator"
+                description: "Manages billing and invoices"
+                role_type: "TENANT"
+                tenant_id: "550e8400-e29b-41d4-a716-446655440000"
+                priority: 70
+    responses:
+      '201':
+        description: Role created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/role.yaml#/RoleResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        description: Role code already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "ROLE_CODE_EXISTS"
+                message: "Role code already exists"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/roles/{id}:
+  get:
+    summary: Get role by ID
+    description: Retrieve a single role with its permissions
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+      - name: include_permissions
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Include full permission details
+    responses:
+      '200':
+        description: Role retrieved successfully
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '../components/schemas/role.yaml#/RoleResponse'
+                - $ref: '../components/schemas/role.yaml#/RoleWithPermissionsResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update role
+    description: Update role information (partial update, SYSTEM roles cannot be modified)
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/role.yaml#/UpdateRoleRequest'
+          examples:
+            update_name:
+              summary: Update name
+              value:
+                name: "Senior Content Manager"
+            update_priority:
+              summary: Update priority
+              value:
+                priority: 65
+            deactivate:
+              summary: Deactivate role
+              value:
+                is_active: false
+    responses:
+      '200':
+        description: Role updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/role.yaml#/RoleResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        description: Cannot modify SYSTEM roles
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "CANNOT_MODIFY_SYSTEM_ROLE"
+                message: "System roles cannot be modified"
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete role
+    description: Soft delete a role (cannot delete SYSTEM roles or roles with users)
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        description: Cannot delete SYSTEM roles or roles with users
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            examples:
+              system_role:
+                summary: System role protection
+                value:
+                  success: false
+                  error:
+                    code: "CANNOT_DELETE_SYSTEM_ROLE"
+                    message: "System roles cannot be deleted"
+              has_users:
+                summary: Role has users
+                value:
+                  success: false
+                  error:
+                    code: "ROLE_HAS_USERS"
+                    message: "Cannot delete role with assigned users"
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/roles/code/{code}:
+  get:
+    summary: Get role by code
+    description: Retrieve a role by its unique code
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/CodeParam'
+    responses:
+      '200':
+        description: Role retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/role.yaml#/RoleResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/roles/{id}/permissions:
+  post:
+    summary: Assign permissions to role
+    description: Add permissions to a role (admin only)
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/role.yaml#/AssignPermissionsRequest'
+          example:
+            permission_ids:
+              - "660e8400-e29b-41d4-a716-446655440000"
+              - "660e8400-e29b-41d4-a716-446655440001"
+              - "660e8400-e29b-41d4-a716-446655440002"
+    responses:
+      '200':
+        description: Permissions assigned successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/role.yaml#/RoleWithPermissionsResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Remove permissions from role
+    description: Remove permissions from a role (admin only)
+    tags:
+      - Roles
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/role.yaml#/RemovePermissionsRequest'
+          example:
+            permission_ids:
+              - "660e8400-e29b-41d4-a716-446655440000"
+    responses:
+      '200':
+        description: Permissions removed successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/role.yaml#/RoleWithPermissionsResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

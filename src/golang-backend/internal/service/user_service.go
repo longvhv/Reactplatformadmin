@@ -3,234 +3,188 @@ package service
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/models"
 	"github.com/vhv-platform/backend/internal/repository"
+	"github.com/vhv-platform/backend/pkg/cache"
 )
 
-// UserService handles business logic for users
+// UserService handles user business logic
 type UserService struct {
-	repo *repository.UserRepository
+	userRepo repository.UserRepository
+	cache    cache.Cache
 }
 
 // NewUserService creates a new user service
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(userRepo repository.UserRepository, cache cache.Cache) *UserService {
+	return &UserService{
+		userRepo: userRepo,
+		cache:    cache,
+	}
 }
 
-// GetAll retrieves all users with filters
-func (s *UserService) GetAll(ctx context.Context, filters models.UserFilters) ([]models.User, error) {
-	return s.repo.GetAll(ctx, filters)
+// CreateUserRequest represents create user request
+type CreateUserRequest struct {
+	Email       string                 `json:"email" binding:"required,email"`
+	Password    string                 `json:"password" binding:"required,min=8"`
+	FirstName   *string                `json:"first_name"`
+	LastName    *string                `json:"last_name"`
+	PhoneNumber *string                `json:"phone_number"`
+	TenantID    uuid.UUID              `json:"tenant_id"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// GetByID retrieves a user by ID
-func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, error) {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid user ID format")
+// UpdateUserRequest represents update user request
+type UpdateUserRequest struct {
+	FirstName   *string                `json:"first_name"`
+	LastName    *string                `json:"last_name"`
+	PhoneNumber *string                `json:"phone_number"`
+	AvatarURL   *string                `json:"avatar_url"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// GetByID gets user by ID
+func (s *UserService) GetByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
+	// Try cache first
+	cacheKey := cache.UserCacheKey(id.String())
+	var user models.User
+	err := s.cache.GetJSON(ctx, cacheKey, &user)
+	if err == nil {
+		return &user, nil
 	}
 
-	return s.repo.GetByID(ctx, id)
-}
-
-// GetByEmail retrieves a user by email
-func (s *UserService) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	if !isValidEmail(email) {
-		return nil, fmt.Errorf("invalid email format")
-	}
-
-	return s.repo.GetByEmail(ctx, email)
-}
-
-// Create creates a new user
-func (s *UserService) Create(ctx context.Context, req models.CreateUserRequest) (*models.User, error) {
-	// Validate request
-	if err := s.validateCreateRequest(req); err != nil {
-		return nil, err
-	}
-
-	// Check if email already exists
-	existing, err := s.repo.GetByEmail(ctx, req.Email)
+	// Get from database
+	dbUser, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if existing != nil {
+
+	// Cache user
+	_ = s.cache.SetJSON(ctx, cacheKey, dbUser, cache.UserTTL)
+
+	// Remove sensitive data
+	dbUser.PasswordHash = ""
+	dbUser.MFASecret = nil
+
+	return dbUser, nil
+}
+
+// ListByTenant lists users by tenant
+func (s *UserService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.User, int64, error) {
+	offset := (page - 1) * limit
+	users, total, err := s.userRepo.ListByTenant(ctx, tenantID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Remove sensitive data
+	for _, user := range users {
+		user.PasswordHash = ""
+		user.MFASecret = nil
+	}
+
+	return users, total, nil
+}
+
+// CreateUser creates a new user
+func (s *UserService) CreateUser(ctx context.Context, req CreateUserRequest) (*models.User, error) {
+	// Check if email exists
+	exists, err := s.userRepo.Exists(ctx, req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check email existence: %w", err)
+	}
+	if exists {
 		return nil, fmt.Errorf("email already exists")
 	}
 
-	return s.repo.Create(ctx, req)
-}
-
-// Update updates a user
-func (s *UserService) Update(ctx context.Context, id string, req models.UpdateUserRequest) (*models.User, error) {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid user ID format")
-	}
-
-	// Validate request
-	if err := s.validateUpdateRequest(req); err != nil {
-		return nil, err
-	}
-
-	// Check if user exists
-	_, err := s.repo.GetByID(ctx, id)
+	// Hash password
+	passwordHash, err := hashPassword(req.Password)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	return s.repo.Update(ctx, id, req)
+	// Create user
+	user := &models.User{
+		ID:           uuid.New(),
+		Email:        req.Email,
+		PasswordHash: passwordHash,
+		FirstName:    req.FirstName,
+		LastName:     req.LastName,
+		PhoneNumber:  req.PhoneNumber,
+		TenantID:     req.TenantID,
+		IsActive:     true,
+		Metadata:     req.Metadata,
+	}
+
+	if err := s.userRepo.Create(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	// Remove sensitive data
+	user.PasswordHash = ""
+
+	return user, nil
 }
 
-// Delete deletes a user
-func (s *UserService) Delete(ctx context.Context, id string) error {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return fmt.Errorf("invalid user ID format")
-	}
-
-	// Check if user exists
-	_, err := s.repo.GetByID(ctx, id)
+// UpdateUser updates a user
+func (s *UserService) UpdateUser(ctx context.Context, id uuid.UUID, req UpdateUserRequest) (*models.User, error) {
+	// Get existing user
+	user, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
-	// TODO: Check if user has active sessions or assignments
-	// TODO: Cascade delete related data (user_roles, user_sessions, etc.)
+	// Update fields
+	if req.FirstName != nil {
+		user.FirstName = req.FirstName
+	}
+	if req.LastName != nil {
+		user.LastName = req.LastName
+	}
+	if req.PhoneNumber != nil {
+		user.PhoneNumber = req.PhoneNumber
+	}
+	if req.AvatarURL != nil {
+		user.AvatarURL = req.AvatarURL
+	}
+	if req.Metadata != nil {
+		user.Metadata = req.Metadata
+	}
 
-	return s.repo.Delete(ctx, id)
+	if err := s.userRepo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("failed to update user: %w", err)
+	}
+
+	// Invalidate cache
+	cacheKey := cache.UserCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	// Remove sensitive data
+	user.PasswordHash = ""
+	user.MFASecret = nil
+
+	return user, nil
 }
 
-// UpdateStatus updates user status
-func (s *UserService) UpdateStatus(ctx context.Context, id string, status models.UserStatus) (*models.User, error) {
-	// Validate UUID
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid user ID format")
+// DeleteUser deletes a user
+func (s *UserService) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	if err := s.userRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	// Validate status
-	if !isValidUserStatus(status) {
-		return nil, fmt.Errorf("invalid user status")
-	}
-
-	return s.repo.Update(ctx, id, models.UpdateUserRequest{
-		Status: &status,
-	})
-}
-
-// EnableMFA enables MFA for a user
-func (s *UserService) EnableMFA(ctx context.Context, id string) (*models.User, error) {
-	enabled := true
-	return s.repo.Update(ctx, id, models.UpdateUserRequest{
-		MFAEnabled: &enabled,
-	})
-}
-
-// DisableMFA disables MFA for a user
-func (s *UserService) DisableMFA(ctx context.Context, id string) (*models.User, error) {
-	disabled := false
-	return s.repo.Update(ctx, id, models.UpdateUserRequest{
-		MFAEnabled: &disabled,
-	})
-}
-
-// validateCreateRequest validates create user request
-func (s *UserService) validateCreateRequest(req models.CreateUserRequest) error {
-	// Validate email
-	if !isValidEmail(req.Email) {
-		return fmt.Errorf("invalid email format")
-	}
-
-	// Validate full name
-	fullName := strings.TrimSpace(req.FullName)
-	if fullName == "" {
-		return fmt.Errorf("full name is required")
-	}
-	if len(fullName) > 255 {
-		return fmt.Errorf("full name cannot exceed 255 characters")
-	}
-
-	// Validate phone number if provided
-	if req.PhoneNumber != nil && *req.PhoneNumber != "" {
-		if !isValidPhoneNumber(*req.PhoneNumber) {
-			return fmt.Errorf("invalid phone number format")
-		}
-	}
-
-	// Validate status if provided
-	if req.Status != "" && !isValidUserStatus(req.Status) {
-		return fmt.Errorf("invalid user status")
-	}
-
-	// Validate locale if provided
-	if req.Locale != "" && !isValidLocale(req.Locale) {
-		return fmt.Errorf("invalid locale: must be one of vi, en, es, ja, ko, zh")
-	}
+	// Invalidate cache
+	cacheKey := cache.UserCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
 
 	return nil
 }
 
-// validateUpdateRequest validates update user request
-func (s *UserService) validateUpdateRequest(req models.UpdateUserRequest) error {
-	// Validate full name if provided
-	if req.FullName != nil {
-		fullName := strings.TrimSpace(*req.FullName)
-		if fullName == "" {
-			return fmt.Errorf("full name cannot be empty")
-		}
-		if len(fullName) > 255 {
-			return fmt.Errorf("full name cannot exceed 255 characters")
-		}
+// hashPassword hashes a password using bcrypt
+func hashPassword(password string) (string, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
 	}
-
-	// Validate phone number if provided
-	if req.PhoneNumber != nil && *req.PhoneNumber != "" {
-		if !isValidPhoneNumber(*req.PhoneNumber) {
-			return fmt.Errorf("invalid phone number format")
-		}
-	}
-
-	// Validate status if provided
-	if req.Status != nil && !isValidUserStatus(*req.Status) {
-		return fmt.Errorf("invalid user status")
-	}
-
-	// Validate locale if provided
-	if req.Locale != nil && !isValidLocale(*req.Locale) {
-		return fmt.Errorf("invalid locale: must be one of vi, en, es, ja, ko, zh")
-	}
-
-	return nil
-}
-
-// Helper validation functions
-func isValidEmail(email string) bool {
-	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	return emailRegex.MatchString(email)
-}
-
-func isValidPhoneNumber(phone string) bool {
-	// Basic phone validation (customize based on requirements)
-	phoneRegex := regexp.MustCompile(`^\+?[1-9]\d{1,14}$`)
-	return phoneRegex.MatchString(phone)
-}
-
-func isValidUserStatus(status models.UserStatus) bool {
-	return status == models.UserStatusActive ||
-		status == models.UserStatusInactive ||
-		status == models.UserStatusSuspended ||
-		status == models.UserStatusPending
-}
-
-func isValidLocale(locale string) bool {
-	validLocales := []string{"vi", "en", "es", "ja", "ko", "zh"}
-	for _, valid := range validLocales {
-		if locale == valid {
-			return true
-		}
-	}
-	return false
+	return string(hashedPassword), nil
 }

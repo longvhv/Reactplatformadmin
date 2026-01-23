@@ -1,0 +1,150 @@
+TenantAppRoute:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        app_code:
+          type: string
+          description: Application code
+          example: "PORTAL"
+        domain:
+          type: string
+          description: Domain name
+          example: "app.example.com"
+          pattern: "^[a-z0-9.-]+$"
+        path_prefix:
+          type: string
+          default: "/"
+          description: Path prefix
+          example: "/app"
+          pattern: "^/[-a-z0-9/]*$"
+        is_primary:
+          type: boolean
+          default: false
+          description: Is primary route
+          example: true
+        is_custom_domain:
+          type: boolean
+          default: false
+          description: Is custom domain
+          example: false
+        ssl_status:
+          type: string
+          enum:
+            - NONE
+            - PENDING
+            - ACTIVE
+            - FAILED
+          default: "NONE"
+          description: SSL certificate status
+          example: "ACTIVE"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - MAINTENANCE
+            - PENDING_DNS
+          default: "ACTIVE"
+          description: Route status
+          example: "ACTIVE"
+        route_scope:
+          type: string
+          enum:
+            - SPECIFIC_DOMAIN
+            - ALL_MY_DOMAINS
+            - INHERITED
+          default: "SPECIFIC_DOMAIN"
+          description: Route scope
+          example: "SPECIFIC_DOMAIN"
+      required:
+        - tenant_id
+        - app_code
+        - domain
+        - is_primary
+        - is_custom_domain
+        - ssl_status
+        - status
+        - route_scope
+
+CreateTenantAppRouteRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    app_code:
+      type: string
+      example: "PORTAL"
+    domain:
+      type: string
+      pattern: "^[a-z0-9.-]+$"
+      example: "app.example.com"
+    path_prefix:
+      type: string
+      pattern: "^/[-a-z0-9/]*$"
+      default: "/"
+    is_primary:
+      type: boolean
+      default: false
+    is_custom_domain:
+      type: boolean
+      default: false
+    route_scope:
+      type: string
+      enum: [SPECIFIC_DOMAIN, ALL_MY_DOMAINS, INHERITED]
+      default: "SPECIFIC_DOMAIN"
+  required:
+    - tenant_id
+    - app_code
+    - domain
+
+UpdateTenantAppRouteRequest:
+  type: object
+  properties:
+    path_prefix:
+      type: string
+      pattern: "^/[-a-z0-9/]*$"
+    is_primary:
+      type: boolean
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, MAINTENANCE, PENDING_DNS]
+    route_scope:
+      type: string
+      enum: [SPECIFIC_DOMAIN, ALL_MY_DOMAINS, INHERITED]
+  minProperties: 1
+
+TenantAppRouteListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantAppRoute'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantAppRouteResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantAppRoute'
+  required:
+    - success
+    - data

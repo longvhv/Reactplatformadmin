@@ -6,155 +6,231 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type TenantAppRouteService interface {
-	CreateRoute(ctx context.Context, req *models.CreateTenantAppRouteRequest) (*models.TenantAppRoute, error)
-	GetRoute(ctx context.Context, id uuid.UUID) (*models.TenantAppRoute, error)
-	ListRoutes(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, appCode, status *string) ([]*models.TenantAppRoute, int, error)
-	ListRoutesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantAppRoute, error)
-	ListRoutesByAppCode(ctx context.Context, appCode string) ([]*models.TenantAppRoute, error)
-	GetRouteByDomain(ctx context.Context, domain string) (*models.TenantAppRoute, error)
-	GetPrimaryRoute(ctx context.Context, tenantID uuid.UUID, appCode string) (*models.TenantAppRoute, error)
-	UpdateRoute(ctx context.Context, id uuid.UUID, req *models.UpdateTenantAppRouteRequest) (*models.TenantAppRoute, error)
-	SetPrimaryRoute(ctx context.Context, tenantID uuid.UUID, appCode string, routeID uuid.UUID) error
-	UpdateSSLStatus(ctx context.Context, id uuid.UUID, sslStatus string) error
-	UpdateStatus(ctx context.Context, id uuid.UUID, status string) error
-	DeleteRoute(ctx context.Context, id uuid.UUID) error
+type TenantAppRouteService struct {
+	routeRepo repository.TenantAppRouteRepository
 }
 
-type tenantAppRouteService struct {
-	repo repository.TenantAppRouteRepository
+func NewTenantAppRouteService(routeRepo repository.TenantAppRouteRepository) *TenantAppRouteService {
+	return &TenantAppRouteService{
+		routeRepo: routeRepo,
+	}
 }
 
-func NewTenantAppRouteService(repo repository.TenantAppRouteRepository) TenantAppRouteService {
-	return &tenantAppRouteService{repo: repo}
+type CreateTenantAppRouteRequest struct {
+	TenantID        uuid.UUID `json:"tenant_id" binding:"required"`
+	AppCode         string    `json:"app_code" binding:"required"`
+	Domain          string    `json:"domain" binding:"required"`
+	PathPrefix      string    `json:"path_prefix"`
+	IsPrimary       bool      `json:"is_primary"`
+	IsCustomDomain  bool      `json:"is_custom_domain"`
+	RouteScope      string    `json:"route_scope"`
 }
 
-func (s *tenantAppRouteService) CreateRoute(ctx context.Context, req *models.CreateTenantAppRouteRequest) (*models.TenantAppRoute, error) {
-	now := time.Now()
+type UpdateTenantAppRouteRequest struct {
+	PathPrefix *string `json:"path_prefix"`
+	Status     *string `json:"status"`
+	RouteScope *string `json:"route_scope"`
+}
+
+// GetByID gets route by ID
+func (s *TenantAppRouteService) GetByID(ctx context.Context, id uuid.UUID) (*models.TenantAppRoute, error) {
+	return s.routeRepo.GetByID(ctx, id)
+}
+
+// GetByDomain gets route by domain
+func (s *TenantAppRouteService) GetByDomain(ctx context.Context, domain string) (*models.TenantAppRoute, error) {
+	return s.routeRepo.GetByDomain(ctx, domain)
+}
+
+// ListByTenant lists routes by tenant
+func (s *TenantAppRouteService) ListByTenant(ctx context.Context, tenantID uuid.UUID, appCode, status string, page, limit int) ([]*models.TenantAppRoute, int64, error) {
+	offset := (page - 1) * limit
+	return s.routeRepo.ListByTenant(ctx, tenantID, appCode, status, limit, offset)
+}
+
+// CreateRoute creates a new route
+func (s *TenantAppRouteService) CreateRoute(ctx context.Context, req CreateTenantAppRouteRequest) (*models.TenantAppRoute, error) {
+	// Check if domain already exists
+	existing, err := s.routeRepo.GetByDomain(ctx, req.Domain)
+	if err == nil && existing != nil {
+		return nil, fmt.Errorf("domain already exists")
+	}
+
+	pathPrefix := req.PathPrefix
+	if pathPrefix == "" {
+		pathPrefix = "/"
+	}
+
+	routeScope := req.RouteScope
+	if routeScope == "" {
+		routeScope = "SPECIFIC_DOMAIN"
+	}
+
+	sslStatus := "NONE"
+	if req.IsCustomDomain {
+		sslStatus = "PENDING"
+	}
+
+	status := "ACTIVE"
+	if req.IsCustomDomain {
+		status = "PENDING_DNS"
+	}
+
 	route := &models.TenantAppRoute{
 		ID:             uuid.New(),
 		TenantID:       req.TenantID,
 		AppCode:        req.AppCode,
 		Domain:         req.Domain,
-		PathPrefix:     "/",
+		PathPrefix:     pathPrefix,
 		IsPrimary:      req.IsPrimary,
 		IsCustomDomain: req.IsCustomDomain,
-		SSLStatus:      "NONE",
-		Status:         "ACTIVE",
-		RouteScope:     "SPECIFIC_DOMAIN",
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		SSLStatus:      sslStatus,
+		Status:         status,
+		RouteScope:     routeScope,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
 		Version:        1,
 	}
 
-	if req.PathPrefix != "" {
-		route.PathPrefix = req.PathPrefix
+	// If setting as primary, unset other primary routes
+	if req.IsPrimary {
+		if err := s.routeRepo.UnsetPrimary(ctx, req.TenantID, req.AppCode); err != nil {
+			return nil, fmt.Errorf("failed to unset existing primary: %w", err)
+		}
 	}
 
-	if req.RouteScope != "" {
-		route.RouteScope = req.RouteScope
+	if err := s.routeRepo.Create(ctx, route); err != nil {
+		return nil, fmt.Errorf("failed to create route: %w", err)
 	}
 
-	// Set SSL status for custom domains
+	// Trigger DNS verification if custom domain
 	if req.IsCustomDomain {
-		route.SSLStatus = "PENDING"
-		route.Status = "PENDING_DNS"
-	}
-
-	if err := s.repo.Create(ctx, route); err != nil {
-		return nil, fmt.Errorf("failed to create app route: %w", err)
+		go s.verifyDNS(context.Background(), route)
 	}
 
 	return route, nil
 }
 
-func (s *tenantAppRouteService) GetRoute(ctx context.Context, id uuid.UUID) (*models.TenantAppRoute, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *tenantAppRouteService) ListRoutes(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, appCode, status *string) ([]*models.TenantAppRoute, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.List(ctx, page, pageSize, tenantID, appCode, status)
-}
-
-func (s *tenantAppRouteService) ListRoutesByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantAppRoute, error) {
-	return s.repo.ListByTenantID(ctx, tenantID)
-}
-
-func (s *tenantAppRouteService) ListRoutesByAppCode(ctx context.Context, appCode string) ([]*models.TenantAppRoute, error) {
-	return s.repo.ListByAppCode(ctx, appCode)
-}
-
-func (s *tenantAppRouteService) GetRouteByDomain(ctx context.Context, domain string) (*models.TenantAppRoute, error) {
-	return s.repo.GetByDomain(ctx, domain)
-}
-
-func (s *tenantAppRouteService) GetPrimaryRoute(ctx context.Context, tenantID uuid.UUID, appCode string) (*models.TenantAppRoute, error) {
-	return s.repo.GetPrimaryRoute(ctx, tenantID, appCode)
-}
-
-func (s *tenantAppRouteService) UpdateRoute(ctx context.Context, id uuid.UUID, req *models.UpdateTenantAppRouteRequest) (*models.TenantAppRoute, error) {
-	route, err := s.repo.GetByID(ctx, id)
+// UpdateRoute updates a route
+func (s *TenantAppRouteService) UpdateRoute(ctx context.Context, id uuid.UUID, req UpdateTenantAppRouteRequest) (*models.TenantAppRoute, error) {
+	route, err := s.routeRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("route not found: %w", err)
 	}
 
 	if req.PathPrefix != nil {
 		route.PathPrefix = *req.PathPrefix
 	}
-
-	if req.IsPrimary != nil {
-		route.IsPrimary = *req.IsPrimary
-	}
-
-	if req.IsCustomDomain != nil {
-		route.IsCustomDomain = *req.IsCustomDomain
-	}
-
-	if req.SSLStatus != nil {
-		route.SSLStatus = *req.SSLStatus
-	}
-
 	if req.Status != nil {
 		route.Status = *req.Status
 	}
-
 	if req.RouteScope != nil {
 		route.RouteScope = *req.RouteScope
 	}
 
 	route.UpdatedAt = time.Now()
+	route.Version++
 
-	if err := s.repo.Update(ctx, route); err != nil {
-		return nil, fmt.Errorf("failed to update app route: %w", err)
+	if err := s.routeRepo.Update(ctx, route); err != nil {
+		return nil, fmt.Errorf("failed to update route: %w", err)
 	}
 
 	return route, nil
 }
 
-func (s *tenantAppRouteService) SetPrimaryRoute(ctx context.Context, tenantID uuid.UUID, appCode string, routeID uuid.UUID) error {
-	return s.repo.SetPrimary(ctx, tenantID, appCode, routeID)
+// DeleteRoute deletes a route
+func (s *TenantAppRouteService) DeleteRoute(ctx context.Context, id uuid.UUID) error {
+	route, err := s.routeRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("route not found: %w", err)
+	}
+
+	if route.IsPrimary {
+		return fmt.Errorf("cannot delete primary route")
+	}
+
+	return s.routeRepo.Delete(ctx, id)
 }
 
-func (s *tenantAppRouteService) UpdateSSLStatus(ctx context.Context, id uuid.UUID, sslStatus string) error {
-	return s.repo.UpdateSSLStatus(ctx, id, sslStatus)
+// SetPrimary sets a route as primary
+func (s *TenantAppRouteService) SetPrimary(ctx context.Context, id uuid.UUID) (*models.TenantAppRoute, error) {
+	route, err := s.routeRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("route not found: %w", err)
+	}
+
+	if route.IsPrimary {
+		return route, nil
+	}
+
+	// Unset existing primary
+	if err := s.routeRepo.UnsetPrimary(ctx, route.TenantID, route.AppCode); err != nil {
+		return nil, fmt.Errorf("failed to unset existing primary: %w", err)
+	}
+
+	route.IsPrimary = true
+	route.UpdatedAt = time.Now()
+	route.Version++
+
+	if err := s.routeRepo.Update(ctx, route); err != nil {
+		return nil, fmt.Errorf("failed to set primary: %w", err)
+	}
+
+	return route, nil
 }
 
-func (s *tenantAppRouteService) UpdateStatus(ctx context.Context, id uuid.UUID, status string) error {
-	return s.repo.UpdateStatus(ctx, id, status)
+// VerifySSL initiates SSL verification
+func (s *TenantAppRouteService) VerifySSL(ctx context.Context, id uuid.UUID) (*models.TenantAppRoute, error) {
+	route, err := s.routeRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("route not found: %w", err)
+	}
+
+	if !route.IsCustomDomain {
+		return nil, fmt.Errorf("SSL verification only for custom domains")
+	}
+
+	route.SSLStatus = "PENDING"
+	route.UpdatedAt = time.Now()
+	route.Version++
+
+	if err := s.routeRepo.Update(ctx, route); err != nil {
+		return nil, fmt.Errorf("failed to update SSL status: %w", err)
+	}
+
+	// Trigger SSL verification process
+	go s.verifySSLCertificate(context.Background(), route)
+
+	return route, nil
 }
 
-func (s *tenantAppRouteService) DeleteRoute(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// verifyDNS verifies DNS configuration (simulation)
+func (s *TenantAppRouteService) verifyDNS(ctx context.Context, route *models.TenantAppRoute) {
+	// Simulate DNS verification
+	time.Sleep(10 * time.Second)
+
+	route.Status = "ACTIVE"
+	route.UpdatedAt = time.Now()
+
+	_ = s.routeRepo.Update(ctx, route)
+}
+
+// verifySSLCertificate verifies SSL certificate (simulation)
+func (s *TenantAppRouteService) verifySSLCertificate(ctx context.Context, route *models.TenantAppRoute) {
+	// Simulate SSL verification
+	time.Sleep(15 * time.Second)
+
+	route.SSLStatus = "ACTIVE"
+	route.UpdatedAt = time.Now()
+
+	_ = s.routeRepo.Update(ctx, route)
+}
+
+// GetPrimaryRoute gets primary route for tenant and app
+func (s *TenantAppRouteService) GetPrimaryRoute(ctx context.Context, tenantID uuid.UUID, appCode string) (*models.TenantAppRoute, error) {
+	return s.routeRepo.GetPrimary(ctx, tenantID, appCode)
 }

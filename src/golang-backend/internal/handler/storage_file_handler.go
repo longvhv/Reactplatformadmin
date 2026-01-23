@@ -6,249 +6,204 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type StorageFileHandler struct {
-	service service.StorageFileService
+	storageService *service.StorageFileService
+	authzService   *service.AuthorizationService
 }
 
-func NewStorageFileHandler(service service.StorageFileService) *StorageFileHandler {
-	return &StorageFileHandler{service: service}
+func NewStorageFileHandler(storageService *service.StorageFileService, authzService *service.AuthorizationService) *StorageFileHandler {
+	return &StorageFileHandler{
+		storageService: storageService,
+		authzService:   authzService,
+	}
 }
 
-func (h *StorageFileHandler) CreateFile(c *gin.Context) {
-	var req models.CreateStorageFileRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists storage files
+func (h *StorageFileHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	file, err := h.service.CreateFile(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, file)
-}
-
-func (h *StorageFileHandler) ListFiles(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	category := c.Query("category")
+	parentID := c.Query("parent_id")
 
-	var tenantID *uuid.UUID
-	if tenantIDStr := c.Query("tenant_id"); tenantIDStr != "" {
-		parsed, err := uuid.Parse(tenantIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
-			return
+	var parentUUID *uuid.UUID
+	if parentID != "" {
+		parsed, err := uuid.Parse(parentID)
+		if err == nil {
+			parentUUID = &parsed
 		}
-		tenantID = &parsed
 	}
 
-	var category *string
-	if cat := c.Query("category"); cat != "" {
-		category = &cat
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	var isFolder *bool
-	if folderStr := c.Query("is_folder"); folderStr != "" {
-		folder := folderStr == "true"
-		isFolder = &folder
-	}
-
-	files, total, err := h.service.ListFiles(c.Request.Context(), page, pageSize, tenantID, category, status, isFolder)
+	files, total, err := h.storageService.ListByTenant(ctx, tenantID, category, parentUUID, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      files,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, files, total, page, limit)
 }
 
-func (h *StorageFileHandler) GetFile(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets file by ID
+func (h *StorageFileHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	fileID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid file id", nil)
 		return
 	}
 
-	file, err := h.service.GetFile(c.Request.Context(), id)
+	file, err := h.storageService.GetByID(ctx, fileID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "file not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, file)
+	httputil.SuccessResponse(c, http.StatusOK, file)
 }
 
-func (h *StorageFileHandler) UpdateFile(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file ID"})
-		return
-	}
+// Upload uploads a file
+func (h *StorageFileHandler) Upload(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateStorageFileRequest
+	var req service.UploadFileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	file, err := h.service.UpdateFile(c.Request.Context(), id, &req)
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UploadedBy = userID
+
+	file, err := h.storageService.UploadFile(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, file)
+	httputil.SuccessResponse(c, http.StatusCreated, file)
 }
 
-func (h *StorageFileHandler) DeleteFile(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// CreateFolder creates a folder
+func (h *StorageFileHandler) CreateFolder(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req service.CreateFolderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UploadedBy = userID
+
+	folder, err := h.storageService.CreateFolder(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file ID"})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	if err := h.service.DeleteFile(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
+	httputil.SuccessResponse(c, http.StatusCreated, folder)
 }
 
-func (h *StorageFileHandler) SoftDeleteFile(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a file
+func (h *StorageFileHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	fileID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid file id", nil)
 		return
 	}
 
-	if err := h.service.SoftDeleteFile(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateStorageFileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "file soft deleted successfully"})
+	file, err := h.storageService.UpdateFile(ctx, fileID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, file)
 }
 
-func (h *StorageFileHandler) ListFilesByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Delete deletes a file
+func (h *StorageFileHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	fileID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid file id", nil)
 		return
 	}
 
-	files, err := h.service.ListFilesByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.storageService.DeleteFile(ctx, fileID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": files})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "file deleted successfully"})
 }
 
-func (h *StorageFileHandler) ListFilesByParent(c *gin.Context) {
-	parentID, err := uuid.Parse(c.Param("parent_id"))
+// Move moves a file to another folder
+func (h *StorageFileHandler) Move(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	fileID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid parent ID"})
-		return
-	}
-
-	files, err := h.service.ListFilesByParent(c.Request.Context(), parentID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": files})
-}
-
-func (h *StorageFileHandler) ListFilesByCategory(c *gin.Context) {
-	category := c.Param("category")
-	if category == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "category is required"})
-		return
-	}
-
-	files, err := h.service.ListFilesByCategory(c.Request.Context(), category)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": files})
-}
-
-func (h *StorageFileHandler) ListFolders(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
-		return
-	}
-
-	files, err := h.service.ListFolders(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": files})
-}
-
-func (h *StorageFileHandler) UpdateStatus(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid file id", nil)
 		return
 	}
 
 	var req struct {
-		Status string `json:"status" binding:"required,oneof=UPLOADING PROCESSING READY FAILED"`
+		ParentID *uuid.UUID `json:"parent_id"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.UpdateStatus(c.Request.Context(), id, req.Status); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	file, err := h.storageService.MoveFile(ctx, fileID, req.ParentID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "file status updated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, file)
 }
 
-func (h *StorageFileHandler) GetTotalSize(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// GetPublicURL gets public URL for a file
+func (h *StorageFileHandler) GetPublicURL(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	fileID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid file id", nil)
 		return
 	}
 
-	totalSize, err := h.service.GetTotalSize(c.Request.Context(), tenantID)
+	url, err := h.storageService.GetPublicURL(ctx, fileID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"tenant_id":  tenantID,
-		"total_size": totalSize,
-	})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"public_url": url})
 }

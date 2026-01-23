@@ -1,0 +1,125 @@
+AuditLog:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Log ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: User ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    impersonator_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Impersonator user ID
+      example: null
+    event_time:
+      type: string
+      format: date-time
+      description: Event timestamp
+      example: "2026-01-22T10:30:00Z"
+    action:
+      type: string
+      nullable: true
+      description: Action performed
+      example: "user.update"
+    resource:
+      type: string
+      nullable: true
+      description: Resource type
+      example: "user"
+    resource_id:
+      type: string
+      nullable: true
+      description: Resource ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    details:
+      type: object
+      nullable: true
+      description: Event details
+      example:
+        field: "email"
+        old_value: "old@example.com"
+        new_value: "new@example.com"
+    ip_address:
+      type: string
+      nullable: true
+      description: IP address
+      example: "192.168.1.100"
+    user_agent:
+      type: string
+      nullable: true
+      description: User agent
+      example: "Mozilla/5.0..."
+    status:
+      type: string
+      nullable: true
+      description: Action status
+      example: "success"
+  required:
+    - _id
+    - event_time
+
+CreateAuditLogRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    action:
+      type: string
+    resource:
+      type: string
+    resource_id:
+      type: string
+      nullable: true
+    details:
+      type: object
+      nullable: true
+    status:
+      type: string
+      default: "success"
+  required:
+    - action
+    - resource
+
+AuditLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/AuditLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+AuditLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/AuditLog'
+  required:
+    - success
+    - data

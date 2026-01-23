@@ -1,0 +1,140 @@
+/webhook-delivery-logs:
+  get:
+    summary: List webhook delivery logs
+    description: Retrieve webhook delivery logs
+    tags:
+      - Webhook Delivery Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: webhook_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: event_type
+        in: query
+        schema:
+          type: string
+      - name: is_success
+        in: query
+        schema:
+          type: boolean
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: Logs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-delivery-log.yaml#/WebhookDeliveryLogListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/webhook-delivery-logs/{id}:
+  get:
+    summary: Get log by ID
+    description: Retrieve a single delivery log
+    tags:
+      - Webhook Delivery Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Log retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-delivery-log.yaml#/WebhookDeliveryLogResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/webhook-delivery-logs/stats:
+  get:
+    summary: Get delivery statistics
+    description: Get webhook delivery statistics
+    tags:
+      - Webhook Delivery Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: webhook_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: Statistics retrieved
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    total_deliveries:
+                      type: integer
+                    successful_deliveries:
+                      type: integer
+                    failed_deliveries:
+                      type: integer
+                    success_rate:
+                      type: number
+                    avg_latency_ms:
+                      type: number
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

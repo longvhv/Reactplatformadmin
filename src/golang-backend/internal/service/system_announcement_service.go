@@ -2,97 +2,182 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type SystemAnnouncementService interface {
-	CreateAnnouncement(ctx context.Context, req *models.CreateSystemAnnouncementRequest) (*models.SystemAnnouncement, error)
-	GetAnnouncement(ctx context.Context, id uuid.UUID) (*models.SystemAnnouncement, error)
-	ListAnnouncements(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, status *string) ([]*models.SystemAnnouncement, int, error)
-	ListAnnouncementsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemAnnouncement, error)
-	ListPublishedAnnouncements(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemAnnouncement, error)
-	UpdateAnnouncement(ctx context.Context, id uuid.UUID, req *models.UpdateSystemAnnouncementRequest) (*models.SystemAnnouncement, error)
-	DeleteAnnouncement(ctx context.Context, id uuid.UUID) error
-	SoftDeleteAnnouncement(ctx context.Context, id uuid.UUID, deletedBy string) error
-	PublishAnnouncement(ctx context.Context, id uuid.UUID) error
-	IncrementView(ctx context.Context, id uuid.UUID) error
-	IncrementClick(ctx context.Context, id uuid.UUID) error
+type SystemAnnouncementService struct {
+	announcementRepo repository.SystemAnnouncementRepository
+	cacheService     *CacheService
 }
 
-type systemAnnouncementService struct {
-	repo repository.SystemAnnouncementRepository
+func NewSystemAnnouncementService(announcementRepo repository.SystemAnnouncementRepository, cacheService *CacheService) *SystemAnnouncementService {
+	return &SystemAnnouncementService{
+		announcementRepo: announcementRepo,
+		cacheService:     cacheService,
+	}
 }
 
-func NewSystemAnnouncementService(repo repository.SystemAnnouncementRepository) SystemAnnouncementService {
-	return &systemAnnouncementService{repo: repo}
+type CreateSystemAnnouncementRequest struct {
+	TenantID       uuid.UUID              `json:"tenant_id" binding:"required"`
+	Title          string                 `json:"title" binding:"required"`
+	Content        string                 `json:"content" binding:"required"`
+	Type           string                 `json:"type"`
+	Severity       string                 `json:"severity"`
+	TargetAudience string                 `json:"target_audience"`
+	StartDate      *string                `json:"start_date"`
+	EndDate        *string                `json:"end_date"`
+	IsPinned       bool                   `json:"is_pinned"`
+	IsGlobal       bool                   `json:"is_global"`
+	Tags           []string               `json:"tags"`
+	Metadata       map[string]interface{} `json:"metadata"`
+	CreatedBy      string                 `json:"-"`
 }
 
-func (s *systemAnnouncementService) CreateAnnouncement(ctx context.Context, req *models.CreateSystemAnnouncementRequest) (*models.SystemAnnouncement, error) {
-	isPinned := false
-	if req.IsPinned != nil {
-		isPinned = *req.IsPinned
+type UpdateSystemAnnouncementRequest struct {
+	Title          *string                `json:"title"`
+	Content        *string                `json:"content"`
+	Type           *string                `json:"type"`
+	Severity       *string                `json:"severity"`
+	TargetAudience *string                `json:"target_audience"`
+	StartDate      *string                `json:"start_date"`
+	EndDate        *string                `json:"end_date"`
+	IsPinned       *bool                  `json:"is_pinned"`
+	IsGlobal       *bool                  `json:"is_global"`
+	Tags           []string               `json:"tags"`
+	Metadata       map[string]interface{} `json:"metadata"`
+	UpdatedBy      string                 `json:"-"`
+}
+
+// GetByID gets announcement by ID
+func (s *SystemAnnouncementService) GetByID(ctx context.Context, id uuid.UUID) (*models.SystemAnnouncement, error) {
+	return s.announcementRepo.GetByID(ctx, id)
+}
+
+// ListByTenant lists announcements by tenant
+func (s *SystemAnnouncementService) ListByTenant(ctx context.Context, tenantID uuid.UUID, announcementType, status string, page, limit int) ([]*models.SystemAnnouncement, int64, error) {
+	offset := (page - 1) * limit
+	return s.announcementRepo.ListByTenant(ctx, tenantID, announcementType, status, limit, offset)
+}
+
+// GetActiveAnnouncements gets active announcements
+func (s *SystemAnnouncementService) GetActiveAnnouncements(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemAnnouncement, error) {
+	// Try cache first
+	cacheKey := fmt.Sprintf("active_announcements:tenant:%s", tenantID)
+	var cached []*models.SystemAnnouncement
+	if s.cacheService != nil && s.cacheService.Get(ctx, cacheKey, &cached) == nil {
+		return cached, nil
+	}
+
+	announcements, _, err := s.announcementRepo.ListByTenant(ctx, tenantID, "", "PUBLISHED", 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Filter active announcements
+	now := time.Now()
+	active := make([]*models.SystemAnnouncement, 0)
+	for _, a := range announcements {
+		if a.Status == "PUBLISHED" {
+			// Check date range
+			if a.StartDate != nil && a.StartDate.After(now) {
+				continue
+			}
+			if a.EndDate != nil && a.EndDate.Before(now) {
+				continue
+			}
+			active = append(active, a)
+		}
+	}
+
+	// Cache for 5 minutes
+	if s.cacheService != nil {
+		_ = s.cacheService.Set(ctx, cacheKey, active, 5*time.Minute)
+	}
+
+	return active, nil
+}
+
+// CreateAnnouncement creates a new announcement
+func (s *SystemAnnouncementService) CreateAnnouncement(ctx context.Context, req CreateSystemAnnouncementRequest) (*models.SystemAnnouncement, error) {
+	announcementType := req.Type
+	if announcementType == "" {
+		announcementType = "info"
+	}
+
+	severity := req.Severity
+	if severity == "" {
+		severity = "normal"
+	}
+
+	targetAudience := req.TargetAudience
+	if targetAudience == "" {
+		targetAudience = "all"
+	}
+
+	var startDate, endDate *time.Time
+	if req.StartDate != nil && *req.StartDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.StartDate)
+		if err == nil {
+			startDate = &parsed
+		}
+	}
+	if req.EndDate != nil && *req.EndDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.EndDate)
+		if err == nil {
+			endDate = &parsed
+		}
+	}
+
+	tags := req.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
 	}
 
 	announcement := &models.SystemAnnouncement{
-		ID:              uuid.New(),
-		TenantID:        req.TenantID,
-		Title:           req.Title,
-		Content:         req.Content,
-		Type:            req.Type,
-		Priority:        req.Priority,
-		Category:        req.Category,
-		Status:          "draft",
-		IsPublished:     false,
-		IsPinned:        isPinned,
-		StartDate:       req.StartDate,
-		EndDate:         req.EndDate,
-		TargetAudience:  req.TargetAudience,
-		DisplayLocation: req.DisplayLocation,
-		Icon:            req.Icon,
-		Color:           req.Color,
-		LinkURL:         req.LinkURL,
-		LinkText:        req.LinkText,
-		Attachments:     req.Attachments,
-		Metadata:        req.Metadata,
-		ViewCount:       0,
-		ClickCount:      0,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
-		Version:         1,
+		ID:             uuid.New(),
+		TenantID:       req.TenantID,
+		Title:          req.Title,
+		Content:        req.Content,
+		Type:           announcementType,
+		Severity:       severity,
+		TargetAudience: targetAudience,
+		Status:         "DRAFT",
+		StartDate:      startDate,
+		EndDate:        endDate,
+		IsPinned:       req.IsPinned,
+		IsGlobal:       req.IsGlobal,
+		ReadCount:      0,
+		ViewCount:      0,
+		Tags:           tags,
+		Metadata:       metadata,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		CreatedBy:      &req.CreatedBy,
+		Version:        1,
 	}
 
-	err := s.repo.Create(ctx, announcement)
-	if err != nil {
-		return nil, err
+	if err := s.announcementRepo.Create(ctx, announcement); err != nil {
+		return nil, fmt.Errorf("failed to create announcement: %w", err)
 	}
+
 	return announcement, nil
 }
 
-func (s *systemAnnouncementService) GetAnnouncement(ctx context.Context, id uuid.UUID) (*models.SystemAnnouncement, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *systemAnnouncementService) ListAnnouncements(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, status *string) ([]*models.SystemAnnouncement, int, error) {
-	return s.repo.List(ctx, page, pageSize, tenantID, status)
-}
-
-func (s *systemAnnouncementService) ListAnnouncementsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemAnnouncement, error) {
-	return s.repo.ListByTenant(ctx, tenantID)
-}
-
-func (s *systemAnnouncementService) ListPublishedAnnouncements(ctx context.Context, tenantID uuid.UUID) ([]*models.SystemAnnouncement, error) {
-	return s.repo.ListPublished(ctx, tenantID)
-}
-
-func (s *systemAnnouncementService) UpdateAnnouncement(ctx context.Context, id uuid.UUID, req *models.UpdateSystemAnnouncementRequest) (*models.SystemAnnouncement, error) {
-	announcement, err := s.repo.GetByID(ctx, id)
+// UpdateAnnouncement updates an announcement
+func (s *SystemAnnouncementService) UpdateAnnouncement(ctx context.Context, id uuid.UUID, req UpdateSystemAnnouncementRequest) (*models.SystemAnnouncement, error) {
+	announcement, err := s.announcementRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("announcement not found: %w", err)
 	}
 
 	if req.Title != nil {
@@ -104,72 +189,148 @@ func (s *systemAnnouncementService) UpdateAnnouncement(ctx context.Context, id u
 	if req.Type != nil {
 		announcement.Type = *req.Type
 	}
-	if req.Priority != nil {
-		announcement.Priority = *req.Priority
+	if req.Severity != nil {
+		announcement.Severity = *req.Severity
 	}
-	if req.Category != nil {
-		announcement.Category = req.Category
+	if req.TargetAudience != nil {
+		announcement.TargetAudience = *req.TargetAudience
 	}
-	if req.Status != nil {
-		announcement.Status = *req.Status
+	if req.StartDate != nil && *req.StartDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.StartDate)
+		if err == nil {
+			announcement.StartDate = &parsed
+		}
+	}
+	if req.EndDate != nil && *req.EndDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.EndDate)
+		if err == nil {
+			announcement.EndDate = &parsed
+		}
 	}
 	if req.IsPinned != nil {
 		announcement.IsPinned = *req.IsPinned
 	}
-	if req.StartDate != nil {
-		announcement.StartDate = req.StartDate
+	if req.IsGlobal != nil {
+		announcement.IsGlobal = *req.IsGlobal
 	}
-	if req.EndDate != nil {
-		announcement.EndDate = req.EndDate
-	}
-	if req.TargetAudience != nil {
-		announcement.TargetAudience = req.TargetAudience
-	}
-	if req.DisplayLocation != nil {
-		announcement.DisplayLocation = req.DisplayLocation
-	}
-	if req.Icon != nil {
-		announcement.Icon = req.Icon
-	}
-	if req.Color != nil {
-		announcement.Color = req.Color
-	}
-	if req.LinkURL != nil {
-		announcement.LinkURL = req.LinkURL
-	}
-	if req.LinkText != nil {
-		announcement.LinkText = req.LinkText
-	}
-	if req.Attachments != nil {
-		announcement.Attachments = req.Attachments
+	if req.Tags != nil {
+		announcement.Tags = req.Tags
 	}
 	if req.Metadata != nil {
 		announcement.Metadata = req.Metadata
 	}
 
-	err = s.repo.Update(ctx, announcement)
-	if err != nil {
-		return nil, err
+	announcement.UpdatedAt = time.Now()
+	announcement.UpdatedBy = &req.UpdatedBy
+	announcement.Version++
+
+	if err := s.announcementRepo.Update(ctx, announcement); err != nil {
+		return nil, fmt.Errorf("failed to update announcement: %w", err)
 	}
+
+	// Invalidate cache
+	s.invalidateCache(ctx, announcement.TenantID)
+
 	return announcement, nil
 }
 
-func (s *systemAnnouncementService) DeleteAnnouncement(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// DeleteAnnouncement deletes an announcement
+func (s *SystemAnnouncementService) DeleteAnnouncement(ctx context.Context, id uuid.UUID) error {
+	announcement, err := s.announcementRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := s.announcementRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// Invalidate cache
+	s.invalidateCache(ctx, announcement.TenantID)
+
+	return nil
 }
 
-func (s *systemAnnouncementService) SoftDeleteAnnouncement(ctx context.Context, id uuid.UUID, deletedBy string) error {
-	return s.repo.SoftDelete(ctx, id, deletedBy)
+// PublishAnnouncement publishes an announcement
+func (s *SystemAnnouncementService) PublishAnnouncement(ctx context.Context, id uuid.UUID) (*models.SystemAnnouncement, error) {
+	announcement, err := s.announcementRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("announcement not found: %w", err)
+	}
+
+	now := time.Now()
+	announcement.Status = "PUBLISHED"
+	announcement.PublishedAt = &now
+	announcement.UpdatedAt = now
+	announcement.Version++
+
+	if err := s.announcementRepo.Update(ctx, announcement); err != nil {
+		return nil, fmt.Errorf("failed to publish announcement: %w", err)
+	}
+
+	// Invalidate cache
+	s.invalidateCache(ctx, announcement.TenantID)
+
+	return announcement, nil
 }
 
-func (s *systemAnnouncementService) PublishAnnouncement(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Publish(ctx, id)
+// ArchiveAnnouncement archives an announcement
+func (s *SystemAnnouncementService) ArchiveAnnouncement(ctx context.Context, id uuid.UUID) (*models.SystemAnnouncement, error) {
+	announcement, err := s.announcementRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("announcement not found: %w", err)
+	}
+
+	now := time.Now()
+	announcement.Status = "ARCHIVED"
+	announcement.ArchivedAt = &now
+	announcement.UpdatedAt = now
+	announcement.Version++
+
+	if err := s.announcementRepo.Update(ctx, announcement); err != nil {
+		return nil, fmt.Errorf("failed to archive announcement: %w", err)
+	}
+
+	// Invalidate cache
+	s.invalidateCache(ctx, announcement.TenantID)
+
+	return announcement, nil
 }
 
-func (s *systemAnnouncementService) IncrementView(ctx context.Context, id uuid.UUID) error {
-	return s.repo.IncrementView(ctx, id)
+// MarkAsRead marks announcement as read by user
+func (s *SystemAnnouncementService) MarkAsRead(ctx context.Context, announcementID, userID uuid.UUID) error {
+	announcement, err := s.announcementRepo.GetByID(ctx, announcementID)
+	if err != nil {
+		return fmt.Errorf("announcement not found: %w", err)
+	}
+
+	// Increment read count
+	announcement.ReadCount++
+	announcement.UpdatedAt = time.Now()
+
+	// Store user read record (would typically be in a separate table)
+	// For now, just update the announcement
+
+	return s.announcementRepo.Update(ctx, announcement)
 }
 
-func (s *systemAnnouncementService) IncrementClick(ctx context.Context, id uuid.UUID) error {
-	return s.repo.IncrementClick(ctx, id)
+// IncrementViewCount increments view count
+func (s *SystemAnnouncementService) IncrementViewCount(ctx context.Context, id uuid.UUID) error {
+	announcement, err := s.announcementRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	announcement.ViewCount++
+	announcement.UpdatedAt = time.Now()
+
+	return s.announcementRepo.Update(ctx, announcement)
+}
+
+// Helper functions
+func (s *SystemAnnouncementService) invalidateCache(ctx context.Context, tenantID uuid.UUID) {
+	if s.cacheService != nil {
+		cacheKey := fmt.Sprintf("active_announcements:tenant:%s", tenantID)
+		_ = s.cacheService.Delete(ctx, cacheKey)
+	}
 }

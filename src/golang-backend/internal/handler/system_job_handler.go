@@ -6,159 +6,215 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type SystemJobHandler struct {
-	service service.SystemJobService
+	jobService   *service.SystemJobService
+	authzService *service.AuthorizationService
 }
 
-func NewSystemJobHandler(service service.SystemJobService) *SystemJobHandler {
-	return &SystemJobHandler{service: service}
+func NewSystemJobHandler(jobService *service.SystemJobService, authzService *service.AuthorizationService) *SystemJobHandler {
+	return &SystemJobHandler{
+		jobService:   jobService,
+		authzService: authzService,
+	}
 }
 
-func (h *SystemJobHandler) CreateJob(c *gin.Context) {
-	var req models.CreateSystemJobRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// List lists jobs
+func (h *SystemJobHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	job, err := h.service.CreateJob(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, job)
-}
-
-func (h *SystemJobHandler) GetJob(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
-		return
-	}
-
-	job, err := h.service.GetJob(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, job)
-}
-
-func (h *SystemJobHandler) ListJobs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	jobType := c.Query("job_type")
+	status := c.Query("status")
 
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	var jobType *string
-	if jt := c.Query("job_type"); jt != "" {
-		jobType = &jt
-	}
-
-	jobs, total, err := h.service.ListJobs(c.Request.Context(), page, pageSize, status, jobType)
+	jobs, total, err := h.jobService.ListJobs(ctx, jobType, status, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      jobs,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, jobs, total, page, limit)
 }
 
-func (h *SystemJobHandler) UpdateJob(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets job by ID
+func (h *SystemJobHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	jobID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid job id", nil)
 		return
 	}
 
-	var req models.UpdateSystemJobRequest
+	job, err := h.jobService.GetByID(ctx, jobID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "job not found", nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, job)
+}
+
+// Create creates a job
+func (h *SystemJobHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req service.CreateSystemJobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	job, err := h.service.UpdateJob(c.Request.Context(), id, &req)
+	job, err := h.jobService.CreateJob(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, job)
+	httputil.SuccessResponse(c, http.StatusCreated, job)
 }
 
-func (h *SystemJobHandler) DeleteJob(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a job
+func (h *SystemJobHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	jobID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid job id", nil)
 		return
 	}
 
-	if err := h.service.DeleteJob(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Job deleted successfully"})
-}
-
-func (h *SystemJobHandler) UpdateJobStatus(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
-		return
-	}
-
-	var req models.UpdateJobStatusRequest
+	var req service.UpdateSystemJobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.UpdateJobStatus(c.Request.Context(), id, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	job, err := h.jobService.UpdateJob(ctx, jobID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Job status updated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, job)
 }
 
-func (h *SystemJobHandler) GetPendingJobs(c *gin.Context) {
-	jobs, err := h.service.GetPendingJobs(c.Request.Context())
+// Delete deletes a job
+func (h *SystemJobHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	jobID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid job id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, jobs)
+	if err := h.jobService.DeleteJob(ctx, jobID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "job deleted successfully"})
 }
 
-func (h *SystemJobHandler) GetJobsByType(c *gin.Context) {
-	jobType := c.Param("type")
-	if jobType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "job type is required"})
-		return
-	}
+// Execute executes a job
+func (h *SystemJobHandler) Execute(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	jobs, err := h.service.GetJobsByType(c.Request.Context(), jobType)
+	jobID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid job id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, jobs)
+	job, err := h.jobService.ExecuteJob(ctx, jobID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, job)
+}
+
+// Cancel cancels a job
+func (h *SystemJobHandler) Cancel(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	jobID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid job id", nil)
+		return
+	}
+
+	job, err := h.jobService.CancelJob(ctx, jobID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, job)
+}
+
+// Retry retries a job
+func (h *SystemJobHandler) Retry(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	jobID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid job id", nil)
+		return
+	}
+
+	job, err := h.jobService.RetryJob(ctx, jobID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, job)
+}
+
+// GetPending gets pending jobs
+func (h *SystemJobHandler) GetPending(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	jobs, err := h.jobService.GetPendingJobs(ctx, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, jobs)
+}
+
+// GetRunning gets running jobs
+func (h *SystemJobHandler) GetRunning(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	jobs, err := h.jobService.GetRunningJobs(ctx)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, jobs)
+}
+
+// GetStats gets job statistics
+func (h *SystemJobHandler) GetStats(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	stats, err := h.jobService.GetJobStats(ctx)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, stats)
 }

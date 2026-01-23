@@ -2,234 +2,257 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type FeatureFlagService interface {
-	CreateFlag(ctx context.Context, req *models.CreateFeatureFlagRequest) (*models.FeatureFlag, error)
-	GetFlag(ctx context.Context, id uuid.UUID) (*models.FeatureFlag, error)
-	GetFlagByKey(ctx context.Context, key string) (*models.FeatureFlag, error)
-	ListFlags(ctx context.Context, page, pageSize int, environment *string, isEnabled *bool) ([]*models.FeatureFlag, int, error)
-	ListFlagsByEnvironment(ctx context.Context, environment string) ([]*models.FeatureFlag, error)
-	ListEnabledFlags(ctx context.Context, environment string) ([]*models.FeatureFlag, error)
-	UpdateFlag(ctx context.Context, id uuid.UUID, req *models.UpdateFeatureFlagRequest) (*models.FeatureFlag, error)
-	EnableFlag(ctx context.Context, id uuid.UUID) error
-	DisableFlag(ctx context.Context, id uuid.UUID) error
-	UpdateRolloutPercentage(ctx context.Context, id uuid.UUID, percentage int) error
-	DeleteFlag(ctx context.Context, id uuid.UUID) error
-	IsFeatureEnabled(ctx context.Context, key string, environment string) (bool, error)
+type FeatureFlagService struct {
+	flagRepo repository.FeatureFlagRepository
 }
 
-type featureFlagService struct {
-	repo repository.FeatureFlagRepository
+func NewFeatureFlagService(flagRepo repository.FeatureFlagRepository) *FeatureFlagService {
+	return &FeatureFlagService{
+		flagRepo: flagRepo,
+	}
 }
 
-func NewFeatureFlagService(repo repository.FeatureFlagRepository) FeatureFlagService {
-	return &featureFlagService{repo: repo}
+type CreateFeatureFlagRequest struct {
+	FlagKey           string                 `json:"flag_key" binding:"required"`
+	FlagName          string                 `json:"flag_name" binding:"required"`
+	Description       *string                `json:"description"`
+	IsEnabled         bool                   `json:"is_enabled"`
+	Category          *string                `json:"category"`
+	TargetAudience    *string                `json:"target_audience"`
+	PercentageRollout int                    `json:"percentage_rollout"`
+	Conditions        map[string]interface{} `json:"conditions"`
+	Metadata          map[string]interface{} `json:"metadata"`
+	CreatedBy         *string                `json:"created_by"`
 }
 
-func (s *featureFlagService) CreateFlag(ctx context.Context, req *models.CreateFeatureFlagRequest) (*models.FeatureFlag, error) {
-	now := time.Now()
+type UpdateFeatureFlagRequest struct {
+	FlagName          *string                `json:"flag_name"`
+	Description       *string                `json:"description"`
+	Category          *string                `json:"category"`
+	TargetAudience    *string                `json:"target_audience"`
+	PercentageRollout *int                   `json:"percentage_rollout"`
+	Conditions        map[string]interface{} `json:"conditions"`
+	Metadata          map[string]interface{} `json:"metadata"`
+}
+
+// GetByID gets flag by ID
+func (s *FeatureFlagService) GetByID(ctx context.Context, id uuid.UUID) (*models.FeatureFlag, error) {
+	return s.flagRepo.GetByID(ctx, id)
+}
+
+// GetByKey gets flag by key
+func (s *FeatureFlagService) GetByKey(ctx context.Context, key string) (*models.FeatureFlag, error) {
+	return s.flagRepo.GetByKey(ctx, key)
+}
+
+// ListFlags lists all flags
+func (s *FeatureFlagService) ListFlags(ctx context.Context, category string, page, limit int) ([]*models.FeatureFlag, int64, error) {
+	offset := (page - 1) * limit
+	return s.flagRepo.List(ctx, category, limit, offset)
+}
+
+// CreateFlag creates a new flag
+func (s *FeatureFlagService) CreateFlag(ctx context.Context, req CreateFeatureFlagRequest) (*models.FeatureFlag, error) {
+	// Check if key exists
+	existing, err := s.flagRepo.GetByKey(ctx, req.FlagKey)
+	if err == nil && existing != nil {
+		return nil, fmt.Errorf("flag key already exists")
+	}
+
+	conditions := req.Conditions
+	if conditions == nil {
+		conditions = make(map[string]interface{})
+	}
+
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
 	flag := &models.FeatureFlag{
 		ID:                uuid.New(),
 		FlagKey:           req.FlagKey,
 		FlagName:          req.FlagName,
+		Description:       req.Description,
 		IsEnabled:         req.IsEnabled,
-		Environment:       "production",
-		FlagType:          "boolean",
-		PercentageRollout: 0,
-		CreatedAt:         now,
-		UpdatedAt:         now,
+		Category:          req.Category,
+		TargetAudience:    req.TargetAudience,
+		PercentageRollout: req.PercentageRollout,
+		Conditions:        conditions,
+		Metadata:          metadata,
+		CreatedBy:         req.CreatedBy,
+		CreatedAt:         time.Now(),
+		UpdatedAt:         time.Now(),
 	}
 
-	if req.Description != "" {
-		flag.Description.String = req.Description
-		flag.Description.Valid = true
+	if req.IsEnabled {
+		now := time.Now()
+		flag.EnabledAt = &now
 	}
 
-	if req.Environment != "" {
-		flag.Environment = req.Environment
-	}
-
-	if req.FlagType != "" {
-		flag.FlagType = req.FlagType
-	}
-
-	if req.TargetAudience != "" {
-		flag.TargetAudience.String = req.TargetAudience
-		flag.TargetAudience.Valid = true
-	}
-
-	if req.PercentageRollout > 0 {
-		flag.PercentageRollout = req.PercentageRollout
-	}
-
-	if req.CreatedBy != "" {
-		flag.CreatedBy.String = req.CreatedBy
-		flag.CreatedBy.Valid = true
-	}
-
-	// Set conditions
-	if req.Conditions != nil {
-		conditionsJSON, err := json.Marshal(req.Conditions)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal conditions: %w", err)
-		}
-		flag.Conditions = conditionsJSON
-	}
-
-	// Set metadata
-	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		flag.Metadata = metadataJSON
-	}
-
-	if flag.IsEnabled {
-		flag.EnabledAt.Time = now
-		flag.EnabledAt.Valid = true
-	}
-
-	if err := s.repo.Create(ctx, flag); err != nil {
-		return nil, fmt.Errorf("failed to create feature flag: %w", err)
+	if err := s.flagRepo.Create(ctx, flag); err != nil {
+		return nil, fmt.Errorf("failed to create flag: %w", err)
 	}
 
 	return flag, nil
 }
 
-func (s *featureFlagService) GetFlag(ctx context.Context, id uuid.UUID) (*models.FeatureFlag, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *featureFlagService) GetFlagByKey(ctx context.Context, key string) (*models.FeatureFlag, error) {
-	return s.repo.GetByKey(ctx, key)
-}
-
-func (s *featureFlagService) ListFlags(ctx context.Context, page, pageSize int, environment *string, isEnabled *bool) ([]*models.FeatureFlag, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.List(ctx, page, pageSize, environment, isEnabled)
-}
-
-func (s *featureFlagService) ListFlagsByEnvironment(ctx context.Context, environment string) ([]*models.FeatureFlag, error) {
-	return s.repo.ListByEnvironment(ctx, environment)
-}
-
-func (s *featureFlagService) ListEnabledFlags(ctx context.Context, environment string) ([]*models.FeatureFlag, error) {
-	return s.repo.ListEnabled(ctx, environment)
-}
-
-func (s *featureFlagService) UpdateFlag(ctx context.Context, id uuid.UUID, req *models.UpdateFeatureFlagRequest) (*models.FeatureFlag, error) {
-	flag, err := s.repo.GetByID(ctx, id)
+// UpdateFlag updates a flag
+func (s *FeatureFlagService) UpdateFlag(ctx context.Context, id uuid.UUID, req UpdateFeatureFlagRequest) (*models.FeatureFlag, error) {
+	flag, err := s.flagRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("flag not found: %w", err)
 	}
 
 	if req.FlagName != nil {
 		flag.FlagName = *req.FlagName
 	}
-
 	if req.Description != nil {
-		if *req.Description == "" {
-			flag.Description.Valid = false
-		} else {
-			flag.Description.String = *req.Description
-			flag.Description.Valid = true
-		}
+		flag.Description = req.Description
 	}
-
-	if req.IsEnabled != nil {
-		flag.IsEnabled = *req.IsEnabled
+	if req.Category != nil {
+		flag.Category = req.Category
 	}
-
-	if req.Environment != nil {
-		flag.Environment = *req.Environment
-	}
-
-	if req.FlagType != nil {
-		flag.FlagType = *req.FlagType
-	}
-
 	if req.TargetAudience != nil {
-		if *req.TargetAudience == "" {
-			flag.TargetAudience.Valid = false
-		} else {
-			flag.TargetAudience.String = *req.TargetAudience
-			flag.TargetAudience.Valid = true
-		}
+		flag.TargetAudience = req.TargetAudience
 	}
-
 	if req.PercentageRollout != nil {
 		flag.PercentageRollout = *req.PercentageRollout
 	}
-
 	if req.Conditions != nil {
-		conditionsJSON, err := json.Marshal(*req.Conditions)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal conditions: %w", err)
-		}
-		flag.Conditions = conditionsJSON
+		flag.Conditions = req.Conditions
 	}
-
 	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(*req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		flag.Metadata = metadataJSON
+		flag.Metadata = req.Metadata
 	}
 
 	flag.UpdatedAt = time.Now()
 
-	if err := s.repo.Update(ctx, flag); err != nil {
-		return nil, fmt.Errorf("failed to update feature flag: %w", err)
+	if err := s.flagRepo.Update(ctx, flag); err != nil {
+		return nil, fmt.Errorf("failed to update flag: %w", err)
 	}
 
 	return flag, nil
 }
 
-func (s *featureFlagService) EnableFlag(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Enable(ctx, id)
+// DeleteFlag deletes a flag
+func (s *FeatureFlagService) DeleteFlag(ctx context.Context, id uuid.UUID) error {
+	return s.flagRepo.Delete(ctx, id)
 }
 
-func (s *featureFlagService) DisableFlag(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Disable(ctx, id)
-}
-
-func (s *featureFlagService) UpdateRolloutPercentage(ctx context.Context, id uuid.UUID, percentage int) error {
-	if percentage < 0 || percentage > 100 {
-		return fmt.Errorf("percentage must be between 0 and 100")
-	}
-	return s.repo.UpdateRolloutPercentage(ctx, id, percentage)
-}
-
-func (s *featureFlagService) DeleteFlag(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
-}
-
-func (s *featureFlagService) IsFeatureEnabled(ctx context.Context, key string, environment string) (bool, error) {
-	flag, err := s.repo.GetByKey(ctx, key)
+// EnableFlag enables a flag
+func (s *FeatureFlagService) EnableFlag(ctx context.Context, id uuid.UUID) (*models.FeatureFlag, error) {
+	flag, err := s.flagRepo.GetByID(ctx, id)
 	if err != nil {
-		return false, err
+		return nil, fmt.Errorf("flag not found: %w", err)
 	}
 
-	if flag.Environment != environment {
+	if flag.IsEnabled {
+		return flag, nil
+	}
+
+	now := time.Now()
+	flag.IsEnabled = true
+	flag.EnabledAt = &now
+	flag.DisabledAt = nil
+	flag.UpdatedAt = now
+
+	if err := s.flagRepo.Update(ctx, flag); err != nil {
+		return nil, fmt.Errorf("failed to enable flag: %w", err)
+	}
+
+	return flag, nil
+}
+
+// DisableFlag disables a flag
+func (s *FeatureFlagService) DisableFlag(ctx context.Context, id uuid.UUID) (*models.FeatureFlag, error) {
+	flag, err := s.flagRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("flag not found: %w", err)
+	}
+
+	if !flag.IsEnabled {
+		return flag, nil
+	}
+
+	now := time.Now()
+	flag.IsEnabled = false
+	flag.DisabledAt = &now
+	flag.UpdatedAt = now
+
+	if err := s.flagRepo.Update(ctx, flag); err != nil {
+		return nil, fmt.Errorf("failed to disable flag: %w", err)
+	}
+
+	return flag, nil
+}
+
+// EvaluateFlag evaluates a feature flag
+func (s *FeatureFlagService) EvaluateFlag(ctx context.Context, flagKey string, userID, tenantID *uuid.UUID, evalContext map[string]interface{}) (bool, error) {
+	flag, err := s.flagRepo.GetByKey(ctx, flagKey)
+	if err != nil {
+		// If flag not found, default to false
 		return false, nil
 	}
 
-	return flag.IsEnabled, nil
+	// If globally disabled
+	if !flag.IsEnabled {
+		return false, nil
+	}
+
+	// Check percentage rollout (simple hash-based)
+	if flag.PercentageRollout < 100 {
+		if userID != nil {
+			// Simple percentage check based on user ID
+			hashVal := s.hashUUID(*userID) % 100
+			if hashVal >= flag.PercentageRollout {
+				return false, nil
+			}
+		} else if tenantID != nil {
+			hashVal := s.hashUUID(*tenantID) % 100
+			if hashVal >= flag.PercentageRollout {
+				return false, nil
+			}
+		}
+	}
+
+	// TODO: Evaluate conditions from flag.Conditions
+	// This is a simplified version - you can add more complex logic
+
+	return true, nil
+}
+
+// Helper function to hash UUID for percentage rollout
+func (s *FeatureFlagService) hashUUID(id uuid.UUID) int {
+	bytes := []byte(id.String())
+	sum := 0
+	for _, b := range bytes {
+		sum += int(b)
+	}
+	return sum % 100
+}
+
+// GetEnabledFlags gets all enabled flags
+func (s *FeatureFlagService) GetEnabledFlags(ctx context.Context) ([]*models.FeatureFlag, error) {
+	flags, _, err := s.flagRepo.List(ctx, "", 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	enabled := make([]*models.FeatureFlag, 0)
+	for _, flag := range flags {
+		if flag.IsEnabled {
+			enabled = append(enabled, flag)
+		}
+	}
+
+	return enabled, nil
 }

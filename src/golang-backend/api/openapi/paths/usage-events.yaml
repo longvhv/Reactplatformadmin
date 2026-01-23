@@ -1,0 +1,175 @@
+/usage-events:
+  get:
+    summary: List usage events
+    description: Retrieve usage events
+    tags:
+      - Usage Events
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: subscription_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: app_code
+        in: query
+        schema:
+          type: string
+      - name: event_type
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: Events retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/usage-event.yaml#/UsageEventListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create usage event
+    description: Record a usage event
+    tags:
+      - Usage Events
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/usage-event.yaml#/CreateUsageEventRequest'
+    responses:
+      '201':
+        description: Event recorded successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/usage-event.yaml#/UsageEventResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/usage-events/{id}:
+  get:
+    summary: Get event by ID
+    description: Retrieve a single usage event
+    tags:
+      - Usage Events
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Event retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/usage-event.yaml#/UsageEventResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/usage-events/aggregate:
+  get:
+    summary: Aggregate usage events
+    description: Get aggregated usage statistics
+    tags:
+      - Usage Events
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: subscription_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: event_type
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: group_by
+        in: query
+        schema:
+          type: string
+          enum: [hour, day, week, month]
+          default: "day"
+    responses:
+      '200':
+        description: Aggregated statistics
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    total_events:
+                      type: integer
+                    total_quantity:
+                      type: number
+                    breakdown:
+                      type: array
+                      items:
+                        type: object
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

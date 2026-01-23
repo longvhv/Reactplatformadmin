@@ -1,0 +1,282 @@
+Package:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9_]+$"
+          minLength: 2
+          maxLength: 100
+          description: Unique package code
+          example: "BUSINESS_SUITE"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Package name
+          example: "Business Suite Package"
+        description:
+          type: string
+          nullable: true
+          description: Package description
+          example: "Complete business management suite with HRMS, CRM, and more"
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - INACTIVE
+            - ARCHIVED
+          description: Package status
+          example: "ACTIVE"
+        package_type:
+          type: string
+          enum:
+            - BUNDLE
+            - COMBO
+            - ENTERPRISE
+          description: Package type
+          example: "BUNDLE"
+        total_price:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Total package price (before discount)
+          example: 299.99
+        discounted_price:
+          type: number
+          format: decimal
+          minimum: 0
+          nullable: true
+          description: Discounted package price
+          example: 249.99
+        discount_percentage:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Discount percentage
+          example: 16.67
+        currency:
+          $ref: './common.yaml#/Currency'
+        billing_cycle:
+          type: string
+          enum:
+            - MONTHLY
+            - QUARTERLY
+            - YEARLY
+            - ONE_TIME
+          description: Package billing cycle
+          example: "MONTHLY"
+        is_popular:
+          type: boolean
+          description: Whether package is marked as popular
+          default: false
+          example: true
+        is_recommended:
+          type: boolean
+          description: Whether package is recommended
+          default: false
+          example: false
+        valid_from:
+          type: string
+          format: date-time
+          nullable: true
+          description: Package validity start date
+          example: "2026-01-01T00:00:00Z"
+        valid_until:
+          type: string
+          format: date-time
+          nullable: true
+          description: Package validity end date
+          example: "2026-12-31T23:59:59Z"
+        max_users:
+          type: integer
+          minimum: -1
+          nullable: true
+          description: Maximum users (-1 for unlimited)
+          example: 50
+        product_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of included product IDs
+          example:
+            - "550e8400-e29b-41d4-a716-446655440000"
+            - "550e8400-e29b-41d4-a716-446655440001"
+        features:
+          type: array
+          items:
+            type: string
+          description: Package features
+          example:
+            - "HRMS Premium"
+            - "CRM Advanced"
+            - "Analytics Pro"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - code
+        - name
+        - status
+        - package_type
+        - total_price
+        - currency
+        - billing_cycle
+
+CreatePackageRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      example: "STARTUP_PACK"
+    name:
+      type: string
+      example: "Startup Package"
+    description:
+      type: string
+      nullable: true
+      example: "Essential tools for startups"
+    status:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+      default: "DRAFT"
+    package_type:
+      type: string
+      enum: [BUNDLE, COMBO, ENTERPRISE]
+      example: "BUNDLE"
+    total_price:
+      type: number
+      format: decimal
+      minimum: 0
+      example: 199.99
+    discounted_price:
+      type: number
+      format: decimal
+      minimum: 0
+      nullable: true
+      example: 149.99
+    currency:
+      $ref: './common.yaml#/Currency'
+    billing_cycle:
+      type: string
+      enum: [MONTHLY, QUARTERLY, YEARLY, ONE_TIME]
+      example: "MONTHLY"
+    is_popular:
+      type: boolean
+      default: false
+    is_recommended:
+      type: boolean
+      default: false
+    valid_from:
+      type: string
+      format: date-time
+      nullable: true
+    valid_until:
+      type: string
+      format: date-time
+      nullable: true
+    max_users:
+      type: integer
+      minimum: -1
+      nullable: true
+    product_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+    - package_type
+    - total_price
+    - currency
+    - billing_cycle
+
+UpdatePackageRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+    total_price:
+      type: number
+      format: decimal
+      minimum: 0
+    discounted_price:
+      type: number
+      format: decimal
+      minimum: 0
+      nullable: true
+    is_popular:
+      type: boolean
+    is_recommended:
+      type: boolean
+    valid_from:
+      type: string
+      format: date-time
+      nullable: true
+    valid_until:
+      type: string
+      format: date-time
+      nullable: true
+    max_users:
+      type: integer
+      minimum: -1
+      nullable: true
+    product_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+PackageListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Package'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+PackageResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Package'
+  required:
+    - success
+    - data

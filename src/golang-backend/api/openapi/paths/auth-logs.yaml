@@ -1,0 +1,99 @@
+/auth-logs:
+  get:
+    summary: List authentication logs
+    description: Retrieve authentication activity logs (admin only)
+    tags:
+      - Auth Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: action
+        in: query
+        schema:
+          type: string
+        description: Filter by action type (e.g., LOGIN, LOGOUT, REGISTER)
+      - name: status
+        in: query
+        schema:
+          type: string
+        description: Filter by status (e.g., SUCCESS, FAILED)
+      - $ref: '../components/parameters/filters.yaml#/FromDateParam'
+      - $ref: '../components/parameters/filters.yaml#/ToDateParam'
+    responses:
+      '200':
+        description: Logs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth-log.yaml#/AuthLogListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth-logs/{id}:
+  get:
+    summary: Get auth log by ID
+    description: Retrieve a single authentication log entry
+    tags:
+      - Auth Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Log retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth-log.yaml#/AuthLogResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/auth-logs/me:
+  get:
+    summary: Get my auth logs
+    description: Retrieve authentication logs for current user
+    tags:
+      - Auth Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/filters.yaml#/FromDateParam'
+      - $ref: '../components/parameters/filters.yaml#/ToDateParam'
+    responses:
+      '200':
+        description: Logs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/auth-log.yaml#/AuthLogListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

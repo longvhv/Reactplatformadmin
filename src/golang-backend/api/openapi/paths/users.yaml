@@ -1,0 +1,349 @@
+/users:
+  get:
+    summary: List all users
+    description: Retrieve a paginated list of users with optional filters
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: status
+        in: query
+        schema:
+          $ref: '../components/schemas/common.yaml#/UserStatus'
+        description: Filter by user status
+      - name: is_verified
+        in: query
+        schema:
+          type: boolean
+        description: Filter by email verification status
+      - name: mfa_enabled
+        in: query
+        schema:
+          type: boolean
+        description: Filter by MFA enabled status
+      - name: is_support_staff
+        in: query
+        schema:
+          type: boolean
+        description: Filter by support staff status
+    responses:
+      '200':
+        description: Users retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new user
+    description: Create a new user account (admin only)
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user.yaml#/CreateUserRequest'
+          example:
+            email: "newuser@example.com"
+            password: "SecurePass123!"
+            full_name: "Nguyễn Văn A"
+            phone_number: "+84901234567"
+            status: "ACTIVE"
+            locale: "vi"
+    responses:
+      '201':
+        description: User created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        description: Email already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "EMAIL_EXISTS"
+                message: "Email already exists"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/users/{id}:
+  get:
+    summary: Get user by ID
+    description: Retrieve a single user by their unique identifier
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: User retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update user
+    description: Update user information (partial update)
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user.yaml#/UpdateUserRequest'
+          examples:
+            update_name:
+              summary: Update name only
+              value:
+                full_name: "Nguyễn Văn B"
+            update_status:
+              summary: Update status
+              value:
+                status: "SUSPENDED"
+            update_multiple:
+              summary: Update multiple fields
+              value:
+                full_name: "Nguyễn Văn C"
+                phone_number: "+84912345678"
+                is_verified: true
+    responses:
+      '200':
+        description: User updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete user
+    description: Soft delete a user (sets deleted_at timestamp)
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/users/email/{email}:
+  get:
+    summary: Get user by email
+    description: Retrieve a user by their email address
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/EmailParam'
+    responses:
+      '200':
+        description: User retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/users/{id}/status:
+  patch:
+    summary: Update user status
+    description: Update user account status (activate, suspend, ban)
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user.yaml#/UpdateUserStatusRequest'
+          examples:
+            activate:
+              summary: Activate user
+              value:
+                status: "ACTIVE"
+            suspend:
+              summary: Suspend user
+              value:
+                status: "SUSPENDED"
+                reason: "Policy violation"
+    responses:
+      '200':
+        description: User status updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/UserResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/users/{id}/mfa/enable:
+  post:
+    summary: Enable MFA for user
+    description: Enable multi-factor authentication for user account
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user.yaml#/EnableMFARequest'
+          example:
+            mfa_type: "TOTP"
+    responses:
+      '200':
+        description: MFA enabled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "MFA enabled successfully"
+                    qr_code:
+                      type: string
+                      description: Base64 encoded QR code image (for TOTP)
+                      example: "data:image/png;base64,iVBORw0KGgo..."
+                    secret:
+                      type: string
+                      description: Secret key for manual entry
+                      example: "JBSWY3DPEHPK3PXP"
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/users/{id}/mfa/disable:
+  post:
+    summary: Disable MFA for user
+    description: Disable multi-factor authentication for user account
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: MFA disabled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: "MFA disabled successfully"
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

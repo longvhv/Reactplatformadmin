@@ -1,0 +1,224 @@
+TenantSSOConfig:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        provider:
+          type: string
+          enum:
+            - SAML
+            - OAUTH2
+            - OIDC
+            - LDAP
+            - CAS
+            - OTHER
+          description: SSO provider type
+          example: "OIDC"
+        name:
+          type: string
+          description: Configuration name
+          example: "Google Workspace SSO"
+        description:
+          type: string
+          nullable: true
+          description: Description
+          example: "SSO for company email accounts"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - TESTING
+            - DEPRECATED
+          default: "ACTIVE"
+          description: Configuration status
+          example: "ACTIVE"
+        entity_id:
+          type: string
+          nullable: true
+          description: SAML entity ID
+          example: "https://example.com/saml"
+        sso_url:
+          type: string
+          nullable: true
+          description: SSO URL
+          example: "https://accounts.google.com/o/saml2/idp"
+        slo_url:
+          type: string
+          nullable: true
+          description: Single logout URL
+          example: "https://accounts.google.com/o/saml2/logout"
+        certificate:
+          type: string
+          nullable: true
+          description: X.509 certificate
+          example: "-----BEGIN CERTIFICATE-----..."
+          writeOnly: true
+        metadata_url:
+          type: string
+          nullable: true
+          description: Metadata URL
+          example: "https://accounts.google.com/.well-known/openid-configuration"
+        client_id:
+          type: string
+          nullable: true
+          description: OAuth2/OIDC client ID
+          example: "abc123.apps.googleusercontent.com"
+        client_secret:
+          type: string
+          nullable: true
+          description: OAuth2/OIDC client secret
+          example: "secret_xyz789"
+          writeOnly: true
+        authorization_endpoint:
+          type: string
+          nullable: true
+          description: Authorization endpoint
+          example: "https://accounts.google.com/o/oauth2/auth"
+        token_endpoint:
+          type: string
+          nullable: true
+          description: Token endpoint
+          example: "https://oauth2.googleapis.com/token"
+        userinfo_endpoint:
+          type: string
+          nullable: true
+          description: Userinfo endpoint
+          example: "https://openidconnect.googleapis.com/v1/userinfo"
+        jwks_uri:
+          type: string
+          nullable: true
+          description: JWKS URI
+          example: "https://www.googleapis.com/oauth2/v3/certs"
+        scopes:
+          type: array
+          items:
+            type: string
+          description: OAuth2/OIDC scopes
+          default: []
+          example: ["openid", "email", "profile"]
+      required:
+        - tenant_id
+        - provider
+        - name
+        - status
+
+CreateTenantSSOConfigRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    provider:
+      type: string
+      enum: [SAML, OAUTH2, OIDC, LDAP, CAS, OTHER]
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    entity_id:
+      type: string
+      nullable: true
+    sso_url:
+      type: string
+      nullable: true
+    slo_url:
+      type: string
+      nullable: true
+    certificate:
+      type: string
+      nullable: true
+    metadata_url:
+      type: string
+      nullable: true
+    client_id:
+      type: string
+      nullable: true
+    client_secret:
+      type: string
+      nullable: true
+    authorization_endpoint:
+      type: string
+      nullable: true
+    token_endpoint:
+      type: string
+      nullable: true
+    userinfo_endpoint:
+      type: string
+      nullable: true
+    jwks_uri:
+      type: string
+      nullable: true
+    scopes:
+      type: array
+      items:
+        type: string
+      nullable: true
+  required:
+    - tenant_id
+    - provider
+    - name
+
+UpdateTenantSSOConfigRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, TESTING, DEPRECATED]
+    sso_url:
+      type: string
+      nullable: true
+    slo_url:
+      type: string
+      nullable: true
+    certificate:
+      type: string
+      nullable: true
+    client_secret:
+      type: string
+      nullable: true
+    scopes:
+      type: array
+      items:
+        type: string
+  minProperties: 1
+
+TenantSSOConfigListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantSSOConfig'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantSSOConfigResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantSSOConfig'
+  required:
+    - success
+    - data

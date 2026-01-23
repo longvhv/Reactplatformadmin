@@ -1,0 +1,245 @@
+/tenants:
+  get:
+    summary: List all tenants
+    description: Retrieve a paginated list of tenants with optional filters
+    tags:
+      - Tenants
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: status
+        in: query
+        schema:
+          $ref: '../components/schemas/common.yaml#/TenantStatus'
+        description: Filter by tenant status
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+        description: Filter by active status
+      - name: subscription_tier
+        in: query
+        schema:
+          type: string
+        description: Filter by subscription tier
+        example: "PREMIUM"
+    responses:
+      '200':
+        description: Tenants retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant.yaml#/TenantListResponse'
+            example:
+              success: true
+              data:
+                - _id: "550e8400-e29b-41d4-a716-446655440000"
+                  code: "acme-corp"
+                  name: "ACME Corporation"
+                  status: "ACTIVE"
+                  is_active: true
+                  created_at: "2026-01-01T00:00:00Z"
+                - _id: "550e8400-e29b-41d4-a716-446655440001"
+                  code: "tech-startup"
+                  name: "Tech Startup Inc"
+                  status: "TRIAL"
+                  is_active: true
+                  created_at: "2026-01-15T00:00:00Z"
+              meta:
+                page: 1
+                page_size: 20
+                total_pages: 1
+                total_count: 2
+                has_next: false
+                has_prev: false
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new tenant
+    description: Create a new tenant organization (admin only)
+    tags:
+      - Tenants
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant.yaml#/CreateTenantRequest'
+          example:
+            code: "new-company"
+            name: "New Company Ltd"
+            description: "Innovative tech company"
+            contact_email: "info@newcompany.com"
+            contact_phone: "+84901234567"
+            status: "TRIAL"
+            subscription_tier: "TRIAL"
+    responses:
+      '201':
+        description: Tenant created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant.yaml#/TenantResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        description: Tenant code already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "CODE_EXISTS"
+                message: "Tenant code already exists"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenants/{id}:
+  get:
+    summary: Get tenant by ID
+    description: Retrieve a single tenant by their unique identifier
+    tags:
+      - Tenants
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Tenant retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant.yaml#/TenantResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update tenant
+    description: Update tenant information (partial update)
+    tags:
+      - Tenants
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant.yaml#/UpdateTenantRequest'
+          examples:
+            update_name:
+              summary: Update name only
+              value:
+                name: "Updated Company Name"
+            upgrade_tier:
+              summary: Upgrade subscription
+              value:
+                subscription_tier: "PREMIUM"
+                status: "ACTIVE"
+            update_contact:
+              summary: Update contact info
+              value:
+                contact_email: "support@company.com"
+                contact_phone: "+84987654321"
+    responses:
+      '200':
+        description: Tenant updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant.yaml#/TenantResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete tenant
+    description: Soft delete a tenant (sets deleted_at timestamp)
+    tags:
+      - Tenants
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '409':
+        description: Cannot delete tenant with active resources
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "TENANT_HAS_ACTIVE_RESOURCES"
+                message: "Cannot delete tenant with active subscriptions or members"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenants/code/{code}:
+  get:
+    summary: Get tenant by code
+    description: Retrieve a tenant by their unique code (slug)
+    tags:
+      - Tenants
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/CodeParam'
+    responses:
+      '200':
+        description: Tenant retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant.yaml#/TenantResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

@@ -1,0 +1,262 @@
+Application:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9_]+$"
+          minLength: 2
+          maxLength: 100
+          description: Unique application code
+          example: "HRMS"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Application name
+          example: "Human Resource Management System"
+        description:
+          type: string
+          nullable: true
+          description: Application description
+          example: "Complete HR management solution"
+        category:
+          type: string
+          nullable: true
+          description: Application category
+          example: "HR & Payroll"
+        icon_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Application icon URL
+          example: "https://example.com/icons/hrms.png"
+        banner_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Application banner URL
+          example: "https://example.com/banners/hrms.jpg"
+        status:
+          type: string
+          enum:
+            - DRAFT
+            - ACTIVE
+            - INACTIVE
+            - DEPRECATED
+          description: Application status
+          example: "ACTIVE"
+        is_featured:
+          type: boolean
+          description: Whether application is featured
+          default: false
+          example: true
+        is_published:
+          type: boolean
+          description: Whether application is published
+          default: false
+          example: true
+        version:
+          type: string
+          nullable: true
+          description: Current version
+          example: "2.1.0"
+        pricing_model:
+          type: string
+          enum:
+            - FREE
+            - FREEMIUM
+            - SUBSCRIPTION
+            - ONE_TIME
+            - CUSTOM
+          description: Pricing model
+          example: "SUBSCRIPTION"
+        base_price:
+          type: number
+          format: decimal
+          nullable: true
+          description: Base price (if applicable)
+          example: 99.99
+        currency:
+          $ref: './common.yaml#/Currency'
+        billing_cycle:
+          type: string
+          enum:
+            - MONTHLY
+            - QUARTERLY
+            - YEARLY
+            - ONE_TIME
+          nullable: true
+          description: Default billing cycle
+          example: "MONTHLY"
+        trial_days:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Trial period in days
+          example: 14
+        max_users:
+          type: integer
+          minimum: -1
+          nullable: true
+          description: Maximum users (-1 for unlimited)
+          example: -1
+        features:
+          type: array
+          items:
+            type: string
+          description: List of features
+          example:
+            - "Employee management"
+            - "Leave tracking"
+            - "Payroll processing"
+        requirements:
+          type: object
+          additionalProperties: true
+          nullable: true
+          description: System requirements
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - code
+        - name
+        - status
+        - pricing_model
+        - currency
+
+CreateApplicationRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      example: "CRM"
+    name:
+      type: string
+      example: "Customer Relationship Management"
+    description:
+      type: string
+      nullable: true
+      example: "Manage customer relationships"
+    category:
+      type: string
+      nullable: true
+      example: "Sales & Marketing"
+    icon_url:
+      type: string
+      format: uri
+      nullable: true
+    banner_url:
+      type: string
+      format: uri
+      nullable: true
+    status:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE, DEPRECATED]
+      default: "DRAFT"
+    pricing_model:
+      type: string
+      enum: [FREE, FREEMIUM, SUBSCRIPTION, ONE_TIME, CUSTOM]
+      example: "SUBSCRIPTION"
+    base_price:
+      type: number
+      format: decimal
+      nullable: true
+      example: 49.99
+    currency:
+      $ref: './common.yaml#/Currency'
+    billing_cycle:
+      type: string
+      enum: [MONTHLY, QUARTERLY, YEARLY, ONE_TIME]
+      nullable: true
+    trial_days:
+      type: integer
+      minimum: 0
+      nullable: true
+      example: 30
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+    - pricing_model
+    - currency
+
+UpdateApplicationRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    category:
+      type: string
+      nullable: true
+    icon_url:
+      type: string
+      format: uri
+      nullable: true
+    banner_url:
+      type: string
+      format: uri
+      nullable: true
+    status:
+      type: string
+      enum: [DRAFT, ACTIVE, INACTIVE, DEPRECATED]
+    is_featured:
+      type: boolean
+    is_published:
+      type: boolean
+    version:
+      type: string
+      nullable: true
+    base_price:
+      type: number
+      format: decimal
+      nullable: true
+    trial_days:
+      type: integer
+      minimum: 0
+      nullable: true
+    features:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+ApplicationListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Application'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+ApplicationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Application'
+  required:
+    - success
+    - data

@@ -6,266 +6,190 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TenantDigitalAssetHandler struct {
-	service service.TenantDigitalAssetService
+	assetService *service.TenantDigitalAssetService
+	authzService *service.AuthorizationService
 }
 
-func NewTenantDigitalAssetHandler(service service.TenantDigitalAssetService) *TenantDigitalAssetHandler {
-	return &TenantDigitalAssetHandler{service: service}
+func NewTenantDigitalAssetHandler(assetService *service.TenantDigitalAssetService, authzService *service.AuthorizationService) *TenantDigitalAssetHandler {
+	return &TenantDigitalAssetHandler{
+		assetService: assetService,
+		authzService: authzService,
+	}
 }
 
-func (h *TenantDigitalAssetHandler) CreateAsset(c *gin.Context) {
-	var req models.CreateTenantDigitalAssetRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists tenant digital assets
+func (h *TenantDigitalAssetHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	asset, err := h.service.CreateAsset(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, asset)
-}
-
-func (h *TenantDigitalAssetHandler) ListAssets(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	status := c.Query("status")
+	assetType := c.Query("asset_type")
 
-	var tenantID *uuid.UUID
-	if tenantIDStr := c.Query("tenant_id"); tenantIDStr != "" {
-		parsed, err := uuid.Parse(tenantIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	var assetType *string
-	if at := c.Query("asset_type"); at != "" {
-		assetType = &at
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	assets, total, err := h.service.ListAssets(c.Request.Context(), page, pageSize, tenantID, assetType, status)
+	assets, total, err := h.assetService.ListByTenant(ctx, tenantID, status, assetType, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      assets,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, assets, total, page, limit)
 }
 
-func (h *TenantDigitalAssetHandler) GetAsset(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets digital asset by ID
+func (h *TenantDigitalAssetHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	assetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid asset id", nil)
 		return
 	}
 
-	asset, err := h.service.GetAsset(c.Request.Context(), id)
+	asset, err := h.assetService.GetByID(ctx, assetID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "asset not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, asset)
+	httputil.SuccessResponse(c, http.StatusOK, asset)
 }
 
-func (h *TenantDigitalAssetHandler) UpdateAsset(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
-		return
-	}
+// Create creates a digital asset
+func (h *TenantDigitalAssetHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateTenantDigitalAssetRequest
+	var req service.CreateTenantDigitalAssetRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	asset, err := h.service.UpdateAsset(c.Request.Context(), id, &req)
+	asset, err := h.assetService.CreateAsset(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, asset)
+	httputil.SuccessResponse(c, http.StatusCreated, asset)
 }
 
-func (h *TenantDigitalAssetHandler) DeleteAsset(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a digital asset
+func (h *TenantDigitalAssetHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	assetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid asset id", nil)
 		return
 	}
 
-	if err := h.service.DeleteAsset(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateTenantDigitalAssetRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	asset, err := h.assetService.UpdateAsset(ctx, assetID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, asset)
 }
 
-func (h *TenantDigitalAssetHandler) ListAssetsByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Delete deletes a digital asset
+func (h *TenantDigitalAssetHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	assetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid asset id", nil)
 		return
 	}
 
-	assets, err := h.service.ListAssetsByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.assetService.DeleteAsset(ctx, assetID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": assets})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "asset deleted successfully"})
 }
 
-func (h *TenantDigitalAssetHandler) ListAssetsByOrder(c *gin.Context) {
-	orderID, err := uuid.Parse(c.Param("order_id"))
+// Activate activates a digital asset
+func (h *TenantDigitalAssetHandler) Activate(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	assetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid asset id", nil)
 		return
 	}
 
-	assets, err := h.service.ListAssetsByOrder(c.Request.Context(), orderID)
+	asset, err := h.assetService.ActivateAsset(ctx, assetID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": assets})
+	httputil.SuccessResponse(c, http.StatusOK, asset)
 }
 
-func (h *TenantDigitalAssetHandler) ListAssetsByType(c *gin.Context) {
-	assetType := c.Param("asset_type")
-	if assetType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "asset_type is required"})
-		return
-	}
+// Suspend suspends a digital asset
+func (h *TenantDigitalAssetHandler) Suspend(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	assets, err := h.service.ListAssetsByType(c.Request.Context(), assetType)
+	assetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid asset id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": assets})
+	asset, err := h.assetService.SuspendAsset(ctx, assetID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, asset)
 }
 
-func (h *TenantDigitalAssetHandler) ListActiveAssets(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Renew renews a digital asset
+func (h *TenantDigitalAssetHandler) Renew(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	assetID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
-		return
-	}
-
-	assets, err := h.service.ListActiveAssets(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": assets})
-}
-
-func (h *TenantDigitalAssetHandler) ListExpiringAssets(c *gin.Context) {
-	daysAhead, _ := strconv.Atoi(c.DefaultQuery("days_ahead", "30"))
-
-	assets, err := h.service.ListExpiringAssets(c.Request.Context(), daysAhead)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": assets})
-}
-
-func (h *TenantDigitalAssetHandler) ActivateAsset(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
-		return
-	}
-
-	if err := h.service.ActivateAsset(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "asset activated successfully"})
-}
-
-func (h *TenantDigitalAssetHandler) SuspendAsset(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
-		return
-	}
-
-	if err := h.service.SuspendAsset(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "asset suspended successfully"})
-}
-
-func (h *TenantDigitalAssetHandler) ExpireAsset(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
-		return
-	}
-
-	if err := h.service.ExpireAsset(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "asset expired successfully"})
-}
-
-func (h *TenantDigitalAssetHandler) UpdateAssetStatus(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid asset ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid asset id", nil)
 		return
 	}
 
 	var req struct {
-		Status string `json:"status" binding:"required,oneof=PENDING PROVISIONING ACTIVE EXPIRED SUSPENDED TRANSFERRING"`
+		ExpiresAt string `json:"expires_at" binding:"required"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.UpdateAssetStatus(c.Request.Context(), id, req.Status); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	asset, err := h.assetService.RenewAsset(ctx, assetID, req.ExpiresAt)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "asset status updated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, asset)
 }

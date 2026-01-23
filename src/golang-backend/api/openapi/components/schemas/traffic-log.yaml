@@ -1,0 +1,145 @@
+TrafficLog:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Log ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: User ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    app_code:
+      type: string
+      nullable: true
+      description: Application code
+      example: "PORTAL"
+    method:
+      type: string
+      nullable: true
+      description: HTTP method
+      example: "GET"
+    domain:
+      type: string
+      nullable: true
+      description: Domain
+      example: "api.example.com"
+    path:
+      type: string
+      nullable: true
+      description: Request path
+      example: "/api/v1/users"
+    status_code:
+      type: integer
+      nullable: true
+      description: HTTP status code
+      example: 200
+    latency_ms:
+      type: integer
+      nullable: true
+      description: Latency in milliseconds
+      example: 45
+    request_size:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Request size in bytes
+      example: 1024
+    response_size:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Response size in bytes
+      example: 2048
+    ip_address:
+      type: string
+      nullable: true
+      description: IP address
+      example: "192.168.1.100"
+    user_agent:
+      type: string
+      nullable: true
+      description: User agent
+      example: "Mozilla/5.0..."
+    data_region:
+      type: string
+      default: "ap-southeast-1"
+      description: Data region
+      example: "ap-southeast-1"
+    timestamp:
+      type: string
+      format: date-time
+      description: Timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - timestamp
+
+CreateTrafficLogRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+    app_code:
+      type: string
+    method:
+      type: string
+    path:
+      type: string
+    status_code:
+      type: integer
+    latency_ms:
+      type: integer
+    request_size:
+      type: integer
+      default: 0
+    response_size:
+      type: integer
+      default: 0
+  required:
+    - method
+    - path
+
+TrafficLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TrafficLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TrafficLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TrafficLog'
+  required:
+    - success
+    - data

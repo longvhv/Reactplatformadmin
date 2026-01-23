@@ -1,0 +1,93 @@
+UserSession:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: User ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        session_token:
+          type: string
+          description: Session token (hidden in responses)
+          example: "sess_abc123xyz789"
+          writeOnly: true
+        device_name:
+          type: string
+          nullable: true
+          description: Device name
+          example: "iPhone 13 Pro"
+        device_type:
+          type: string
+          nullable: true
+          description: Device type
+          example: "mobile"
+        browser:
+          type: string
+          nullable: true
+          description: Browser
+          example: "Safari 15.6"
+        os:
+          type: string
+          nullable: true
+          description: Operating system
+          example: "iOS 15.6"
+        ip_address:
+          type: string
+          nullable: true
+          description: IP address
+          example: "192.168.1.100"
+        location:
+          type: string
+          nullable: true
+          description: Location
+          example: "Ho Chi Minh City, Vietnam"
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+        last_activity_at:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: "2026-01-22T10:30:00Z"
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Expiration timestamp
+          example: "2026-01-29T10:00:00Z"
+      required:
+        - user_id
+        - session_token
+
+UserSessionListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserSession'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserSessionResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserSession'
+  required:
+    - success
+    - data

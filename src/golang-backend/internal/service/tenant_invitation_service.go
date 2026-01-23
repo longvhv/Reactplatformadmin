@@ -1,172 +1,210 @@
 package service
 
 import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
 type TenantInvitationService struct {
-	repo *repository.TenantInvitationRepository
+	invitationRepo  repository.TenantInvitationRepository
+	tenantMemberRepo repository.TenantMemberRepository
+	// emailService would be used to send invitation emails
 }
 
-func NewTenantInvitationService(repo *repository.TenantInvitationRepository) *TenantInvitationService {
-	return &TenantInvitationService{repo: repo}
+func NewTenantInvitationService(
+	invitationRepo repository.TenantInvitationRepository,
+	tenantMemberRepo repository.TenantMemberRepository,
+) *TenantInvitationService {
+	return &TenantInvitationService{
+		invitationRepo:   invitationRepo,
+		tenantMemberRepo: tenantMemberRepo,
+	}
+}
+
+type CreateTenantInvitationRequest struct {
+	TenantID     uuid.UUID   `json:"tenant_id" binding:"required"`
+	Email        string      `json:"email" binding:"required,email"`
+	RoleIDs      []string    `json:"role_ids"`
+	DepartmentID *uuid.UUID  `json:"department_id"`
+	InvitedBy    uuid.UUID   `json:"-"`
+}
+
+// GetByID gets invitation by ID
+func (s *TenantInvitationService) GetByID(ctx context.Context, id uuid.UUID) (*models.TenantInvitation, error) {
+	return s.invitationRepo.GetByID(ctx, id)
+}
+
+// GetByToken gets invitation by token
+func (s *TenantInvitationService) GetByToken(ctx context.Context, token string) (*models.TenantInvitation, error) {
+	return s.invitationRepo.GetByToken(ctx, token)
+}
+
+// ListByTenant lists invitations by tenant
+func (s *TenantInvitationService) ListByTenant(ctx context.Context, tenantID uuid.UUID, status string, page, limit int) ([]*models.TenantInvitation, int64, error) {
+	offset := (page - 1) * limit
+	return s.invitationRepo.ListByTenant(ctx, tenantID, status, limit, offset)
 }
 
 // CreateInvitation creates a new tenant invitation
-func (s *TenantInvitationService) CreateInvitation(req *models.CreateTenantInvitationRequest) (*models.TenantInvitation, error) {
+func (s *TenantInvitationService) CreateInvitation(ctx context.Context, req CreateTenantInvitationRequest) (*models.TenantInvitation, error) {
+	// Check if user already a member
+	exists, err := s.tenantMemberRepo.ExistsByEmail(ctx, req.TenantID, req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check member: %w", err)
+	}
+	if exists {
+		return nil, fmt.Errorf("user already a member of this tenant")
+	}
+
+	// Check if pending invitation exists
+	pendingExists, err := s.invitationRepo.ExistsPending(ctx, req.TenantID, req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check pending invitations: %w", err)
+	}
+	if pendingExists {
+		return nil, fmt.Errorf("pending invitation already exists for this email")
+	}
+
+	// Generate token
+	token, err := generateInvitationToken()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate token: %w", err)
+	}
+
+	// Set expiration (7 days from now)
+	expiresAt := time.Now().Add(7 * 24 * time.Hour)
+
 	invitation := &models.TenantInvitation{
+		ID:           uuid.New(),
 		TenantID:     req.TenantID,
 		Email:        req.Email,
-		RoleIDs:      pq.StringArray(req.RoleIDs),
+		RoleIDs:      req.RoleIDs,
 		DepartmentID: req.DepartmentID,
-		InvitedBy:    req.InvitedBy,
+		Token:        token,
+		Status:       "PENDING",
+		ExpiresAt:    expiresAt,
+		InvitedBy:    &req.InvitedBy,
+		CreatedAt:    time.Now(),
 	}
 
-	if req.ExpiresAt != nil {
-		invitation.ExpiresAt = *req.ExpiresAt
-	} else {
-		// Default expiration: 7 days
-		invitation.ExpiresAt = time.Now().Add(7 * 24 * time.Hour)
+	if err := s.invitationRepo.Create(ctx, invitation); err != nil {
+		return nil, fmt.Errorf("failed to create invitation: %w", err)
 	}
 
-	if invitation.RoleIDs == nil {
-		invitation.RoleIDs = pq.StringArray{}
-	}
-
-	err := s.repo.Create(invitation)
-	if err != nil {
-		return nil, err
-	}
+	// TODO: Send invitation email
+	// s.emailService.SendInvitation(ctx, invitation)
 
 	return invitation, nil
 }
 
-// GetInvitation retrieves a tenant invitation by ID
-func (s *TenantInvitationService) GetInvitation(id uuid.UUID) (*models.TenantInvitation, error) {
-	return s.repo.GetByID(id)
-}
-
-// GetInvitationByToken retrieves a tenant invitation by token
-func (s *TenantInvitationService) GetInvitationByToken(token string) (*models.TenantInvitation, error) {
-	return s.repo.GetByToken(token)
-}
-
-// ListInvitations retrieves tenant invitations with pagination and filters
-func (s *TenantInvitationService) ListInvitations(page, pageSize int, filters map[string]interface{}) ([]models.TenantInvitation, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-
-	return s.repo.List(page, pageSize, filters)
-}
-
-// ListInvitationsByTenant retrieves all invitations for a specific tenant
-func (s *TenantInvitationService) ListInvitationsByTenant(tenantID uuid.UUID, page, pageSize int) ([]models.TenantInvitation, int, error) {
-	return s.repo.ListByTenantID(tenantID, page, pageSize)
-}
-
-// UpdateInvitation updates a tenant invitation
-func (s *TenantInvitationService) UpdateInvitation(id uuid.UUID, req *models.UpdateTenantInvitationRequest) (*models.TenantInvitation, error) {
-	updates := make(map[string]interface{})
-
-	if req.RoleIDs != nil {
-		updates["role_ids"] = pq.StringArray(req.RoleIDs)
-	}
-	if req.DepartmentID != nil {
-		updates["department_id"] = *req.DepartmentID
-	}
-	if req.ExpiresAt != nil {
-		updates["expires_at"] = *req.ExpiresAt
-	}
-	if req.Status != nil {
-		updates["status"] = *req.Status
-	}
-
-	return s.repo.Update(id, updates)
-}
-
-// AcceptInvitation accepts a tenant invitation
-func (s *TenantInvitationService) AcceptInvitation(token string) (*models.TenantInvitation, error) {
-	invitation, err := s.repo.GetByToken(token)
+// ResendInvitation resends an invitation
+func (s *TenantInvitationService) ResendInvitation(ctx context.Context, id uuid.UUID) error {
+	invitation, err := s.invitationRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("invitation not found: %w", err)
 	}
 
-	// Check if invitation is still pending
+	if invitation.Status != "PENDING" {
+		return fmt.Errorf("can only resend pending invitations")
+	}
+
+	if time.Now().After(invitation.ExpiresAt) {
+		return fmt.Errorf("invitation expired")
+	}
+
+	// TODO: Send invitation email
+	// s.emailService.SendInvitation(ctx, invitation)
+
+	return nil
+}
+
+// AcceptInvitation accepts an invitation and creates tenant member
+func (s *TenantInvitationService) AcceptInvitation(ctx context.Context, token string, userID uuid.UUID) (*models.TenantMember, error) {
+	invitation, err := s.invitationRepo.GetByToken(ctx, token)
+	if err != nil {
+		return nil, fmt.Errorf("invitation not found: %w", err)
+	}
+
 	if invitation.Status != "PENDING" {
 		return nil, fmt.Errorf("invitation is not pending")
 	}
 
-	// Check if invitation has expired
 	if time.Now().After(invitation.ExpiresAt) {
 		// Mark as expired
-		_ = s.repo.UpdateStatus(invitation.ID, "EXPIRED")
-		return nil, fmt.Errorf("invitation has expired")
+		invitation.Status = "EXPIRED"
+		_ = s.invitationRepo.Update(ctx, invitation)
+		return nil, fmt.Errorf("invitation expired")
 	}
 
-	// Update status to accepted
-	err = s.repo.UpdateStatus(invitation.ID, "ACCEPTED")
-	if err != nil {
-		return nil, err
+	// Create tenant member
+	member := &models.TenantMember{
+		ID:        uuid.New(),
+		TenantID:  invitation.TenantID,
+		UserID:    userID,
+		Status:    "ACTIVE",
+		JoinedAt:  timePtr(time.Now()),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Version:   1,
 	}
 
-	return s.repo.GetByID(invitation.ID)
+	if err := s.tenantMemberRepo.Create(ctx, member); err != nil {
+		return nil, fmt.Errorf("failed to create member: %w", err)
+	}
+
+	// Mark invitation as accepted
+	invitation.Status = "ACCEPTED"
+	_ = s.invitationRepo.Update(ctx, invitation)
+
+	// TODO: Assign roles to member
+	// if len(invitation.RoleIDs) > 0 {
+	//     s.roleService.AssignRolesToMember(ctx, member.ID, invitation.RoleIDs)
+	// }
+
+	return member, nil
 }
 
-// RevokeInvitation revokes a tenant invitation
-func (s *TenantInvitationService) RevokeInvitation(id uuid.UUID) error {
-	invitation, err := s.repo.GetByID(id)
+// RevokeInvitation revokes an invitation
+func (s *TenantInvitationService) RevokeInvitation(ctx context.Context, id uuid.UUID) error {
+	invitation, err := s.invitationRepo.GetByID(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("invitation not found: %w", err)
 	}
 
-	// Only pending invitations can be revoked
 	if invitation.Status != "PENDING" {
-		return fmt.Errorf("only pending invitations can be revoked")
+		return fmt.Errorf("can only revoke pending invitations")
 	}
 
-	return s.repo.UpdateStatus(id, "REVOKED")
+	invitation.Status = "REVOKED"
+	if err := s.invitationRepo.Update(ctx, invitation); err != nil {
+		return fmt.Errorf("failed to revoke invitation: %w", err)
+	}
+
+	return nil
 }
 
-// ResendInvitation resends an invitation by extending expiration
-func (s *TenantInvitationService) ResendInvitation(id uuid.UUID) (*models.TenantInvitation, error) {
-	invitation, err := s.repo.GetByID(id)
+// CleanupExpired marks expired invitations
+func (s *TenantInvitationService) CleanupExpired(ctx context.Context) error {
+	return s.invitationRepo.MarkExpired(ctx)
+}
+
+// Helper functions
+func generateInvitationToken() (string, error) {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	// Only resend pending or expired invitations
-	if invitation.Status != "PENDING" && invitation.Status != "EXPIRED" {
-		return nil, fmt.Errorf("can only resend pending or expired invitations")
-	}
-
-	// Extend expiration and set status to pending
-	updates := map[string]interface{}{
-		"expires_at": time.Now().Add(7 * 24 * time.Hour),
-		"status":     "PENDING",
-	}
-
-	return s.repo.Update(id, updates)
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
-// DeleteInvitation deletes a tenant invitation
-func (s *TenantInvitationService) DeleteInvitation(id uuid.UUID) error {
-	return s.repo.Delete(id)
-}
-
-// ExpireOldInvitations marks old pending invitations as expired
-func (s *TenantInvitationService) ExpireOldInvitations() (int64, error) {
-	return s.repo.ExpireOldInvitations()
+func timePtr(t time.Time) *time.Time {
+	return &t
 }

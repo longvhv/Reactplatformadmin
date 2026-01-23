@@ -3,231 +3,239 @@ package service
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-// ServiceAccountService defines the interface for service account business logic
-type ServiceAccountService interface {
-	CreateServiceAccount(ctx context.Context, req *models.CreateServiceAccountRequest) (*models.ServiceAccountResponse, error)
-	GetServiceAccount(ctx context.Context, id uuid.UUID) (*models.ServiceAccount, error)
-	GetServiceAccountByClientID(ctx context.Context, clientID string) (*models.ServiceAccount, error)
-	ListServiceAccounts(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, isActive *bool) ([]*models.ServiceAccount, int, error)
-	ListServiceAccountsByTenant(ctx context.Context, tenantID uuid.UUID, page, pageSize int) ([]*models.ServiceAccount, int, error)
-	ListServiceAccountsByMember(ctx context.Context, memberID uuid.UUID) ([]*models.ServiceAccount, error)
-	UpdateServiceAccount(ctx context.Context, id uuid.UUID, req *models.UpdateServiceAccountRequest) (*models.ServiceAccount, error)
-	DeleteServiceAccount(ctx context.Context, id uuid.UUID) error
-	ActivateServiceAccount(ctx context.Context, id uuid.UUID) error
-	DeactivateServiceAccount(ctx context.Context, id uuid.UUID) error
-	ValidateCredentials(ctx context.Context, clientID, clientSecret string) (*models.ServiceAccount, error)
-	RegenerateClientSecret(ctx context.Context, id uuid.UUID) (*models.ServiceAccountResponse, error)
+type ServiceAccountService struct {
+	serviceAccountRepo repository.ServiceAccountRepository
 }
 
-type serviceAccountService struct {
-	repo repository.ServiceAccountRepository
-}
-
-// NewServiceAccountService creates a new service account service
-func NewServiceAccountService(repo repository.ServiceAccountRepository) ServiceAccountService {
-	return &serviceAccountService{repo: repo}
-}
-
-// generateClientID generates a unique client ID
-func generateClientID() (string, error) {
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+func NewServiceAccountService(serviceAccountRepo repository.ServiceAccountRepository) *ServiceAccountService {
+	return &ServiceAccountService{
+		serviceAccountRepo: serviceAccountRepo,
 	}
-	return "sa_" + hex.EncodeToString(bytes), nil
 }
 
-// generateClientSecret generates a secure random client secret
-func generateClientSecret() (string, error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(bytes), nil
+type CreateServiceAccountRequest struct {
+	TenantID    uuid.UUID `json:"tenant_id" binding:"required"`
+	MemberID    uuid.UUID `json:"member_id" binding:"required"`
+	Name        string    `json:"name" binding:"required"`
+	Description *string   `json:"description"`
 }
 
-// hashClientSecret hashes the client secret using SHA256
-func hashClientSecret(secret string) string {
-	hash := sha256.Sum256([]byte(secret))
-	return hex.EncodeToString(hash[:])
+type UpdateServiceAccountRequest struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	IsActive    *bool   `json:"is_active"`
 }
 
-// CreateServiceAccount creates a new service account with generated credentials
-func (s *serviceAccountService) CreateServiceAccount(ctx context.Context, req *models.CreateServiceAccountRequest) (*models.ServiceAccountResponse, error) {
-	// Generate client ID and secret
-	clientID, err := generateClientID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate client ID: %w", err)
-	}
-
-	clientSecret, err := generateClientSecret()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate client secret: %w", err)
-	}
-
-	// Hash the secret for storage
-	secretHash := hashClientSecret(clientSecret)
-
-	now := time.Now()
-	account := &models.ServiceAccount{
-		BaseModel: models.BaseModel{
-			ID:        uuid.New(),
-			CreatedAt: now,
-			UpdatedAt: now,
-			Version:   1,
-		},
-		TenantID:         req.TenantID,
-		MemberID:         req.MemberID,
-		Name:             req.Name,
-		ClientID:         clientID,
-		ClientSecretHash: secretHash,
-		IsActive:         true,
-	}
-
-	if req.Description != "" {
-		account.Description.String = req.Description
-		account.Description.Valid = true
-	}
-
-	if err := s.repo.Create(ctx, account); err != nil {
-		return nil, fmt.Errorf("failed to create service account: %w", err)
-	}
-
-	// Return with plain secret (only time it's exposed)
-	return &models.ServiceAccountResponse{
-		ServiceAccount: *account,
-		ClientSecret:   clientSecret,
-	}, nil
-}
-
-// GetServiceAccount gets a service account by ID
-func (s *serviceAccountService) GetServiceAccount(ctx context.Context, id uuid.UUID) (*models.ServiceAccount, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-// GetServiceAccountByClientID gets a service account by client ID
-func (s *serviceAccountService) GetServiceAccountByClientID(ctx context.Context, clientID string) (*models.ServiceAccount, error) {
-	return s.repo.GetByClientID(ctx, clientID)
-}
-
-// ListServiceAccounts lists service accounts with pagination and filters
-func (s *serviceAccountService) ListServiceAccounts(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, isActive *bool) ([]*models.ServiceAccount, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.List(ctx, page, pageSize, tenantID, isActive)
-}
-
-// ListServiceAccountsByTenant lists service accounts for a specific tenant
-func (s *serviceAccountService) ListServiceAccountsByTenant(ctx context.Context, tenantID uuid.UUID, page, pageSize int) ([]*models.ServiceAccount, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.ListByTenantID(ctx, tenantID, page, pageSize)
-}
-
-// ListServiceAccountsByMember lists service accounts for a specific member
-func (s *serviceAccountService) ListServiceAccountsByMember(ctx context.Context, memberID uuid.UUID) ([]*models.ServiceAccount, error) {
-	return s.repo.ListByMemberID(ctx, memberID)
-}
-
-// UpdateServiceAccount updates a service account
-func (s *serviceAccountService) UpdateServiceAccount(ctx context.Context, id uuid.UUID, req *models.UpdateServiceAccountRequest) (*models.ServiceAccount, error) {
-	account, err := s.repo.GetByID(ctx, id)
+// GetByID gets service account by ID
+func (s *ServiceAccountService) GetByID(ctx context.Context, id uuid.UUID) (*models.ServiceAccount, error) {
+	account, err := s.serviceAccountRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	// Update fields
+	// Don't expose secret hash
+	account.ClientSecretHash = ""
+
+	return account, nil
+}
+
+// ListByTenant lists service accounts by tenant
+func (s *ServiceAccountService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.ServiceAccount, int64, error) {
+	offset := (page - 1) * limit
+	accounts, total, err := s.serviceAccountRepo.ListByTenant(ctx, tenantID, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Don't expose secret hashes
+	for _, account := range accounts {
+		account.ClientSecretHash = ""
+	}
+
+	return accounts, total, nil
+}
+
+// CreateAccount creates a new service account
+func (s *ServiceAccountService) CreateAccount(ctx context.Context, req CreateServiceAccountRequest) (*models.ServiceAccount, string, error) {
+	// Generate client ID
+	clientID := generateClientID()
+
+	// Check if client ID exists (unlikely but possible)
+	exists, err := s.serviceAccountRepo.ExistsByClientID(ctx, clientID)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to check client ID: %w", err)
+	}
+	if exists {
+		// Try again with new ID
+		clientID = generateClientID()
+	}
+
+	// Generate client secret
+	clientSecret := generateClientSecret()
+
+	// Hash the secret
+	secretHash, err := hashSecret(clientSecret)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to hash secret: %w", err)
+	}
+
+	account := &models.ServiceAccount{
+		ID:               uuid.New(),
+		TenantID:         req.TenantID,
+		MemberID:         req.MemberID,
+		Name:             req.Name,
+		Description:      req.Description,
+		ClientID:         clientID,
+		ClientSecretHash: secretHash,
+		IsActive:         true,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+		Version:          1,
+	}
+
+	if err := s.serviceAccountRepo.Create(ctx, account); err != nil {
+		return nil, "", fmt.Errorf("failed to create service account: %w", err)
+	}
+
+	// Don't expose hash in response
+	account.ClientSecretHash = ""
+
+	return account, clientSecret, nil
+}
+
+// UpdateAccount updates a service account
+func (s *ServiceAccountService) UpdateAccount(ctx context.Context, id uuid.UUID, req UpdateServiceAccountRequest) (*models.ServiceAccount, error) {
+	account, err := s.serviceAccountRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("service account not found: %w", err)
+	}
+
 	if req.Name != nil {
 		account.Name = *req.Name
 	}
 	if req.Description != nil {
-		if *req.Description == "" {
-			account.Description.Valid = false
-		} else {
-			account.Description.String = *req.Description
-			account.Description.Valid = true
-		}
+		account.Description = req.Description
 	}
 	if req.IsActive != nil {
 		account.IsActive = *req.IsActive
 	}
 
 	account.UpdatedAt = time.Now()
+	account.Version++
 
-	if err := s.repo.Update(ctx, account); err != nil {
+	if err := s.serviceAccountRepo.Update(ctx, account); err != nil {
 		return nil, fmt.Errorf("failed to update service account: %w", err)
+	}
+
+	// Don't expose hash
+	account.ClientSecretHash = ""
+
+	return account, nil
+}
+
+// DeleteAccount deletes a service account
+func (s *ServiceAccountService) DeleteAccount(ctx context.Context, id uuid.UUID) error {
+	return s.serviceAccountRepo.Delete(ctx, id)
+}
+
+// RegenerateSecret regenerates client secret
+func (s *ServiceAccountService) RegenerateSecret(ctx context.Context, id uuid.UUID) (*models.ServiceAccount, string, error) {
+	account, err := s.serviceAccountRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, "", fmt.Errorf("service account not found: %w", err)
+	}
+
+	// Generate new secret
+	newSecret := generateClientSecret()
+
+	// Hash it
+	secretHash, err := hashSecret(newSecret)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to hash secret: %w", err)
+	}
+
+	account.ClientSecretHash = secretHash
+	account.UpdatedAt = time.Now()
+	account.Version++
+
+	if err := s.serviceAccountRepo.Update(ctx, account); err != nil {
+		return nil, "", fmt.Errorf("failed to update service account: %w", err)
+	}
+
+	// Don't expose hash
+	account.ClientSecretHash = ""
+
+	return account, newSecret, nil
+}
+
+// ToggleAccount toggles service account active status
+func (s *ServiceAccountService) ToggleAccount(ctx context.Context, id uuid.UUID) (*models.ServiceAccount, error) {
+	account, err := s.serviceAccountRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("service account not found: %w", err)
+	}
+
+	account.IsActive = !account.IsActive
+	account.UpdatedAt = time.Now()
+	account.Version++
+
+	if err := s.serviceAccountRepo.Update(ctx, account); err != nil {
+		return nil, fmt.Errorf("failed to toggle service account: %w", err)
+	}
+
+	// Don't expose hash
+	account.ClientSecretHash = ""
+
+	return account, nil
+}
+
+// ValidateCredentials validates service account credentials
+func (s *ServiceAccountService) ValidateCredentials(ctx context.Context, clientID, clientSecret string) (*models.ServiceAccount, error) {
+	account, err := s.serviceAccountRepo.GetByClientID(ctx, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	if !account.IsActive {
+		return nil, fmt.Errorf("service account is not active")
+	}
+
+	// Verify secret
+	if err := bcrypt.CompareHashAndPassword([]byte(account.ClientSecretHash), []byte(clientSecret)); err != nil {
+		return nil, fmt.Errorf("invalid credentials")
 	}
 
 	return account, nil
 }
 
-// DeleteServiceAccount deletes a service account
-func (s *serviceAccountService) DeleteServiceAccount(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// Helper functions
+func generateClientID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return "sa_" + base64.URLEncoding.EncodeToString(b)[:22]
 }
 
-// ActivateServiceAccount activates a service account
-func (s *serviceAccountService) ActivateServiceAccount(ctx context.Context, id uuid.UUID) error {
-	return s.repo.UpdateStatus(ctx, id, true)
+func generateClientSecret() string {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	return "sk_" + base64.URLEncoding.EncodeToString(b)
 }
 
-// DeactivateServiceAccount deactivates a service account
-func (s *serviceAccountService) DeactivateServiceAccount(ctx context.Context, id uuid.UUID) error {
-	return s.repo.UpdateStatus(ctx, id, false)
-}
-
-// ValidateCredentials validates client credentials
-func (s *serviceAccountService) ValidateCredentials(ctx context.Context, clientID, clientSecret string) (*models.ServiceAccount, error) {
-	secretHash := hashClientSecret(clientSecret)
-	return s.repo.ValidateCredentials(ctx, clientID, secretHash)
-}
-
-// RegenerateClientSecret generates a new client secret for an existing account
-func (s *serviceAccountService) RegenerateClientSecret(ctx context.Context, id uuid.UUID) (*models.ServiceAccountResponse, error) {
-	account, err := s.repo.GetByID(ctx, id)
+func hashSecret(secret string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(secret), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	// Generate new secret
-	clientSecret, err := generateClientSecret()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate client secret: %w", err)
-	}
-
-	// Update the hash
-	account.ClientSecretHash = hashClientSecret(clientSecret)
-	account.UpdatedAt = time.Now()
-
-	if err := s.repo.Update(ctx, account); err != nil {
-		return nil, fmt.Errorf("failed to update service account: %w", err)
-	}
-
-	// Return with new plain secret
-	return &models.ServiceAccountResponse{
-		ServiceAccount: *account,
-		ClientSecret:   clientSecret,
-	}, nil
+	return string(hash), nil
 }

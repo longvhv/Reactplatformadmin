@@ -1,277 +1,269 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type UserSessionHandler struct {
-	service *service.UserSessionService
+	sessionService *service.UserSessionService
+	authzService   *service.AuthorizationService
 }
 
-func NewUserSessionHandler(service *service.UserSessionService) *UserSessionHandler {
-	return &UserSessionHandler{service: service}
+func NewUserSessionHandler(sessionService *service.UserSessionService, authzService *service.AuthorizationService) *UserSessionHandler {
+	return &UserSessionHandler{
+		sessionService: sessionService,
+		authzService:   authzService,
+	}
 }
 
-// CreateSession godoc
-// @Summary Create a new user session
-// @Tags user-sessions
-// @Accept json
-// @Produce json
-// @Param session body models.CreateUserSessionRequest true "User session data"
-// @Success 201 {object} models.UserSession
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions [post]
-func (h *UserSessionHandler) CreateSession(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateUserSessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+// List lists user sessions
+func (h *UserSessionHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "user not authenticated", nil)
 		return
 	}
 
-	session, err := h.service.CreateSession(&req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	sessions, total, err := h.sessionService.ListByUser(ctx, userID, page, limit)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, session)
+	httputil.PaginatedResponse(c, http.StatusOK, sessions, total, page, limit)
 }
 
-// GetSession godoc
-// @Summary Get a user session by ID
-// @Tags user-sessions
-// @Produce json
-// @Param id path string true "Session ID"
-// @Success 200 {object} models.UserSession
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions/{id} [get]
-func (h *UserSessionHandler) GetSession(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetByID gets session by ID
+func (h *UserSessionHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	session, err := h.service.GetSession(id)
+	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid session id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, session)
+	session, err := h.sessionService.GetByID(ctx, sessionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "session not found", nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, session)
 }
 
-// GetSessionByToken godoc
-// @Summary Get a user session by token
-// @Tags user-sessions
-// @Produce json
-// @Param token query string true "Session Token"
-// @Success 200 {object} models.UserSession
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions/token [get]
-func (h *UserSessionHandler) GetSessionByToken(w http.ResponseWriter, r *http.Request) {
-	token := r.URL.Query().Get("token")
+// GetByToken gets session by token
+func (h *UserSessionHandler) GetByToken(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	token := c.Query("token")
 	if token == "" {
-		respondWithError(w, http.StatusBadRequest, "token parameter is required")
+		httputil.ErrorResponse(c, http.StatusBadRequest, "token required", nil)
 		return
 	}
 
-	session, err := h.service.GetSessionByToken(token)
+	session, err := h.sessionService.GetByToken(ctx, token)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "session not found", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, session)
+	httputil.SuccessResponse(c, http.StatusOK, session)
 }
 
-// GetUserSessions godoc
-// @Summary Get all sessions for a specific user
-// @Tags user-sessions
-// @Produce json
-// @Param user_id path string true "User ID"
-// @Success 200 {object} []models.UserSession
-// @Failure 500 {object} map[string]string
-// @Router /users/{user_id}/sessions [get]
-func (h *UserSessionHandler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["user_id"]
+// Create creates a session
+func (h *UserSessionHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	sessions, err := h.service.GetUserSessions(userID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	var req service.CreateSessionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, sessions)
+	// Add client info
+	req.IPAddress = c.ClientIP()
+	req.UserAgent = c.GetHeader("User-Agent")
+
+	session, err := h.sessionService.CreateSession(ctx, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusCreated, session)
 }
 
-// ListSessions godoc
-// @Summary List user sessions with filters
-// @Tags user-sessions
-// @Produce json
-// @Param user_id query string false "Filter by user ID"
-// @Param is_active query bool false "Filter by active status"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions [get]
-func (h *UserSessionHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+// Delete deletes a session
+func (h *UserSessionHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var userID *string
-	if uid := query.Get("user_id"); uid != "" {
-		userID = &uid
-	}
-
-	var isActive *bool
-	if activeStr := query.Get("is_active"); activeStr != "" {
-		active := activeStr == "true"
-		isActive = &active
-	}
-
-	page, _ := strconv.Atoi(query.Get("page"))
-	pageSize, _ := strconv.Atoi(query.Get("page_size"))
-
-	sessions, total, err := h.service.ListSessions(userID, isActive, page, pageSize)
+	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid session id", nil)
 		return
 	}
 
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
+	if err := h.sessionService.DeleteSession(ctx, sessionID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
 	}
 
-	response := map[string]interface{}{
-		"data":        sessions,
-		"total":       total,
-		"page":        page,
-		"page_size":   pageSize,
-		"total_pages": (total + pageSize - 1) / pageSize,
-	}
-
-	respondWithJSON(w, http.StatusOK, response)
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "session deleted successfully"})
 }
 
-// UpdateSession godoc
-// @Summary Update a user session
-// @Tags user-sessions
-// @Accept json
-// @Produce json
-// @Param id path string true "Session ID"
-// @Param session body models.UpdateUserSessionRequest true "Session update data"
-// @Success 200 {object} models.UserSession
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions/{id} [put]
-func (h *UserSessionHandler) UpdateSession(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Revoke revokes a session
+func (h *UserSessionHandler) Revoke(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateUserSessionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	session, err := h.service.UpdateSession(id, &req)
+	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid session id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, session)
+	session, err := h.sessionService.RevokeSession(ctx, sessionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, session)
 }
 
-// UpdateSessionActivity godoc
-// @Summary Update last activity timestamp for a session
-// @Tags user-sessions
-// @Param id path string true "Session ID"
-// @Success 204
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions/{id}/activity [put]
-func (h *UserSessionHandler) UpdateSessionActivity(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Refresh refreshes a session
+func (h *UserSessionHandler) Refresh(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	err := h.service.UpdateSessionActivity(id)
+	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid session id", nil)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	session, err := h.sessionService.RefreshSession(ctx, sessionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, session)
 }
 
-// DeleteSession godoc
-// @Summary Delete a user session
-// @Tags user-sessions
-// @Param id path string true "Session ID"
-// @Success 204
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions/{id} [delete]
-func (h *UserSessionHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// UpdateActivity updates session activity
+func (h *UserSessionHandler) UpdateActivity(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	err := h.service.DeleteSession(id)
+	sessionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid session id", nil)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	session, err := h.sessionService.UpdateActivity(ctx, sessionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, session)
 }
 
-// DeleteAllUserSessions godoc
-// @Summary Delete all sessions for a specific user
-// @Tags user-sessions
-// @Param user_id path string true "User ID"
-// @Success 204
-// @Failure 500 {object} map[string]string
-// @Router /users/{user_id}/sessions [delete]
-func (h *UserSessionHandler) DeleteAllUserSessions(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["user_id"]
+// GetActive gets active sessions
+func (h *UserSessionHandler) GetActive(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	err := h.service.DeleteAllUserSessions(userID)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "user not authenticated", nil)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	sessions, err := h.sessionService.GetActiveSessions(ctx, userID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, sessions)
 }
 
-// DeactivateExpiredSessions godoc
-// @Summary Deactivate all expired sessions (maintenance endpoint)
-// @Tags user-sessions
-// @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /user-sessions/deactivate-expired [post]
-func (h *UserSessionHandler) DeactivateExpiredSessions(w http.ResponseWriter, r *http.Request) {
-	count, err := h.service.DeactivateExpiredSessions()
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+// RevokeAll revokes all sessions
+func (h *UserSessionHandler) RevokeAll(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "user not authenticated", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"deactivated_count": count,
-		"message":           "Expired sessions have been deactivated",
+	var req struct {
+		ExceptCurrent bool `json:"except_current"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	count, err := h.sessionService.RevokeAllSessions(ctx, userID, req.ExceptCurrent)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{
+		"message":       "sessions revoked successfully",
+		"revoked_count": count,
+	})
+}
+
+// Validate validates a session
+func (h *UserSessionHandler) Validate(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req struct {
+		Token string `json:"token" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	session, err := h.sessionService.ValidateSession(ctx, req.Token)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{
+		"valid":   true,
+		"session": session,
+	})
+}
+
+// CleanupExpired cleans up expired sessions
+func (h *UserSessionHandler) CleanupExpired(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	count, err := h.sessionService.CleanupExpiredSessions(ctx)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{
+		"message":        "expired sessions cleaned up",
+		"cleaned_count":  count,
 	})
 }

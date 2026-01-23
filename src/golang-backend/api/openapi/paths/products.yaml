@@ -1,0 +1,193 @@
+/products:
+  get:
+    summary: List all products
+    description: Retrieve a paginated list of products with optional filters
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: application_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+      - name: product_type
+        in: query
+        schema:
+          type: string
+          enum: [SUBSCRIPTION, LICENSE, ADDON, CREDIT, SERVICE]
+      - name: billing_cycle
+        in: query
+        schema:
+          type: string
+          enum: [MONTHLY, QUARTERLY, YEARLY, ONE_TIME]
+      - name: min_price
+        in: query
+        schema:
+          type: number
+          format: decimal
+      - name: max_price
+        in: query
+        schema:
+          type: number
+          format: decimal
+    responses:
+      '200':
+        description: Products retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product.yaml#/ProductListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new product
+    description: Create a new product (admin only)
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/product.yaml#/CreateProductRequest'
+    responses:
+      '201':
+        description: Product created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product.yaml#/ProductResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/products/{id}:
+  get:
+    summary: Get product by ID
+    description: Retrieve a single product by ID
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Product retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product.yaml#/ProductResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update product
+    description: Update product information (admin only)
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/product.yaml#/UpdateProductRequest'
+    responses:
+      '200':
+        description: Product updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product.yaml#/ProductResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete product
+    description: Soft delete a product (admin only)
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/products/sku/{sku}:
+  get:
+    summary: Get product by SKU
+    description: Retrieve a product by its unique SKU
+    tags:
+      - Products
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+        example: "HRMS-PREMIUM-MONTHLY"
+    responses:
+      '200':
+        description: Product retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product.yaml#/ProductResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

@@ -1,222 +1,165 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TenantDomainHandler struct {
-	service *service.TenantDomainService
+	domainService *service.TenantDomainService
+	authzService  *service.AuthorizationService
 }
 
-func NewTenantDomainHandler(service *service.TenantDomainService) *TenantDomainHandler {
-	return &TenantDomainHandler{service: service}
+func NewTenantDomainHandler(domainService *service.TenantDomainService, authzService *service.AuthorizationService) *TenantDomainHandler {
+	return &TenantDomainHandler{
+		domainService: domainService,
+		authzService:  authzService,
+	}
 }
 
-// CreateDomain godoc
-// @Summary Create a new tenant domain
-// @Tags tenant-domains
-// @Accept json
-// @Produce json
-// @Param domain body models.CreateTenantDomainRequest true "Domain data"
-// @Success 201 {object} models.TenantDomain
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains [post]
-func (h *TenantDomainHandler) CreateDomain(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateTenantDomainRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+// List lists tenant domains
+func (h *TenantDomainHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	domain, err := h.service.CreateDomain(&req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	domains, total, err := h.domainService.ListByTenant(ctx, tenantID, page, limit)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, domain)
+	httputil.PaginatedResponse(c, http.StatusOK, domains, total, page, limit)
 }
 
-// GetDomain godoc
-// @Summary Get a tenant domain by ID
-// @Tags tenant-domains
-// @Produce json
-// @Param id path string true "Domain ID"
-// @Success 200 {object} models.TenantDomain
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains/{id} [get]
-func (h *TenantDomainHandler) GetDomain(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetByID gets domain by ID
+func (h *TenantDomainHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	domain, err := h.service.GetDomain(id)
+	domainID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid domain id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, domain)
-}
-
-// GetDomainByName godoc
-// @Summary Get a tenant domain by domain name
-// @Tags tenant-domains
-// @Produce json
-// @Param domain path string true "Domain name"
-// @Success 200 {object} models.TenantDomain
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains/by-domain/{domain} [get]
-func (h *TenantDomainHandler) GetDomainByName(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	domain := vars["domain"]
-
-	tenantDomain, err := h.service.GetDomainByName(domain)
+	domain, err := h.domainService.GetByID(ctx, domainID)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "domain not found", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, tenantDomain)
+	httputil.SuccessResponse(c, http.StatusOK, domain)
 }
 
-// ListDomains godoc
-// @Summary List tenant domains
-// @Tags tenant-domains
-// @Produce json
-// @Param tenant_id query string false "Filter by tenant ID"
-// @Param verification_status query string false "Filter by verification status"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains [get]
-func (h *TenantDomainHandler) ListDomains(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+// Create creates a tenant domain
+func (h *TenantDomainHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var tenantID *string
-	if tid := query.Get("tenant_id"); tid != "" {
-		tenantID = &tid
+	var req service.CreateTenantDomainRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
 	}
 
-	var verificationStatus *string
-	if vs := query.Get("verification_status"); vs != "" {
-		verificationStatus = &vs
-	}
-
-	page, _ := strconv.Atoi(query.Get("page"))
-	pageSize, _ := strconv.Atoi(query.Get("page_size"))
-
-	domains, total, err := h.service.ListDomains(tenantID, verificationStatus, page, pageSize)
+	domain, err := h.domainService.CreateDomain(ctx, req)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":  domains,
-		"total": total,
-		"page":  page,
-		"page_size": pageSize,
-	}
-
-	respondWithJSON(w, http.StatusOK, response)
+	httputil.SuccessResponse(c, http.StatusCreated, domain)
 }
 
-// ListDomainsByTenant godoc
-// @Summary List domains for a specific tenant
-// @Tags tenant-domains
-// @Produce json
-// @Param tenant_id path string true "Tenant ID"
-// @Success 200 {array} models.TenantDomain
-// @Failure 500 {object} map[string]string
-// @Router /tenants/{tenant_id}/domains [get]
-func (h *TenantDomainHandler) ListDomainsByTenant(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenantID := vars["tenant_id"]
+// Update updates a tenant domain
+func (h *TenantDomainHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	domains, err := h.service.ListDomainsByTenant(tenantID)
+	domainID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid domain id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, domains)
+	var req service.UpdateTenantDomainRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	domain, err := h.domainService.UpdateDomain(ctx, domainID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, domain)
 }
 
-// UpdateDomain godoc
-// @Summary Update a tenant domain
-// @Tags tenant-domains
-// @Accept json
-// @Produce json
-// @Param id path string true "Domain ID"
-// @Param domain body models.UpdateTenantDomainRequest true "Update data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains/{id} [put]
-func (h *TenantDomainHandler) UpdateDomain(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Delete deletes a tenant domain
+func (h *TenantDomainHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateTenantDomainRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	domainID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid domain id", nil)
 		return
 	}
 
-	if err := h.service.UpdateDomain(id, &req); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	if err := h.domainService.DeleteDomain(ctx, domainID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Domain updated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "domain deleted successfully"})
 }
 
-// VerifyDomain godoc
-// @Summary Verify a tenant domain
-// @Tags tenant-domains
-// @Produce json
-// @Param id path string true "Domain ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains/{id}/verify [post]
-func (h *TenantDomainHandler) VerifyDomain(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Verify verifies domain ownership
+func (h *TenantDomainHandler) Verify(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.VerifyDomain(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	domainID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid domain id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Domain verified successfully"})
+	domain, err := h.domainService.VerifyDomain(ctx, domainID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, domain)
 }
 
-// DeleteDomain godoc
-// @Summary Delete a tenant domain
-// @Tags tenant-domains
-// @Produce json
-// @Param id path string true "Domain ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-domains/{id} [delete]
-func (h *TenantDomainHandler) DeleteDomain(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetVerificationInfo gets verification instructions
+func (h *TenantDomainHandler) GetVerificationInfo(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.DeleteDomain(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	domainID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid domain id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Domain deleted successfully"})
+	info, err := h.domainService.GetVerificationInfo(ctx, domainID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, info)
 }

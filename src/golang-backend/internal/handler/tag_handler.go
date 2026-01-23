@@ -6,160 +6,219 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TagHandler struct {
-	service service.TagService
+	tagService   *service.TagService
+	authzService *service.AuthorizationService
 }
 
-func NewTagHandler(service service.TagService) *TagHandler {
-	return &TagHandler{service: service}
+func NewTagHandler(tagService *service.TagService, authzService *service.AuthorizationService) *TagHandler {
+	return &TagHandler{
+		tagService:   tagService,
+		authzService: authzService,
+	}
 }
 
-func (h *TagHandler) CreateTag(c *gin.Context) {
-	var req models.CreateTagRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists tags
+func (h *TagHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	tag, err := h.service.CreateTag(c.Request.Context(), &req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	category := c.Query("category")
+
+	tags, total, err := h.tagService.ListByTenant(ctx, tenantID, category, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusCreated, tag)
+	httputil.PaginatedResponse(c, http.StatusOK, tags, total, page, limit)
 }
 
-func (h *TagHandler) GetTag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets tag by ID
+func (h *TagHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tag id", nil)
 		return
 	}
 
-	tag, err := h.service.GetTag(c.Request.Context(), id)
+	tag, err := h.tagService.GetByID(ctx, tagID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "tag not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, tag)
+	httputil.SuccessResponse(c, http.StatusOK, tag)
 }
 
-func (h *TagHandler) GetTagBySlug(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+// GetBySlug gets tag by slug
+func (h *TagHandler) GetBySlug(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
 	slug := c.Param("slug")
-	tag, err := h.service.GetTagBySlug(c.Request.Context(), tenantID, slug)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+	if slug == "" {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "slug required", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, tag)
+	tag, err := h.tagService.GetBySlug(ctx, tenantID, slug)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "tag not found", nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, tag)
 }
 
-func (h *TagHandler) ListTags(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+// Create creates a tag
+func (h *TagHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var tenantID *uuid.UUID
-	if tid := c.Query("tenant_id"); tid != "" {
-		parsed, err := uuid.Parse(tid)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	tags, total, err := h.service.ListTags(c.Request.Context(), page, pageSize, tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"data":      tags,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
-}
-
-func (h *TagHandler) ListTagsByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
-		return
-	}
-
-	tags, err := h.service.ListTagsByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, tags)
-}
-
-func (h *TagHandler) UpdateTag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
-		return
-	}
-
-	var req models.UpdateTagRequest
+	var req service.CreateTagRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	tag, err := h.service.UpdateTag(c.Request.Context(), id, &req)
+	tag, err := h.tagService.CreateTag(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, tag)
+	httputil.SuccessResponse(c, http.StatusCreated, tag)
 }
 
-func (h *TagHandler) DeleteTag(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a tag
+func (h *TagHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tag id", nil)
 		return
 	}
 
-	if err := h.service.DeleteTag(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateTagRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Tag deleted successfully"})
+	tag, err := h.tagService.UpdateTag(ctx, tagID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, tag)
 }
 
-func (h *TagHandler) IncrementUsage(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Delete deletes a tag
+func (h *TagHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tagID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tag ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid tag id", nil)
 		return
 	}
 
-	if err := h.service.IncrementUsage(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.tagService.DeleteTag(ctx, tagID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Usage count incremented"})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "tag deleted successfully"})
+}
+
+// Search searches tags
+func (h *TagHandler) Search(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+
+	query := c.Query("q")
+	if query == "" {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "query required", nil)
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	tags, err := h.tagService.SearchTags(ctx, tenantID, query, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, tags)
+}
+
+// GetPopular gets popular tags
+func (h *TagHandler) GetPopular(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	tags, err := h.tagService.GetPopularTags(ctx, tenantID, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, tags)
+}
+
+// Merge merges tags
+func (h *TagHandler) Merge(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req struct {
+		SourceTagID uuid.UUID `json:"source_tag_id" binding:"required"`
+		TargetTagID uuid.UUID `json:"target_tag_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	tag, err := h.tagService.MergeTags(ctx, req.SourceTagID, req.TargetTagID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, tag)
 }

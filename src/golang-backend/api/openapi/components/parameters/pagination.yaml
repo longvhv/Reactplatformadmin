@@ -1,0 +1,33 @@
+PageParam:
+  name: page
+  in: query
+  required: false
+  description: Page number (1-based)
+  schema:
+    type: integer
+    minimum: 1
+    default: 1
+    example: 1
+
+LimitParam:
+  name: limit
+  in: query
+  required: false
+  description: Number of items per page
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+    example: 20
+
+OffsetParam:
+  name: offset
+  in: query
+  required: false
+  description: Number of items to skip
+  schema:
+    type: integer
+    minimum: 0
+    default: 0
+    example: 0

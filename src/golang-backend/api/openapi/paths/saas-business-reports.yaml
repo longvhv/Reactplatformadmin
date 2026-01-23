@@ -1,0 +1,162 @@
+/saas-business-reports:
+  get:
+    summary: List business reports
+    description: Retrieve SaaS business reports
+    tags:
+      - SaaS Business Reports
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: partner_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: revenue_category
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date
+    responses:
+      '200':
+        description: Reports retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/saas-business-report.yaml#/SaaSBusinessReportListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create business report
+    description: Create a new business report
+    tags:
+      - SaaS Business Reports
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/saas-business-report.yaml#/CreateSaaSBusinessReportRequest'
+    responses:
+      '201':
+        description: Report created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/saas-business-report.yaml#/SaaSBusinessReportResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/saas-business-reports/{id}:
+  get:
+    summary: Get report by ID
+    description: Retrieve a single business report
+    tags:
+      - SaaS Business Reports
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Report retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/saas-business-report.yaml#/SaaSBusinessReportResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/saas-business-reports/summary:
+  get:
+    summary: Get report summary
+    description: Get business report summary and aggregates
+    tags:
+      - SaaS Business Reports
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: partner_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+      - name: group_by
+        in: query
+        schema:
+          type: string
+          enum: [day, week, month, year]
+          default: "month"
+    responses:
+      '200':
+        description: Summary retrieved
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    total_revenue:
+                      type: number
+                    total_tenants:
+                      type: integer
+                    by_category:
+                      type: object
+                    by_partner:
+                      type: object
+                    trend:
+                      type: array
+                      items:
+                        type: object
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

@@ -1,0 +1,140 @@
+TenantServiceDelivery:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        product_id:
+          type: string
+          format: uuid
+          description: Product ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        subscription_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Subscription ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        unit_type:
+          type: string
+          description: Unit type
+          example: "GB"
+        total_units:
+          type: number
+          default: 0
+          description: Total units
+          example: 100
+        delivered_units:
+          type: number
+          default: 0
+          description: Delivered units
+          example: 45.5
+        unit_price:
+          type: number
+          default: 0
+          description: Price per unit
+          example: 5000
+        currency_code:
+          type: string
+          default: "VND"
+          description: Currency code
+          example: "VND"
+        status:
+          type: string
+          enum:
+            - PENDING
+            - IN_PROGRESS
+            - COMPLETED
+            - CANCELLED
+          default: "PENDING"
+          description: Delivery status
+          example: "IN_PROGRESS"
+        service_metadata:
+          type: object
+          description: Service metadata
+          default: {}
+          example:
+            delivery_method: "auto"
+            priority: "normal"
+      required:
+        - tenant_id
+        - product_id
+        - unit_type
+        - status
+
+CreateTenantServiceDeliveryRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    product_id:
+      type: string
+      format: uuid
+    subscription_id:
+      type: string
+      format: uuid
+      nullable: true
+    unit_type:
+      type: string
+    total_units:
+      type: number
+      default: 0
+    unit_price:
+      type: number
+      default: 0
+    currency_code:
+      type: string
+      default: "VND"
+    service_metadata:
+      type: object
+      default: {}
+  required:
+    - tenant_id
+    - product_id
+    - unit_type
+
+UpdateTenantServiceDeliveryRequest:
+  type: object
+  properties:
+    delivered_units:
+      type: number
+    status:
+      type: string
+      enum: [PENDING, IN_PROGRESS, COMPLETED, CANCELLED]
+    service_metadata:
+      type: object
+  minProperties: 1
+
+TenantServiceDeliveryListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantServiceDelivery'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantServiceDeliveryResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantServiceDelivery'
+  required:
+    - success
+    - data

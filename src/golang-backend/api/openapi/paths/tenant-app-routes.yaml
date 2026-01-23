@@ -1,0 +1,189 @@
+/tenant-app-routes:
+  get:
+    summary: List tenant app routes
+    description: Retrieve tenant application routes
+    tags:
+      - Tenant App Routes
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: app_code
+        in: query
+        schema:
+          type: string
+      - name: is_primary
+        in: query
+        schema:
+          type: boolean
+      - name: is_custom_domain
+        in: query
+        schema:
+          type: boolean
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [ACTIVE, INACTIVE, MAINTENANCE, PENDING_DNS]
+      - name: ssl_status
+        in: query
+        schema:
+          type: string
+          enum: [NONE, PENDING, ACTIVE, FAILED]
+    responses:
+      '200':
+        description: Routes retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-app-route.yaml#/TenantAppRouteListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create tenant app route
+    description: Create a new route
+    tags:
+      - Tenant App Routes
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-app-route.yaml#/CreateTenantAppRouteRequest'
+    responses:
+      '201':
+        description: Route created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-app-route.yaml#/TenantAppRouteResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-app-routes/{id}:
+  get:
+    summary: Get route by ID
+    description: Retrieve a single route
+    tags:
+      - Tenant App Routes
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Route retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-app-route.yaml#/TenantAppRouteResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update route
+    description: Update route details
+    tags:
+      - Tenant App Routes
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-app-route.yaml#/UpdateTenantAppRouteRequest'
+    responses:
+      '200':
+        description: Route updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-app-route.yaml#/TenantAppRouteResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete route
+    description: Delete route (soft delete)
+    tags:
+      - Tenant App Routes
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-app-routes/{id}/verify-ssl:
+  post:
+    summary: Verify SSL
+    description: Verify SSL certificate status
+    tags:
+      - Tenant App Routes
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: SSL verified
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-app-route.yaml#/TenantAppRouteResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

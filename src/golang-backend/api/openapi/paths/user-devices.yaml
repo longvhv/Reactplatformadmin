@@ -1,0 +1,207 @@
+/user-devices:
+  get:
+    summary: List user devices
+    description: Retrieve user devices
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [active, inactive, blocked, revoked]
+      - name: is_trusted
+        in: query
+        schema:
+          type: boolean
+      - name: device_type
+        in: query
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Devices retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-device.yaml#/UserDeviceListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Register device
+    description: Register a new device
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-device.yaml#/RegisterDeviceRequest'
+    responses:
+      '201':
+        description: Device registered successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-device.yaml#/UserDeviceResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-devices/{id}:
+  get:
+    summary: Get device by ID
+    description: Retrieve a single device
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Device retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-device.yaml#/UserDeviceResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update device
+    description: Update device details
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-device.yaml#/UpdateDeviceRequest'
+    responses:
+      '200':
+        description: Device updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-device.yaml#/UserDeviceResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete device
+    description: Remove device
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-devices/me:
+  get:
+    summary: Get my devices
+    description: Retrieve current user's devices
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+    responses:
+      '200':
+        description: Devices retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-device.yaml#/UserDeviceListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-devices/{id}/revoke:
+  post:
+    summary: Revoke device
+    description: Revoke device access
+    tags:
+      - User Devices
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              reason:
+                type: string
+                example: "Lost device"
+    responses:
+      '200':
+        description: Device revoked successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-device.yaml#/UserDeviceResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

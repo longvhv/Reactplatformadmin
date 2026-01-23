@@ -1,0 +1,218 @@
+/user-delegations:
+  get:
+    summary: List user delegations
+    description: Retrieve user delegations
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: delegator_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: delegate_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [pending, active, expired, revoked, suspended]
+      - name: scope
+        in: query
+        schema:
+          type: string
+          enum: [admin, manager, editor, viewer, approver, reviewer, auditor, custom]
+    responses:
+      '200':
+        description: Delegations retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create delegation
+    description: Create a new delegation
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-delegation.yaml#/CreateUserDelegationRequest'
+    responses:
+      '201':
+        description: Delegation created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-delegations/{id}:
+  get:
+    summary: Get delegation by ID
+    description: Retrieve a single delegation
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Delegation retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update delegation
+    description: Update delegation details
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-delegation.yaml#/UpdateUserDelegationRequest'
+    responses:
+      '200':
+        description: Delegation updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-delegations/{id}/revoke:
+  post:
+    summary: Revoke delegation
+    description: Revoke delegation
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              reason:
+                type: string
+                example: "No longer needed"
+    responses:
+      '200':
+        description: Delegation revoked successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-delegations/me/as-delegator:
+  get:
+    summary: Get my delegations as delegator
+    description: Retrieve delegations I've granted
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+    responses:
+      '200':
+        description: Delegations retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-delegations/me/as-delegate:
+  get:
+    summary: Get my delegations as delegate
+    description: Retrieve delegations granted to me
+    tags:
+      - User Delegations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+    responses:
+      '200':
+        description: Delegations retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-delegation.yaml#/UserDelegationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

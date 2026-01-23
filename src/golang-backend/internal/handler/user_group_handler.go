@@ -6,223 +6,230 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type UserGroupHandler struct {
-	service service.UserGroupService
+	groupService *service.UserGroupService
+	authzService *service.AuthorizationService
 }
 
-func NewUserGroupHandler(service service.UserGroupService) *UserGroupHandler {
-	return &UserGroupHandler{service: service}
+func NewUserGroupHandler(groupService *service.UserGroupService, authzService *service.AuthorizationService) *UserGroupHandler {
+	return &UserGroupHandler{
+		groupService: groupService,
+		authzService: authzService,
+	}
 }
 
-func (h *UserGroupHandler) CreateGroup(c *gin.Context) {
-	var req models.CreateUserGroupRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists user groups
+func (h *UserGroupHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	group, err := h.service.CreateGroup(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, group)
-}
-
-func (h *UserGroupHandler) ListGroups(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	status := c.Query("status")
+	groupType := c.Query("group_type")
 
-	var tenantID *uuid.UUID
-	if tenantIDStr := c.Query("tenant_id"); tenantIDStr != "" {
-		parsed, err := uuid.Parse(tenantIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	groups, total, err := h.service.ListGroups(c.Request.Context(), page, pageSize, tenantID, status)
+	groups, total, err := h.groupService.ListByTenant(ctx, tenantID, status, groupType, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      groups,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, groups, total, page, limit)
 }
 
-func (h *UserGroupHandler) GetGroup(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets group by ID
+func (h *UserGroupHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	groupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid group id", nil)
 		return
 	}
 
-	group, err := h.service.GetGroup(c.Request.Context(), id)
+	group, err := h.groupService.GetByID(ctx, groupID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "group not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, group)
+	httputil.SuccessResponse(c, http.StatusOK, group)
 }
 
-func (h *UserGroupHandler) GetGroupByCode(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+// GetByCode gets group by code
+func (h *UserGroupHandler) GetByCode(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
 	code := c.Param("code")
 	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "code required", nil)
 		return
 	}
 
-	group, err := h.service.GetGroupByCode(c.Request.Context(), tenantID, code)
+	group, err := h.groupService.GetByCode(ctx, tenantID, code)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "group not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, group)
+	httputil.SuccessResponse(c, http.StatusOK, group)
 }
 
-func (h *UserGroupHandler) UpdateGroup(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
-		return
-	}
+// Create creates a group
+func (h *UserGroupHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateUserGroupRequest
+	var req service.CreateUserGroupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	group, err := h.service.UpdateGroup(c.Request.Context(), id, &req)
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	group, err := h.groupService.CreateGroup(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, group)
+	httputil.SuccessResponse(c, http.StatusCreated, group)
 }
 
-func (h *UserGroupHandler) DeleteGroup(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a group
+func (h *UserGroupHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	groupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid group id", nil)
 		return
 	}
 
-	if err := h.service.DeleteGroup(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-
-func (h *UserGroupHandler) SoftDeleteGroup(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
-		return
-	}
-
-	var req struct {
-		DeletedBy string `json:"deleted_by" binding:"required"`
-	}
+	var req service.UpdateUserGroupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.SoftDeleteGroup(c.Request.Context(), id, req.DeletedBy); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	group, err := h.groupService.UpdateGroup(ctx, groupID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "group soft deleted successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, group)
 }
 
-func (h *UserGroupHandler) ListGroupsByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Delete deletes a group
+func (h *UserGroupHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	groupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid group id", nil)
 		return
 	}
 
-	groups, err := h.service.ListGroupsByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.groupService.DeleteGroup(ctx, groupID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": groups})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "group deleted successfully"})
 }
 
-func (h *UserGroupHandler) ListGroupsByStatus(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// AddMember adds a member to group
+func (h *UserGroupHandler) AddMember(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	groupID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid group id", nil)
 		return
 	}
 
-	status := c.Param("status")
-	if status == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
-		return
-	}
-
-	groups, err := h.service.ListGroupsByStatus(c.Request.Context(), tenantID, status)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": groups})
-}
-
-func (h *UserGroupHandler) UpdateGroupStatus(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid group ID"})
-		return
-	}
-
-	var req struct {
-		Status string `json:"status" binding:"required,oneof=ACTIVE INACTIVE ARCHIVED"`
-	}
+	var req service.AddGroupMemberRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.UpdateGroupStatus(c.Request.Context(), id, req.Status); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	req.UserGroupID = groupID
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	member, err := h.groupService.AddMember(ctx, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "group status updated successfully"})
+	httputil.SuccessResponse(c, http.StatusCreated, member)
+}
+
+// RemoveMember removes a member from group
+func (h *UserGroupHandler) RemoveMember(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	groupID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid group id", nil)
+		return
+	}
+
+	memberID, err := uuid.Parse(c.Param("memberId"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid member id", nil)
+		return
+	}
+
+	if err := h.groupService.RemoveMember(ctx, groupID, memberID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "member removed successfully"})
+}
+
+// GetMembers gets group members
+func (h *UserGroupHandler) GetMembers(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	groupID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid group id", nil)
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	members, total, err := h.groupService.GetMembers(ctx, groupID, page, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.PaginatedResponse(c, http.StatusOK, members, total, page, limit)
 }

@@ -6,171 +6,143 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type ReservedSlugHandler struct {
-	service service.ReservedSlugService
+	slugService  *service.ReservedSlugService
+	authzService *service.AuthorizationService
 }
 
-func NewReservedSlugHandler(service service.ReservedSlugService) *ReservedSlugHandler {
-	return &ReservedSlugHandler{service: service}
+func NewReservedSlugHandler(slugService *service.ReservedSlugService, authzService *service.AuthorizationService) *ReservedSlugHandler {
+	return &ReservedSlugHandler{
+		slugService:  slugService,
+		authzService: authzService,
+	}
 }
 
-func (h *ReservedSlugHandler) CreateSlug(c *gin.Context) {
-	var req models.CreateReservedSlugRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+// List lists reserved slugs
+func (h *ReservedSlugHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	slug, err := h.service.CreateSlug(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, slug)
-}
-
-func (h *ReservedSlugHandler) GetSlug(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid slug ID"})
-		return
-	}
-
-	slug, err := h.service.GetSlug(c.Request.Context(), id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, slug)
-}
-
-func (h *ReservedSlugHandler) GetSlugByName(c *gin.Context) {
-	slugName := c.Param("slug")
-	if slugName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "slug is required"})
-		return
-	}
-
-	slug, err := h.service.GetSlugByName(c.Request.Context(), slugName)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, slug)
-}
-
-func (h *ReservedSlugHandler) ListSlugs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	slugType := c.Query("type")
+	matchType := c.Query("match_type")
 
-	var slugType *string
-	if st := c.Query("type"); st != "" {
-		slugType = &st
-	}
-
-	var isActive *bool
-	if ia := c.Query("is_active"); ia != "" {
-		active := ia == "true"
-		isActive = &active
-	}
-
-	slugs, total, err := h.service.ListSlugs(c.Request.Context(), page, pageSize, slugType, isActive)
+	slugs, total, err := h.slugService.ListSlugs(ctx, slugType, matchType, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      slugs,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
+	httputil.PaginatedResponse(c, http.StatusOK, slugs, total, page, limit)
+}
+
+// GetByID gets reserved slug by ID
+func (h *ReservedSlugHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	slugID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid slug id", nil)
+		return
+	}
+
+	slug, err := h.slugService.GetByID(ctx, slugID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "slug not found", nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, slug)
+}
+
+// CheckSlug checks if a slug is reserved
+func (h *ReservedSlugHandler) CheckSlug(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req struct {
+		Slug string `json:"slug" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	isReserved, reason, err := h.slugService.IsSlugReserved(ctx, req.Slug)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{
+		"slug":        req.Slug,
+		"is_reserved": isReserved,
+		"reason":      reason,
 	})
 }
 
-func (h *ReservedSlugHandler) ListSlugsByType(c *gin.Context) {
-	slugType := c.Param("type")
-	if slugType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type is required"})
-		return
-	}
+// Create creates a reserved slug
+func (h *ReservedSlugHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	slugs, err := h.service.ListSlugsByType(c.Request.Context(), slugType)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, slugs)
-}
-
-func (h *ReservedSlugHandler) UpdateSlug(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid slug ID"})
-		return
-	}
-
-	var req models.UpdateReservedSlugRequest
+	var req service.CreateReservedSlugRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	slug, err := h.service.UpdateSlug(c.Request.Context(), id, &req)
+	slug, err := h.slugService.CreateSlug(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, slug)
+	httputil.SuccessResponse(c, http.StatusCreated, slug)
 }
 
-func (h *ReservedSlugHandler) DeleteSlug(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a reserved slug
+func (h *ReservedSlugHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	slugID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid slug ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid slug id", nil)
 		return
 	}
 
-	if err := h.service.DeleteSlug(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Slug deleted successfully"})
-}
-
-func (h *ReservedSlugHandler) CheckSlug(c *gin.Context) {
-	var req models.CheckSlugRequest
+	var req service.UpdateReservedSlugRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	response, err := h.service.CheckSlug(c.Request.Context(), req.Slug)
+	slug, err := h.slugService.UpdateSlug(ctx, slugID, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	httputil.SuccessResponse(c, http.StatusOK, slug)
 }
 
-func (h *ReservedSlugHandler) ListActiveSlugs(c *gin.Context) {
-	slugs, err := h.service.ListActiveSlugs(c.Request.Context())
+// Delete deletes a reserved slug
+func (h *ReservedSlugHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	slugID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid slug id", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, slugs)
+	if err := h.slugService.DeleteSlug(ctx, slugID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "slug deleted successfully"})
 }

@@ -1,181 +1,240 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TenantSubscriptionHandler struct {
-	service *service.TenantSubscriptionService
+	subscriptionService *service.TenantSubscriptionService
+	authzService        *service.AuthorizationService
 }
 
-func NewTenantSubscriptionHandler(service *service.TenantSubscriptionService) *TenantSubscriptionHandler {
-	return &TenantSubscriptionHandler{service: service}
+func NewTenantSubscriptionHandler(subscriptionService *service.TenantSubscriptionService, authzService *service.AuthorizationService) *TenantSubscriptionHandler {
+	return &TenantSubscriptionHandler{
+		subscriptionService: subscriptionService,
+		authzService:        authzService,
+	}
 }
 
-// CreateSubscription godoc
-// @Summary Create a new tenant subscription
-// @Tags tenant-subscriptions
-// @Accept json
-// @Produce json
-// @Param subscription body models.CreateTenantSubscriptionRequest true "Subscription data"
-// @Success 201 {object} models.TenantSubscription
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-subscriptions [post]
-func (h *TenantSubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateTenantSubscriptionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+// List lists tenant subscriptions
+func (h *TenantSubscriptionHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	subscription, err := h.service.CreateSubscription(&req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	status := c.Query("status")
+
+	subscriptions, total, err := h.subscriptionService.ListByTenant(ctx, tenantID, status, page, limit)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, subscription)
+	httputil.PaginatedResponse(c, http.StatusOK, subscriptions, total, page, limit)
 }
 
-// GetSubscription godoc
-// @Summary Get a tenant subscription by ID
-// @Tags tenant-subscriptions
-// @Produce json
-// @Param id path string true "Subscription ID"
-// @Success 200 {object} models.TenantSubscription
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-subscriptions/{id} [get]
-func (h *TenantSubscriptionHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetActive gets active subscription
+func (h *TenantSubscriptionHandler) GetActive(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	subscription, err := h.service.GetSubscription(id)
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+
+	subscription, err := h.subscriptionService.GetActiveSubscription(ctx, tenantID)
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "no active subscription found", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, subscription)
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
 }
 
-// ListSubscriptions godoc
-// @Summary List tenant subscriptions
-// @Tags tenant-subscriptions
-// @Produce json
-// @Param tenant_id query string false "Filter by tenant ID"
-// @Param status query string false "Filter by status"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /tenant-subscriptions [get]
-func (h *TenantSubscriptionHandler) ListSubscriptions(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
+// GetByID gets subscription by ID
+func (h *TenantSubscriptionHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var tenantID *string
-	if tid := query.Get("tenant_id"); tid != "" {
-		tenantID = &tid
-	}
-
-	var status *string
-	if s := query.Get("status"); s != "" {
-		status = &s
-	}
-
-	page, _ := strconv.Atoi(query.Get("page"))
-	pageSize, _ := strconv.Atoi(query.Get("page_size"))
-
-	subscriptions, total, err := h.service.ListSubscriptions(tenantID, status, page, pageSize)
+	subscriptionID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
 		return
 	}
 
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-
-	response := map[string]interface{}{
-		"data":       subscriptions,
-		"total":      total,
-		"page":       page,
-		"page_size":  pageSize,
-		"total_pages": (total + pageSize - 1) / pageSize,
-	}
-
-	respondWithJSON(w, http.StatusOK, response)
-}
-
-// UpdateSubscription godoc
-// @Summary Update a tenant subscription
-// @Tags tenant-subscriptions
-// @Accept json
-// @Produce json
-// @Param id path string true "Subscription ID"
-// @Param subscription body models.UpdateTenantSubscriptionRequest true "Subscription update data"
-// @Success 200 {object} models.TenantSubscription
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-subscriptions/{id} [put]
-func (h *TenantSubscriptionHandler) UpdateSubscription(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
-
-	var req models.UpdateTenantSubscriptionRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	subscription, err := h.service.UpdateSubscription(id, &req)
+	subscription, err := h.subscriptionService.GetByID(ctx, subscriptionID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "subscription not found", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, subscription)
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
 }
 
-// DeleteSubscription godoc
-// @Summary Delete a tenant subscription
-// @Tags tenant-subscriptions
-// @Param id path string true "Subscription ID"
-// @Success 204
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-subscriptions/{id} [delete]
-func (h *TenantSubscriptionHandler) DeleteSubscription(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Create creates a subscription
+func (h *TenantSubscriptionHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	err := h.service.DeleteSubscription(id)
+	var req service.CreateTenantSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	subscription, err := h.subscriptionService.CreateSubscription(ctx, req)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	httputil.SuccessResponse(c, http.StatusCreated, subscription)
 }
 
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, _ := json.Marshal(payload)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	w.Write(response)
+// Update updates a subscription
+func (h *TenantSubscriptionHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
+		return
+	}
+
+	var req service.UpdateTenantSubscriptionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	subscription, err := h.subscriptionService.UpdateSubscription(ctx, subscriptionID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
 }
 
-func respondWithError(w http.ResponseWriter, code int, message string) {
-	respondWithJSON(w, code, map[string]string{"error": message})
+// Cancel cancels a subscription
+func (h *TenantSubscriptionHandler) Cancel(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
+		return
+	}
+
+	subscription, err := h.subscriptionService.CancelSubscription(ctx, subscriptionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
+}
+
+// Renew renews a subscription
+func (h *TenantSubscriptionHandler) Renew(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
+		return
+	}
+
+	subscription, err := h.subscriptionService.RenewSubscription(ctx, subscriptionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
+}
+
+// Suspend suspends a subscription
+func (h *TenantSubscriptionHandler) Suspend(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
+		return
+	}
+
+	subscription, err := h.subscriptionService.SuspendSubscription(ctx, subscriptionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
+}
+
+// Reactivate reactivates a subscription
+func (h *TenantSubscriptionHandler) Reactivate(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
+		return
+	}
+
+	subscription, err := h.subscriptionService.ReactivateSubscription(ctx, subscriptionID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
+}
+
+// UpdateUsage updates subscription usage
+func (h *TenantSubscriptionHandler) UpdateUsage(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	subscriptionID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid subscription id", nil)
+		return
+	}
+
+	var req struct {
+		CurrentUsers     *int     `json:"current_users"`
+		CurrentStorageGB *float64 `json:"current_storage_gb"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	subscription, err := h.subscriptionService.UpdateUsage(ctx, subscriptionID, req.CurrentUsers, req.CurrentStorageGB)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, subscription)
 }

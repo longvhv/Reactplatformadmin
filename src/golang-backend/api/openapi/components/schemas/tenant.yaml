@@ -1,0 +1,211 @@
+Tenant:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          pattern: "^[a-z0-9-]+$"
+          minLength: 3
+          maxLength: 50
+          description: Unique tenant code (slug, lowercase alphanumeric with hyphens)
+          example: "acme-corp"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Tenant display name
+          example: "ACME Corporation"
+        description:
+          type: string
+          nullable: true
+          description: Tenant description
+          example: "Leading provider of innovative solutions"
+        logo_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to tenant logo
+          example: "https://example.com/logos/acme.png"
+        website_url:
+          type: string
+          format: uri
+          nullable: true
+          description: Tenant website URL
+          example: "https://acme-corp.com"
+        contact_email:
+          type: string
+          format: email
+          nullable: true
+          description: Primary contact email
+          example: "contact@acme-corp.com"
+        contact_phone:
+          type: string
+          nullable: true
+          description: Primary contact phone
+          example: "+84901234567"
+        status:
+          $ref: './common.yaml#/TenantStatus'
+        is_active:
+          type: boolean
+          description: Whether tenant is currently active
+          default: true
+          example: true
+        trial_ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Trial period end date
+          example: "2026-02-22T23:59:59Z"
+        subscription_tier:
+          type: string
+          nullable: true
+          description: Current subscription tier
+          example: "PREMIUM"
+        settings:
+          type: object
+          additionalProperties: true
+          description: Tenant-specific settings (JSON)
+          example:
+            theme: "dark"
+            language: "vi"
+            timezone: "Asia/Ho_Chi_Minh"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - code
+        - name
+        - status
+        - is_active
+
+CreateTenantRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: "^[a-z0-9-]+$"
+      minLength: 3
+      maxLength: 50
+      description: Unique tenant code
+      example: "new-company"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Tenant name
+      example: "New Company Ltd"
+    description:
+      type: string
+      nullable: true
+      example: "A new innovative company"
+    logo_url:
+      type: string
+      format: uri
+      nullable: true
+      example: "https://example.com/logos/new-company.png"
+    website_url:
+      type: string
+      format: uri
+      nullable: true
+      example: "https://new-company.com"
+    contact_email:
+      type: string
+      format: email
+      nullable: true
+      example: "info@new-company.com"
+    contact_phone:
+      type: string
+      nullable: true
+      example: "+84912345678"
+    status:
+      $ref: './common.yaml#/TenantStatus'
+    subscription_tier:
+      type: string
+      nullable: true
+      example: "TRIAL"
+    settings:
+      type: object
+      additionalProperties: true
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+
+UpdateTenantRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      example: "Updated Company Name"
+    description:
+      type: string
+      nullable: true
+      example: "Updated description"
+    logo_url:
+      type: string
+      format: uri
+      nullable: true
+      example: "https://example.com/logos/updated.png"
+    website_url:
+      type: string
+      format: uri
+      nullable: true
+      example: "https://updated.com"
+    contact_email:
+      type: string
+      format: email
+      nullable: true
+      example: "updated@company.com"
+    contact_phone:
+      type: string
+      nullable: true
+      example: "+84987654321"
+    status:
+      $ref: './common.yaml#/TenantStatus'
+    is_active:
+      type: boolean
+      example: true
+    subscription_tier:
+      type: string
+      nullable: true
+      example: "PREMIUM"
+    settings:
+      type: object
+      additionalProperties: true
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+TenantListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Tenant'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Tenant'
+  required:
+    - success
+    - data

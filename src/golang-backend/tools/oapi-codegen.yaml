@@ -1,0 +1,30 @@
+# oapi-codegen configuration for VHV Platform API
+# Used for generating Go code from OpenAPI 3.0 specification
+
+package: generated
+generate:
+  models: true
+  chi-server: true
+  client: true
+  embedded-spec: true
+
+output-options:
+  skip-prune: true
+  user-templates:
+    # Custom templates can be added here
+  
+compatibility:
+  always-prefix-enum-values: true
+  apply-chi-middleware-first-to-last: true
+
+import-mapping:
+  # Map OpenAPI types to Go types
+  ./components/schemas/common.yaml:
+    BaseModel: github.com/vhv-platform/backend/internal/models.BaseModel
+    PaginationMeta: github.com/vhv-platform/backend/internal/models.PaginationMeta
+
+output:
+  models: internal/generated/models
+  server: internal/generated/server  
+  client: internal/generated/client
+  spec: internal/generated/spec

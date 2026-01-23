@@ -3,108 +3,203 @@ package service
 import (
 	"context"
 	"fmt"
-	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/models"
 	"github.com/vhv-platform/backend/internal/repository"
+	"github.com/vhv-platform/backend/pkg/cache"
 )
 
 type OrderService struct {
-	repo *repository.OrderRepository
+	orderRepo repository.OrderRepository
+	cache     cache.Cache
 }
 
-func NewOrderService(repo *repository.OrderRepository) *OrderService {
-	return &OrderService{repo: repo}
-}
-
-func (s *OrderService) GetAll(ctx context.Context, filters models.OrderFilters) ([]models.Order, error) {
-	return s.repo.GetAll(ctx, filters)
-}
-
-func (s *OrderService) GetByID(ctx context.Context, id string) (*models.Order, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid order ID format")
+func NewOrderService(orderRepo repository.OrderRepository, cache cache.Cache) *OrderService {
+	return &OrderService{
+		orderRepo: orderRepo,
+		cache:     cache,
 	}
-	return s.repo.GetByID(ctx, id)
 }
 
-func (s *OrderService) GetByOrderNumber(ctx context.Context, orderNumber string) (*models.Order, error) {
-	return s.repo.GetByOrderNumber(ctx, orderNumber)
-}
+// GetByID gets order by ID
+func (s *OrderService) GetByID(ctx context.Context, id uuid.UUID) (*models.Order, error) {
+	cacheKey := cache.OrderCacheKey(id.String())
+	var order models.Order
+	err := s.cache.GetJSON(ctx, cacheKey, &order)
+	if err == nil {
+		return &order, nil
+	}
 
-func (s *OrderService) Create(ctx context.Context, req models.CreateOrderRequest) (*models.Order, error) {
-	if err := s.validateCreateRequest(req); err != nil {
+	dbOrder, err := s.orderRepo.GetByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
-	existing, _ := s.repo.GetByOrderNumber(ctx, req.OrderNumber)
-	if existing != nil {
-		return nil, fmt.Errorf("order number already exists")
-	}
-
-	return s.repo.Create(ctx, req)
+	_ = s.cache.SetJSON(ctx, cacheKey, dbOrder, cache.OrderTTL)
+	return dbOrder, nil
 }
 
-func (s *OrderService) Update(ctx context.Context, id string, req models.UpdateOrderRequest) (*models.Order, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid order ID format")
+// ListByTenant lists orders by tenant
+func (s *OrderService) ListByTenant(ctx context.Context, tenantID uuid.UUID, page, limit int) ([]*models.Order, int64, error) {
+	offset := (page - 1) * limit
+	orders, total, err := s.orderRepo.ListByTenant(ctx, tenantID, limit, offset)
+	if err != nil {
+		return nil, 0, err
 	}
 
-	if err := s.validateUpdateRequest(req); err != nil {
-		return nil, err
-	}
-
-	return s.repo.Update(ctx, id, req)
+	return orders, total, nil
 }
 
-func (s *OrderService) Delete(ctx context.Context, id string) error {
-	if !isValidUUID(id) {
-		return fmt.Errorf("invalid order ID format")
-	}
-	return s.repo.Delete(ctx, id)
-}
-
-func (s *OrderService) validateCreateRequest(req models.CreateOrderRequest) error {
-	orderNumber := strings.TrimSpace(req.OrderNumber)
-	if orderNumber == "" {
-		return fmt.Errorf("order number is required")
-	}
-
-	if len(req.CurrencyCode) != 3 {
-		return fmt.Errorf("currency code must be 3 characters")
+// CreateOrder creates a new order
+func (s *OrderService) CreateOrder(ctx context.Context, req CreateOrderRequest) (*models.Order, error) {
+	if req.Quantity <= 0 {
+		return nil, fmt.Errorf("quantity must be greater than 0")
 	}
 
 	if req.TotalAmount < 0 {
-		return fmt.Errorf("total amount cannot be negative")
+		return nil, fmt.Errorf("total amount must be non-negative")
 	}
 
-	if req.ItemsSnapshot == nil || len(req.ItemsSnapshot) == 0 {
-		return fmt.Errorf("order must have at least one item")
+	order := &models.Order{
+		ID:           uuid.New(),
+		TenantID:     req.TenantID,
+		CustomerID:   req.CustomerID,
+		ProductID:    req.ProductID,
+		Quantity:     req.Quantity,
+		UnitPrice:    req.UnitPrice,
+		TotalAmount:  req.TotalAmount,
+		Currency:     req.Currency,
+		BillingCycle: req.BillingCycle,
+		Status:       req.Status,
+		Notes:        req.Notes,
+		Metadata:     req.Metadata,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
-	if req.BillingInfo == nil {
-		return fmt.Errorf("billing info is required")
+	if order.Status == "" {
+		order.Status = "pending"
 	}
+
+	if err := s.orderRepo.Create(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to create order: %w", err)
+	}
+
+	return order, nil
+}
+
+// UpdateOrder updates an order
+func (s *OrderService) UpdateOrder(ctx context.Context, id uuid.UUID, req UpdateOrderRequest) (*models.Order, error) {
+	order, err := s.orderRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	if req.Status != nil {
+		order.Status = *req.Status
+	}
+	if req.Notes != nil {
+		order.Notes = req.Notes
+	}
+	if req.Metadata != nil {
+		order.Metadata = req.Metadata
+	}
+	if req.ProcessedAt != nil {
+		order.ProcessedAt = req.ProcessedAt
+	}
+	if req.CompletedAt != nil {
+		order.CompletedAt = req.CompletedAt
+	}
+	if req.CancelledAt != nil {
+		order.CancelledAt = req.CancelledAt
+	}
+
+	order.UpdatedAt = time.Now()
+
+	if err := s.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to update order: %w", err)
+	}
+
+	cacheKey := cache.OrderCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	return order, nil
+}
+
+// DeleteOrder deletes an order
+func (s *OrderService) DeleteOrder(ctx context.Context, id uuid.UUID) error {
+	if err := s.orderRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete order: %w", err)
+	}
+
+	cacheKey := cache.OrderCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
 
 	return nil
 }
 
-func (s *OrderService) validateUpdateRequest(req models.UpdateOrderRequest) error {
-	if req.TotalAmount != nil && *req.TotalAmount < 0 {
-		return fmt.Errorf("total amount cannot be negative")
+// CancelOrder cancels an order
+func (s *OrderService) CancelOrder(ctx context.Context, id uuid.UUID, reason string) (*models.Order, error) {
+	order, err := s.orderRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
 	}
 
-	if req.SubtotalAmount != nil && *req.SubtotalAmount < 0 {
-		return fmt.Errorf("subtotal amount cannot be negative")
+	if order.Status == "completed" {
+		return nil, fmt.Errorf("cannot cancel completed order")
 	}
 
-	if req.TaxAmount != nil && *req.TaxAmount < 0 {
-		return fmt.Errorf("tax amount cannot be negative")
+	if order.Status == "cancelled" {
+		return nil, fmt.Errorf("order already cancelled")
 	}
 
-	if req.DiscountAmount != nil && *req.DiscountAmount < 0 {
-		return fmt.Errorf("discount amount cannot be negative")
+	now := time.Now()
+	order.Status = "cancelled"
+	order.CancelledAt = &now
+	if reason != "" {
+		notes := reason
+		order.Notes = &notes
+	}
+	order.UpdatedAt = now
+
+	if err := s.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to cancel order: %w", err)
 	}
 
-	return nil
+	cacheKey := cache.OrderCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	return order, nil
+}
+
+// CompleteOrder completes an order
+func (s *OrderService) CompleteOrder(ctx context.Context, id uuid.UUID) (*models.Order, error) {
+	order, err := s.orderRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	if order.Status == "cancelled" {
+		return nil, fmt.Errorf("cannot complete cancelled order")
+	}
+
+	if order.Status == "completed" {
+		return nil, fmt.Errorf("order already completed")
+	}
+
+	now := time.Now()
+	order.Status = "completed"
+	order.CompletedAt = &now
+	order.UpdatedAt = now
+
+	if err := s.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to complete order: %w", err)
+	}
+
+	cacheKey := cache.OrderCacheKey(id.String())
+	_ = s.cache.Delete(ctx, cacheKey)
+
+	return order, nil
 }

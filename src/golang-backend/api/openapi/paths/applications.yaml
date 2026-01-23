@@ -1,0 +1,209 @@
+/applications:
+  get:
+    summary: List all applications
+    description: Retrieve a paginated list of applications with optional filters
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [DRAFT, ACTIVE, INACTIVE, DEPRECATED]
+      - name: category
+        in: query
+        schema:
+          type: string
+      - name: pricing_model
+        in: query
+        schema:
+          type: string
+          enum: [FREE, FREEMIUM, SUBSCRIPTION, ONE_TIME, CUSTOM]
+      - name: is_featured
+        in: query
+        schema:
+          type: boolean
+      - name: is_published
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Applications retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/application.yaml#/ApplicationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new application
+    description: Create a new application (admin only)
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/application.yaml#/CreateApplicationRequest'
+    responses:
+      '201':
+        description: Application created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/application.yaml#/ApplicationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/applications/{id}:
+  get:
+    summary: Get application by ID
+    description: Retrieve a single application by ID
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Application retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/application.yaml#/ApplicationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update application
+    description: Update application information (admin only)
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/application.yaml#/UpdateApplicationRequest'
+    responses:
+      '200':
+        description: Application updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/application.yaml#/ApplicationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete application
+    description: Soft delete an application (admin only)
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/applications/code/{code}:
+  get:
+    summary: Get application by code
+    description: Retrieve an application by its unique code
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/CodeParam'
+    responses:
+      '200':
+        description: Application retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/application.yaml#/ApplicationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/applications/{id}/products:
+  get:
+    summary: Get application products
+    description: Retrieve all products for a specific application
+    tags:
+      - Applications
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [DRAFT, ACTIVE, INACTIVE, ARCHIVED]
+    responses:
+      '200':
+        description: Products retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product.yaml#/ProductListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

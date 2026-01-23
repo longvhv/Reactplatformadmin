@@ -1,0 +1,187 @@
+TenantMember:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        user_id:
+          type: string
+          format: uuid
+          description: Associated user ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        employee_code:
+          type: string
+          nullable: true
+          description: Employee code/number
+          example: "EMP-001"
+        internal_email:
+          type: string
+          format: email
+          nullable: true
+          description: Internal company email
+          example: "john.doe@company.com"
+        job_title:
+          type: string
+          nullable: true
+          description: Job title
+          example: "Senior Developer"
+        manager_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Manager's tenant member ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        role:
+          type: string
+          enum:
+            - OWNER
+            - ADMIN
+            - MEMBER
+            - VIEWER
+          description: Member role in tenant
+          default: "MEMBER"
+          example: "MEMBER"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - RESIGNED
+            - ONBOARDING
+            - SUSPENDED
+          description: Member status
+          default: "ACTIVE"
+          example: "ACTIVE"
+        joined_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Join date
+          example: "2026-01-15T09:00:00Z"
+        left_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Leave date
+          example: null
+        permissions:
+          type: array
+          items:
+            type: string
+          description: Additional permissions
+          default: []
+          example: ["read:reports", "write:documents"]
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - user_id
+        - role
+        - status
+
+CreateTenantMemberRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    user_id:
+      type: string
+      format: uuid
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    employee_code:
+      type: string
+      nullable: true
+      example: "EMP-001"
+    internal_email:
+      type: string
+      format: email
+      nullable: true
+      example: "john.doe@company.com"
+    job_title:
+      type: string
+      nullable: true
+      example: "Senior Developer"
+    manager_id:
+      type: string
+      format: uuid
+      nullable: true
+    role:
+      type: string
+      enum: [OWNER, ADMIN, MEMBER, VIEWER]
+      default: "MEMBER"
+      example: "MEMBER"
+    permissions:
+      type: array
+      items:
+        type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - user_id
+
+UpdateTenantMemberRequest:
+  type: object
+  properties:
+    employee_code:
+      type: string
+      nullable: true
+    internal_email:
+      type: string
+      format: email
+      nullable: true
+    job_title:
+      type: string
+      nullable: true
+    manager_id:
+      type: string
+      format: uuid
+      nullable: true
+    role:
+      type: string
+      enum: [OWNER, ADMIN, MEMBER, VIEWER]
+    status:
+      type: string
+      enum: [ACTIVE, RESIGNED, ONBOARDING, SUSPENDED]
+    permissions:
+      type: array
+      items:
+        type: string
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+TenantMemberListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantMember'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantMemberResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantMember'
+  required:
+    - success
+    - data

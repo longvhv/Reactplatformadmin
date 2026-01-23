@@ -1,0 +1,279 @@
+Permission:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9_]+$"
+          minLength: 2
+          maxLength: 100
+          description: Unique permission code (uppercase alphanumeric with underscores)
+          example: "USER_CREATE"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Permission display name
+          example: "Create Users"
+        description:
+          type: string
+          nullable: true
+          description: Permission description
+          example: "Allows creating new user accounts"
+        resource:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Resource this permission applies to (e.g., users, tenants, orders)
+          example: "users"
+        action:
+          type: string
+          enum:
+            - CREATE
+            - READ
+            - UPDATE
+            - DELETE
+            - LIST
+            - EXECUTE
+            - MANAGE
+          description: |
+            Action type:
+            - CREATE: Create new resources
+            - READ: View resource details
+            - UPDATE: Modify existing resources
+            - DELETE: Remove resources
+            - LIST: View list of resources
+            - EXECUTE: Execute operations
+            - MANAGE: Full control (all actions)
+          example: "CREATE"
+        scope:
+          type: string
+          enum:
+            - GLOBAL
+            - TENANT
+            - SELF
+          description: |
+            Permission scope:
+            - GLOBAL: Applies to all resources across system
+            - TENANT: Applies to resources within user's tenant
+            - SELF: Applies only to user's own resources
+          default: "TENANT"
+          example: "TENANT"
+        permission_type:
+          type: string
+          enum:
+            - SYSTEM
+            - CUSTOM
+          description: |
+            Permission type:
+            - SYSTEM: Built-in permissions (cannot be deleted)
+            - CUSTOM: Custom permissions created by admins
+          example: "SYSTEM"
+        is_active:
+          type: boolean
+          description: Whether permission is currently active
+          default: true
+          example: true
+        roles_count:
+          type: integer
+          minimum: 0
+          description: Number of roles with this permission
+          example: 3
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - code
+        - name
+        - resource
+        - action
+        - scope
+        - permission_type
+        - is_active
+
+CreatePermissionRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      minLength: 2
+      maxLength: 100
+      description: Unique permission code
+      example: "REPORT_EXPORT"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Permission name
+      example: "Export Reports"
+    description:
+      type: string
+      nullable: true
+      description: Permission description
+      example: "Allows exporting reports to PDF/Excel"
+    resource:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Resource type
+      example: "reports"
+    action:
+      type: string
+      enum:
+        - CREATE
+        - READ
+        - UPDATE
+        - DELETE
+        - LIST
+        - EXECUTE
+        - MANAGE
+      description: Action type
+      example: "EXECUTE"
+    scope:
+      type: string
+      enum:
+        - GLOBAL
+        - TENANT
+        - SELF
+      default: "TENANT"
+      description: Permission scope
+      example: "TENANT"
+    permission_type:
+      type: string
+      enum:
+        - CUSTOM
+      description: Permission type (SYSTEM permissions cannot be created via API)
+      default: "CUSTOM"
+      example: "CUSTOM"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+    - resource
+    - action
+
+UpdatePermissionRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Permission name
+      example: "Export All Reports"
+    description:
+      type: string
+      nullable: true
+      description: Permission description
+      example: "Allows exporting all types of reports"
+    is_active:
+      type: boolean
+      description: Active status
+      example: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+PermissionWithRoles:
+  allOf:
+    - $ref: '#/Permission'
+    - type: object
+      properties:
+        roles:
+          type: array
+          items:
+            $ref: './role.yaml#/Role'
+          description: List of roles that have this permission
+
+PermissionListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Permission'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+PermissionResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Permission'
+  required:
+    - success
+    - data
+
+PermissionWithRolesResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/PermissionWithRoles'
+  required:
+    - success
+    - data
+
+PermissionCheckRequest:
+  type: object
+  properties:
+    user_id:
+      type: string
+      format: uuid
+      description: User ID to check permissions for
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    permission_code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      description: Permission code to check
+      example: "USER_CREATE"
+    resource_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Specific resource ID (for SELF scope checks)
+      example: "660e8400-e29b-41d4-a716-446655440000"
+  required:
+    - user_id
+    - permission_code
+
+PermissionCheckResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: object
+      properties:
+        has_permission:
+          type: boolean
+          description: Whether user has the requested permission
+          example: true
+        permission:
+          $ref: '#/Permission'
+        granted_by_roles:
+          type: array
+          items:
+            type: string
+          description: List of role codes that grant this permission
+          example:
+            - "TENANT_ADMIN"
+            - "USER_MANAGER"
+  required:
+    - success
+    - data

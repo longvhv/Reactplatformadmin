@@ -1,0 +1,132 @@
+TenantInvitation:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: Invitee email address
+          example: "newmember@example.com"
+        role_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Role IDs to assign
+          default: []
+          example: ["660e8400-e29b-41d4-a716-446655440000"]
+        department_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Department ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        token:
+          type: string
+          description: Unique invitation token
+          example: "inv_abc123xyz789"
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ACCEPTED
+            - EXPIRED
+            - REVOKED
+          description: Invitation status
+          default: "PENDING"
+          example: "PENDING"
+        expires_at:
+          type: string
+          format: date-time
+          description: Expiration date
+          example: "2026-02-22T00:00:00Z"
+        invited_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: User who sent the invitation
+          example: "880e8400-e29b-41d4-a716-446655440000"
+      required:
+        - tenant_id
+        - email
+        - token
+        - status
+        - expires_at
+
+CreateTenantInvitationRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    email:
+      type: string
+      format: email
+      example: "newmember@example.com"
+    role_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      nullable: true
+      example: ["660e8400-e29b-41d4-a716-446655440000"]
+    department_id:
+      type: string
+      format: uuid
+      nullable: true
+    expires_in_days:
+      type: integer
+      minimum: 1
+      maximum: 30
+      default: 7
+      description: Invitation validity in days
+      example: 7
+  required:
+    - tenant_id
+    - email
+
+ResendInvitationRequest:
+  type: object
+  properties:
+    extends_days:
+      type: integer
+      minimum: 1
+      maximum: 30
+      default: 7
+      description: Extend expiration by days
+
+TenantInvitationListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantInvitation'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantInvitationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantInvitation'
+  required:
+    - success
+    - data

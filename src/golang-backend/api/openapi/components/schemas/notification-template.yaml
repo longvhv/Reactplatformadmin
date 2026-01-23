@@ -1,0 +1,252 @@
+NotificationTemplate:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        template_code:
+          type: string
+          description: Unique template code
+          example: "WELCOME_EMAIL"
+        template_name:
+          type: string
+          description: Template name
+          example: "Welcome Email"
+        description:
+          type: string
+          nullable: true
+          description: Template description
+          example: "Sent to new users after registration"
+        subject:
+          type: string
+          nullable: true
+          description: Email subject line
+          example: "Welcome to {{app_name}}!"
+        body_text:
+          type: string
+          nullable: true
+          description: Plain text body
+          example: "Welcome {{user_name}}!"
+        body_html:
+          type: string
+          nullable: true
+          description: HTML body
+          example: "<h1>Welcome {{user_name}}!</h1>"
+        notification_type:
+          type: string
+          default: "email"
+          description: Notification type
+          example: "email"
+        category:
+          type: string
+          nullable: true
+          description: Category
+          example: "onboarding"
+        priority:
+          type: string
+          default: "normal"
+          description: Priority level
+          example: "high"
+        language_code:
+          type: string
+          default: "vi"
+          description: Language code
+          example: "vi"
+        variables:
+          type: array
+          items:
+            type: string
+          description: Template variables
+          default: []
+          example: ["user_name", "app_name"]
+        sample_data:
+          type: object
+          nullable: true
+          description: Sample data for preview
+          example:
+            user_name: "John Doe"
+            app_name: "MyApp"
+        delivery_channels:
+          type: array
+          items:
+            type: string
+          description: Delivery channels
+          default: ["email"]
+          example: ["email", "sms"]
+        send_immediately:
+          type: boolean
+          default: true
+          description: Send immediately
+          example: true
+        scheduled_send_time:
+          type: string
+          format: time
+          nullable: true
+          description: Scheduled send time
+          example: null
+        status:
+          type: string
+          default: "active"
+          description: Template status
+          example: "active"
+        is_system_template:
+          type: boolean
+          default: false
+          description: System-defined template
+          example: false
+        is_editable:
+          type: boolean
+          default: true
+          description: Can be edited
+          example: true
+        usage_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Times used
+          example: 142
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last usage timestamp
+          example: "2026-01-20T15:30:00Z"
+        success_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Successful sends
+          example: 140
+        failure_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Failed sends
+          example: 2
+        metadata:
+          type: object
+          nullable: true
+          description: Additional metadata
+          example: {}
+      required:
+        - tenant_id
+        - template_code
+        - template_name
+        - notification_type
+
+CreateNotificationTemplateRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    template_code:
+      type: string
+      example: "WELCOME_EMAIL"
+    template_name:
+      type: string
+      example: "Welcome Email"
+    description:
+      type: string
+      nullable: true
+    subject:
+      type: string
+      nullable: true
+    body_text:
+      type: string
+      nullable: true
+    body_html:
+      type: string
+      nullable: true
+    notification_type:
+      type: string
+      default: "email"
+    category:
+      type: string
+      nullable: true
+    priority:
+      type: string
+      default: "normal"
+    language_code:
+      type: string
+      default: "vi"
+    variables:
+      type: array
+      items:
+        type: string
+      nullable: true
+    delivery_channels:
+      type: array
+      items:
+        type: string
+      nullable: true
+    metadata:
+      type: object
+      nullable: true
+  required:
+    - tenant_id
+    - template_code
+    - template_name
+
+UpdateNotificationTemplateRequest:
+  type: object
+  properties:
+    template_name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    subject:
+      type: string
+      nullable: true
+    body_text:
+      type: string
+      nullable: true
+    body_html:
+      type: string
+      nullable: true
+    priority:
+      type: string
+    status:
+      type: string
+    variables:
+      type: array
+      items:
+        type: string
+    metadata:
+      type: object
+      nullable: true
+  minProperties: 1
+
+NotificationTemplateListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/NotificationTemplate'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+NotificationTemplateResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/NotificationTemplate'
+  required:
+    - success
+    - data

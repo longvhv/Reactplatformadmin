@@ -1,0 +1,155 @@
+/group-members:
+  get:
+    summary: List group members
+    description: Retrieve group members
+    tags:
+      - Group Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: user_group_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: tenant_member_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: is_primary
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Members retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/group-member.yaml#/GroupMemberListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Add member to group
+    description: Add a tenant member to a user group
+    tags:
+      - Group Members
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/group-member.yaml#/CreateGroupMemberRequest'
+    responses:
+      '201':
+        description: Member added successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/group-member.yaml#/GroupMemberResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/group-members/{id}:
+  get:
+    summary: Get member by ID
+    description: Retrieve a single group member
+    tags:
+      - Group Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Member retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/group-member.yaml#/GroupMemberResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update member
+    description: Update group member details
+    tags:
+      - Group Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/group-member.yaml#/UpdateGroupMemberRequest'
+    responses:
+      '200':
+        description: Member updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/group-member.yaml#/GroupMemberResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Remove member
+    description: Remove member from group
+    tags:
+      - Group Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

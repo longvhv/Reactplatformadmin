@@ -2,156 +2,173 @@ package handler
 
 import (
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vhv-platform/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/service"
-	"github.com/vhv-platform/backend/internal/utils"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type OrderHandler struct {
-	service *service.OrderService
+	orderService *service.OrderService
+	authzService *service.AuthorizationService
 }
 
-func NewOrderHandler(service *service.OrderService) *OrderHandler {
-	return &OrderHandler{service: service}
+func NewOrderHandler(orderService *service.OrderService, authzService *service.AuthorizationService) *OrderHandler {
+	return &OrderHandler{
+		orderService: orderService,
+		authzService: authzService,
+	}
 }
 
-func (h *OrderHandler) GetAll(c *gin.Context) {
-	filters := models.OrderFilters{}
-
-	if tenantID := c.Query("tenant_id"); tenantID != "" {
-		filters.TenantID = &tenantID
-	}
-
-	if createdBy := c.Query("created_by"); createdBy != "" {
-		filters.CreatedBy = &createdBy
-	}
-
-	if typeStr := c.Query("type"); typeStr != "" {
-		orderType := models.OrderType(typeStr)
-		filters.Type = &orderType
-	}
-
-	if statusStr := c.Query("status"); statusStr != "" {
-		status := models.OrderStatus(statusStr)
-		filters.Status = &status
-	}
-
-	if search := c.Query("search"); search != "" {
-		filters.Search = &search
-	}
-
-	if startDate := c.Query("start_date"); startDate != "" {
-		if t, err := time.Parse(time.RFC3339, startDate); err == nil {
-			filters.StartDate = &t
-		}
-	}
-
-	if endDate := c.Query("end_date"); endDate != "" {
-		if t, err := time.Parse(time.RFC3339, endDate); err == nil {
-			filters.EndDate = &t
-		}
-	}
-
-	orders, err := h.service.GetAll(c.Request.Context(), filters)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
+// List lists orders
+func (h *OrderHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, orders)
+	
+	orders, total, err := h.orderService.ListByTenant(ctx, tenantID, page, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.PaginatedResponse(c, http.StatusOK, orders, total, page, limit)
 }
 
+// GetByID gets order by ID
 func (h *OrderHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	order, err := h.service.GetByID(c.Request.Context(), id)
+	ctx := c.Request.Context()
+	
+	orderID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "order not found" || err.Error() == "invalid order ID format" {
-			utils.NotFoundResponse(c, "Order")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid order id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, order)
+	
+	order, err := h.orderService.GetByID(ctx, orderID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "order not found", nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, order)
 }
 
-func (h *OrderHandler) GetByOrderNumber(c *gin.Context) {
-	orderNumber := c.Param("number")
-
-	order, err := h.service.GetByOrderNumber(c.Request.Context(), orderNumber)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	if order == nil {
-		utils.NotFoundResponse(c, "Order")
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, order)
-}
-
+// Create creates an order
 func (h *OrderHandler) Create(c *gin.Context) {
-	var req models.CreateOrderRequest
-
+	ctx := c.Request.Context()
+	
+	var req service.CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
-
-	order, err := h.service.Create(c.Request.Context(), req)
+	
+	order, err := h.orderService.CreateOrder(ctx, req)
 	if err != nil {
-		if err.Error() == "order number already exists" {
-			utils.ErrorResponse(c, http.StatusConflict, "ORDER_EXISTS", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "CREATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusCreated, order)
+	
+	httputil.SuccessResponse(c, http.StatusCreated, order)
 }
 
+// Update updates an order
 func (h *OrderHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-
-	var req models.UpdateOrderRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	order, err := h.service.Update(c.Request.Context(), id, req)
+	ctx := c.Request.Context()
+	
+	orderID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "order not found" || err.Error() == "invalid order ID format" {
-			utils.NotFoundResponse(c, "Order")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "UPDATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid order id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, order)
+	
+	var req service.UpdateOrderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+	
+	order, err := h.orderService.UpdateOrder(ctx, orderID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, order)
 }
 
+// Delete deletes an order
 func (h *OrderHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	err := h.service.Delete(c.Request.Context(), id)
+	ctx := c.Request.Context()
+	
+	orderID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "order not found" || err.Error() == "invalid order ID format" {
-			utils.NotFoundResponse(c, "Order")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "DELETE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid order id", nil)
 		return
 	}
+	
+	if err := h.orderService.DeleteOrder(ctx, orderID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "order deleted successfully"})
+}
 
-	utils.SuccessResponse(c, http.StatusNoContent, nil)
+// Cancel cancels an order
+func (h *OrderHandler) Cancel(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	orderID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid order id", nil)
+		return
+	}
+	
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+	
+	order, err := h.orderService.CancelOrder(ctx, orderID, req.Reason)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, order)
+}
+
+// Complete completes an order
+func (h *OrderHandler) Complete(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	orderID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid order id", nil)
+		return
+	}
+	
+	order, err := h.orderService.CompleteOrder(ctx, orderID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, order)
 }

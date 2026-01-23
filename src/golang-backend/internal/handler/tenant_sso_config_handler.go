@@ -6,205 +6,205 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TenantSSOConfigHandler struct {
-	service service.TenantSSOConfigService
+	ssoService   *service.TenantSSOConfigService
+	authzService *service.AuthorizationService
 }
 
-func NewTenantSSOConfigHandler(service service.TenantSSOConfigService) *TenantSSOConfigHandler {
-	return &TenantSSOConfigHandler{service: service}
+func NewTenantSSOConfigHandler(ssoService *service.TenantSSOConfigService, authzService *service.AuthorizationService) *TenantSSOConfigHandler {
+	return &TenantSSOConfigHandler{
+		ssoService:   ssoService,
+		authzService: authzService,
+	}
 }
 
-func (h *TenantSSOConfigHandler) CreateSSOConfig(c *gin.Context) {
-	var req models.CreateTenantSSOConfigRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists SSO configs
+func (h *TenantSSOConfigHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	config, err := h.service.CreateSSOConfig(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, config)
-}
-
-func (h *TenantSSOConfigHandler) ListSSOConfigs(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	provider := c.Query("provider")
 
-	var tenantID *uuid.UUID
-	if tenantIDStr := c.Query("tenant_id"); tenantIDStr != "" {
-		parsed, err := uuid.Parse(tenantIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	var provider *string
-	if prov := c.Query("provider"); prov != "" {
-		provider = &prov
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	configs, total, err := h.service.ListSSOConfigs(c.Request.Context(), page, pageSize, tenantID, provider, status)
+	configs, total, err := h.ssoService.ListByTenant(ctx, tenantID, provider, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      configs,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, configs, total, page, limit)
 }
 
-func (h *TenantSSOConfigHandler) GetSSOConfig(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets SSO config by ID
+func (h *TenantSSOConfigHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid SSO config ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	config, err := h.service.GetSSOConfig(c.Request.Context(), id)
+	config, err := h.ssoService.GetByID(ctx, configID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "config not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, config)
+	httputil.SuccessResponse(c, http.StatusOK, config)
 }
 
-func (h *TenantSSOConfigHandler) UpdateSSOConfig(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid SSO config ID"})
-		return
-	}
+// Create creates SSO config
+func (h *TenantSSOConfigHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateTenantSSOConfigRequest
+	var req service.CreateTenantSSOConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	config, err := h.service.UpdateSSOConfig(c.Request.Context(), id, &req)
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	config, err := h.ssoService.CreateConfig(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, config)
+	httputil.SuccessResponse(c, http.StatusCreated, config)
 }
 
-func (h *TenantSSOConfigHandler) DeleteSSOConfig(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates SSO config
+func (h *TenantSSOConfigHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid SSO config ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	if err := h.service.DeleteSSOConfig(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateTenantSSOConfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	config, err := h.ssoService.UpdateConfig(ctx, configID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, config)
 }
 
-func (h *TenantSSOConfigHandler) ActivateSSOConfig(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Delete deletes SSO config
+func (h *TenantSSOConfigHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid SSO config ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	if err := h.service.ActivateSSOConfig(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.ssoService.DeleteConfig(ctx, configID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "SSO config activated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "SSO config deleted successfully"})
 }
 
-func (h *TenantSSOConfigHandler) DeactivateSSOConfig(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Enable enables SSO config
+func (h *TenantSSOConfigHandler) Enable(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid SSO config ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	if err := h.service.DeactivateSSOConfig(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	config, err := h.ssoService.EnableConfig(ctx, configID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "SSO config deactivated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, config)
 }
 
-func (h *TenantSSOConfigHandler) TestSSOConfig(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Disable disables SSO config
+func (h *TenantSSOConfigHandler) Disable(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid SSO config ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	if err := h.service.TestSSOConfig(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	config, err := h.ssoService.DisableConfig(ctx, configID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "SSO config set to testing mode"})
+	httputil.SuccessResponse(c, http.StatusOK, config)
 }
 
-func (h *TenantSSOConfigHandler) ListSSOConfigsByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// TestConnection tests SSO connection
+func (h *TenantSSOConfigHandler) TestConnection(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	configs, err := h.service.ListSSOConfigsByTenant(c.Request.Context(), tenantID)
+	result, err := h.ssoService.TestConnection(ctx, configID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": configs})
+	httputil.SuccessResponse(c, http.StatusOK, result)
 }
 
-func (h *TenantSSOConfigHandler) GetSSOConfigByTenantAndProvider(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// GetMetadata gets SSO provider metadata
+func (h *TenantSSOConfigHandler) GetMetadata(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	configID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid config id", nil)
 		return
 	}
 
-	provider := c.Param("provider")
-	if provider == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "provider is required"})
-		return
-	}
-
-	config, err := h.service.GetSSOConfigByTenantAndProvider(c.Request.Context(), tenantID, provider)
+	metadata, err := h.ssoService.GetMetadata(ctx, configID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, config)
+	httputil.SuccessResponse(c, http.StatusOK, metadata)
 }

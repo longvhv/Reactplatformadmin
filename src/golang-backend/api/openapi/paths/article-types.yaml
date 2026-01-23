@@ -1,0 +1,142 @@
+/article-types:
+  get:
+    summary: List article types
+    description: Retrieve article types
+    tags:
+      - Article Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: app_code
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+      - name: is_system
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Types retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/article-type.yaml#/ArticleTypeListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create article type
+    description: Create a new article type
+    tags:
+      - Article Types
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/article-type.yaml#/CreateArticleTypeRequest'
+    responses:
+      '201':
+        description: Type created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/article-type.yaml#/ArticleTypeResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/article-types/{id}:
+  get:
+    summary: Get article type by ID
+    description: Retrieve a single article type
+    tags:
+      - Article Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Type retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/article-type.yaml#/ArticleTypeResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update article type
+    description: Update article type details
+    tags:
+      - Article Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/article-type.yaml#/UpdateArticleTypeRequest'
+    responses:
+      '200':
+        description: Type updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/article-type.yaml#/ArticleTypeResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete article type
+    description: Delete article type
+    tags:
+      - Article Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

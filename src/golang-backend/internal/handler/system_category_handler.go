@@ -6,206 +6,186 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type SystemCategoryHandler struct {
-	service service.SystemCategoryService
+	categoryService *service.SystemCategoryService
+	authzService    *service.AuthorizationService
 }
 
-func NewSystemCategoryHandler(service service.SystemCategoryService) *SystemCategoryHandler {
-	return &SystemCategoryHandler{service: service}
+func NewSystemCategoryHandler(categoryService *service.SystemCategoryService, authzService *service.AuthorizationService) *SystemCategoryHandler {
+	return &SystemCategoryHandler{
+		categoryService: categoryService,
+		authzService:    authzService,
+	}
 }
 
-func (h *SystemCategoryHandler) CreateCategory(c *gin.Context) {
-	var req models.CreateSystemCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists system categories
+func (h *SystemCategoryHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	category, err := h.service.CreateCategory(c.Request.Context(), &req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	categoryType := c.Query("type")
+	status := c.Query("status")
+
+	var statusInt *int
+	if status != "" {
+		s, _ := strconv.Atoi(status)
+		statusInt = &s
+	}
+
+	categories, total, err := h.categoryService.ListByTenant(ctx, tenantID, categoryType, statusInt, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusCreated, category)
+	httputil.PaginatedResponse(c, http.StatusOK, categories, total, page, limit)
 }
 
-func (h *SystemCategoryHandler) GetCategory(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets category by ID
+func (h *SystemCategoryHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	categoryID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid category id", nil)
 		return
 	}
 
-	category, err := h.service.GetCategory(c.Request.Context(), id)
+	category, err := h.categoryService.GetByID(ctx, categoryID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "category not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, category)
+	httputil.SuccessResponse(c, http.StatusOK, category)
 }
 
-func (h *SystemCategoryHandler) GetCategoryByCode(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+// GetByCode gets category by code
+func (h *SystemCategoryHandler) GetByCode(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
 	code := c.Param("code")
 	if code == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "code is required"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "code required", nil)
 		return
 	}
 
-	category, err := h.service.GetCategoryByCode(c.Request.Context(), tenantID, code)
+	category, err := h.categoryService.GetByCode(ctx, tenantID, code)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "category not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, category)
+	httputil.SuccessResponse(c, http.StatusOK, category)
 }
 
-func (h *SystemCategoryHandler) ListCategories(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+// Create creates a category
+func (h *SystemCategoryHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var tenantID *uuid.UUID
-	if tid := c.Query("tenant_id"); tid != "" {
-		parsed, err := uuid.Parse(tid)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	var categoryType *string
-	if ct := c.Query("type"); ct != "" {
-		categoryType = &ct
-	}
-
-	var status *int16
-	if st := c.Query("status"); st != "" {
-		statusInt, err := strconv.Atoi(st)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid status"})
-			return
-		}
-		statusInt16 := int16(statusInt)
-		status = &statusInt16
-	}
-
-	categories, total, err := h.service.ListCategories(c.Request.Context(), page, pageSize, tenantID, categoryType, status)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.CreateSystemCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      categories,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	category, err := h.categoryService.CreateCategory(ctx, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusCreated, category)
 }
 
-func (h *SystemCategoryHandler) ListCategoriesByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Update updates a category
+func (h *SystemCategoryHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	categoryID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid category id", nil)
 		return
 	}
 
-	categories, err := h.service.ListCategoriesByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateSystemCategoryRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, categories)
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	category, err := h.categoryService.UpdateCategory(ctx, categoryID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, category)
 }
 
-func (h *SystemCategoryHandler) ListCategoriesByType(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Delete deletes a category
+func (h *SystemCategoryHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	categoryID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid category id", nil)
+		return
+	}
+
+	if err := h.categoryService.DeleteCategory(ctx, categoryID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "category deleted successfully"})
+}
+
+// GetByType gets categories by type
+func (h *SystemCategoryHandler) GetByType(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
 	categoryType := c.Param("type")
 	if categoryType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type is required"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "type required", nil)
 		return
 	}
 
-	categories, err := h.service.ListCategoriesByType(c.Request.Context(), tenantID, categoryType)
+	categories, err := h.categoryService.GetByType(ctx, tenantID, categoryType)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, categories)
-}
-
-func (h *SystemCategoryHandler) UpdateCategory(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID"})
-		return
-	}
-
-	var req models.UpdateSystemCategoryRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	category, err := h.service.UpdateCategory(c.Request.Context(), id, &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, category)
-}
-
-func (h *SystemCategoryHandler) DeleteCategory(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID"})
-		return
-	}
-
-	if err := h.service.DeleteCategory(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
-}
-
-func (h *SystemCategoryHandler) SoftDeleteCategory(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid category ID"})
-		return
-	}
-
-	// TODO: Get deletedBy from auth context
-	deletedBy := uuid.Nil
-
-	if err := h.service.SoftDeleteCategory(c.Request.Context(), id, deletedBy); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Category soft deleted successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, categories)
 }

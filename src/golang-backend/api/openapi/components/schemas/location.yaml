@@ -1,0 +1,207 @@
+Location:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Parent location ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        type_id:
+          type: string
+          format: uuid
+          description: Location type ID
+          example: "770e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Location name
+          example: "HQ Office - Floor 5"
+        code:
+          type: string
+          nullable: true
+          description: Location code
+          example: "HQ-F5"
+        path:
+          type: string
+          nullable: true
+          description: Hierarchical path
+          example: "/HQ/Floor5"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - CLOSED
+          default: "ACTIVE"
+          description: Location status
+          example: "ACTIVE"
+        address:
+          type: object
+          description: Address information
+          default: {}
+          example:
+            street: "123 Main St"
+            city: "Ho Chi Minh City"
+            country: "Vietnam"
+        coordinates:
+          type: object
+          nullable: true
+          description: GPS coordinates (point)
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+          example:
+            latitude: 10.762622
+            longitude: 106.660172
+        radius_meters:
+          type: integer
+          minimum: 1
+          default: 100
+          description: Geofence radius in meters
+          example: 500
+        timezone:
+          type: string
+          default: "UTC"
+          description: Timezone
+          example: "Asia/Ho_Chi_Minh"
+        is_headquarter:
+          type: boolean
+          default: false
+          description: Is this the headquarters
+          example: true
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - type_id
+        - name
+        - status
+
+CreateLocationRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    type_id:
+      type: string
+      format: uuid
+    name:
+      type: string
+    code:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, CLOSED]
+      default: "ACTIVE"
+    address:
+      type: object
+      nullable: true
+    coordinates:
+      type: object
+      nullable: true
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    radius_meters:
+      type: integer
+      minimum: 1
+      default: 100
+    timezone:
+      type: string
+      default: "UTC"
+    is_headquarter:
+      type: boolean
+      default: false
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - type_id
+    - name
+
+UpdateLocationRequest:
+  type: object
+  properties:
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    name:
+      type: string
+    code:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, CLOSED]
+    address:
+      type: object
+    coordinates:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    radius_meters:
+      type: integer
+      minimum: 1
+    timezone:
+      type: string
+    is_headquarter:
+      type: boolean
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+LocationListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Location'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+LocationResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Location'
+  required:
+    - success
+    - data

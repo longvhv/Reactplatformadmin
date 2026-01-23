@@ -1,0 +1,683 @@
+openapi: 3.0.3
+info:
+  title: VHV Platform API
+  description: |
+    Multi-tenant SaaS Platform API for managing users, tenants, subscriptions, and more.
+    
+    ## Features
+    - JWT-based authentication
+    - Role-based access control (RBAC)
+    - Multi-tenancy support
+    - Subscription management
+    - Webhook integration
+    - Comprehensive audit logging
+    
+    ## Authentication
+    All protected endpoints require a valid JWT token in the Authorization header:
+    ```
+    Authorization: Bearer <your-jwt-token>
+    ```
+    
+    ## Pagination
+    List endpoints support pagination with query parameters:
+    - `page`: Page number (default: 1)
+    - `limit`: Items per page (default: 20, max: 100)
+    - `sort_by`: Field to sort by
+    - `sort_order`: Sort order (asc/desc)
+    
+    ## Error Handling
+    Errors follow a consistent format:
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "ERROR_CODE",
+        "message": "Human-readable error message"
+      }
+    }
+    ```
+    
+  version: 1.0.0
+  contact:
+    name: VHV Platform API Support
+    email: api-support@vhv-platform.com
+    url: https://docs.vhv-platform.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api-staging.vhv-platform.com/api/v1
+    description: Staging server
+  - url: https://api.vhv-platform.com/api/v1
+    description: Production server
+
+tags:
+  # Tier 1: Foundation
+  - name: Authentication
+    description: User authentication and session management
+  - name: Users
+    description: User management operations
+  - name: Tenants
+    description: Multi-tenant organization management
+  - name: Roles
+    description: Role-based access control
+  - name: Permissions
+    description: Permission management
+  
+  # Tier 2: Business Core
+  - name: Applications
+    description: Application catalog management
+  - name: Products
+    description: SaaS product management
+  - name: Packages
+    description: Service package management
+  - name: Orders
+    description: Subscription order management
+  - name: Invoices
+    description: Billing and invoice management
+  
+  # Tier 3: Extended Features
+  - name: Tenant Subscriptions
+    description: Tenant subscription lifecycle
+  - name: Tenant Members
+    description: Tenant member management
+  - name: Tenant Invitations
+    description: Invitation system for tenants
+  - name: Tenant Domains
+    description: Custom domain management
+  - name: Tenant Rate Limits
+    description: API rate limiting per tenant
+  - name: Tenant Applications
+    description: Tenant-specific application configs
+  
+  # Tier 4: Advanced Features
+  - name: API Keys
+    description: API key management
+  - name: User Devices
+    description: User device tracking
+  - name: Tenant App Routes
+    description: Custom routing configuration
+  
+  # Tier 5: System & Support
+  - name: Notification Templates
+    description: Notification template management
+  - name: Feature Flags
+    description: Feature flag configuration
+  - name: Storage Files
+    description: File storage management
+  - name: Audit Logs
+    description: System audit logging
+  - name: Auth Logs
+    description: Authentication event logs
+  - name: User Groups
+    description: User group management
+  - name: Group Members
+    description: Group membership management
+  - name: Departments
+    description: Department hierarchy
+  - name: Department Members
+    description: Department membership
+  - name: System Categories
+    description: System category management
+  - name: Reserved Slugs
+    description: Reserved slug management
+  - name: Tags
+    description: Tagging system
+  - name: Regions
+    description: Geographic region management
+  - name: App Capabilities
+    description: Application capability definitions
+  
+  # Tier 6: Telemetry & Metadata
+  - name: Location Types
+    description: Location type taxonomy
+  - name: Locations
+    description: Location management
+  - name: Webhooks
+    description: Webhook management
+  - name: Webhook Delivery Logs
+    description: Webhook delivery tracking
+  - name: User Sessions
+    description: User session management
+  - name: User Delegations
+    description: User delegation management
+  - name: User Consents
+    description: User consent tracking
+  - name: User MFA Methods
+    description: Multi-factor authentication methods
+  - name: User Roles
+    description: User role assignments
+  - name: Service Accounts
+    description: Service account management
+  - name: Legal Documents
+    description: Legal document management
+  - name: Tenant SSO Configs
+    description: Single sign-on configuration
+  - name: Usage Events
+    description: Usage event tracking
+  - name: System Jobs
+    description: Background job management
+  - name: Security Audit Logs
+    description: Security audit logging
+  - name: User Registration Logs
+    description: User registration tracking
+  - name: Traffic Logs
+    description: Traffic analytics
+  - name: Content View Logs
+    description: Content view tracking
+  - name: SaaS Business Reports
+    description: Business reporting
+  - name: Article Types
+    description: Article type management
+  - name: Product Types
+    description: Product type management
+  - name: System Announcements
+    description: System announcement management
+  - name: Tenant Digital Assets
+    description: Digital asset management
+  - name: Tenant Service Deliveries
+    description: Service delivery tracking
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Health check
+  /health:
+    $ref: './paths/health.yaml'
+  
+  # Authentication endpoints
+  /auth/login:
+    $ref: './paths/auth.yaml#/~1auth~1login'
+  /auth/register:
+    $ref: './paths/auth.yaml#/~1auth~1register'
+  /auth/logout:
+    $ref: './paths/auth.yaml#/~1auth~1logout'
+  /auth/refresh:
+    $ref: './paths/auth.yaml#/~1auth~1refresh'
+  
+  # Tier 1: Foundation
+  /users:
+    $ref: './paths/users.yaml#/~1users'
+  /users/{id}:
+    $ref: './paths/users.yaml#/~1users~1{id}'
+  /users/email/{email}:
+    $ref: './paths/users.yaml#/~1users~1email~1{email}'
+  
+  /tenants:
+    $ref: './paths/tenants.yaml#/~1tenants'
+  /tenants/{id}:
+    $ref: './paths/tenants.yaml#/~1tenants~1{id}'
+  /tenants/code/{code}:
+    $ref: './paths/tenants.yaml#/~1tenants~1code~1{code}'
+  
+  /roles:
+    $ref: './paths/roles.yaml#/~1roles'
+  /roles/{id}:
+    $ref: './paths/roles.yaml#/~1roles~1{id}'
+  
+  /permissions:
+    $ref: './paths/permissions.yaml#/~1permissions'
+  /permissions/{id}:
+    $ref: './paths/permissions.yaml#/~1permissions~1{id}'
+  /permissions/grouped:
+    $ref: './paths/permissions.yaml#/~1permissions~1grouped'
+  
+  # Tier 2: Business Core
+  /applications:
+    $ref: './paths/applications.yaml#/~1applications'
+  /applications/{id}:
+    $ref: './paths/applications.yaml#/~1applications~1{id}'
+  /applications/code/{code}:
+    $ref: './paths/applications.yaml#/~1applications~1code~1{code}'
+  
+  /products:
+    $ref: './paths/products.yaml#/~1products'
+  /products/{id}:
+    $ref: './paths/products.yaml#/~1products~1{id}'
+  
+  /packages:
+    $ref: './paths/packages.yaml#/~1packages'
+  /packages/{id}:
+    $ref: './paths/packages.yaml#/~1packages~1{id}'
+  
+  /orders:
+    $ref: './paths/orders.yaml#/~1orders'
+  /orders/{id}:
+    $ref: './paths/orders.yaml#/~1orders~1{id}'
+  /orders/number/{number}:
+    $ref: './paths/orders.yaml#/~1orders~1number~1{number}'
+  
+  /invoices:
+    $ref: './paths/invoices.yaml#/~1invoices'
+  /invoices/{id}:
+    $ref: './paths/invoices.yaml#/~1invoices~1{id}'
+  /invoices/number/{number}:
+    $ref: './paths/invoices.yaml#/~1invoices~1number~1{number}'
+
+  # Tier 3: Extended Features
+  /tenant-subscriptions:
+    $ref: './paths/tenant-subscriptions.yaml#/~1tenant-subscriptions'
+  /tenant-subscriptions/{id}:
+    $ref: './paths/tenant-subscriptions.yaml#/~1tenant-subscriptions~1{id}'
+  /tenant-subscriptions/{id}/cancel:
+    $ref: './paths/tenant-subscriptions.yaml#/~1tenant-subscriptions~1{id}~1cancel'
+  /tenant-subscriptions/{id}/renew:
+    $ref: './paths/tenant-subscriptions.yaml#/~1tenant-subscriptions~1{id}~1renew'
+  
+  /tenant-members:
+    $ref: './paths/tenant-members.yaml#/~1tenant-members'
+  /tenant-members/{id}:
+    $ref: './paths/tenant-members.yaml#/~1tenant-members~1{id}'
+  /tenant-members/{id}/activate:
+    $ref: './paths/tenant-members.yaml#/~1tenant-members~1{id}~1activate'
+  /tenant-members/{id}/deactivate:
+    $ref: './paths/tenant-members.yaml#/~1tenant-members~1{id}~1deactivate'
+  
+  /tenant-invitations:
+    $ref: './paths/tenant-invitations.yaml#/~1tenant-invitations'
+  /tenant-invitations/{id}:
+    $ref: './paths/tenant-invitations.yaml#/~1tenant-invitations~1{id}'
+  /tenant-invitations/{id}/accept:
+    $ref: './paths/tenant-invitations.yaml#/~1tenant-invitations~1{id}~1accept'
+  /tenant-invitations/{id}/resend:
+    $ref: './paths/tenant-invitations.yaml#/~1tenant-invitations~1{id}~1resend'
+  
+  /tenant-domains:
+    $ref: './paths/tenant-domains.yaml#/~1tenant-domains'
+  /tenant-domains/{id}:
+    $ref: './paths/tenant-domains.yaml#/~1tenant-domains~1{id}'
+  /tenant-domains/{id}/verify:
+    $ref: './paths/tenant-domains.yaml#/~1tenant-domains~1{id}~1verify'
+  /tenant-domains/{id}/set-primary:
+    $ref: './paths/tenant-domains.yaml#/~1tenant-domains~1{id}~1set-primary'
+  
+  /tenant-rate-limits:
+    $ref: './paths/tenant-rate-limits.yaml#/~1tenant-rate-limits'
+  /tenant-rate-limits/{id}:
+    $ref: './paths/tenant-rate-limits.yaml#/~1tenant-rate-limits~1{id}'
+  
+  /tenant-applications:
+    $ref: './paths/tenant-applications.yaml#/~1tenant-applications'
+  /tenant-applications/{id}:
+    $ref: './paths/tenant-applications.yaml#/~1tenant-applications~1{id}'
+  /tenant-applications/{id}/activate:
+    $ref: './paths/tenant-applications.yaml#/~1tenant-applications~1{id}~1activate'
+  /tenant-applications/{id}/deactivate:
+    $ref: './paths/tenant-applications.yaml#/~1tenant-applications~1{id}~1deactivate'
+  
+  # Tier 4: Advanced Features
+  /api-keys:
+    $ref: './paths/api-keys.yaml#/~1api-keys'
+  /api-keys/{id}:
+    $ref: './paths/api-keys.yaml#/~1api-keys~1{id}'
+  /api-keys/{id}/rotate:
+    $ref: './paths/api-keys.yaml#/~1api-keys~1{id}~1rotate'
+  
+  /user-devices:
+    $ref: './paths/user-devices.yaml#/~1user-devices'
+  /user-devices/{id}:
+    $ref: './paths/user-devices.yaml#/~1user-devices~1{id}'
+  /user-devices/{id}/revoke:
+    $ref: './paths/user-devices.yaml#/~1user-devices~1{id}~1revoke'
+  
+  /tenant-app-routes:
+    $ref: './paths/tenant-app-routes.yaml#/~1tenant-app-routes'
+  /tenant-app-routes/{id}:
+    $ref: './paths/tenant-app-routes.yaml#/~1tenant-app-routes~1{id}'
+  
+  # Tier 5: System & Support
+  /notification-templates:
+    $ref: './paths/notification-templates.yaml#/~1notification-templates'
+  /notification-templates/{id}:
+    $ref: './paths/notification-templates.yaml#/~1notification-templates~1{id}'
+  
+  /feature-flags:
+    $ref: './paths/feature-flags.yaml#/~1feature-flags'
+  /feature-flags/{id}:
+    $ref: './paths/feature-flags.yaml#/~1feature-flags~1{id}'
+  /feature-flags/{id}/enable:
+    $ref: './paths/feature-flags.yaml#/~1feature-flags~1{id}~1enable'
+  /feature-flags/{id}/disable:
+    $ref: './paths/feature-flags.yaml#/~1feature-flags~1{id}~1disable'
+  
+  /storage-files:
+    $ref: './paths/storage-files.yaml#/~1storage-files'
+  /storage-files/{id}:
+    $ref: './paths/storage-files.yaml#/~1storage-files~1{id}'
+  /storage-files/{id}/download:
+    $ref: './paths/storage-files.yaml#/~1storage-files~1{id}~1download'
+  
+  /audit-logs:
+    $ref: './paths/audit-logs.yaml#/~1audit-logs'
+  /audit-logs/{id}:
+    $ref: './paths/audit-logs.yaml#/~1audit-logs~1{id}'
+  /audit-logs/export:
+    $ref: './paths/audit-logs.yaml#/~1audit-logs~1export'
+  
+  /auth-logs:
+    $ref: './paths/auth-logs.yaml#/~1auth-logs'
+  /auth-logs/{id}:
+    $ref: './paths/auth-logs.yaml#/~1auth-logs~1{id}'
+  
+  /user-groups:
+    $ref: './paths/user-groups.yaml#/~1user-groups'
+  /user-groups/{id}:
+    $ref: './paths/user-groups.yaml#/~1user-groups~1{id}'
+  
+  /group-members:
+    $ref: './paths/group-members.yaml#/~1group-members'
+  /group-members/{id}:
+    $ref: './paths/group-members.yaml#/~1group-members~1{id}'
+  
+  /departments:
+    $ref: './paths/departments.yaml#/~1departments'
+  /departments/{id}:
+    $ref: './paths/departments.yaml#/~1departments~1{id}'
+  
+  /department-members:
+    $ref: './paths/department-members.yaml#/~1department-members'
+  /department-members/{id}:
+    $ref: './paths/department-members.yaml#/~1department-members~1{id}'
+  
+  /system-categories:
+    $ref: './paths/system-categories.yaml#/~1system-categories'
+  /system-categories/{id}:
+    $ref: './paths/system-categories.yaml#/~1system-categories~1{id}'
+  
+  /reserved-slugs:
+    $ref: './paths/reserved-slugs.yaml#/~1reserved-slugs'
+  /reserved-slugs/{id}:
+    $ref: './paths/reserved-slugs.yaml#/~1reserved-slugs~1{id}'
+  /reserved-slugs/check/{slug}:
+    $ref: './paths/reserved-slugs.yaml#/~1reserved-slugs~1check~1{slug}'
+  
+  /tags:
+    $ref: './paths/tags.yaml#/~1tags'
+  /tags/{id}:
+    $ref: './paths/tags.yaml#/~1tags~1{id}'
+  
+  /regions:
+    $ref: './paths/regions.yaml#/~1regions'
+  /regions/{id}:
+    $ref: './paths/regions.yaml#/~1regions~1{id}'
+  
+  /app-capabilities:
+    $ref: './paths/app-capabilities.yaml#/~1app-capabilities'
+  /app-capabilities/{id}:
+    $ref: './paths/app-capabilities.yaml#/~1app-capabilities~1{id}'
+  
+  # Tier 6: Telemetry & Metadata
+  /location-types:
+    $ref: './paths/location-types.yaml#/~1location-types'
+  /location-types/{id}:
+    $ref: './paths/location-types.yaml#/~1location-types~1{id}'
+  
+  /locations:
+    $ref: './paths/locations.yaml#/~1locations'
+  /locations/{id}:
+    $ref: './paths/locations.yaml#/~1locations~1{id}'
+  
+  /webhooks:
+    $ref: './paths/webhooks.yaml#/~1webhooks'
+  /webhooks/{id}:
+    $ref: './paths/webhooks.yaml#/~1webhooks~1{id}'
+  /webhooks/{id}/test:
+    $ref: './paths/webhooks.yaml#/~1webhooks~1{id}~1test'
+  
+  /webhook-delivery-logs:
+    $ref: './paths/webhook-delivery-logs.yaml#/~1webhook-delivery-logs'
+  /webhook-delivery-logs/{id}:
+    $ref: './paths/webhook-delivery-logs.yaml#/~1webhook-delivery-logs~1{id}'
+  /webhook-delivery-logs/{id}/retry:
+    $ref: './paths/webhook-delivery-logs.yaml#/~1webhook-delivery-logs~1{id}~1retry'
+  
+  /user-sessions:
+    $ref: './paths/user-sessions.yaml#/~1user-sessions'
+  /user-sessions/{id}:
+    $ref: './paths/user-sessions.yaml#/~1user-sessions~1{id}'
+  /user-sessions/{id}/revoke:
+    $ref: './paths/user-sessions.yaml#/~1user-sessions~1{id}~1revoke'
+  
+  /user-delegations:
+    $ref: './paths/user-delegations.yaml#/~1user-delegations'
+  /user-delegations/{id}:
+    $ref: './paths/user-delegations.yaml#/~1user-delegations~1{id}'
+  /user-delegations/{id}/revoke:
+    $ref: './paths/user-delegations.yaml#/~1user-delegations~1{id}~1revoke'
+  
+  /user-consents:
+    $ref: './paths/user-consents.yaml#/~1user-consents'
+  /user-consents/{id}:
+    $ref: './paths/user-consents.yaml#/~1user-consents~1{id}'
+  
+  /user-mfa-methods:
+    $ref: './paths/user-mfa-methods.yaml#/~1user-mfa-methods'
+  /user-mfa-methods/{id}:
+    $ref: './paths/user-mfa-methods.yaml#/~1user-mfa-methods~1{id}'
+  /user-mfa-methods/{id}/enable:
+    $ref: './paths/user-mfa-methods.yaml#/~1user-mfa-methods~1{id}~1enable'
+  /user-mfa-methods/{id}/disable:
+    $ref: './paths/user-mfa-methods.yaml#/~1user-mfa-methods~1{id}~1disable'
+  
+  /user-roles:
+    $ref: './paths/user-roles.yaml#/~1user-roles'
+  /user-roles/{id}:
+    $ref: './paths/user-roles.yaml#/~1user-roles~1{id}'
+  
+  /service-accounts:
+    $ref: './paths/service-accounts.yaml#/~1service-accounts'
+  /service-accounts/{id}:
+    $ref: './paths/service-accounts.yaml#/~1service-accounts~1{id}'
+  
+  /legal-documents:
+    $ref: './paths/legal-documents.yaml#/~1legal-documents'
+  /legal-documents/{id}:
+    $ref: './paths/legal-documents.yaml#/~1legal-documents~1{id}'
+  /legal-documents/{id}/publish:
+    $ref: './paths/legal-documents.yaml#/~1legal-documents~1{id}~1publish'
+  
+  /tenant-sso-configs:
+    $ref: './paths/tenant-sso-configs.yaml#/~1tenant-sso-configs'
+  /tenant-sso-configs/{id}:
+    $ref: './paths/tenant-sso-configs.yaml#/~1tenant-sso-configs~1{id}'
+  /tenant-sso-configs/{id}/test:
+    $ref: './paths/tenant-sso-configs.yaml#/~1tenant-sso-configs~1{id}~1test'
+  
+  /usage-events:
+    $ref: './paths/usage-events.yaml#/~1usage-events'
+  /usage-events/{id}:
+    $ref: './paths/usage-events.yaml#/~1usage-events~1{id}'
+  
+  /system-jobs:
+    $ref: './paths/system-jobs.yaml#/~1system-jobs'
+  /system-jobs/{id}:
+    $ref: './paths/system-jobs.yaml#/~1system-jobs~1{id}'
+  /system-jobs/{id}/retry:
+    $ref: './paths/system-jobs.yaml#/~1system-jobs~1{id}~1retry'
+  
+  /security-audit-logs:
+    $ref: './paths/security-audit-logs.yaml#/~1security-audit-logs'
+  /security-audit-logs/{id}:
+    $ref: './paths/security-audit-logs.yaml#/~1security-audit-logs~1{id}'
+  /security-audit-logs/export:
+    $ref: './paths/security-audit-logs.yaml#/~1security-audit-logs~1export'
+  
+  /user-registration-logs:
+    $ref: './paths/user-registration-logs.yaml#/~1user-registration-logs'
+  /user-registration-logs/{id}:
+    $ref: './paths/user-registration-logs.yaml#/~1user-registration-logs~1{id}'
+  /user-registration-logs/stats:
+    $ref: './paths/user-registration-logs.yaml#/~1user-registration-logs~1stats'
+  
+  /traffic-logs:
+    $ref: './paths/traffic-logs.yaml#/~1traffic-logs'
+  /traffic-logs/{id}:
+    $ref: './paths/traffic-logs.yaml#/~1traffic-logs~1{id}'
+  /traffic-logs/stats:
+    $ref: './paths/traffic-logs.yaml#/~1traffic-logs~1stats'
+  
+  /content-view-logs:
+    $ref: './paths/content-view-logs.yaml#/~1content-view-logs'
+  /content-view-logs/{id}:
+    $ref: './paths/content-view-logs.yaml#/~1content-view-logs~1{id}'
+  /content-view-logs/analytics:
+    $ref: './paths/content-view-logs.yaml#/~1content-view-logs~1analytics'
+  
+  /saas-business-reports:
+    $ref: './paths/saas-business-reports.yaml#/~1saas-business-reports'
+  /saas-business-reports/{id}:
+    $ref: './paths/saas-business-reports.yaml#/~1saas-business-reports~1{id}'
+  /saas-business-reports/summary:
+    $ref: './paths/saas-business-reports.yaml#/~1saas-business-reports~1summary'
+  
+  /article-types:
+    $ref: './paths/article-types.yaml#/~1article-types'
+  /article-types/{id}:
+    $ref: './paths/article-types.yaml#/~1article-types~1{id}'
+  
+  /product-types:
+    $ref: './paths/product-types.yaml#/~1product-types'
+  /product-types/{id}:
+    $ref: './paths/product-types.yaml#/~1product-types~1{id}'
+  
+  /system-announcements:
+    $ref: './paths/system-announcements.yaml#/~1system-announcements'
+  /system-announcements/{id}:
+    $ref: './paths/system-announcements.yaml#/~1system-announcements~1{id}'
+  /system-announcements/{id}/publish:
+    $ref: './paths/system-announcements.yaml#/~1system-announcements~1{id}~1publish'
+  /system-announcements/active:
+    $ref: './paths/system-announcements.yaml#/~1system-announcements~1active'
+  
+  /tenant-digital-assets:
+    $ref: './paths/tenant-digital-assets.yaml#/~1tenant-digital-assets'
+  /tenant-digital-assets/{id}:
+    $ref: './paths/tenant-digital-assets.yaml#/~1tenant-digital-assets~1{id}'
+  /tenant-digital-assets/{id}/renew:
+    $ref: './paths/tenant-digital-assets.yaml#/~1tenant-digital-assets~1{id}~1renew'
+  
+  /tenant-service-deliveries:
+    $ref: './paths/tenant-service-deliveries.yaml#/~1tenant-service-deliveries'
+  /tenant-service-deliveries/{id}:
+    $ref: './paths/tenant-service-deliveries.yaml#/~1tenant-service-deliveries~1{id}'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from /auth/login endpoint.
+        
+        Example:
+        ```
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        ```
+  
+  schemas:
+    # Import common schemas
+    BaseModel:
+      $ref: './components/schemas/common.yaml#/BaseModel'
+    
+    PaginationMeta:
+      $ref: './components/schemas/common.yaml#/PaginationMeta'
+    
+    SuccessResponse:
+      $ref: './components/responses/success.yaml#/SuccessResponse'
+    
+    ErrorResponse:
+      $ref: './components/responses/errors.yaml#/ErrorResponse'
+    
+    # Entity schemas
+    User:
+      $ref: './components/schemas/user.yaml#/User'
+    
+    Tenant:
+      $ref: './components/schemas/tenant.yaml#/Tenant'
+    
+    Role:
+      $ref: './components/schemas/role.yaml#/Role'
+    
+    Permission:
+      $ref: './components/schemas/permission.yaml#/Permission'
+    
+    Application:
+      $ref: './components/schemas/application.yaml#/Application'
+    
+    Product:
+      $ref: './components/schemas/product.yaml#/Product'
+    
+    Package:
+      $ref: './components/schemas/package.yaml#/Package'
+    
+    Order:
+      $ref: './components/schemas/order.yaml#/Order'
+    
+    Invoice:
+      $ref: './components/schemas/invoice.yaml#/Invoice'
+  
+  parameters:
+    # Common parameters
+    PageParam:
+      $ref: './components/parameters/pagination.yaml#/PageParam'
+    
+    LimitParam:
+      $ref: './components/parameters/pagination.yaml#/LimitParam'
+    
+    SortByParam:
+      $ref: './components/parameters/common.yaml#/SortByParam'
+    
+    SortOrderParam:
+      $ref: './components/parameters/common.yaml#/SortOrderParam'
+    
+    SearchParam:
+      $ref: './components/parameters/filters.yaml#/SearchParam'
+    
+    # Path parameters
+    IDParam:
+      $ref: './components/parameters/common.yaml#/IDParam'
+    
+    TenantIDParam:
+      $ref: './components/parameters/common.yaml#/TenantIDParam'
+  
+  responses:
+    # Success responses
+    OKResponse:
+      $ref: './components/responses/success.yaml#/OKResponse'
+    
+    CreatedResponse:
+      $ref: './components/responses/success.yaml#/CreatedResponse'
+    
+    NoContentResponse:
+      $ref: './components/responses/success.yaml#/NoContentResponse'
+    
+    # Error responses
+    BadRequestError:
+      $ref: './components/responses/errors.yaml#/BadRequestError'
+    
+    UnauthorizedError:
+      $ref: './components/responses/errors.yaml#/UnauthorizedError'
+    
+    ForbiddenError:
+      $ref: './components/responses/errors.yaml#/ForbiddenError'
+    
+    NotFoundError:
+      $ref: './components/responses/errors.yaml#/NotFoundError'
+    
+    ConflictError:
+      $ref: './components/responses/errors.yaml#/ConflictError'
+    
+    ValidationError:
+      $ref: './components/responses/errors.yaml#/ValidationError'
+    
+    InternalServerError:
+      $ref: './components/responses/errors.yaml#/InternalServerError'
+
+externalDocs:
+  description: Find more information in our documentation
+  url: https://docs.vhv-platform.com

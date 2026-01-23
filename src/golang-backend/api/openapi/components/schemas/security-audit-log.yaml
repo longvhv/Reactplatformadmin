@@ -1,0 +1,126 @@
+SecurityAuditLog:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Log ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    actor_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Actor user ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    impersonator_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Impersonator user ID
+      example: null
+    event_category:
+      type: string
+      nullable: true
+      description: Event category
+      example: "authentication"
+    event_action:
+      type: string
+      nullable: true
+      description: Event action
+      example: "login_success"
+    target_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Target resource ID
+      example: null
+    resource_type:
+      type: string
+      nullable: true
+      description: Resource type
+      example: "user"
+    ip_address:
+      type: string
+      nullable: true
+      description: IP address
+      example: "192.168.1.100"
+    user_agent:
+      type: string
+      nullable: true
+      description: User agent
+      example: "Mozilla/5.0..."
+    details:
+      type: object
+      nullable: true
+      description: Event details
+      example:
+        method: "email_password"
+        success: true
+    created_at:
+      type: string
+      format: date-time
+      description: Creation timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - created_at
+
+CreateSecurityAuditLogRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    event_category:
+      type: string
+    event_action:
+      type: string
+    target_id:
+      type: string
+      format: uuid
+      nullable: true
+    resource_type:
+      type: string
+      nullable: true
+    details:
+      type: object
+      nullable: true
+  required:
+    - event_category
+    - event_action
+
+SecurityAuditLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/SecurityAuditLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+SecurityAuditLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/SecurityAuditLog'
+  required:
+    - success
+    - data

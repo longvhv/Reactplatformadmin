@@ -1,227 +1,231 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type TenantRateLimitHandler struct {
-	service *service.TenantRateLimitService
+	rateLimitService *service.TenantRateLimitService
+	authzService     *service.AuthorizationService
 }
 
-func NewTenantRateLimitHandler(service *service.TenantRateLimitService) *TenantRateLimitHandler {
-	return &TenantRateLimitHandler{service: service}
+func NewTenantRateLimitHandler(rateLimitService *service.TenantRateLimitService, authzService *service.AuthorizationService) *TenantRateLimitHandler {
+	return &TenantRateLimitHandler{
+		rateLimitService: rateLimitService,
+		authzService:     authzService,
+	}
 }
 
-// CreateRateLimit godoc
-// @Summary Create a new tenant rate limit
-// @Tags tenant-rate-limits
-// @Accept json
-// @Produce json
-// @Param rateLimit body models.CreateTenantRateLimitRequest true "Rate limit data"
-// @Success 201 {object} models.TenantRateLimit
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits [post]
-func (h *TenantRateLimitHandler) CreateRateLimit(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateTenantRateLimitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+// List lists rate limits
+func (h *TenantRateLimitHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	limit, err := h.service.CreateRateLimit(&req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	resourceType := c.Query("resource_type")
+
+	rateLimits, total, err := h.rateLimitService.ListByTenant(ctx, tenantID, resourceType, page, limit)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, limit)
+	httputil.PaginatedResponse(c, http.StatusOK, rateLimits, total, page, limit)
 }
 
-// GetRateLimit godoc
-// @Summary Get a tenant rate limit by ID
-// @Tags tenant-rate-limits
-// @Produce json
-// @Param id path string true "Rate limit ID"
-// @Success 200 {object} models.TenantRateLimit
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits/{id} [get]
-func (h *TenantRateLimitHandler) GetRateLimit(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetByID gets rate limit by ID
+func (h *TenantRateLimitHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	limit, err := h.service.GetRateLimit(id)
+	rateLimitID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid rate limit id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, limit)
-}
-
-// ListRateLimits godoc
-// @Summary List tenant rate limits
-// @Tags tenant-rate-limits
-// @Produce json
-// @Param tenant_id query string false "Filter by tenant ID"
-// @Param resource_type query string false "Filter by resource type"
-// @Param is_enabled query bool false "Filter by enabled status"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits [get]
-func (h *TenantRateLimitHandler) ListRateLimits(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-
-	var tenantID *string
-	if tid := query.Get("tenant_id"); tid != "" {
-		tenantID = &tid
-	}
-
-	var resourceType *string
-	if rt := query.Get("resource_type"); rt != "" {
-		resourceType = &rt
-	}
-
-	var isEnabled *bool
-	if ie := query.Get("is_enabled"); ie != "" {
-		enabled := ie == "true"
-		isEnabled = &enabled
-	}
-
-	page, _ := strconv.Atoi(query.Get("page"))
-	pageSize, _ := strconv.Atoi(query.Get("page_size"))
-
-	limits, total, err := h.service.ListRateLimits(tenantID, resourceType, isEnabled, page, pageSize)
+	rateLimit, err := h.rateLimitService.GetByID(ctx, rateLimitID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "rate limit not found", nil)
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":      limits,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	}
-
-	respondWithJSON(w, http.StatusOK, response)
+	httputil.SuccessResponse(c, http.StatusOK, rateLimit)
 }
 
-// ListRateLimitsByTenant godoc
-// @Summary List rate limits for a specific tenant
-// @Tags tenant-rate-limits
-// @Produce json
-// @Param tenant_id path string true "Tenant ID"
-// @Success 200 {array} models.TenantRateLimit
-// @Failure 500 {object} map[string]string
-// @Router /tenants/{tenant_id}/rate-limits [get]
-func (h *TenantRateLimitHandler) ListRateLimitsByTenant(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenantID := vars["tenant_id"]
+// GetByKey gets rate limit by key
+func (h *TenantRateLimitHandler) GetByKey(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	limits, err := h.service.ListRateLimitsByTenant(tenantID)
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+
+	limitKey := c.Param("key")
+	if limitKey == "" {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "key required", nil)
+		return
+	}
+
+	rateLimit, err := h.rateLimitService.GetByKey(ctx, tenantID, limitKey)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "rate limit not found", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, limits)
+	httputil.SuccessResponse(c, http.StatusOK, rateLimit)
 }
 
-// UpdateRateLimit godoc
-// @Summary Update a tenant rate limit
-// @Tags tenant-rate-limits
-// @Accept json
-// @Produce json
-// @Param id path string true "Rate limit ID"
-// @Param rateLimit body models.UpdateTenantRateLimitRequest true "Update data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits/{id} [put]
-func (h *TenantRateLimitHandler) UpdateRateLimit(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Create creates a rate limit
+func (h *TenantRateLimitHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateTenantRateLimitRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	var req service.CreateTenantRateLimitRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.UpdateRateLimit(id, &req); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	rateLimit, err := h.rateLimitService.CreateRateLimit(ctx, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Rate limit updated successfully"})
+	httputil.SuccessResponse(c, http.StatusCreated, rateLimit)
 }
 
-// DeleteRateLimit godoc
-// @Summary Delete a tenant rate limit
-// @Tags tenant-rate-limits
-// @Produce json
-// @Param id path string true "Rate limit ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits/{id} [delete]
-func (h *TenantRateLimitHandler) DeleteRateLimit(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Update updates a rate limit
+func (h *TenantRateLimitHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.DeleteRateLimit(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	rateLimitID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid rate limit id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Rate limit deleted successfully"})
+	var req service.UpdateTenantRateLimitRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	rateLimit, err := h.rateLimitService.UpdateRateLimit(ctx, rateLimitID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, rateLimit)
 }
 
-// IncrementUsage godoc
-// @Summary Increment usage counter for a rate limit
-// @Tags tenant-rate-limits
-// @Produce json
-// @Param id path string true "Rate limit ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits/{id}/increment [post]
-func (h *TenantRateLimitHandler) IncrementUsage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Delete deletes a rate limit
+func (h *TenantRateLimitHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.IncrementUsage(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	rateLimitID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid rate limit id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Usage incremented successfully"})
+	if err := h.rateLimitService.DeleteRateLimit(ctx, rateLimitID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "rate limit deleted successfully"})
 }
 
-// ResetUsage godoc
-// @Summary Reset usage counter for a rate limit
-// @Tags tenant-rate-limits
-// @Produce json
-// @Param id path string true "Rate limit ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /tenant-rate-limits/{id}/reset [post]
-func (h *TenantRateLimitHandler) ResetUsage(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// CheckLimit checks if request is within rate limit
+func (h *TenantRateLimitHandler) CheckLimit(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.ResetUsage(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	var req struct {
+		TenantID uuid.UUID `json:"tenant_id" binding:"required"`
+		LimitKey string    `json:"limit_key" binding:"required"`
+		UserID   *uuid.UUID `json:"user_id"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Usage reset successfully"})
+	allowed, remaining, resetAt, err := h.rateLimitService.CheckLimit(ctx, req.TenantID, req.LimitKey, req.UserID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	result := gin.H{
+		"allowed":   allowed,
+		"remaining": remaining,
+		"reset_at":  resetAt,
+	}
+
+	if !allowed {
+		httputil.ErrorResponse(c, http.StatusTooManyRequests, "rate limit exceeded", result)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, result)
+}
+
+// ResetUsage resets rate limit usage
+func (h *TenantRateLimitHandler) ResetUsage(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	rateLimitID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid rate limit id", nil)
+		return
+	}
+
+	if err := h.rateLimitService.ResetUsage(ctx, rateLimitID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "usage reset successfully"})
+}
+
+// GetStats gets rate limit statistics
+func (h *TenantRateLimitHandler) GetStats(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	rateLimitID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid rate limit id", nil)
+		return
+	}
+
+	stats, err := h.rateLimitService.GetStats(ctx, rateLimitID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, stats)
 }

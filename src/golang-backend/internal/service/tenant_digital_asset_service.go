@@ -2,179 +2,240 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type TenantDigitalAssetService interface {
-	CreateAsset(ctx context.Context, req *models.CreateTenantDigitalAssetRequest) (*models.TenantDigitalAsset, error)
-	GetAsset(ctx context.Context, id uuid.UUID) (*models.TenantDigitalAsset, error)
-	ListAssets(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, assetType, status *string) ([]*models.TenantDigitalAsset, int, error)
-	ListAssetsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantDigitalAsset, error)
-	ListAssetsByOrder(ctx context.Context, orderID uuid.UUID) ([]*models.TenantDigitalAsset, error)
-	ListAssetsByType(ctx context.Context, assetType string) ([]*models.TenantDigitalAsset, error)
-	ListActiveAssets(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantDigitalAsset, error)
-	ListExpiringAssets(ctx context.Context, daysAhead int) ([]*models.TenantDigitalAsset, error)
-	UpdateAsset(ctx context.Context, id uuid.UUID, req *models.UpdateTenantDigitalAssetRequest) (*models.TenantDigitalAsset, error)
-	ActivateAsset(ctx context.Context, id uuid.UUID) error
-	SuspendAsset(ctx context.Context, id uuid.UUID) error
-	ExpireAsset(ctx context.Context, id uuid.UUID) error
-	UpdateAssetStatus(ctx context.Context, id uuid.UUID, status string) error
-	DeleteAsset(ctx context.Context, id uuid.UUID) error
+type TenantDigitalAssetService struct {
+	assetRepo repository.TenantDigitalAssetRepository
 }
 
-type tenantDigitalAssetService struct {
-	repo repository.TenantDigitalAssetRepository
+func NewTenantDigitalAssetService(assetRepo repository.TenantDigitalAssetRepository) *TenantDigitalAssetService {
+	return &TenantDigitalAssetService{
+		assetRepo: assetRepo,
+	}
 }
 
-func NewTenantDigitalAssetService(repo repository.TenantDigitalAssetRepository) TenantDigitalAssetService {
-	return &tenantDigitalAssetService{repo: repo}
+type CreateTenantDigitalAssetRequest struct {
+	TenantID      uuid.UUID              `json:"tenant_id" binding:"required"`
+	OrderID       *uuid.UUID             `json:"order_id"`
+	AssetType     string                 `json:"asset_type" binding:"required"`
+	Name          string                 `json:"name" binding:"required"`
+	AutoRenew     bool                   `json:"auto_renew"`
+	AssetMetadata map[string]interface{} `json:"asset_metadata"`
+	ExpiresAt     *string                `json:"expires_at"`
 }
 
-func (s *tenantDigitalAssetService) CreateAsset(ctx context.Context, req *models.CreateTenantDigitalAssetRequest) (*models.TenantDigitalAsset, error) {
-	now := time.Now()
-	asset := &models.TenantDigitalAsset{
-		ID:        uuid.New(),
-		TenantID:  req.TenantID,
-		AssetType: req.AssetType,
-		Name:      req.Name,
-		Status:    "PENDING",
-		AutoRenew: req.AutoRenew,
-		CreatedAt: now,
-		UpdatedAt: now,
-		Version:   1,
+type UpdateTenantDigitalAssetRequest struct {
+	Name          *string                `json:"name"`
+	Status        *string                `json:"status"`
+	AutoRenew     *bool                  `json:"auto_renew"`
+	AssetMetadata map[string]interface{} `json:"asset_metadata"`
+	ExpiresAt     *string                `json:"expires_at"`
+}
+
+// GetByID gets digital asset by ID
+func (s *TenantDigitalAssetService) GetByID(ctx context.Context, id uuid.UUID) (*models.TenantDigitalAsset, error) {
+	return s.assetRepo.GetByID(ctx, id)
+}
+
+// ListByTenant lists digital assets by tenant
+func (s *TenantDigitalAssetService) ListByTenant(ctx context.Context, tenantID uuid.UUID, status, assetType string, page, limit int) ([]*models.TenantDigitalAsset, int64, error) {
+	offset := (page - 1) * limit
+	return s.assetRepo.ListByTenant(ctx, tenantID, status, assetType, limit, offset)
+}
+
+// CreateAsset creates a new digital asset
+func (s *TenantDigitalAssetService) CreateAsset(ctx context.Context, req CreateTenantDigitalAssetRequest) (*models.TenantDigitalAsset, error) {
+	assetMetadata := req.AssetMetadata
+	if assetMetadata == nil {
+		assetMetadata = make(map[string]interface{})
 	}
 
-	if req.OrderID != nil {
-		asset.OrderID.String = req.OrderID.String()
-		asset.OrderID.Valid = true
-	}
-
-	if req.ExpiresAt != nil {
-		asset.ExpiresAt.Time = *req.ExpiresAt
-		asset.ExpiresAt.Valid = true
-	}
-
-	// Set asset metadata
-	if req.AssetMetadata != nil {
-		metadataJSON, err := json.Marshal(req.AssetMetadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal asset_metadata: %w", err)
+	var expiresAt *time.Time
+	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if err == nil {
+			expiresAt = &parsed
 		}
-		asset.AssetMetadata = metadataJSON
-	} else {
-		asset.AssetMetadata = []byte("{}")
 	}
 
-	if err := s.repo.Create(ctx, asset); err != nil {
+	asset := &models.TenantDigitalAsset{
+		ID:            uuid.New(),
+		TenantID:      req.TenantID,
+		OrderID:       req.OrderID,
+		AssetType:     req.AssetType,
+		Name:          req.Name,
+		Status:        "PENDING",
+		AutoRenew:     req.AutoRenew,
+		AssetMetadata: assetMetadata,
+		ExpiresAt:     expiresAt,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		Version:       1,
+	}
+
+	if err := s.assetRepo.Create(ctx, asset); err != nil {
 		return nil, fmt.Errorf("failed to create digital asset: %w", err)
 	}
+
+	// TODO: Trigger asset provisioning process
+	go s.provisionAsset(context.Background(), asset)
 
 	return asset, nil
 }
 
-func (s *tenantDigitalAssetService) GetAsset(ctx context.Context, id uuid.UUID) (*models.TenantDigitalAsset, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *tenantDigitalAssetService) ListAssets(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, assetType, status *string) ([]*models.TenantDigitalAsset, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.List(ctx, page, pageSize, tenantID, assetType, status)
-}
-
-func (s *tenantDigitalAssetService) ListAssetsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantDigitalAsset, error) {
-	return s.repo.ListByTenantID(ctx, tenantID)
-}
-
-func (s *tenantDigitalAssetService) ListAssetsByOrder(ctx context.Context, orderID uuid.UUID) ([]*models.TenantDigitalAsset, error) {
-	return s.repo.ListByOrderID(ctx, orderID)
-}
-
-func (s *tenantDigitalAssetService) ListAssetsByType(ctx context.Context, assetType string) ([]*models.TenantDigitalAsset, error) {
-	return s.repo.ListByAssetType(ctx, assetType)
-}
-
-func (s *tenantDigitalAssetService) ListActiveAssets(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantDigitalAsset, error) {
-	return s.repo.ListActiveAssets(ctx, tenantID)
-}
-
-func (s *tenantDigitalAssetService) ListExpiringAssets(ctx context.Context, daysAhead int) ([]*models.TenantDigitalAsset, error) {
-	if daysAhead <= 0 {
-		daysAhead = 30 // Default to 30 days
-	}
-
-	beforeDate := time.Now().AddDate(0, 0, daysAhead)
-	return s.repo.ListExpiringAssets(ctx, beforeDate)
-}
-
-func (s *tenantDigitalAssetService) UpdateAsset(ctx context.Context, id uuid.UUID, req *models.UpdateTenantDigitalAssetRequest) (*models.TenantDigitalAsset, error) {
-	asset, err := s.repo.GetByID(ctx, id)
+// UpdateAsset updates a digital asset
+func (s *TenantDigitalAssetService) UpdateAsset(ctx context.Context, id uuid.UUID, req UpdateTenantDigitalAssetRequest) (*models.TenantDigitalAsset, error) {
+	asset, err := s.assetRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("asset not found: %w", err)
 	}
 
 	if req.Name != nil {
 		asset.Name = *req.Name
 	}
-
 	if req.Status != nil {
 		asset.Status = *req.Status
 	}
-
 	if req.AutoRenew != nil {
 		asset.AutoRenew = *req.AutoRenew
 	}
-
-	if req.ExpiresAt != nil {
-		asset.ExpiresAt.Time = *req.ExpiresAt
-		asset.ExpiresAt.Valid = true
-	}
-
 	if req.AssetMetadata != nil {
-		metadataJSON, err := json.Marshal(*req.AssetMetadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal asset_metadata: %w", err)
+		asset.AssetMetadata = req.AssetMetadata
+	}
+	if req.ExpiresAt != nil && *req.ExpiresAt != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.ExpiresAt)
+		if err == nil {
+			asset.ExpiresAt = &parsed
 		}
-		asset.AssetMetadata = metadataJSON
 	}
 
 	asset.UpdatedAt = time.Now()
+	asset.Version++
 
-	if err := s.repo.Update(ctx, asset); err != nil {
-		return nil, fmt.Errorf("failed to update digital asset: %w", err)
+	if err := s.assetRepo.Update(ctx, asset); err != nil {
+		return nil, fmt.Errorf("failed to update asset: %w", err)
 	}
 
 	return asset, nil
 }
 
-func (s *tenantDigitalAssetService) ActivateAsset(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Activate(ctx, id)
+// DeleteAsset deletes a digital asset
+func (s *TenantDigitalAssetService) DeleteAsset(ctx context.Context, id uuid.UUID) error {
+	asset, err := s.assetRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("asset not found: %w", err)
+	}
+
+	if asset.Status == "ACTIVE" {
+		return fmt.Errorf("cannot delete active asset, suspend it first")
+	}
+
+	return s.assetRepo.Delete(ctx, id)
 }
 
-func (s *tenantDigitalAssetService) SuspendAsset(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Suspend(ctx, id)
+// ActivateAsset activates a digital asset
+func (s *TenantDigitalAssetService) ActivateAsset(ctx context.Context, id uuid.UUID) (*models.TenantDigitalAsset, error) {
+	asset, err := s.assetRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("asset not found: %w", err)
+	}
+
+	if asset.Status == "ACTIVE" {
+		return asset, nil
+	}
+
+	now := time.Now()
+	asset.Status = "ACTIVE"
+	asset.ActivatedAt = &now
+	asset.UpdatedAt = now
+	asset.Version++
+
+	if err := s.assetRepo.Update(ctx, asset); err != nil {
+		return nil, fmt.Errorf("failed to activate asset: %w", err)
+	}
+
+	return asset, nil
 }
 
-func (s *tenantDigitalAssetService) ExpireAsset(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Expire(ctx, id)
+// SuspendAsset suspends a digital asset
+func (s *TenantDigitalAssetService) SuspendAsset(ctx context.Context, id uuid.UUID) (*models.TenantDigitalAsset, error) {
+	asset, err := s.assetRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("asset not found: %w", err)
+	}
+
+	if asset.Status == "SUSPENDED" {
+		return asset, nil
+	}
+
+	asset.Status = "SUSPENDED"
+	asset.UpdatedAt = time.Now()
+	asset.Version++
+
+	if err := s.assetRepo.Update(ctx, asset); err != nil {
+		return nil, fmt.Errorf("failed to suspend asset: %w", err)
+	}
+
+	return asset, nil
 }
 
-func (s *tenantDigitalAssetService) UpdateAssetStatus(ctx context.Context, id uuid.UUID, status string) error {
-	return s.repo.UpdateStatus(ctx, id, status)
+// RenewAsset renews a digital asset
+func (s *TenantDigitalAssetService) RenewAsset(ctx context.Context, id uuid.UUID, expiresAtStr string) (*models.TenantDigitalAsset, error) {
+	asset, err := s.assetRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("asset not found: %w", err)
+	}
+
+	expiresAt, err := time.Parse(time.RFC3339, expiresAtStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expires_at format: %w", err)
+	}
+
+	asset.ExpiresAt = &expiresAt
+	asset.UpdatedAt = time.Now()
+	asset.Version++
+
+	// If asset was expired, reactivate it
+	if asset.Status == "EXPIRED" {
+		now := time.Now()
+		asset.Status = "ACTIVE"
+		asset.ActivatedAt = &now
+	}
+
+	if err := s.assetRepo.Update(ctx, asset); err != nil {
+		return nil, fmt.Errorf("failed to renew asset: %w", err)
+	}
+
+	return asset, nil
 }
 
-func (s *tenantDigitalAssetService) DeleteAsset(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// provisionAsset provisions a digital asset (simulation)
+func (s *TenantDigitalAssetService) provisionAsset(ctx context.Context, asset *models.TenantDigitalAsset) {
+	// Simulate provisioning process
+	time.Sleep(3 * time.Second)
+
+	asset.Status = "PROVISIONING"
+	_ = s.assetRepo.Update(ctx, asset)
+
+	time.Sleep(5 * time.Second)
+
+	now := time.Now()
+	asset.Status = "ACTIVE"
+	asset.ActivatedAt = &now
+	asset.UpdatedAt = now
+
+	_ = s.assetRepo.Update(ctx, asset)
+}
+
+// CheckExpiredAssets checks and marks expired assets
+func (s *TenantDigitalAssetService) CheckExpiredAssets(ctx context.Context) error {
+	// TODO: Implement batch check for expired assets
+	// This should be called by a scheduled job
+	return nil
 }

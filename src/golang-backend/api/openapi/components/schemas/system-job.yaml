@@ -1,0 +1,183 @@
+SystemJob:
+  type: object
+  properties:
+    id:
+      type: string
+      format: uuid
+      description: Job ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    job_name:
+      type: string
+      description: Job name
+      example: "Daily Cleanup"
+    job_type:
+      type: string
+      description: Job type
+      example: "maintenance"
+    description:
+      type: string
+      nullable: true
+      description: Job description
+      example: "Clean up old logs daily"
+    status:
+      type: string
+      default: "pending"
+      description: Job status
+      example: "active"
+    priority:
+      type: string
+      default: "normal"
+      description: Job priority
+      example: "high"
+    schedule_type:
+      type: string
+      nullable: true
+      description: Schedule type
+      example: "cron"
+    cron_expression:
+      type: string
+      nullable: true
+      description: Cron expression
+      example: "0 0 * * *"
+    last_run_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Last run timestamp
+      example: "2026-01-22T00:00:00Z"
+    next_run_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Next run timestamp
+      example: "2026-01-23T00:00:00Z"
+    last_run_duration:
+      type: integer
+      nullable: true
+      description: Last run duration (ms)
+      example: 5432
+    last_run_status:
+      type: string
+      nullable: true
+      description: Last run status
+      example: "success"
+    last_run_error:
+      type: string
+      nullable: true
+      description: Last run error
+      example: null
+    run_count:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Total runs
+      example: 365
+    success_count:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Successful runs
+      example: 360
+    failure_count:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Failed runs
+      example: 5
+    is_active:
+      type: boolean
+      default: true
+      description: Active status
+      example: true
+    created_by:
+      type: string
+      nullable: true
+      description: Creator
+      example: "admin"
+    created_at:
+      type: string
+      format: date-time
+      description: Creation timestamp
+      example: "2026-01-01T00:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
+      description: Last update timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - id
+    - job_name
+    - job_type
+    - status
+    - priority
+
+CreateSystemJobRequest:
+  type: object
+  properties:
+    job_name:
+      type: string
+    job_type:
+      type: string
+    description:
+      type: string
+      nullable: true
+    priority:
+      type: string
+      default: "normal"
+    schedule_type:
+      type: string
+      nullable: true
+    cron_expression:
+      type: string
+      nullable: true
+  required:
+    - job_name
+    - job_type
+
+UpdateSystemJobRequest:
+  type: object
+  properties:
+    job_name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    status:
+      type: string
+    priority:
+      type: string
+    cron_expression:
+      type: string
+      nullable: true
+    is_active:
+      type: boolean
+  minProperties: 1
+
+SystemJobListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/SystemJob'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+SystemJobResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/SystemJob'
+  required:
+    - success
+    - data

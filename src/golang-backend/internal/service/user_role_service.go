@@ -1,63 +1,103 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/repository"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
 type UserRoleService struct {
-	repo *repository.UserRoleRepository
+	userRoleRepo repository.UserRoleRepository
 }
 
-func NewUserRoleService(repo *repository.UserRoleRepository) *UserRoleService {
-	return &UserRoleService{repo: repo}
+func NewUserRoleService(userRoleRepo repository.UserRoleRepository) *UserRoleService {
+	return &UserRoleService{
+		userRoleRepo: userRoleRepo,
+	}
 }
 
-func (s *UserRoleService) AssignRole(req *models.CreateUserRoleRequest) (*models.UserRole, error) {
-	// Validate expiration date
-	if req.ExpiresAt != nil && req.ExpiresAt.Before(time.Now()) {
-		return nil, fmt.Errorf("expires_at cannot be in the past")
+type AssignRoleRequest struct {
+	UserID    uuid.UUID  `json:"user_id" binding:"required"`
+	RoleID    uuid.UUID  `json:"role_id" binding:"required"`
+	TenantID  uuid.UUID  `json:"tenant_id" binding:"required"`
+	Scope     string     `json:"scope"`
+	ScopeID   *uuid.UUID `json:"scope_id"`
+	ExpiresAt *time.Time `json:"expires_at"`
+}
+
+// ListByUserAndTenant lists user roles by user and tenant
+func (s *UserRoleService) ListByUserAndTenant(ctx context.Context, userID, tenantID uuid.UUID, page, limit int) ([]*models.UserRole, int64, error) {
+	userRoles, err := s.userRoleRepo.ListByUserAndTenant(ctx, userID, tenantID)
+	if err != nil {
+		return nil, 0, err
 	}
 
-	return s.repo.Create(req)
-}
+	total := int64(len(userRoles))
+	start := (page - 1) * limit
+	end := start + limit
 
-func (s *UserRoleService) GetUserRole(id string) (*models.UserRole, error) {
-	return s.repo.GetByID(id)
-}
-
-func (s *UserRoleService) GetUserRoles(userID string, tenantID *string) ([]*models.UserRole, error) {
-	return s.repo.GetByUserID(userID, tenantID)
-}
-
-func (s *UserRoleService) ListUserRoles(userID *string, roleID *string, tenantID *string, page, pageSize int) ([]*models.UserRole, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 20
+	if start > len(userRoles) {
+		return []*models.UserRole{}, total, nil
 	}
 
-	offset := (page - 1) * pageSize
-	return s.repo.List(userID, roleID, tenantID, pageSize, offset)
-}
-
-func (s *UserRoleService) UpdateUserRole(id string, req *models.UpdateUserRoleRequest) (*models.UserRole, error) {
-	// Validate expiration date if provided
-	if req.ExpiresAt != nil && req.ExpiresAt.Before(time.Now()) {
-		return nil, fmt.Errorf("expires_at cannot be in the past")
+	if end > len(userRoles) {
+		end = len(userRoles)
 	}
 
-	return s.repo.Update(id, req)
+	return userRoles[start:end], total, nil
 }
 
-func (s *UserRoleService) RevokeRole(id string) error {
-	return s.repo.Delete(id)
+// AssignRole assigns a role to user
+func (s *UserRoleService) AssignRole(ctx context.Context, req AssignRoleRequest, grantedBy uuid.UUID) error {
+	// Check if user already has this role
+	existingRoles, err := s.userRoleRepo.ListByUserAndTenant(ctx, req.UserID, req.TenantID)
+	if err != nil {
+		return fmt.Errorf("failed to check existing roles: %w", err)
+	}
+
+	for _, userRole := range existingRoles {
+		if userRole.RoleID == req.RoleID && userRole.IsActive {
+			return fmt.Errorf("user already has this role")
+		}
+	}
+
+	scope := req.Scope
+	if scope == "" {
+		scope = "tenant"
+	}
+
+	userRole := &models.UserRole{
+		ID:        uuid.New(),
+		UserID:    req.UserID,
+		RoleID:    req.RoleID,
+		TenantID:  &req.TenantID,
+		Scope:     scope,
+		ScopeID:   req.ScopeID,
+		GrantedBy: &grantedBy,
+		GrantedAt: time.Now(),
+		ExpiresAt: req.ExpiresAt,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := s.userRoleRepo.Create(ctx, userRole); err != nil {
+		return fmt.Errorf("failed to assign role: %w", err)
+	}
+
+	return nil
 }
 
-func (s *UserRoleService) RevokeExpiredRoles() (int64, error) {
-	return s.repo.RevokeExpiredRoles()
+// RevokeRole revokes a role from user
+func (s *UserRoleService) RevokeRole(ctx context.Context, userRoleID uuid.UUID) error {
+	return s.userRoleRepo.Delete(ctx, userRoleID)
+}
+
+// RevokeExpiredRoles revokes all expired roles
+func (s *UserRoleService) RevokeExpiredRoles(ctx context.Context) (int64, error) {
+	return s.userRoleRepo.RevokeExpiredRoles(ctx)
 }

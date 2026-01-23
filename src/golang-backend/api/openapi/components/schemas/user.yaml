@@ -1,0 +1,211 @@
+User:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User email address (unique, used for login)
+          example: "admin@saas.coquan.vn"
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: User full name
+          example: "Nguyễn Văn A"
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to user avatar image
+          example: "https://example.com/avatars/user.jpg"
+        phone_number:
+          type: string
+          nullable: true
+          description: User phone number (E.164 format)
+          example: "+84901234567"
+        status:
+          $ref: './common.yaml#/UserStatus'
+        is_support_staff:
+          type: boolean
+          description: Whether user is a support staff member
+          default: false
+          example: false
+        is_verified:
+          type: boolean
+          description: Whether user email has been verified
+          default: false
+          example: true
+        mfa_enabled:
+          type: boolean
+          description: Whether multi-factor authentication is enabled
+          default: false
+          example: false
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of last successful login
+          example: "2026-01-22T10:30:00Z"
+        locale:
+          $ref: './common.yaml#/Locale'
+        timezone:
+          type: string
+          nullable: true
+          description: User timezone (IANA format)
+          example: "Asia/Ho_Chi_Minh"
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - email
+        - full_name
+        - status
+        - is_support_staff
+        - is_verified
+        - mfa_enabled
+
+CreateUserRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: User email address
+      example: "newuser@example.com"
+    password:
+      type: string
+      format: password
+      minLength: 8
+      maxLength: 128
+      description: User password (min 8 characters, will be hashed)
+      example: "SecurePass123!"
+    full_name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: User full name
+      example: "Nguyễn Văn B"
+    avatar_url:
+      type: string
+      format: uri
+      nullable: true
+      description: URL to user avatar image
+      example: "https://example.com/avatars/default.jpg"
+    phone_number:
+      type: string
+      nullable: true
+      description: User phone number
+      example: "+84901234567"
+    status:
+      $ref: './common.yaml#/UserStatus'
+    is_support_staff:
+      type: boolean
+      default: false
+      example: false
+    locale:
+      $ref: './common.yaml#/Locale'
+    timezone:
+      type: string
+      nullable: true
+      example: "Asia/Ho_Chi_Minh"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - email
+    - password
+    - full_name
+
+UpdateUserRequest:
+  type: object
+  properties:
+    full_name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: User full name
+      example: "Nguyễn Văn C"
+    avatar_url:
+      type: string
+      format: uri
+      nullable: true
+      description: URL to user avatar image
+      example: "https://example.com/avatars/updated.jpg"
+    phone_number:
+      type: string
+      nullable: true
+      description: User phone number
+      example: "+84912345678"
+    status:
+      $ref: './common.yaml#/UserStatus'
+    is_support_staff:
+      type: boolean
+      example: false
+    is_verified:
+      type: boolean
+      example: true
+    locale:
+      $ref: './common.yaml#/Locale'
+    timezone:
+      type: string
+      nullable: true
+      example: "Asia/Ho_Chi_Minh"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+UpdateUserStatusRequest:
+  type: object
+  properties:
+    status:
+      $ref: './common.yaml#/UserStatus'
+    reason:
+      type: string
+      nullable: true
+      description: Reason for status change
+      example: "Account suspended due to violation"
+  required:
+    - status
+
+EnableMFARequest:
+  type: object
+  properties:
+    mfa_type:
+      type: string
+      enum:
+        - TOTP
+        - SMS
+        - EMAIL
+      description: Type of MFA to enable
+      example: "TOTP"
+  required:
+    - mfa_type
+
+UserListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/User'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/User'
+  required:
+    - success
+    - data

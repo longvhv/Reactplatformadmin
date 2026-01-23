@@ -1,0 +1,140 @@
+UserConsent:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: User ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        legal_document_id:
+          type: string
+          format: uuid
+          description: Legal document ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        consent_given:
+          type: boolean
+          default: true
+          description: Consent given
+          example: true
+        consent_date:
+          type: string
+          format: date-time
+          description: Consent date
+          example: "2026-01-22T10:00:00Z"
+        consent_ip:
+          type: string
+          nullable: true
+          description: IP address
+          example: "192.168.1.100"
+        consent_user_agent:
+          type: string
+          nullable: true
+          description: User agent
+          example: "Mozilla/5.0..."
+        consent_method:
+          type: string
+          enum:
+            - web
+            - mobile
+            - api
+            - email
+            - signup
+            - profile
+            - checkout
+            - other
+          nullable: true
+          description: Consent method
+          example: "web"
+        document_version:
+          type: string
+          nullable: true
+          description: Document version
+          example: "1.0"
+        document_title:
+          type: string
+          nullable: true
+          description: Document title
+          example: "Terms of Service"
+        document_type:
+          type: string
+          nullable: true
+          description: Document type
+          example: "TOS"
+        withdrawn:
+          type: boolean
+          default: false
+          description: Consent withdrawn
+          example: false
+        withdrawn_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Withdrawn date
+          example: null
+        withdrawn_reason:
+          type: string
+          nullable: true
+          description: Withdrawn reason
+          example: null
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Expiration date
+          example: null
+      required:
+        - user_id
+        - legal_document_id
+
+CreateUserConsentRequest:
+  type: object
+  properties:
+    legal_document_id:
+      type: string
+      format: uuid
+    consent_given:
+      type: boolean
+      default: true
+    consent_method:
+      type: string
+      enum: [web, mobile, api, email, signup, profile, checkout, other]
+  required:
+    - legal_document_id
+
+WithdrawConsentRequest:
+  type: object
+  properties:
+    reason:
+      type: string
+      nullable: true
+
+UserConsentListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserConsent'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserConsentResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserConsent'
+  required:
+    - success
+    - data

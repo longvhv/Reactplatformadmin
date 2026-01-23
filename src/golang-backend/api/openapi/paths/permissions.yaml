@@ -1,0 +1,496 @@
+/permissions:
+  get:
+    summary: List all permissions
+    description: Retrieve a paginated list of permissions with optional filters
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+      - name: resource
+        in: query
+        schema:
+          type: string
+        description: Filter by resource type
+        example: "users"
+      - name: action
+        in: query
+        schema:
+          type: string
+          enum:
+            - CREATE
+            - READ
+            - UPDATE
+            - DELETE
+            - LIST
+            - EXECUTE
+            - MANAGE
+        description: Filter by action type
+      - name: scope
+        in: query
+        schema:
+          type: string
+          enum:
+            - GLOBAL
+            - TENANT
+            - SELF
+        description: Filter by permission scope
+      - name: permission_type
+        in: query
+        schema:
+          type: string
+          enum:
+            - SYSTEM
+            - CUSTOM
+        description: Filter by permission type
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+        description: Filter by active status
+    responses:
+      '200':
+        description: Permissions retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/permission.yaml#/PermissionListResponse'
+            example:
+              success: true
+              data:
+                - _id: "660e8400-e29b-41d4-a716-446655440000"
+                  code: "USER_CREATE"
+                  name: "Create Users"
+                  resource: "users"
+                  action: "CREATE"
+                  scope: "TENANT"
+                  permission_type: "SYSTEM"
+                  is_active: true
+                  roles_count: 3
+                - _id: "660e8400-e29b-41d4-a716-446655440001"
+                  code: "USER_READ"
+                  name: "View Users"
+                  resource: "users"
+                  action: "READ"
+                  scope: "TENANT"
+                  permission_type: "SYSTEM"
+                  is_active: true
+                  roles_count: 5
+              meta:
+                page: 1
+                page_size: 20
+                total_pages: 3
+                total_count: 50
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create a new permission
+    description: Create a new custom permission (admin only)
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/permission.yaml#/CreatePermissionRequest'
+          examples:
+            create_permission:
+              summary: Create custom permission
+              value:
+                code: "REPORT_EXPORT"
+                name: "Export Reports"
+                description: "Allows exporting reports to PDF/Excel"
+                resource: "reports"
+                action: "EXECUTE"
+                scope: "TENANT"
+            tenant_scoped:
+              summary: Tenant-scoped permission
+              value:
+                code: "INVOICE_APPROVE"
+                name: "Approve Invoices"
+                description: "Allows approving tenant invoices"
+                resource: "invoices"
+                action: "UPDATE"
+                scope: "TENANT"
+    responses:
+      '201':
+        description: Permission created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/permission.yaml#/PermissionResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        description: Permission code already exists
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "PERMISSION_CODE_EXISTS"
+                message: "Permission code already exists"
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/permissions/{id}:
+  get:
+    summary: Get permission by ID
+    description: Retrieve a single permission with optional role details
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+      - name: include_roles
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Include roles that have this permission
+    responses:
+      '200':
+        description: Permission retrieved successfully
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '../components/schemas/permission.yaml#/PermissionResponse'
+                - $ref: '../components/schemas/permission.yaml#/PermissionWithRolesResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update permission
+    description: Update permission information (SYSTEM permissions cannot be modified)
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/permission.yaml#/UpdatePermissionRequest'
+          examples:
+            update_name:
+              summary: Update name
+              value:
+                name: "Export All Reports"
+            deactivate:
+              summary: Deactivate permission
+              value:
+                is_active: false
+    responses:
+      '200':
+        description: Permission updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/permission.yaml#/PermissionResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        description: Cannot modify SYSTEM permissions
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "CANNOT_MODIFY_SYSTEM_PERMISSION"
+                message: "System permissions cannot be modified"
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete permission
+    description: Soft delete a custom permission (cannot delete SYSTEM permissions)
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        description: Cannot delete SYSTEM permissions
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+            example:
+              success: false
+              error:
+                code: "CANNOT_DELETE_SYSTEM_PERMISSION"
+                message: "System permissions cannot be deleted"
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/permissions/code/{code}:
+  get:
+    summary: Get permission by code
+    description: Retrieve a permission by its unique code
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/CodeParam'
+    responses:
+      '200':
+        description: Permission retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/permission.yaml#/PermissionResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/permissions/check:
+  post:
+    summary: Check user permission
+    description: Check if a user has a specific permission (used for authorization)
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/permission.yaml#/PermissionCheckRequest'
+          examples:
+            basic_check:
+              summary: Basic permission check
+              value:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                permission_code: "USER_CREATE"
+            resource_check:
+              summary: Check with resource ID (SELF scope)
+              value:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                permission_code: "USER_UPDATE"
+                resource_id: "550e8400-e29b-41d4-a716-446655440000"
+    responses:
+      '200':
+        description: Permission check completed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/permission.yaml#/PermissionCheckResponse'
+            examples:
+              has_permission:
+                summary: User has permission
+                value:
+                  success: true
+                  data:
+                    has_permission: true
+                    permission:
+                      _id: "660e8400-e29b-41d4-a716-446655440000"
+                      code: "USER_CREATE"
+                      name: "Create Users"
+                      resource: "users"
+                      action: "CREATE"
+                      scope: "TENANT"
+                    granted_by_roles:
+                      - "TENANT_ADMIN"
+                      - "USER_MANAGER"
+              no_permission:
+                summary: User does not have permission
+                value:
+                  success: true
+                  data:
+                    has_permission: false
+                    permission:
+                      _id: "660e8400-e29b-41d4-a716-446655440000"
+                      code: "USER_DELETE"
+                      name: "Delete Users"
+                      resource: "users"
+                      action: "DELETE"
+                      scope: "TENANT"
+                    granted_by_roles: []
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        description: User or permission not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/responses/errors.yaml#/ErrorResponse'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/permissions/by-resource:
+  get:
+    summary: Get permissions grouped by resource
+    description: Retrieve all permissions grouped by resource type (useful for UI)
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: include_inactive
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Include inactive permissions
+    responses:
+      '200':
+        description: Permissions grouped by resource
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items:
+                      $ref: '../components/schemas/permission.yaml#/Permission'
+            example:
+              success: true
+              data:
+                users:
+                  - code: "USER_CREATE"
+                    name: "Create Users"
+                    action: "CREATE"
+                  - code: "USER_READ"
+                    name: "View Users"
+                    action: "READ"
+                  - code: "USER_UPDATE"
+                    name: "Update Users"
+                    action: "UPDATE"
+                tenants:
+                  - code: "TENANT_CREATE"
+                    name: "Create Tenants"
+                    action: "CREATE"
+                  - code: "TENANT_READ"
+                    name: "View Tenants"
+                    action: "READ"
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/permissions/user/{user_id}:
+  get:
+    summary: Get all permissions for a user
+    description: Retrieve all permissions granted to a user through their roles
+    tags:
+      - Permissions
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/UserIDParam'
+      - name: grouped
+        in: query
+        schema:
+          type: boolean
+          default: false
+        description: Group permissions by resource
+    responses:
+      '200':
+        description: User permissions retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+                data:
+                  type: object
+                  properties:
+                    user_id:
+                      type: string
+                      format: uuid
+                    permissions:
+                      type: array
+                      items:
+                        $ref: '../components/schemas/permission.yaml#/Permission'
+                    roles:
+                      type: array
+                      items:
+                        $ref: '../components/schemas/role.yaml#/Role'
+            example:
+              success: true
+              data:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                permissions:
+                  - code: "USER_CREATE"
+                    name: "Create Users"
+                    resource: "users"
+                    action: "CREATE"
+                  - code: "USER_READ"
+                    name: "View Users"
+                    resource: "users"
+                    action: "READ"
+                roles:
+                  - code: "USER_MANAGER"
+                    name: "User Manager"
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

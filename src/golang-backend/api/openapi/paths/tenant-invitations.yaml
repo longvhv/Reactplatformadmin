@@ -1,0 +1,172 @@
+/tenant-invitations:
+  get:
+    summary: List tenant invitations
+    description: Retrieve a paginated list of tenant invitations
+    tags:
+      - Tenant Invitations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [PENDING, ACCEPTED, EXPIRED, REVOKED]
+    responses:
+      '200':
+        description: Invitations retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-invitation.yaml#/TenantInvitationListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create invitation
+    description: Send a new tenant invitation
+    tags:
+      - Tenant Invitations
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-invitation.yaml#/CreateTenantInvitationRequest'
+    responses:
+      '201':
+        description: Invitation sent successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-invitation.yaml#/TenantInvitationResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-invitations/{id}:
+  get:
+    summary: Get invitation by ID
+    description: Retrieve a single invitation
+    tags:
+      - Tenant Invitations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Invitation retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-invitation.yaml#/TenantInvitationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete invitation
+    description: Revoke an invitation
+    tags:
+      - Tenant Invitations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-invitations/{id}/resend:
+  post:
+    summary: Resend invitation
+    description: Resend invitation email and extend expiration
+    tags:
+      - Tenant Invitations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-invitation.yaml#/ResendInvitationRequest'
+    responses:
+      '200':
+        description: Invitation resent successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-invitation.yaml#/TenantInvitationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-invitations/{id}/revoke:
+  post:
+    summary: Revoke invitation
+    description: Revoke a pending invitation
+    tags:
+      - Tenant Invitations
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Invitation revoked successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-invitation.yaml#/TenantInvitationResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

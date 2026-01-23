@@ -1,0 +1,207 @@
+LegalDocument:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        title:
+          type: string
+          description: Document title
+          example: "Terms of Service"
+        slug:
+          type: string
+          description: URL-friendly slug
+          example: "terms-of-service"
+        type:
+          type: string
+          enum:
+            - terms_of_service
+            - privacy_policy
+            - cookie_policy
+            - gdpr
+            - eula
+            - sla
+            - dpa
+            - other
+          description: Document type
+          example: "terms_of_service"
+        version:
+          type: string
+          default: "1.0"
+          description: Document version
+          example: "1.0"
+        content:
+          type: string
+          description: Document content (HTML/Markdown)
+          example: "<h1>Terms of Service</h1><p>...</p>"
+        summary:
+          type: string
+          nullable: true
+          description: Document summary
+          example: "These are our terms of service..."
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+            - archived
+          default: "draft"
+          description: Document status
+          example: "published"
+        effective_date:
+          type: string
+          format: date
+          nullable: true
+          description: Effective date
+          example: "2026-01-01"
+        expiry_date:
+          type: string
+          format: date
+          nullable: true
+          description: Expiry date
+          example: null
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Tenant ID (null for global)
+          example: null
+        language:
+          type: string
+          default: "vi"
+          description: Language code
+          example: "vi"
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+        view_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: View count
+          example: 1234
+        accept_count:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Accept count
+          example: 856
+        created_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: Creator user ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: Updater user ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        published_by:
+          type: string
+          format: uuid
+          nullable: true
+          description: Publisher user ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      required:
+        - title
+        - slug
+        - type
+        - version
+        - content
+        - status
+
+CreateLegalDocumentRequest:
+  type: object
+  properties:
+    title:
+      type: string
+    slug:
+      type: string
+    type:
+      type: string
+      enum: [terms_of_service, privacy_policy, cookie_policy, gdpr, eula, sla, dpa, other]
+    version:
+      type: string
+      default: "1.0"
+    content:
+      type: string
+    summary:
+      type: string
+      nullable: true
+    effective_date:
+      type: string
+      format: date
+      nullable: true
+    expiry_date:
+      type: string
+      format: date
+      nullable: true
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    language:
+      type: string
+      default: "vi"
+  required:
+    - title
+    - slug
+    - type
+    - content
+
+UpdateLegalDocumentRequest:
+  type: object
+  properties:
+    title:
+      type: string
+    content:
+      type: string
+    summary:
+      type: string
+      nullable: true
+    status:
+      type: string
+      enum: [draft, published, archived]
+    effective_date:
+      type: string
+      format: date
+      nullable: true
+    expiry_date:
+      type: string
+      format: date
+      nullable: true
+    is_active:
+      type: boolean
+  minProperties: 1
+
+LegalDocumentListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/LegalDocument'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+LegalDocumentResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/LegalDocument'
+  required:
+    - success
+    - data

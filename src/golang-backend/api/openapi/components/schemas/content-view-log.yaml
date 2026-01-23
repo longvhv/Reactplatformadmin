@@ -1,0 +1,155 @@
+ContentViewLog:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Log ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    object_type:
+      type: string
+      description: Object type
+      example: "article"
+    object_id:
+      type: string
+      format: uuid
+      description: Object ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    category_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: Category IDs
+      default: []
+      example: ["880e8400-e29b-41d4-a716-446655440000"]
+    author_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Author ID
+      example: "990e8400-e29b-41d4-a716-446655440000"
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: User ID
+      example: "aa0e8400-e29b-41d4-a716-446655440000"
+    visitor_id:
+      type: string
+      description: Visitor ID
+      example: "visitor_abc123"
+    ip_address:
+      type: string
+      description: IP address
+      example: "192.168.1.100"
+    user_agent:
+      type: string
+      description: User agent
+      example: "Mozilla/5.0..."
+    device_type:
+      type: string
+      description: Device type
+      example: "mobile"
+    referrer:
+      type: string
+      nullable: true
+      description: Referrer URL
+      example: "https://google.com"
+    view_duration:
+      type: integer
+      minimum: 0
+      default: 0
+      description: View duration in seconds
+      example: 120
+    created_at:
+      type: string
+      format: date-time
+      description: Creation timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - tenant_id
+    - object_type
+    - object_id
+    - visitor_id
+    - ip_address
+    - user_agent
+    - device_type
+    - created_at
+
+CreateContentViewLogRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+    object_type:
+      type: string
+    object_id:
+      type: string
+      format: uuid
+    category_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      default: []
+    author_id:
+      type: string
+      format: uuid
+      nullable: true
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+    visitor_id:
+      type: string
+    device_type:
+      type: string
+    referrer:
+      type: string
+      nullable: true
+    view_duration:
+      type: integer
+      default: 0
+  required:
+    - tenant_id
+    - object_type
+    - object_id
+    - visitor_id
+    - device_type
+
+ContentViewLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/ContentViewLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+ContentViewLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/ContentViewLog'
+  required:
+    - success
+    - data

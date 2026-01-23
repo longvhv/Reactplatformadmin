@@ -1,0 +1,167 @@
+TenantDomain:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        domain:
+          type: string
+          minLength: 3
+          maxLength: 255
+          description: Domain name
+          example: "acme.example.com"
+        domain_type:
+          type: string
+          enum:
+            - PRIMARY
+            - CUSTOM
+            - SUBDOMAIN
+          description: Domain type
+          example: "CUSTOM"
+        status:
+          type: string
+          enum:
+            - PENDING_VERIFICATION
+            - VERIFIED
+            - FAILED
+            - INACTIVE
+          description: Verification status
+          example: "VERIFIED"
+        is_primary:
+          type: boolean
+          description: Whether this is the primary domain
+          default: false
+          example: true
+        ssl_enabled:
+          type: boolean
+          description: Whether SSL is enabled
+          default: true
+          example: true
+        verification_method:
+          type: string
+          enum:
+            - DNS_TXT
+            - DNS_CNAME
+            - HTTP_FILE
+            - EMAIL
+          nullable: true
+          description: Verification method used
+          example: "DNS_TXT"
+        verification_token:
+          type: string
+          nullable: true
+          description: Verification token
+          example: "verify_abc123xyz"
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Verification date
+          example: "2026-01-20T10:00:00Z"
+        dns_records:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [A, AAAA, CNAME, TXT, MX]
+              name:
+                type: string
+              value:
+                type: string
+              ttl:
+                type: integer
+          nullable: true
+          description: Required DNS records
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - domain
+        - domain_type
+        - status
+        - is_primary
+        - ssl_enabled
+
+CreateTenantDomainRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    domain:
+      type: string
+      example: "acme.example.com"
+    domain_type:
+      type: string
+      enum: [PRIMARY, CUSTOM, SUBDOMAIN]
+      example: "CUSTOM"
+    is_primary:
+      type: boolean
+      default: false
+    verification_method:
+      type: string
+      enum: [DNS_TXT, DNS_CNAME, HTTP_FILE, EMAIL]
+      example: "DNS_TXT"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - domain
+    - domain_type
+
+UpdateTenantDomainRequest:
+  type: object
+  properties:
+    is_primary:
+      type: boolean
+    ssl_enabled:
+      type: boolean
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+VerifyDomainRequest:
+  type: object
+  properties:
+    verification_method:
+      type: string
+      enum: [DNS_TXT, DNS_CNAME, HTTP_FILE, EMAIL]
+      example: "DNS_TXT"
+  required:
+    - verification_method
+
+TenantDomainListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantDomain'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantDomainResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantDomain'
+  required:
+    - success
+    - data

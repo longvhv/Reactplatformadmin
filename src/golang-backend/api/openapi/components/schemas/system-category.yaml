@@ -1,0 +1,117 @@
+SystemCategory:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          description: Category code
+          example: "PAYMENT_GATEWAY"
+        name:
+          type: string
+          description: Category name
+          example: "Payment Gateway"
+        description:
+          type: string
+          nullable: true
+          description: Category description
+          example: "Payment gateway integrations"
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Parent category ID
+          example: "660e8400-e29b-41d4-a716-446655440000"
+        order:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Display order
+          example: 1
+        metadata:
+          $ref: './common.yaml#/Metadata'
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+      required:
+        - code
+        - name
+        - is_active
+
+CreateSystemCategoryRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      example: "PAYMENT_GATEWAY"
+    name:
+      type: string
+      example: "Payment Gateway"
+    description:
+      type: string
+      nullable: true
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    order:
+      type: integer
+      minimum: 0
+      default: 0
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+
+UpdateSystemCategoryRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    parent_id:
+      type: string
+      format: uuid
+      nullable: true
+    order:
+      type: integer
+      minimum: 0
+    is_active:
+      type: boolean
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+SystemCategoryListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/SystemCategory'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+SystemCategoryResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/SystemCategory'
+  required:
+    - success
+    - data

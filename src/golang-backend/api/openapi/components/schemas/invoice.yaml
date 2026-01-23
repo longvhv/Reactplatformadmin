@@ -1,0 +1,363 @@
+Invoice:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        invoice_number:
+          type: string
+          description: Unique invoice number (auto-generated)
+          example: "INV-2026-001234"
+        order_id:
+          type: string
+          format: uuid
+          description: Associated order ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440001"
+        status:
+          $ref: './common.yaml#/InvoiceStatus'
+        invoice_date:
+          type: string
+          format: date-time
+          description: Invoice issue date
+          example: "2026-01-22T10:00:00Z"
+        due_date:
+          type: string
+          format: date-time
+          description: Payment due date
+          example: "2026-02-22T23:59:59Z"
+        paid_date:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date when invoice was paid
+          example: "2026-01-25T14:30:00Z"
+        subtotal:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Subtotal amount (before tax)
+          example: 299.99
+        tax_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Tax amount
+          example: 30.00
+        discount_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Discount amount
+          example: 0.00
+        total_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Total amount due (subtotal + tax - discount)
+          example: 329.99
+        paid_amount:
+          type: number
+          format: decimal
+          minimum: 0
+          description: Amount paid
+          example: 329.99
+        balance:
+          type: number
+          format: decimal
+          description: Remaining balance (total - paid)
+          example: 0.00
+        currency:
+          $ref: './common.yaml#/Currency'
+        payment_method:
+          type: string
+          enum:
+            - CREDIT_CARD
+            - BANK_TRANSFER
+            - PAYPAL
+            - STRIPE
+            - OFFLINE
+          nullable: true
+          description: Payment method used
+          example: "CREDIT_CARD"
+        payment_reference:
+          type: string
+          nullable: true
+          description: Payment reference/transaction ID
+          example: "TXN-ABC123456"
+        billing_address:
+          type: object
+          nullable: true
+          properties:
+            company_name:
+              type: string
+            address_line1:
+              type: string
+            address_line2:
+              type: string
+              nullable: true
+            city:
+              type: string
+            state:
+              type: string
+              nullable: true
+            postal_code:
+              type: string
+            country:
+              type: string
+          description: Billing address
+        tax_info:
+          type: object
+          nullable: true
+          properties:
+            tax_id:
+              type: string
+              nullable: true
+            tax_name:
+              type: string
+              nullable: true
+          description: Tax information
+        notes:
+          type: string
+          nullable: true
+          description: Invoice notes
+          example: "Thank you for your business"
+        pdf_url:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to invoice PDF
+          example: "https://example.com/invoices/INV-2026-001234.pdf"
+        items:
+          type: array
+          items:
+            $ref: '#/InvoiceItem'
+          description: Invoice line items
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - invoice_number
+        - order_id
+        - tenant_id
+        - status
+        - invoice_date
+        - due_date
+        - subtotal
+        - tax_amount
+        - discount_amount
+        - total_amount
+        - paid_amount
+        - balance
+        - currency
+
+InvoiceItem:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Invoice item ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    invoice_id:
+      type: string
+      format: uuid
+      description: Parent invoice ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    description:
+      type: string
+      description: Item description
+      example: "HRMS Premium - Monthly Subscription"
+    quantity:
+      type: integer
+      minimum: 1
+      description: Quantity
+      example: 1
+    unit_price:
+      type: number
+      format: decimal
+      minimum: 0
+      description: Unit price
+      example: 99.99
+    subtotal:
+      type: number
+      format: decimal
+      minimum: 0
+      description: Subtotal (quantity × unit_price)
+      example: 99.99
+    tax_rate:
+      type: number
+      format: decimal
+      minimum: 0
+      maximum: 100
+      nullable: true
+      description: Tax rate percentage
+      example: 10.0
+    tax_amount:
+      type: number
+      format: decimal
+      minimum: 0
+      description: Tax amount
+      example: 10.00
+    discount_amount:
+      type: number
+      format: decimal
+      minimum: 0
+      description: Discount amount
+      example: 0.00
+    total:
+      type: number
+      format: decimal
+      minimum: 0
+      description: Total amount (subtotal + tax - discount)
+      example: 109.99
+  required:
+    - description
+    - quantity
+    - unit_price
+    - subtotal
+    - total
+
+CreateInvoiceRequest:
+  type: object
+  properties:
+    order_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440001"
+    invoice_date:
+      type: string
+      format: date-time
+      example: "2026-01-22T10:00:00Z"
+    due_date:
+      type: string
+      format: date-time
+      example: "2026-02-22T23:59:59Z"
+    billing_address:
+      type: object
+      nullable: true
+      properties:
+        company_name:
+          type: string
+        address_line1:
+          type: string
+        address_line2:
+          type: string
+          nullable: true
+        city:
+          type: string
+        state:
+          type: string
+          nullable: true
+        postal_code:
+          type: string
+        country:
+          type: string
+    tax_info:
+      type: object
+      nullable: true
+      properties:
+        tax_id:
+          type: string
+        tax_name:
+          type: string
+    notes:
+      type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - order_id
+    - tenant_id
+    - invoice_date
+    - due_date
+
+UpdateInvoiceRequest:
+  type: object
+  properties:
+    status:
+      $ref: './common.yaml#/InvoiceStatus'
+    due_date:
+      type: string
+      format: date-time
+    paid_date:
+      type: string
+      format: date-time
+      nullable: true
+    payment_method:
+      type: string
+      enum: [CREDIT_CARD, BANK_TRANSFER, PAYPAL, STRIPE, OFFLINE]
+      nullable: true
+    payment_reference:
+      type: string
+      nullable: true
+    notes:
+      type: string
+      nullable: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+PayInvoiceRequest:
+  type: object
+  properties:
+    payment_method:
+      type: string
+      enum: [CREDIT_CARD, BANK_TRANSFER, PAYPAL, STRIPE, OFFLINE]
+      example: "CREDIT_CARD"
+    payment_reference:
+      type: string
+      nullable: true
+      example: "TXN-XYZ789"
+    paid_amount:
+      type: number
+      format: decimal
+      minimum: 0
+      description: Amount paid (defaults to total_amount if not provided)
+      example: 329.99
+    paid_date:
+      type: string
+      format: date-time
+      nullable: true
+      description: Payment date (defaults to now if not provided)
+      example: "2026-01-25T14:30:00Z"
+    notes:
+      type: string
+      nullable: true
+  required:
+    - payment_method
+
+InvoiceListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Invoice'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+InvoiceResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Invoice'
+  required:
+    - success
+    - data

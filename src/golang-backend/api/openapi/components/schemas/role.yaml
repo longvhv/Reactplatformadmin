@@ -1,0 +1,238 @@
+Role:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          pattern: "^[A-Z0-9_]+$"
+          minLength: 2
+          maxLength: 100
+          description: Unique role code (uppercase alphanumeric with underscores)
+          example: "TENANT_ADMIN"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Role display name
+          example: "Tenant Administrator"
+        description:
+          type: string
+          nullable: true
+          description: Role description
+          example: "Full access to tenant resources and settings"
+        role_type:
+          type: string
+          enum:
+            - SYSTEM
+            - TENANT
+            - CUSTOM
+          description: |
+            Role type:
+            - SYSTEM: Built-in system roles (cannot be modified/deleted)
+            - TENANT: Tenant-level roles (managed by tenant admins)
+            - CUSTOM: Custom roles created by users
+          example: "TENANT"
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Associated tenant ID (null for system roles)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        is_active:
+          type: boolean
+          description: Whether role is currently active
+          default: true
+          example: true
+        priority:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Role priority (higher = more privileged, 0-100)
+          example: 80
+        permissions_count:
+          type: integer
+          minimum: 0
+          description: Number of permissions assigned to this role
+          example: 25
+        users_count:
+          type: integer
+          minimum: 0
+          description: Number of users with this role
+          example: 5
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - code
+        - name
+        - role_type
+        - is_active
+        - priority
+
+CreateRoleRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      minLength: 2
+      maxLength: 100
+      description: Unique role code
+      example: "CONTENT_EDITOR"
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Role name
+      example: "Content Editor"
+    description:
+      type: string
+      nullable: true
+      description: Role description
+      example: "Can create and edit content"
+    role_type:
+      type: string
+      enum:
+        - TENANT
+        - CUSTOM
+      description: Role type (SYSTEM roles cannot be created via API)
+      example: "CUSTOM"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID (required for TENANT type roles)
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    priority:
+      type: integer
+      minimum: 0
+      maximum: 100
+      default: 50
+      description: Role priority
+      example: 50
+    permission_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      description: List of permission IDs to assign to this role
+      example:
+        - "660e8400-e29b-41d4-a716-446655440000"
+        - "660e8400-e29b-41d4-a716-446655440001"
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+    - role_type
+
+UpdateRoleRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Role name
+      example: "Senior Content Editor"
+    description:
+      type: string
+      nullable: true
+      description: Role description
+      example: "Can create, edit and publish content"
+    is_active:
+      type: boolean
+      description: Active status
+      example: true
+    priority:
+      type: integer
+      minimum: 0
+      maximum: 100
+      description: Role priority
+      example: 60
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+AssignPermissionsRequest:
+  type: object
+  properties:
+    permission_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      minItems: 1
+      description: List of permission IDs to assign
+      example:
+        - "660e8400-e29b-41d4-a716-446655440000"
+        - "660e8400-e29b-41d4-a716-446655440001"
+  required:
+    - permission_ids
+
+RemovePermissionsRequest:
+  type: object
+  properties:
+    permission_ids:
+      type: array
+      items:
+        type: string
+        format: uuid
+      minItems: 1
+      description: List of permission IDs to remove
+      example:
+        - "660e8400-e29b-41d4-a716-446655440000"
+  required:
+    - permission_ids
+
+RoleWithPermissions:
+  allOf:
+    - $ref: '#/Role'
+    - type: object
+      properties:
+        permissions:
+          type: array
+          items:
+            $ref: './permission.yaml#/Permission'
+          description: List of permissions assigned to this role
+
+RoleListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Role'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+RoleResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Role'
+  required:
+    - success
+    - data
+
+RoleWithPermissionsResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/RoleWithPermissions'
+  required:
+    - success
+    - data

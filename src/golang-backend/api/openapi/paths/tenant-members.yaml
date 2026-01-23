@@ -1,0 +1,154 @@
+/tenant-members:
+  get:
+    summary: List tenant members
+    description: Retrieve a paginated list of tenant members
+    tags:
+      - Tenant Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - $ref: '../components/parameters/common.yaml#/SortByParam'
+      - $ref: '../components/parameters/common.yaml#/SortOrderParam'
+      - name: tenant_id
+        in: query
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: role
+        in: query
+        schema:
+          type: string
+          enum: [OWNER, ADMIN, MEMBER, VIEWER]
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [ACTIVE, RESIGNED, ONBOARDING, SUSPENDED]
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Members retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-member.yaml#/TenantMemberListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Add tenant member
+    description: Add a new member to a tenant
+    tags:
+      - Tenant Members
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-member.yaml#/CreateTenantMemberRequest'
+    responses:
+      '201':
+        description: Member added successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-member.yaml#/TenantMemberResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '409':
+        $ref: '../components/responses/errors.yaml#/ConflictError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/tenant-members/{id}:
+  get:
+    summary: Get member by ID
+    description: Retrieve a single tenant member
+    tags:
+      - Tenant Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Member retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-member.yaml#/TenantMemberResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update member
+    description: Update tenant member details
+    tags:
+      - Tenant Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/tenant-member.yaml#/UpdateTenantMemberRequest'
+    responses:
+      '200':
+        description: Member updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/tenant-member.yaml#/TenantMemberResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Remove member
+    description: Remove a member from tenant (soft delete)
+    tags:
+      - Tenant Members
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

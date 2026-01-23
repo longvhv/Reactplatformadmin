@@ -3,102 +3,133 @@ package service
 import (
 	"context"
 	"fmt"
-	"regexp"
-	"strings"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/models"
 	"github.com/vhv-platform/backend/internal/repository"
 )
 
 type ApplicationService struct {
-	repo *repository.ApplicationRepository
+	applicationRepo repository.ApplicationRepository
 }
 
-func NewApplicationService(repo *repository.ApplicationRepository) *ApplicationService {
-	return &ApplicationService{repo: repo}
-}
-
-func (s *ApplicationService) GetAll(ctx context.Context, filters models.ApplicationFilters) ([]models.Application, error) {
-	return s.repo.GetAll(ctx, filters)
-}
-
-func (s *ApplicationService) GetByID(ctx context.Context, id string) (*models.Application, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid application ID format")
+func NewApplicationService(applicationRepo repository.ApplicationRepository) *ApplicationService {
+	return &ApplicationService{
+		applicationRepo: applicationRepo,
 	}
-	return s.repo.GetByID(ctx, id)
 }
 
+type CreateApplicationRequest struct {
+	Code        string                 `json:"code" binding:"required"`
+	Name        string                 `json:"name" binding:"required"`
+	Description *string                `json:"description"`
+	Type        string                 `json:"type" binding:"required"`
+	LogoURL     *string                `json:"logo_url"`
+	IsActive    bool                   `json:"is_active"`
+	Settings    map[string]interface{} `json:"settings"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+type UpdateApplicationRequest struct {
+	Name        *string                `json:"name"`
+	Description *string                `json:"description"`
+	LogoURL     *string                `json:"logo_url"`
+	IsActive    *bool                  `json:"is_active"`
+	Settings    map[string]interface{} `json:"settings"`
+	Metadata    map[string]interface{} `json:"metadata"`
+}
+
+// GetByID gets application by ID
+func (s *ApplicationService) GetByID(ctx context.Context, id uuid.UUID) (*models.Application, error) {
+	return s.applicationRepo.GetByID(ctx, id)
+}
+
+// GetByCode gets application by code
 func (s *ApplicationService) GetByCode(ctx context.Context, code string) (*models.Application, error) {
-	return s.repo.GetByCode(ctx, code)
+	return s.applicationRepo.GetByCode(ctx, code)
 }
 
-func (s *ApplicationService) Create(ctx context.Context, req models.CreateApplicationRequest) (*models.Application, error) {
-	if err := s.validateCreateRequest(req); err != nil {
-		return nil, err
+// List lists all applications
+func (s *ApplicationService) List(ctx context.Context, page, limit int) ([]*models.Application, int64, error) {
+	offset := (page - 1) * limit
+	return s.applicationRepo.List(ctx, limit, offset)
+}
+
+// CreateApplication creates a new application
+func (s *ApplicationService) CreateApplication(ctx context.Context, req CreateApplicationRequest) (*models.Application, error) {
+	if req.Code == "" {
+		return nil, fmt.Errorf("application code is required")
 	}
 
-	existing, _ := s.repo.GetByCode(ctx, req.Code)
-	if existing != nil {
+	// Check if code exists
+	exists, err := s.applicationRepo.ExistsByCode(ctx, req.Code)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check application code: %w", err)
+	}
+	if exists {
 		return nil, fmt.Errorf("application code already exists")
 	}
 
-	return s.repo.Create(ctx, req)
+	application := &models.Application{
+		ID:          uuid.New(),
+		Code:        req.Code,
+		Name:        req.Name,
+		Description: req.Description,
+		Type:        req.Type,
+		LogoURL:     req.LogoURL,
+		IsActive:    req.IsActive,
+		Settings:    req.Settings,
+		Metadata:    req.Metadata,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+		Version:     1,
+	}
+
+	if err := s.applicationRepo.Create(ctx, application); err != nil {
+		return nil, fmt.Errorf("failed to create application: %w", err)
+	}
+
+	return application, nil
 }
 
-func (s *ApplicationService) Update(ctx context.Context, id string, req models.UpdateApplicationRequest) (*models.Application, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid application ID format")
+// UpdateApplication updates an application
+func (s *ApplicationService) UpdateApplication(ctx context.Context, id uuid.UUID, req UpdateApplicationRequest) (*models.Application, error) {
+	application, err := s.applicationRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("application not found: %w", err)
 	}
 
-	if err := s.validateUpdateRequest(req); err != nil {
-		return nil, err
-	}
-
-	return s.repo.Update(ctx, id, req)
-}
-
-func (s *ApplicationService) Delete(ctx context.Context, id string) error {
-	if !isValidUUID(id) {
-		return fmt.Errorf("invalid application ID format")
-	}
-	return s.repo.Delete(ctx, id)
-}
-
-func (s *ApplicationService) validateCreateRequest(req models.CreateApplicationRequest) error {
-	code := strings.TrimSpace(req.Code)
-	if code == "" {
-		return fmt.Errorf("application code is required")
-	}
-	if !isValidCode(code) {
-		return fmt.Errorf("application code must be 2-50 alphanumeric characters with hyphens")
-	}
-
-	name := strings.TrimSpace(req.Name)
-	if name == "" {
-		return fmt.Errorf("application name is required")
-	}
-	if len(name) > 255 {
-		return fmt.Errorf("application name cannot exceed 255 characters")
-	}
-
-	return nil
-}
-
-func (s *ApplicationService) validateUpdateRequest(req models.UpdateApplicationRequest) error {
 	if req.Name != nil {
-		name := strings.TrimSpace(*req.Name)
-		if name == "" {
-			return fmt.Errorf("application name cannot be empty")
-		}
-		if len(name) > 255 {
-			return fmt.Errorf("application name cannot exceed 255 characters")
-		}
+		application.Name = *req.Name
 	}
-	return nil
+	if req.Description != nil {
+		application.Description = req.Description
+	}
+	if req.LogoURL != nil {
+		application.LogoURL = req.LogoURL
+	}
+	if req.IsActive != nil {
+		application.IsActive = *req.IsActive
+	}
+	if req.Settings != nil {
+		application.Settings = req.Settings
+	}
+	if req.Metadata != nil {
+		application.Metadata = req.Metadata
+	}
+
+	application.UpdatedAt = time.Now()
+	application.Version++
+
+	if err := s.applicationRepo.Update(ctx, application); err != nil {
+		return nil, fmt.Errorf("failed to update application: %w", err)
+	}
+
+	return application, nil
 }
 
-func isValidCode(code string) bool {
-	match, _ := regexp.MatchString(`^[a-zA-Z0-9-]{2,50}$`, code)
-	return match
+// DeleteApplication deletes an application
+func (s *ApplicationService) DeleteApplication(ctx context.Context, id uuid.UUID) error {
+	return s.applicationRepo.Delete(ctx, id)
 }

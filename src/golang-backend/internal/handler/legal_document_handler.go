@@ -6,260 +6,245 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type LegalDocumentHandler struct {
-	service service.LegalDocumentService
+	docService   *service.LegalDocumentService
+	authzService *service.AuthorizationService
 }
 
-func NewLegalDocumentHandler(service service.LegalDocumentService) *LegalDocumentHandler {
-	return &LegalDocumentHandler{service: service}
-}
-
-func (h *LegalDocumentHandler) CreateDocument(c *gin.Context) {
-	var req models.CreateLegalDocumentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+func NewLegalDocumentHandler(docService *service.LegalDocumentService, authzService *service.AuthorizationService) *LegalDocumentHandler {
+	return &LegalDocumentHandler{
+		docService:   docService,
+		authzService: authzService,
 	}
-
-	doc, err := h.service.CreateDocument(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, doc)
 }
 
-func (h *LegalDocumentHandler) ListDocuments(c *gin.Context) {
+// List lists legal documents
+func (h *LegalDocumentHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	docType := c.Query("type")
+	status := c.Query("status")
 
 	var tenantID *uuid.UUID
-	if tenantIDStr := c.Query("tenant_id"); tenantIDStr != "" {
-		parsed, err := uuid.Parse(tenantIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
-			return
-		}
-		tenantID = &parsed
+	if tid, ok := contextutil.GetTenantID(ctx); ok {
+		tenantID = &tid
 	}
 
-	var docType *string
-	if dt := c.Query("type"); dt != "" {
-		docType = &dt
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	var language *string
-	if lang := c.Query("language"); lang != "" {
-		language = &lang
-	}
-
-	docs, total, err := h.service.ListDocuments(c.Request.Context(), page, pageSize, tenantID, docType, status, language)
+	docs, total, err := h.docService.ListDocuments(ctx, tenantID, docType, status, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      docs,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, docs, total, page, limit)
 }
 
-func (h *LegalDocumentHandler) GetDocument(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets document by ID
+func (h *LegalDocumentHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	docID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid document id", nil)
 		return
 	}
 
-	doc, err := h.service.GetDocument(c.Request.Context(), id)
+	doc, err := h.docService.GetByID(ctx, docID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "document not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, doc)
+	httputil.SuccessResponse(c, http.StatusOK, doc)
 }
 
-func (h *LegalDocumentHandler) GetDocumentBySlug(c *gin.Context) {
+// GetBySlug gets document by slug
+func (h *LegalDocumentHandler) GetBySlug(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	slug := c.Param("slug")
 	if slug == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "slug is required"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "slug required", nil)
 		return
 	}
 
-	doc, err := h.service.GetDocumentBySlug(c.Request.Context(), slug)
+	doc, err := h.docService.GetBySlug(ctx, slug)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "document not found", nil)
 		return
 	}
 
-	// Increment view count
-	_ = h.service.IncrementViewCount(c.Request.Context(), doc.ID)
-
-	c.JSON(http.StatusOK, doc)
+	httputil.SuccessResponse(c, http.StatusOK, doc)
 }
 
-func (h *LegalDocumentHandler) UpdateDocument(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
-		return
-	}
-
-	var req models.UpdateLegalDocumentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	doc, err := h.service.UpdateDocument(c.Request.Context(), id, &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, doc)
-}
-
-func (h *LegalDocumentHandler) DeleteDocument(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
-		return
-	}
-
-	if err := h.service.DeleteDocument(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.Status(http.StatusNoContent)
-}
-
-func (h *LegalDocumentHandler) ListDocumentsByType(c *gin.Context) {
-	docType := c.Param("type")
-	if docType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type is required"})
-		return
-	}
-
-	docs, err := h.service.ListDocumentsByType(c.Request.Context(), docType)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": docs})
-}
-
-func (h *LegalDocumentHandler) ListDocumentsByTenant(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
-		return
-	}
-
-	docs, err := h.service.ListDocumentsByTenant(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": docs})
-}
-
-func (h *LegalDocumentHandler) ListPublishedDocuments(c *gin.Context) {
-	docs, err := h.service.ListPublishedDocuments(c.Request.Context())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": docs})
-}
-
+// GetLatestByType gets latest document by type
 func (h *LegalDocumentHandler) GetLatestByType(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	docType := c.Param("type")
 	if docType == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type is required"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "type required", nil)
 		return
 	}
 
-	language := c.DefaultQuery("language", "vi")
-
-	doc, err := h.service.GetLatestByType(c.Request.Context(), docType, language)
+	doc, err := h.docService.GetLatestByType(ctx, docType)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "document not found", nil)
 		return
 	}
 
-	// Increment view count
-	_ = h.service.IncrementViewCount(c.Request.Context(), doc.ID)
-
-	c.JSON(http.StatusOK, doc)
+	httputil.SuccessResponse(c, http.StatusOK, doc)
 }
 
-func (h *LegalDocumentHandler) PublishDocument(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
-		return
-	}
+// Create creates a document
+func (h *LegalDocumentHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.PublishDocumentRequest
+	var req service.CreateLegalDocumentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	if err := h.service.PublishDocument(c.Request.Context(), id, &req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	doc, err := h.docService.CreateDocument(ctx, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "document published successfully"})
+	httputil.SuccessResponse(c, http.StatusCreated, doc)
 }
 
-func (h *LegalDocumentHandler) ArchiveDocument(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a document
+func (h *LegalDocumentHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	docID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid document id", nil)
 		return
 	}
 
-	if err := h.service.ArchiveDocument(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateLegalDocumentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "document archived successfully"})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	doc, err := h.docService.UpdateDocument(ctx, docID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, doc)
 }
 
-func (h *LegalDocumentHandler) IncrementAcceptCount(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Delete deletes a document
+func (h *LegalDocumentHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	docID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid document ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid document id", nil)
 		return
 	}
 
-	if err := h.service.IncrementAcceptCount(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.docService.DeleteDocument(ctx, docID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "accept count incremented"})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "document deleted successfully"})
+}
+
+// Publish publishes a document
+func (h *LegalDocumentHandler) Publish(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	docID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid document id", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+
+	doc, err := h.docService.PublishDocument(ctx, docID, userID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, doc)
+}
+
+// Archive archives a document
+func (h *LegalDocumentHandler) Archive(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	docID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid document id", nil)
+		return
+	}
+
+	doc, err := h.docService.ArchiveDocument(ctx, docID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, doc)
+}
+
+// RecordConsent records user consent
+func (h *LegalDocumentHandler) RecordConsent(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	var req service.CreateUserConsentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	consent, err := h.docService.RecordConsent(ctx, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusCreated, consent)
+}
+
+// GetUserConsents gets user consents
+func (h *LegalDocumentHandler) GetUserConsents(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userID, err := uuid.Parse(c.Param("userId"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
+		return
+	}
+
+	consents, err := h.docService.GetUserConsents(ctx, userID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, consents)
 }

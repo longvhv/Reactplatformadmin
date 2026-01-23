@@ -2,249 +2,339 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type LegalDocumentService interface {
-	CreateDocument(ctx context.Context, req *models.CreateLegalDocumentRequest) (*models.LegalDocument, error)
-	GetDocument(ctx context.Context, id uuid.UUID) (*models.LegalDocument, error)
-	GetDocumentBySlug(ctx context.Context, slug string) (*models.LegalDocument, error)
-	ListDocuments(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, docType, status, language *string) ([]*models.LegalDocument, int, error)
-	ListDocumentsByType(ctx context.Context, docType string) ([]*models.LegalDocument, error)
-	ListDocumentsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.LegalDocument, error)
-	ListPublishedDocuments(ctx context.Context) ([]*models.LegalDocument, error)
-	GetLatestByType(ctx context.Context, docType string, language string) (*models.LegalDocument, error)
-	UpdateDocument(ctx context.Context, id uuid.UUID, req *models.UpdateLegalDocumentRequest) (*models.LegalDocument, error)
-	PublishDocument(ctx context.Context, id uuid.UUID, req *models.PublishDocumentRequest) error
-	ArchiveDocument(ctx context.Context, id uuid.UUID) error
-	DeleteDocument(ctx context.Context, id uuid.UUID) error
-	IncrementViewCount(ctx context.Context, id uuid.UUID) error
-	IncrementAcceptCount(ctx context.Context, id uuid.UUID) error
+type LegalDocumentService struct {
+	docRepo     repository.LegalDocumentRepository
+	consentRepo repository.UserConsentRepository
 }
 
-type legalDocumentService struct {
-	repo repository.LegalDocumentRepository
+func NewLegalDocumentService(docRepo repository.LegalDocumentRepository, consentRepo repository.UserConsentRepository) *LegalDocumentService {
+	return &LegalDocumentService{
+		docRepo:     docRepo,
+		consentRepo: consentRepo,
+	}
 }
 
-func NewLegalDocumentService(repo repository.LegalDocumentRepository) LegalDocumentService {
-	return &legalDocumentService{repo: repo}
+type CreateLegalDocumentRequest struct {
+	Title         string                 `json:"title" binding:"required"`
+	Slug          string                 `json:"slug" binding:"required"`
+	Type          string                 `json:"type" binding:"required"`
+	Version       string                 `json:"version"`
+	Content       string                 `json:"content" binding:"required"`
+	Summary       *string                `json:"summary"`
+	Language      string                 `json:"language"`
+	Scope         string                 `json:"scope"`
+	TenantID      *uuid.UUID             `json:"tenant_id"`
+	EffectiveDate *string                `json:"effective_date"`
+	ExpiryDate    *string                `json:"expiry_date"`
+	Metadata      map[string]interface{} `json:"metadata"`
+	CreatedBy     uuid.UUID              `json:"-"`
 }
 
-func (s *legalDocumentService) CreateDocument(ctx context.Context, req *models.CreateLegalDocumentRequest) (*models.LegalDocument, error) {
-	now := time.Now()
-	doc := &models.LegalDocument{
-		ID:          uuid.New(),
-		Title:       req.Title,
-		Slug:        req.Slug,
-		Type:        req.Type,
-		Version:     "1.0",
-		Content:     req.Content,
-		Status:      "draft",
-		Language:    "vi",
-		IsActive:    true,
-		ViewCount:   0,
-		AcceptCount: 0,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+type UpdateLegalDocumentRequest struct {
+	Title         *string                `json:"title"`
+	Content       *string                `json:"content"`
+	Summary       *string                `json:"summary"`
+	EffectiveDate *string                `json:"effective_date"`
+	ExpiryDate    *string                `json:"expiry_date"`
+	Metadata      map[string]interface{} `json:"metadata"`
+	UpdatedBy     uuid.UUID              `json:"-"`
+}
+
+type CreateUserConsentRequest struct {
+	UserID           uuid.UUID  `json:"user_id" binding:"required"`
+	LegalDocumentID  uuid.UUID  `json:"legal_document_id" binding:"required"`
+	ConsentGiven     bool       `json:"consent_given"`
+	IPAddress        *string    `json:"ip_address"`
+	UserAgent        *string    `json:"user_agent"`
+	ConsentDate      *time.Time `json:"consent_date"`
+	RevokedDate      *time.Time `json:"revoked_date"`
+	ConsentMetadata  map[string]interface{} `json:"consent_metadata"`
+}
+
+// GetByID gets document by ID
+func (s *LegalDocumentService) GetByID(ctx context.Context, id uuid.UUID) (*models.LegalDocument, error) {
+	return s.docRepo.GetByID(ctx, id)
+}
+
+// GetBySlug gets document by slug
+func (s *LegalDocumentService) GetBySlug(ctx context.Context, slug string) (*models.LegalDocument, error) {
+	return s.docRepo.GetBySlug(ctx, slug)
+}
+
+// GetLatestByType gets latest document by type
+func (s *LegalDocumentService) GetLatestByType(ctx context.Context, docType string) (*models.LegalDocument, error) {
+	return s.docRepo.GetLatestByType(ctx, docType)
+}
+
+// ListDocuments lists documents
+func (s *LegalDocumentService) ListDocuments(ctx context.Context, tenantID *uuid.UUID, docType, status string, page, limit int) ([]*models.LegalDocument, int64, error) {
+	offset := (page - 1) * limit
+	return s.docRepo.List(ctx, tenantID, docType, status, limit, offset)
+}
+
+// CreateDocument creates a new document
+func (s *LegalDocumentService) CreateDocument(ctx context.Context, req CreateLegalDocumentRequest) (*models.LegalDocument, error) {
+	// Check if slug exists
+	existing, err := s.docRepo.GetBySlug(ctx, req.Slug)
+	if err == nil && existing != nil {
+		return nil, fmt.Errorf("document slug already exists")
 	}
 
-	if req.Version != "" {
-		doc.Version = req.Version
+	version := req.Version
+	if version == "" {
+		version = "1.0"
 	}
 
-	if req.Summary != "" {
-		doc.Summary.String = req.Summary
-		doc.Summary.Valid = true
+	language := req.Language
+	if language == "" {
+		language = "vi-VN"
 	}
 
-	if req.EffectiveDate != nil {
-		doc.EffectiveDate.Time = *req.EffectiveDate
-		doc.EffectiveDate.Valid = true
+	scope := req.Scope
+	if scope == "" {
+		scope = "GLOBAL"
 	}
 
-	if req.ExpiryDate != nil {
-		doc.ExpiryDate.Time = *req.ExpiryDate
-		doc.ExpiryDate.Valid = true
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
 	}
 
-	if req.TenantID != nil {
-		doc.TenantID.String = req.TenantID.String()
-		doc.TenantID.Valid = true
-	}
-
-	if req.Language != "" {
-		doc.Language = req.Language
-	}
-
-	if req.CreatedBy != nil {
-		doc.CreatedBy.String = req.CreatedBy.String()
-		doc.CreatedBy.Valid = true
-	}
-
-	// Set metadata
-	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
+	var effectiveDate, expiryDate *time.Time
+	if req.EffectiveDate != nil && *req.EffectiveDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.EffectiveDate)
+		if err == nil {
+			effectiveDate = &parsed
 		}
-		doc.Metadata = metadataJSON
-	} else {
-		doc.Metadata = []byte("{}")
+	}
+	if req.ExpiryDate != nil && *req.ExpiryDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.ExpiryDate)
+		if err == nil {
+			expiryDate = &parsed
+		}
 	}
 
-	if err := s.repo.Create(ctx, doc); err != nil {
-		return nil, fmt.Errorf("failed to create legal document: %w", err)
+	doc := &models.LegalDocument{
+		ID:            uuid.New(),
+		Title:         req.Title,
+		Slug:          req.Slug,
+		Type:          req.Type,
+		Version:       version,
+		Content:       req.Content,
+		Summary:       req.Summary,
+		Language:      language,
+		Scope:         scope,
+		TenantID:      req.TenantID,
+		Status:        "DRAFT",
+		IsPublished:   false,
+		IsMandatory:   false,
+		RequiresLogin: false,
+		EffectiveDate: effectiveDate,
+		ExpiryDate:    expiryDate,
+		Metadata:      metadata,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+		CreatedBy:     &req.CreatedBy,
+		Version:       1,
+	}
+
+	if err := s.docRepo.Create(ctx, doc); err != nil {
+		return nil, fmt.Errorf("failed to create document: %w", err)
 	}
 
 	return doc, nil
 }
 
-func (s *legalDocumentService) GetDocument(ctx context.Context, id uuid.UUID) (*models.LegalDocument, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *legalDocumentService) GetDocumentBySlug(ctx context.Context, slug string) (*models.LegalDocument, error) {
-	return s.repo.GetBySlug(ctx, slug)
-}
-
-func (s *legalDocumentService) ListDocuments(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, docType, status, language *string) ([]*models.LegalDocument, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.List(ctx, page, pageSize, tenantID, docType, status, language)
-}
-
-func (s *legalDocumentService) ListDocumentsByType(ctx context.Context, docType string) ([]*models.LegalDocument, error) {
-	return s.repo.ListByType(ctx, docType)
-}
-
-func (s *legalDocumentService) ListDocumentsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.LegalDocument, error) {
-	return s.repo.ListByTenantID(ctx, tenantID)
-}
-
-func (s *legalDocumentService) ListPublishedDocuments(ctx context.Context) ([]*models.LegalDocument, error) {
-	return s.repo.ListPublished(ctx)
-}
-
-func (s *legalDocumentService) GetLatestByType(ctx context.Context, docType string, language string) (*models.LegalDocument, error) {
-	if language == "" {
-		language = "vi"
-	}
-	return s.repo.GetLatestByType(ctx, docType, language)
-}
-
-func (s *legalDocumentService) UpdateDocument(ctx context.Context, id uuid.UUID, req *models.UpdateLegalDocumentRequest) (*models.LegalDocument, error) {
-	doc, err := s.repo.GetByID(ctx, id)
+// UpdateDocument updates a document
+func (s *LegalDocumentService) UpdateDocument(ctx context.Context, id uuid.UUID, req UpdateLegalDocumentRequest) (*models.LegalDocument, error) {
+	doc, err := s.docRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("document not found: %w", err)
+	}
+
+	if doc.Status == "PUBLISHED" {
+		return nil, fmt.Errorf("cannot update published document, create a new version instead")
 	}
 
 	if req.Title != nil {
 		doc.Title = *req.Title
 	}
-
 	if req.Content != nil {
 		doc.Content = *req.Content
 	}
-
 	if req.Summary != nil {
-		if *req.Summary == "" {
-			doc.Summary.Valid = false
-		} else {
-			doc.Summary.String = *req.Summary
-			doc.Summary.Valid = true
+		doc.Summary = req.Summary
+	}
+	if req.EffectiveDate != nil && *req.EffectiveDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.EffectiveDate)
+		if err == nil {
+			doc.EffectiveDate = &parsed
 		}
 	}
-
-	if req.Version != nil {
-		doc.Version = *req.Version
+	if req.ExpiryDate != nil && *req.ExpiryDate != "" {
+		parsed, err := time.Parse(time.RFC3339, *req.ExpiryDate)
+		if err == nil {
+			doc.ExpiryDate = &parsed
+		}
 	}
-
-	if req.EffectiveDate != nil {
-		doc.EffectiveDate.Time = *req.EffectiveDate
-		doc.EffectiveDate.Valid = true
-	}
-
-	if req.ExpiryDate != nil {
-		doc.ExpiryDate.Time = *req.ExpiryDate
-		doc.ExpiryDate.Valid = true
-	}
-
-	if req.Language != nil {
-		doc.Language = *req.Language
-	}
-
-	if req.IsActive != nil {
-		doc.IsActive = *req.IsActive
-	}
-
-	if req.UpdatedBy != nil {
-		doc.UpdatedBy.String = req.UpdatedBy.String()
-		doc.UpdatedBy.Valid = true
-	}
-
 	if req.Metadata != nil {
-		metadataJSON, err := json.Marshal(*req.Metadata)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal metadata: %w", err)
-		}
-		doc.Metadata = metadataJSON
+		doc.Metadata = req.Metadata
 	}
 
 	doc.UpdatedAt = time.Now()
+	doc.UpdatedBy = &req.UpdatedBy
+	doc.Version++
 
-	if err := s.repo.Update(ctx, doc); err != nil {
-		return nil, fmt.Errorf("failed to update legal document: %w", err)
+	if err := s.docRepo.Update(ctx, doc); err != nil {
+		return nil, fmt.Errorf("failed to update document: %w", err)
 	}
 
 	return doc, nil
 }
 
-func (s *legalDocumentService) PublishDocument(ctx context.Context, id uuid.UUID, req *models.PublishDocumentRequest) error {
-	doc, err := s.repo.GetByID(ctx, id)
+// DeleteDocument deletes a document
+func (s *LegalDocumentService) DeleteDocument(ctx context.Context, id uuid.UUID) error {
+	doc, err := s.docRepo.GetByID(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("document not found: %w", err)
 	}
 
-	if doc.Status == "published" {
-		return fmt.Errorf("document is already published")
+	if doc.Status == "PUBLISHED" {
+		return fmt.Errorf("cannot delete published document")
 	}
 
-	// Update effective date if provided
-	if req.EffectiveDate != nil {
-		doc.EffectiveDate.Time = *req.EffectiveDate
-		doc.EffectiveDate.Valid = true
-		if err := s.repo.Update(ctx, doc); err != nil {
-			return err
+	return s.docRepo.Delete(ctx, id)
+}
+
+// PublishDocument publishes a document
+func (s *LegalDocumentService) PublishDocument(ctx context.Context, id, publishedBy uuid.UUID) (*models.LegalDocument, error) {
+	doc, err := s.docRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("document not found: %w", err)
+	}
+
+	if doc.Status == "PUBLISHED" {
+		return doc, nil
+	}
+
+	now := time.Now()
+	doc.Status = "PUBLISHED"
+	doc.IsPublished = true
+	doc.PublishedAt = &now
+	doc.PublishedBy = &publishedBy
+	doc.UpdatedAt = now
+	doc.Version++
+
+	if err := s.docRepo.Update(ctx, doc); err != nil {
+		return nil, fmt.Errorf("failed to publish document: %w", err)
+	}
+
+	return doc, nil
+}
+
+// ArchiveDocument archives a document
+func (s *LegalDocumentService) ArchiveDocument(ctx context.Context, id uuid.UUID) (*models.LegalDocument, error) {
+	doc, err := s.docRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("document not found: %w", err)
+	}
+
+	doc.Status = "ARCHIVED"
+	doc.IsPublished = false
+	doc.UpdatedAt = time.Now()
+	doc.Version++
+
+	if err := s.docRepo.Update(ctx, doc); err != nil {
+		return nil, fmt.Errorf("failed to archive document: %w", err)
+	}
+
+	return doc, nil
+}
+
+// RecordConsent records user consent
+func (s *LegalDocumentService) RecordConsent(ctx context.Context, req CreateUserConsentRequest) (*models.UserConsent, error) {
+	// Check if document exists
+	doc, err := s.docRepo.GetByID(ctx, req.LegalDocumentID)
+	if err != nil {
+		return nil, fmt.Errorf("document not found: %w", err)
+	}
+
+	consentDate := time.Now()
+	if req.ConsentDate != nil {
+		consentDate = *req.ConsentDate
+	}
+
+	metadata := req.ConsentMetadata
+	if metadata == nil {
+		metadata = make(map[string]interface{})
+	}
+
+	// Add document version to metadata
+	metadata["document_version"] = doc.Version
+
+	consent := &models.UserConsent{
+		ID:              uuid.New(),
+		UserID:          req.UserID,
+		LegalDocumentID: req.LegalDocumentID,
+		ConsentGiven:    req.ConsentGiven,
+		ConsentDate:     consentDate,
+		IPAddress:       req.IPAddress,
+		UserAgent:       req.UserAgent,
+		RevokedDate:     req.RevokedDate,
+		ConsentMetadata: metadata,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	if err := s.consentRepo.Create(ctx, consent); err != nil {
+		return nil, fmt.Errorf("failed to record consent: %w", err)
+	}
+
+	return consent, nil
+}
+
+// GetUserConsents gets user consents
+func (s *LegalDocumentService) GetUserConsents(ctx context.Context, userID uuid.UUID) ([]*models.UserConsent, error) {
+	return s.consentRepo.GetByUser(ctx, userID)
+}
+
+// CheckUserConsent checks if user has consented to a document
+func (s *LegalDocumentService) CheckUserConsent(ctx context.Context, userID uuid.UUID, docType string) (bool, error) {
+	// Get latest document of type
+	doc, err := s.docRepo.GetLatestByType(ctx, docType)
+	if err != nil {
+		return false, fmt.Errorf("document not found: %w", err)
+	}
+
+	// Get user consents
+	consents, err := s.consentRepo.GetByUser(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	// Check if user has consented to this document
+	for _, consent := range consents {
+		if consent.LegalDocumentID == doc.ID && consent.ConsentGiven && consent.RevokedDate == nil {
+			return true, nil
 		}
 	}
 
-	return s.repo.Publish(ctx, id, req.PublishedBy)
+	return false, nil
 }
 
-func (s *legalDocumentService) ArchiveDocument(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Archive(ctx, id)
-}
-
-func (s *legalDocumentService) DeleteDocument(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
-}
-
-func (s *legalDocumentService) IncrementViewCount(ctx context.Context, id uuid.UUID) error {
-	return s.repo.IncrementViewCount(ctx, id)
-}
-
-func (s *legalDocumentService) IncrementAcceptCount(ctx context.Context, id uuid.UUID) error {
-	return s.repo.IncrementAcceptCount(ctx, id)
+// Helper function to generate slug
+func (s *LegalDocumentService) GenerateSlug(title string) string {
+	slug := strings.ToLower(title)
+	slug = strings.ReplaceAll(slug, " ", "-")
+	slug = strings.ReplaceAll(slug, "_", "-")
+	return slug
 }

@@ -6,133 +6,141 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/service"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type DepartmentHandler struct {
-	service service.DepartmentService
+	departmentService *service.DepartmentService
+	authzService      *service.AuthorizationService
 }
 
-func NewDepartmentHandler(service service.DepartmentService) *DepartmentHandler {
-	return &DepartmentHandler{service: service}
+func NewDepartmentHandler(departmentService *service.DepartmentService, authzService *service.AuthorizationService) *DepartmentHandler {
+	return &DepartmentHandler{
+		departmentService: departmentService,
+		authzService:      authzService,
+	}
 }
 
-func (h *DepartmentHandler) CreateDepartment(c *gin.Context) {
-	var req models.CreateDepartmentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+// List lists departments
+func (h *DepartmentHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	dept, err := h.service.CreateDepartment(c.Request.Context(), &req)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, dept)
-}
-
-func (h *DepartmentHandler) ListDepartments(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
 
-	var tenantID *uuid.UUID
-	if tenantIDStr := c.Query("tenant_id"); tenantIDStr != "" {
-		parsed, err := uuid.Parse(tenantIDStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant_id format"})
-			return
-		}
-		tenantID = &parsed
-	}
-
-	var status *string
-	if st := c.Query("status"); st != "" {
-		status = &st
-	}
-
-	depts, total, err := h.service.ListDepartments(c.Request.Context(), page, pageSize, tenantID, status)
+	departments, total, err := h.departmentService.ListByTenant(ctx, tenantID, page, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      depts,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	})
+	httputil.PaginatedResponse(c, http.StatusOK, departments, total, page, limit)
 }
 
-func (h *DepartmentHandler) GetDepartment(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// GetByID gets department by ID
+func (h *DepartmentHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	deptID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid department id", nil)
 		return
 	}
 
-	dept, err := h.service.GetDepartment(c.Request.Context(), id)
+	department, err := h.departmentService.GetByID(ctx, deptID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusNotFound, "department not found", nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, dept)
+	httputil.SuccessResponse(c, http.StatusOK, department)
 }
 
-func (h *DepartmentHandler) UpdateDepartment(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
-		return
-	}
+// Create creates a department
+func (h *DepartmentHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateDepartmentRequest
+	var req service.CreateDepartmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	dept, err := h.service.UpdateDepartment(c.Request.Context(), id, &req)
+	department, err := h.departmentService.CreateDepartment(ctx, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, dept)
+	httputil.SuccessResponse(c, http.StatusCreated, department)
 }
 
-func (h *DepartmentHandler) DeleteDepartment(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("id"))
+// Update updates a department
+func (h *DepartmentHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	deptID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid department ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid department id", nil)
 		return
 	}
 
-	if err := h.service.DeleteDepartment(c.Request.Context(), id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req service.UpdateDepartmentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	department, err := h.departmentService.UpdateDepartment(ctx, deptID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, department)
 }
 
-func (h *DepartmentHandler) GetHierarchy(c *gin.Context) {
-	tenantID, err := uuid.Parse(c.Param("tenant_id"))
+// Delete deletes a department
+func (h *DepartmentHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	deptID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid tenant ID"})
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid department id", nil)
 		return
 	}
 
-	depts, err := h.service.GetHierarchy(c.Request.Context(), tenantID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := h.departmentService.DeleteDepartment(ctx, deptID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": depts})
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "department deleted successfully"})
+}
+
+// GetTree gets department tree structure
+func (h *DepartmentHandler) GetTree(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+
+	tree, err := h.departmentService.GetTree(ctx, tenantID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, tree)
 }

@@ -1,0 +1,117 @@
+LocationType:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Tenant ID (null for system types)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        code:
+          type: string
+          description: Type code (uppercase alphanumeric)
+          example: "OFFICE"
+          pattern: "^[A-Z0-9_]+$"
+        name:
+          type: string
+          description: Type name
+          example: "Office"
+        description:
+          type: string
+          nullable: true
+          description: Type description
+          example: "Office locations"
+        extra_fields:
+          type: array
+          items:
+            type: object
+          description: Additional field definitions
+          default: []
+        is_system:
+          type: boolean
+          default: false
+          description: System-defined type
+          example: false
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+      required:
+        - code
+        - name
+        - is_system
+        - is_active
+
+CreateLocationTypeRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      example: "OFFICE"
+    name:
+      type: string
+      example: "Office"
+    description:
+      type: string
+      nullable: true
+    extra_fields:
+      type: array
+      items:
+        type: object
+      nullable: true
+  required:
+    - code
+    - name
+
+UpdateLocationTypeRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    description:
+      type: string
+      nullable: true
+    extra_fields:
+      type: array
+      items:
+        type: object
+    is_active:
+      type: boolean
+  minProperties: 1
+
+LocationTypeListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/LocationType'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+LocationTypeResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/LocationType'
+  required:
+    - success
+    - data

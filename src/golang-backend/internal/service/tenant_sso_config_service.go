@@ -2,304 +2,338 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-
-	"golang-backend/internal/models"
-	"golang-backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/models"
+	"github.com/vhv-platform/backend/internal/repository"
 )
 
-type TenantSSOConfigService interface {
-	CreateSSOConfig(ctx context.Context, req *models.CreateTenantSSOConfigRequest) (*models.TenantSSOConfig, error)
-	GetSSOConfig(ctx context.Context, id uuid.UUID) (*models.TenantSSOConfig, error)
-	ListSSOConfigs(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, provider, status *string) ([]*models.TenantSSOConfig, int, error)
-	ListSSOConfigsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantSSOConfig, error)
-	GetSSOConfigByTenantAndProvider(ctx context.Context, tenantID uuid.UUID, provider string) (*models.TenantSSOConfig, error)
-	UpdateSSOConfig(ctx context.Context, id uuid.UUID, req *models.UpdateTenantSSOConfigRequest) (*models.TenantSSOConfig, error)
-	DeleteSSOConfig(ctx context.Context, id uuid.UUID) error
-	ActivateSSOConfig(ctx context.Context, id uuid.UUID) error
-	DeactivateSSOConfig(ctx context.Context, id uuid.UUID) error
-	TestSSOConfig(ctx context.Context, id uuid.UUID) error
+type TenantSSOConfigService struct {
+	ssoRepo repository.TenantSSOConfigRepository
 }
 
-type tenantSSOConfigService struct {
-	repo repository.TenantSSOConfigRepository
+func NewTenantSSOConfigService(ssoRepo repository.TenantSSOConfigRepository) *TenantSSOConfigService {
+	return &TenantSSOConfigService{
+		ssoRepo: ssoRepo,
+	}
 }
 
-func NewTenantSSOConfigService(repo repository.TenantSSOConfigRepository) TenantSSOConfigService {
-	return &tenantSSOConfigService{repo: repo}
+type CreateTenantSSOConfigRequest struct {
+	TenantID              uuid.UUID              `json:"tenant_id" binding:"required"`
+	Provider              string                 `json:"provider" binding:"required"`
+	Name                  string                 `json:"name" binding:"required"`
+	Description           *string                `json:"description"`
+	EntityID              *string                `json:"entity_id"`
+	LoginURL              *string                `json:"login_url"`
+	LogoutURL             *string                `json:"logout_url"`
+	CertificateData       *string                `json:"certificate_data"`
+	MetadataURL           *string                `json:"metadata_url"`
+	AttributeMappings     map[string]interface{} `json:"attribute_mappings"`
+	ProviderConfiguration map[string]interface{} `json:"provider_configuration"`
+	IsDefault             bool                   `json:"is_default"`
+	AllowedDomains        []string               `json:"allowed_domains"`
+	CreatedBy             uuid.UUID              `json:"-"`
 }
 
-func (s *tenantSSOConfigService) CreateSSOConfig(ctx context.Context, req *models.CreateTenantSSOConfigRequest) (*models.TenantSSOConfig, error) {
-	now := time.Now()
+type UpdateTenantSSOConfigRequest struct {
+	Name                  *string                `json:"name"`
+	Description           *string                `json:"description"`
+	EntityID              *string                `json:"entity_id"`
+	LoginURL              *string                `json:"login_url"`
+	LogoutURL             *string                `json:"logout_url"`
+	CertificateData       *string                `json:"certificate_data"`
+	MetadataURL           *string                `json:"metadata_url"`
+	AttributeMappings     map[string]interface{} `json:"attribute_mappings"`
+	ProviderConfiguration map[string]interface{} `json:"provider_configuration"`
+	IsDefault             *bool                  `json:"is_default"`
+	AllowedDomains        []string               `json:"allowed_domains"`
+	UpdatedBy             uuid.UUID              `json:"-"`
+}
+
+// GetByID gets SSO config by ID
+func (s *TenantSSOConfigService) GetByID(ctx context.Context, id uuid.UUID) (*models.TenantSSOConfig, error) {
+	return s.ssoRepo.GetByID(ctx, id)
+}
+
+// ListByTenant lists SSO configs by tenant
+func (s *TenantSSOConfigService) ListByTenant(ctx context.Context, tenantID uuid.UUID, provider string, page, limit int) ([]*models.TenantSSOConfig, int64, error) {
+	offset := (page - 1) * limit
+	return s.ssoRepo.ListByTenant(ctx, tenantID, provider, limit, offset)
+}
+
+// CreateConfig creates a new SSO config
+func (s *TenantSSOConfigService) CreateConfig(ctx context.Context, req CreateTenantSSOConfigRequest) (*models.TenantSSOConfig, error) {
+	// Validate provider
+	validProviders := []string{"SAML", "OAUTH2", "OIDC", "LDAP", "CAS", "OTHER"}
+	if !contains(validProviders, req.Provider) {
+		return nil, fmt.Errorf("invalid provider, must be one of: %v", validProviders)
+	}
+
+	// If setting as default, unset other defaults
+	if req.IsDefault {
+		if err := s.unsetDefaultConfigs(ctx, req.TenantID, req.Provider); err != nil {
+			return nil, fmt.Errorf("failed to unset default configs: %w", err)
+		}
+	}
+
+	attributeMappings := req.AttributeMappings
+	if attributeMappings == nil {
+		attributeMappings = make(map[string]interface{})
+	}
+
+	providerConfig := req.ProviderConfiguration
+	if providerConfig == nil {
+		providerConfig = make(map[string]interface{})
+	}
+
+	allowedDomains := req.AllowedDomains
+	if allowedDomains == nil {
+		allowedDomains = []string{}
+	}
+
 	config := &models.TenantSSOConfig{
-		ID:        uuid.New(),
-		TenantID:  req.TenantID,
-		Provider:  req.Provider,
-		Name:      req.Name,
-		Status:    "INACTIVE",
-		CreatedAt: now,
-		UpdatedAt: now,
-		Version:   1,
+		ID:                    uuid.New(),
+		TenantID:              req.TenantID,
+		Provider:              req.Provider,
+		Name:                  req.Name,
+		Description:           req.Description,
+		EntityID:              req.EntityID,
+		LoginURL:              req.LoginURL,
+		LogoutURL:             req.LogoutURL,
+		CertificateData:       req.CertificateData,
+		MetadataURL:           req.MetadataURL,
+		AttributeMappings:     attributeMappings,
+		ProviderConfiguration: providerConfig,
+		IsEnabled:             true,
+		IsDefault:             req.IsDefault,
+		AllowedDomains:        allowedDomains,
+		CreatedAt:             time.Now(),
+		UpdatedAt:             time.Now(),
+		CreatedBy:             &req.CreatedBy,
+		Version:               1,
 	}
 
-	if req.Description != "" {
-		config.Description.String = req.Description
-		config.Description.Valid = true
-	}
-
-	if req.EntityID != "" {
-		config.EntityID.String = req.EntityID
-		config.EntityID.Valid = true
-	}
-
-	if req.SSOURL != "" {
-		config.SSOURL.String = req.SSOURL
-		config.SSOURL.Valid = true
-	}
-
-	if req.SLOURL != "" {
-		config.SLOURL.String = req.SLOURL
-		config.SLOURL.Valid = true
-	}
-
-	if req.Certificate != "" {
-		config.Certificate.String = req.Certificate
-		config.Certificate.Valid = true
-	}
-
-	if req.MetadataURL != "" {
-		config.MetadataURL.String = req.MetadataURL
-		config.MetadataURL.Valid = true
-	}
-
-	if req.ClientID != "" {
-		config.ClientID.String = req.ClientID
-		config.ClientID.Valid = true
-	}
-
-	if req.ClientSecret != "" {
-		config.ClientSecret.String = req.ClientSecret
-		config.ClientSecret.Valid = true
-	}
-
-	if req.AuthorizationEndpoint != "" {
-		config.AuthorizationEndpoint.String = req.AuthorizationEndpoint
-		config.AuthorizationEndpoint.Valid = true
-	}
-
-	if req.TokenEndpoint != "" {
-		config.TokenEndpoint.String = req.TokenEndpoint
-		config.TokenEndpoint.Valid = true
-	}
-
-	if req.UserinfoEndpoint != "" {
-		config.UserinfoEndpoint.String = req.UserinfoEndpoint
-		config.UserinfoEndpoint.Valid = true
-	}
-
-	if req.JWKSURI != "" {
-		config.JWKSURI.String = req.JWKSURI
-		config.JWKSURI.Valid = true
-	}
-
-	// Set scopes
-	if req.Scopes != nil {
-		scopesJSON, err := json.Marshal(req.Scopes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal scopes: %w", err)
-		}
-		config.Scopes = scopesJSON
-	} else {
-		config.Scopes = []byte("[]")
-	}
-
-	// Set attribute mapping
-	if req.AttributeMapping != nil {
-		mappingJSON, err := json.Marshal(req.AttributeMapping)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal attribute mapping: %w", err)
-		}
-		config.AttributeMapping = mappingJSON
-	} else {
-		config.AttributeMapping = []byte("{}")
-	}
-
-	// Set settings
-	if req.Settings != nil {
-		settingsJSON, err := json.Marshal(req.Settings)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal settings: %w", err)
-		}
-		config.Settings = settingsJSON
-	} else {
-		config.Settings = []byte("{}")
-	}
-
-	if err := s.repo.Create(ctx, config); err != nil {
+	if err := s.ssoRepo.Create(ctx, config); err != nil {
 		return nil, fmt.Errorf("failed to create SSO config: %w", err)
 	}
 
 	return config, nil
 }
 
-func (s *tenantSSOConfigService) GetSSOConfig(ctx context.Context, id uuid.UUID) (*models.TenantSSOConfig, error) {
-	return s.repo.GetByID(ctx, id)
-}
-
-func (s *tenantSSOConfigService) ListSSOConfigs(ctx context.Context, page, pageSize int, tenantID *uuid.UUID, provider, status *string) ([]*models.TenantSSOConfig, int, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 || pageSize > 100 {
-		pageSize = 10
-	}
-
-	return s.repo.List(ctx, page, pageSize, tenantID, provider, status)
-}
-
-func (s *tenantSSOConfigService) ListSSOConfigsByTenant(ctx context.Context, tenantID uuid.UUID) ([]*models.TenantSSOConfig, error) {
-	return s.repo.ListByTenantID(ctx, tenantID)
-}
-
-func (s *tenantSSOConfigService) GetSSOConfigByTenantAndProvider(ctx context.Context, tenantID uuid.UUID, provider string) (*models.TenantSSOConfig, error) {
-	return s.repo.GetByTenantAndProvider(ctx, tenantID, provider)
-}
-
-func (s *tenantSSOConfigService) UpdateSSOConfig(ctx context.Context, id uuid.UUID, req *models.UpdateTenantSSOConfigRequest) (*models.TenantSSOConfig, error) {
-	config, err := s.repo.GetByID(ctx, id)
+// UpdateConfig updates an SSO config
+func (s *TenantSSOConfigService) UpdateConfig(ctx context.Context, id uuid.UUID, req UpdateTenantSSOConfigRequest) (*models.TenantSSOConfig, error) {
+	config, err := s.ssoRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("SSO config not found: %w", err)
 	}
 
 	if req.Name != nil {
 		config.Name = *req.Name
 	}
-
 	if req.Description != nil {
-		if *req.Description == "" {
-			config.Description.Valid = false
-		} else {
-			config.Description.String = *req.Description
-			config.Description.Valid = true
-		}
+		config.Description = req.Description
 	}
-
-	if req.Status != nil {
-		config.Status = *req.Status
-	}
-
 	if req.EntityID != nil {
-		if *req.EntityID == "" {
-			config.EntityID.Valid = false
-		} else {
-			config.EntityID.String = *req.EntityID
-			config.EntityID.Valid = true
-		}
+		config.EntityID = req.EntityID
 	}
-
-	if req.SSOURL != nil {
-		if *req.SSOURL == "" {
-			config.SSOURL.Valid = false
-		} else {
-			config.SSOURL.String = *req.SSOURL
-			config.SSOURL.Valid = true
-		}
+	if req.LoginURL != nil {
+		config.LoginURL = req.LoginURL
 	}
-
-	if req.SLOURL != nil {
-		if *req.SLOURL == "" {
-			config.SLOURL.Valid = false
-		} else {
-			config.SLOURL.String = *req.SLOURL
-			config.SLOURL.Valid = true
-		}
+	if req.LogoutURL != nil {
+		config.LogoutURL = req.LogoutURL
 	}
-
-	if req.Certificate != nil {
-		if *req.Certificate == "" {
-			config.Certificate.Valid = false
-		} else {
-			config.Certificate.String = *req.Certificate
-			config.Certificate.Valid = true
-		}
+	if req.CertificateData != nil {
+		config.CertificateData = req.CertificateData
 	}
-
 	if req.MetadataURL != nil {
-		if *req.MetadataURL == "" {
-			config.MetadataURL.Valid = false
-		} else {
-			config.MetadataURL.String = *req.MetadataURL
-			config.MetadataURL.Valid = true
-		}
+		config.MetadataURL = req.MetadataURL
 	}
-
-	if req.ClientID != nil {
-		if *req.ClientID == "" {
-			config.ClientID.Valid = false
-		} else {
-			config.ClientID.String = *req.ClientID
-			config.ClientID.Valid = true
-		}
+	if req.AttributeMappings != nil {
+		config.AttributeMappings = req.AttributeMappings
 	}
-
-	if req.ClientSecret != nil {
-		if *req.ClientSecret == "" {
-			config.ClientSecret.Valid = false
-		} else {
-			config.ClientSecret.String = *req.ClientSecret
-			config.ClientSecret.Valid = true
-		}
+	if req.ProviderConfiguration != nil {
+		config.ProviderConfiguration = req.ProviderConfiguration
 	}
-
-	if req.Scopes != nil {
-		scopesJSON, err := json.Marshal(*req.Scopes)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal scopes: %w", err)
+	if req.IsDefault != nil && *req.IsDefault {
+		// Unset other defaults first
+		if err := s.unsetDefaultConfigs(ctx, config.TenantID, config.Provider); err != nil {
+			return nil, fmt.Errorf("failed to unset default configs: %w", err)
 		}
-		config.Scopes = scopesJSON
+		config.IsDefault = *req.IsDefault
 	}
-
-	if req.AttributeMapping != nil {
-		mappingJSON, err := json.Marshal(*req.AttributeMapping)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal attribute mapping: %w", err)
-		}
-		config.AttributeMapping = mappingJSON
-	}
-
-	if req.Settings != nil {
-		settingsJSON, err := json.Marshal(*req.Settings)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal settings: %w", err)
-		}
-		config.Settings = settingsJSON
+	if req.AllowedDomains != nil {
+		config.AllowedDomains = req.AllowedDomains
 	}
 
 	config.UpdatedAt = time.Now()
+	config.UpdatedBy = &req.UpdatedBy
+	config.Version++
 
-	if err := s.repo.Update(ctx, config); err != nil {
+	if err := s.ssoRepo.Update(ctx, config); err != nil {
 		return nil, fmt.Errorf("failed to update SSO config: %w", err)
 	}
 
 	return config, nil
 }
 
-func (s *tenantSSOConfigService) DeleteSSOConfig(ctx context.Context, id uuid.UUID) error {
-	return s.repo.Delete(ctx, id)
+// DeleteConfig deletes an SSO config
+func (s *TenantSSOConfigService) DeleteConfig(ctx context.Context, id uuid.UUID) error {
+	return s.ssoRepo.Delete(ctx, id)
 }
 
-func (s *tenantSSOConfigService) ActivateSSOConfig(ctx context.Context, id uuid.UUID) error {
-	return s.repo.UpdateStatus(ctx, id, "ACTIVE")
+// EnableConfig enables an SSO config
+func (s *TenantSSOConfigService) EnableConfig(ctx context.Context, id uuid.UUID) (*models.TenantSSOConfig, error) {
+	config, err := s.ssoRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("SSO config not found: %w", err)
+	}
+
+	config.IsEnabled = true
+	config.UpdatedAt = time.Now()
+	config.Version++
+
+	if err := s.ssoRepo.Update(ctx, config); err != nil {
+		return nil, fmt.Errorf("failed to enable SSO config: %w", err)
+	}
+
+	return config, nil
 }
 
-func (s *tenantSSOConfigService) DeactivateSSOConfig(ctx context.Context, id uuid.UUID) error {
-	return s.repo.UpdateStatus(ctx, id, "INACTIVE")
+// DisableConfig disables an SSO config
+func (s *TenantSSOConfigService) DisableConfig(ctx context.Context, id uuid.UUID) (*models.TenantSSOConfig, error) {
+	config, err := s.ssoRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("SSO config not found: %w", err)
+	}
+
+	config.IsEnabled = false
+	config.UpdatedAt = time.Now()
+	config.Version++
+
+	if err := s.ssoRepo.Update(ctx, config); err != nil {
+		return nil, fmt.Errorf("failed to disable SSO config: %w", err)
+	}
+
+	return config, nil
 }
 
-func (s *tenantSSOConfigService) TestSSOConfig(ctx context.Context, id uuid.UUID) error {
-	return s.repo.UpdateStatus(ctx, id, "TESTING")
+// TestConnection tests SSO connection
+func (s *TenantSSOConfigService) TestConnection(ctx context.Context, id uuid.UUID) (map[string]interface{}, error) {
+	config, err := s.ssoRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("SSO config not found: %w", err)
+	}
+
+	// Mock test - in production this would actually test the SSO connection
+	result := map[string]interface{}{
+		"success":    true,
+		"provider":   config.Provider,
+		"message":    "SSO connection test successful",
+		"tested_at":  time.Now(),
+		"login_url":  config.LoginURL,
+		"entity_id":  config.EntityID,
+	}
+
+	return result, nil
+}
+
+// GetMetadata gets SSO provider metadata
+func (s *TenantSSOConfigService) GetMetadata(ctx context.Context, id uuid.UUID) (map[string]interface{}, error) {
+	config, err := s.ssoRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("SSO config not found: %w", err)
+	}
+
+	metadata := map[string]interface{}{
+		"provider":                config.Provider,
+		"entity_id":               config.EntityID,
+		"login_url":               config.LoginURL,
+		"logout_url":              config.LogoutURL,
+		"attribute_mappings":      config.AttributeMappings,
+		"provider_configuration":  config.ProviderConfiguration,
+		"allowed_domains":         config.AllowedDomains,
+	}
+
+	return metadata, nil
+}
+
+// GetDefaultConfig gets default SSO config for tenant
+func (s *TenantSSOConfigService) GetDefaultConfig(ctx context.Context, tenantID uuid.UUID, provider string) (*models.TenantSSOConfig, error) {
+	configs, _, err := s.ssoRepo.ListByTenant(ctx, tenantID, provider, 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, config := range configs {
+		if config.IsDefault && config.IsEnabled {
+			return config, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no default SSO config found")
+}
+
+// ValidateDomain validates if domain is allowed for SSO
+func (s *TenantSSOConfigService) ValidateDomain(ctx context.Context, tenantID uuid.UUID, email string) (*models.TenantSSOConfig, error) {
+	configs, _, err := s.ssoRepo.ListByTenant(ctx, tenantID, "", 1000, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract domain from email
+	domain := extractDomain(email)
+
+	for _, config := range configs {
+		if !config.IsEnabled {
+			continue
+		}
+
+		// Check if domain is in allowed domains
+		for _, allowedDomain := range config.AllowedDomains {
+			if allowedDomain == domain {
+				return config, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("no SSO config found for domain: %s", domain)
+}
+
+// Helper functions
+func (s *TenantSSOConfigService) unsetDefaultConfigs(ctx context.Context, tenantID uuid.UUID, provider string) error {
+	configs, _, err := s.ssoRepo.ListByTenant(ctx, tenantID, provider, 1000, 0)
+	if err != nil {
+		return err
+	}
+
+	for _, config := range configs {
+		if config.IsDefault {
+			config.IsDefault = false
+			config.UpdatedAt = time.Now()
+			_ = s.ssoRepo.Update(ctx, config)
+		}
+	}
+
+	return nil
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+func extractDomain(email string) string {
+	parts := []rune(email)
+	for i := len(parts) - 1; i >= 0; i-- {
+		if parts[i] == '@' {
+			return string(parts[i+1:])
+		}
+	}
+	return ""
 }

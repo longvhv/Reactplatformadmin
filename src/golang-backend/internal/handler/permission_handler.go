@@ -4,198 +4,116 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vhv-platform/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/service"
-	"github.com/vhv-platform/backend/internal/utils"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
-// PermissionHandler handles HTTP requests for permissions
 type PermissionHandler struct {
-	service *service.PermissionService
+	permissionService *service.PermissionService
+	authzService      *service.AuthorizationService
 }
 
-// NewPermissionHandler creates a new permission handler
-func NewPermissionHandler(service *service.PermissionService) *PermissionHandler {
-	return &PermissionHandler{service: service}
+func NewPermissionHandler(permissionService *service.PermissionService, authzService *service.AuthorizationService) *PermissionHandler {
+	return &PermissionHandler{
+		permissionService: permissionService,
+		authzService:      authzService,
+	}
 }
 
-// GetAll handles GET /api/v1/permissions
-func (h *PermissionHandler) GetAll(c *gin.Context) {
-	// Parse filters from query params
-	filters := models.PermissionFilters{}
-
-	if categoryStr := c.Query("category"); categoryStr != "" {
-		category := models.PermissionCategory(categoryStr)
-		filters.Category = &category
-	}
-
-	if typeStr := c.Query("type"); typeStr != "" {
-		permType := models.PermissionType(typeStr)
-		filters.Type = &permType
-	}
-
-	if resourceType := c.Query("resource_type"); resourceType != "" {
-		filters.ResourceType = &resourceType
-	}
-
-	if isSystemStr := c.Query("is_system"); isSystemStr != "" {
-		isSystem := isSystemStr == "true"
-		filters.IsSystem = &isSystem
-	}
-
-	if search := c.Query("search"); search != "" {
-		filters.Search = &search
-	}
-
-	// Get permissions
-	permissions, err := h.service.GetAll(c.Request.Context(), filters)
+// ListAll lists all permissions
+func (h *PermissionHandler) ListAll(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	appCode := c.Query("app_code")
+	
+	permissions, err := h.permissionService.ListAll(ctx, appCode)
 	if err != nil {
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, permissions)
+	
+	httputil.SuccessResponse(c, http.StatusOK, permissions)
 }
 
-// GetByID handles GET /api/v1/permissions/:id
-func (h *PermissionHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	permission, err := h.service.GetByID(c.Request.Context(), id)
-	if err != nil {
-		if err.Error() == "permission not found" || err.Error() == "invalid permission ID format" {
-			utils.NotFoundResponse(c, "Permission")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
+// GetMyPermissions gets current user's permissions in a tenant
+func (h *PermissionHandler) GetMyPermissions(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "unauthorized", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, permission)
+	
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+	
+	permissions, err := h.authzService.GetUserPermissions(ctx, userID, tenantID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"permissions": permissions})
 }
 
-// GetByCode handles GET /api/v1/permissions/code/:code
-func (h *PermissionHandler) GetByCode(c *gin.Context) {
-	code := c.Param("code")
-
-	permission, err := h.service.GetByCode(c.Request.Context(), code)
+// GetUserPermissions gets user's permissions in a tenant
+func (h *PermissionHandler) GetUserPermissions(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, err := uuid.Parse(c.Param("user_id"))
 	if err != nil {
-		if err.Error() == "invalid permission code format" {
-			utils.ValidationErrorResponse(c, err.Error())
-			return
-		}
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
 		return
 	}
-
-	if permission == nil {
-		utils.NotFoundResponse(c, "Permission")
+	
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, permission)
+	
+	permissions, err := h.authzService.GetUserPermissions(ctx, userID, tenantID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"permissions": permissions})
 }
 
-// GetByCategory handles GET /api/v1/permissions/grouped
-func (h *PermissionHandler) GetByCategory(c *gin.Context) {
-	grouped, err := h.service.GetByCategory(c.Request.Context())
+// CheckPermission checks if user has a specific permission
+func (h *PermissionHandler) CheckPermission(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "unauthorized", nil)
+		return
+	}
+	
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
+		return
+	}
+	
+	permissionCode := c.Query("code")
+	if permissionCode == "" {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "permission code required", nil)
+		return
+	}
+	
+	hasPermission, err := h.authzService.HasPermission(ctx, userID, tenantID, permissionCode)
 	if err != nil {
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, grouped)
-}
-
-// ValidateCodes handles POST /api/v1/permissions/validate
-func (h *PermissionHandler) ValidateCodes(c *gin.Context) {
-	var req struct {
-		Codes []string `json:"codes" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	valid, invalid, err := h.service.ValidatePermissionCodes(c.Request.Context(), req.Codes)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, gin.H{
-		"valid":   valid,
-		"invalid": invalid,
-	})
-}
-
-// Create handles POST /api/v1/permissions
-func (h *PermissionHandler) Create(c *gin.Context) {
-	var req models.CreatePermissionRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	permission, err := h.service.Create(c.Request.Context(), req)
-	if err != nil {
-		if err.Error() == "permission code already exists" {
-			utils.ErrorResponse(c, http.StatusConflict, "CODE_EXISTS", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "CREATE_ERROR", err.Error())
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusCreated, permission)
-}
-
-// Update handles PATCH /api/v1/permissions/:id
-func (h *PermissionHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-
-	var req models.UpdatePermissionRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	permission, err := h.service.Update(c.Request.Context(), id, req)
-	if err != nil {
-		if err.Error() == "permission not found" || err.Error() == "invalid permission ID format" {
-			utils.NotFoundResponse(c, "Permission")
-			return
-		}
-		if err.Error() == "cannot modify system permissions" {
-			utils.ErrorResponse(c, http.StatusForbidden, "SYSTEM_PERMISSION", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "UPDATE_ERROR", err.Error())
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, permission)
-}
-
-// Delete handles DELETE /api/v1/permissions/:id
-func (h *PermissionHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	err := h.service.Delete(c.Request.Context(), id)
-	if err != nil {
-		if err.Error() == "permission not found" || err.Error() == "invalid permission ID format" {
-			utils.NotFoundResponse(c, "Permission")
-			return
-		}
-		if err.Error() == "cannot delete system permissions" {
-			utils.ErrorResponse(c, http.StatusForbidden, "SYSTEM_PERMISSION", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "DELETE_ERROR", err.Error())
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusNoContent, nil)
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"has_permission": hasPermission})
 }

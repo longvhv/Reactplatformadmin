@@ -1,0 +1,134 @@
+/product-types:
+  get:
+    summary: List product types
+    description: Retrieve SaaS product types
+    tags:
+      - Product Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: is_active
+        in: query
+        schema:
+          type: boolean
+      - $ref: '../components/parameters/filters.yaml#/SearchParam'
+    responses:
+      '200':
+        description: Types retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product-type.yaml#/SaaSProductTypeListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create product type
+    description: Create a new product type
+    tags:
+      - Product Types
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/product-type.yaml#/CreateSaaSProductTypeRequest'
+    responses:
+      '201':
+        description: Type created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product-type.yaml#/SaaSProductTypeResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/product-types/{id}:
+  get:
+    summary: Get product type by ID
+    description: Retrieve a single product type
+    tags:
+      - Product Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Type retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product-type.yaml#/SaaSProductTypeResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  patch:
+    summary: Update product type
+    description: Update product type details
+    tags:
+      - Product Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/product-type.yaml#/UpdateSaaSProductTypeRequest'
+    responses:
+      '200':
+        description: Type updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/product-type.yaml#/SaaSProductTypeResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  delete:
+    summary: Delete product type
+    description: Delete product type
+    tags:
+      - Product Types
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '204':
+        $ref: '../components/responses/success.yaml#/NoContentResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

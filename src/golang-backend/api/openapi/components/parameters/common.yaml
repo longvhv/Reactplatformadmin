@@ -1,0 +1,82 @@
+IDParam:
+  name: id
+  in: path
+  required: true
+  description: Resource unique identifier (UUID)
+  schema:
+    type: string
+    format: uuid
+    example: "550e8400-e29b-41d4-a716-446655440000"
+
+TenantIDParam:
+  name: tenant_id
+  in: path
+  required: true
+  description: Tenant unique identifier (UUID)
+  schema:
+    type: string
+    format: uuid
+    example: "550e8400-e29b-41d4-a716-446655440001"
+
+UserIDParam:
+  name: user_id
+  in: path
+  required: true
+  description: User unique identifier (UUID)
+  schema:
+    type: string
+    format: uuid
+    example: "550e8400-e29b-41d4-a716-446655440002"
+
+EmailParam:
+  name: email
+  in: path
+  required: true
+  description: User email address
+  schema:
+    type: string
+    format: email
+    example: "user@example.com"
+
+CodeParam:
+  name: code
+  in: path
+  required: true
+  description: Resource code (alphanumeric)
+  schema:
+    type: string
+    pattern: "^[A-Z0-9_]+$"
+    example: "USER_ADMIN"
+
+SortByParam:
+  name: sort_by
+  in: query
+  required: false
+  description: Field to sort by
+  schema:
+    type: string
+    default: "created_at"
+    example: "created_at"
+
+SortOrderParam:
+  name: sort_order
+  in: query
+  required: false
+  description: Sort order (ascending or descending)
+  schema:
+    type: string
+    enum:
+      - asc
+      - desc
+    default: "desc"
+    example: "desc"
+
+IncludeDeletedParam:
+  name: include_deleted
+  in: query
+  required: false
+  description: Include soft-deleted records
+  schema:
+    type: boolean
+    default: false
+    example: false

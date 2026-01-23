@@ -1,0 +1,167 @@
+/user-registration-logs:
+  get:
+    summary: List registration logs
+    description: Retrieve user registration logs
+    tags:
+      - User Registration Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: user_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: registration_source
+        in: query
+        schema:
+          type: string
+      - name: data_region
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: Logs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-registration-log.yaml#/UserRegistrationLogListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create registration log
+    description: Record user registration event
+    tags:
+      - User Registration Logs
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user-registration-log.yaml#/CreateUserRegistrationLogRequest'
+    responses:
+      '201':
+        description: Log created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-registration-log.yaml#/UserRegistrationLogResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-registration-logs/{id}:
+  get:
+    summary: Get log by ID
+    description: Retrieve a single registration log
+    tags:
+      - User Registration Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Log retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user-registration-log.yaml#/UserRegistrationLogResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/user-registration-logs/stats:
+  get:
+    summary: Get registration statistics
+    description: Get user registration statistics
+    tags:
+      - User Registration Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: group_by
+        in: query
+        schema:
+          type: string
+          enum: [hour, day, week, month]
+          default: "day"
+    responses:
+      '200':
+        description: Statistics retrieved
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                data:
+                  type: object
+                  properties:
+                    total_registrations:
+                      type: integer
+                    by_source:
+                      type: object
+                    by_region:
+                      type: object
+                    trend:
+                      type: array
+                      items:
+                        type: object
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

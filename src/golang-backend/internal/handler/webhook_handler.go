@@ -1,234 +1,241 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/yourusername/golang-backend/internal/models"
-	"github.com/yourusername/golang-backend/internal/service"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/vhv-platform/backend/internal/service"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
 type WebhookHandler struct {
-	service *service.WebhookService
+	webhookService *service.WebhookService
+	authzService   *service.AuthorizationService
 }
 
-func NewWebhookHandler(service *service.WebhookService) *WebhookHandler {
-	return &WebhookHandler{service: service}
+func NewWebhookHandler(webhookService *service.WebhookService, authzService *service.AuthorizationService) *WebhookHandler {
+	return &WebhookHandler{
+		webhookService: webhookService,
+		authzService:   authzService,
+	}
 }
 
-// CreateWebhook godoc
-// @Summary Create a new webhook
-// @Tags webhooks
-// @Accept json
-// @Produce json
-// @Param webhook body models.CreateWebhookRequest true "Webhook data"
-// @Success 201 {object} models.Webhook
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /webhooks [post]
-func (h *WebhookHandler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateWebhookRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+// List lists webhooks
+func (h *WebhookHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
 
-	webhook, err := h.service.CreateWebhook(&req)
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	eventType := c.Query("event_type")
+
+	webhooks, total, err := h.webhookService.ListByTenant(ctx, tenantID, eventType, page, limit)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, webhook)
+	httputil.PaginatedResponse(c, http.StatusOK, webhooks, total, page, limit)
 }
 
-// GetWebhook godoc
-// @Summary Get a webhook by ID
-// @Tags webhooks
-// @Produce json
-// @Param id path string true "Webhook ID"
-// @Success 200 {object} models.Webhook
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /webhooks/{id} [get]
-func (h *WebhookHandler) GetWebhook(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// GetByID gets webhook by ID
+func (h *WebhookHandler) GetByID(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	webhook, err := h.service.GetWebhook(id)
+	webhookID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, webhook)
-}
-
-// ListWebhooks godoc
-// @Summary List webhooks
-// @Tags webhooks
-// @Produce json
-// @Param tenant_id query string false "Filter by tenant ID"
-// @Param is_active query bool false "Filter by active status"
-// @Param page query int false "Page number" default(1)
-// @Param page_size query int false "Page size" default(20)
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /webhooks [get]
-func (h *WebhookHandler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-
-	var tenantID *string
-	if tid := query.Get("tenant_id"); tid != "" {
-		tenantID = &tid
-	}
-
-	var isActive *bool
-	if ia := query.Get("is_active"); ia != "" {
-		active := ia == "true"
-		isActive = &active
-	}
-
-	page, _ := strconv.Atoi(query.Get("page"))
-	pageSize, _ := strconv.Atoi(query.Get("page_size"))
-
-	webhooks, total, err := h.service.ListWebhooks(tenantID, isActive, page, pageSize)
+	webhook, err := h.webhookService.GetByID(ctx, webhookID)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusNotFound, "webhook not found", nil)
 		return
 	}
 
-	response := map[string]interface{}{
-		"data":      webhooks,
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-	}
-
-	respondWithJSON(w, http.StatusOK, response)
+	httputil.SuccessResponse(c, http.StatusOK, webhook)
 }
 
-// ListWebhooksByTenant godoc
-// @Summary List webhooks for a specific tenant
-// @Tags webhooks
-// @Produce json
-// @Param tenant_id path string true "Tenant ID"
-// @Success 200 {array} models.Webhook
-// @Failure 500 {object} map[string]string
-// @Router /tenants/{tenant_id}/webhooks [get]
-func (h *WebhookHandler) ListWebhooksByTenant(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	tenantID := vars["tenant_id"]
+// Create creates a webhook
+func (h *WebhookHandler) Create(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	webhooks, err := h.service.ListWebhooksByTenant(tenantID)
+	var req service.CreateWebhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	userID, _ := contextutil.GetUserID(ctx)
+	req.CreatedBy = userID
+
+	webhook, err := h.webhookService.CreateWebhook(ctx, req)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, webhooks)
+	httputil.SuccessResponse(c, http.StatusCreated, webhook)
 }
 
-// UpdateWebhook godoc
-// @Summary Update a webhook
-// @Tags webhooks
-// @Accept json
-// @Produce json
-// @Param id path string true "Webhook ID"
-// @Param webhook body models.UpdateWebhookRequest true "Update data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /webhooks/{id} [put]
-func (h *WebhookHandler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Update updates a webhook
+func (h *WebhookHandler) Update(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var req models.UpdateWebhookRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
 		return
 	}
 
-	if err := h.service.UpdateWebhook(id, &req); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	var req service.UpdateWebhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Webhook updated successfully"})
+	userID, _ := contextutil.GetUserID(ctx)
+	req.UpdatedBy = userID
+
+	webhook, err := h.webhookService.UpdateWebhook(ctx, webhookID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, webhook)
 }
 
-// DeleteWebhook godoc
-// @Summary Delete a webhook
-// @Tags webhooks
-// @Produce json
-// @Param id path string true "Webhook ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /webhooks/{id} [delete]
-func (h *WebhookHandler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Delete deletes a webhook
+func (h *WebhookHandler) Delete(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.DeleteWebhook(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Webhook deleted successfully"})
+	if err := h.webhookService.DeleteWebhook(ctx, webhookID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "webhook deleted successfully"})
 }
 
-// VerifyWebhook godoc
-// @Summary Verify a webhook
-// @Tags webhooks
-// @Produce json
-// @Param id path string true "Webhook ID"
-// @Success 200 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /webhooks/{id}/verify [post]
-func (h *WebhookHandler) VerifyWebhook(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Test tests a webhook
+func (h *WebhookHandler) Test(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	if err := h.service.VerifyWebhook(id); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Webhook verified successfully"})
+	var req struct {
+		Payload map[string]interface{} `json:"payload"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+
+	result, err := h.webhookService.TestWebhook(ctx, webhookID, req.Payload)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, result)
 }
 
-// UpdateWebhookStats godoc
-// @Summary Update webhook statistics after delivery
-// @Tags webhooks
-// @Accept json
-// @Produce json
-// @Param id path string true "Webhook ID"
-// @Param stats body map[string]interface{} true "Stats data"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /webhooks/{id}/stats [post]
-func (h *WebhookHandler) UpdateWebhookStats(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	id := vars["id"]
+// Verify verifies a webhook
+func (h *WebhookHandler) Verify(c *gin.Context) {
+	ctx := c.Request.Context()
 
-	var stats struct {
-		IsSuccess       bool `json:"is_success"`
-		ResponseTimeMs  int  `json:"response_time_ms"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&stats); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
 		return
 	}
 
-	if err := h.service.UpdateStats(id, stats.IsSuccess, stats.ResponseTimeMs); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
+	webhook, err := h.webhookService.VerifyWebhook(ctx, webhookID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, map[string]string{"message": "Webhook stats updated successfully"})
+	httputil.SuccessResponse(c, http.StatusOK, webhook)
+}
+
+// Enable enables a webhook
+func (h *WebhookHandler) Enable(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	webhook, err := h.webhookService.EnableWebhook(ctx, webhookID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, webhook)
+}
+
+// Disable disables a webhook
+func (h *WebhookHandler) Disable(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	webhook, err := h.webhookService.DisableWebhook(ctx, webhookID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.SuccessResponse(c, http.StatusOK, webhook)
+}
+
+// GetDeliveries gets webhook deliveries
+func (h *WebhookHandler) GetDeliveries(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	webhookID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid webhook id", nil)
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	deliveries, total, err := h.webhookService.GetDeliveries(ctx, webhookID, page, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+
+	httputil.PaginatedResponse(c, http.StatusOK, deliveries, total, page, limit)
 }

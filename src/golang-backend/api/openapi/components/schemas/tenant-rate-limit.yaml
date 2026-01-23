@@ -1,0 +1,140 @@
+TenantRateLimit:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+          description: Associated tenant ID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        resource_type:
+          type: string
+          description: Resource type (e.g., api, storage, users)
+          example: "api"
+        limit_type:
+          type: string
+          enum:
+            - REQUESTS_PER_MINUTE
+            - REQUESTS_PER_HOUR
+            - REQUESTS_PER_DAY
+            - STORAGE_GB
+            - USERS_COUNT
+            - CUSTOM
+          description: Limit type
+          example: "REQUESTS_PER_MINUTE"
+        limit_value:
+          type: integer
+          minimum: 0
+          description: Limit value (-1 for unlimited)
+          example: 1000
+        current_usage:
+          type: integer
+          minimum: 0
+          description: Current usage
+          example: 245
+        is_active:
+          type: boolean
+          description: Whether limit is currently enforced
+          default: true
+          example: true
+        reset_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When usage counter resets
+          example: "2026-01-22T15:00:00Z"
+        exceeded_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When limit was last exceeded
+          example: null
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - tenant_id
+        - resource_type
+        - limit_type
+        - limit_value
+        - current_usage
+        - is_active
+
+CreateTenantRateLimitRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    resource_type:
+      type: string
+      example: "api"
+    limit_type:
+      type: string
+      enum: [REQUESTS_PER_MINUTE, REQUESTS_PER_HOUR, REQUESTS_PER_DAY, STORAGE_GB, USERS_COUNT, CUSTOM]
+      example: "REQUESTS_PER_MINUTE"
+    limit_value:
+      type: integer
+      minimum: -1
+      example: 1000
+    is_active:
+      type: boolean
+      default: true
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - tenant_id
+    - resource_type
+    - limit_type
+    - limit_value
+
+UpdateTenantRateLimitRequest:
+  type: object
+  properties:
+    limit_value:
+      type: integer
+      minimum: -1
+    is_active:
+      type: boolean
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+ResetUsageRequest:
+  type: object
+  properties:
+    reset_value:
+      type: integer
+      minimum: 0
+      default: 0
+      description: Reset usage to this value (default 0)
+
+TenantRateLimitListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/TenantRateLimit'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+TenantRateLimitResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/TenantRateLimit'
+  required:
+    - success
+    - data

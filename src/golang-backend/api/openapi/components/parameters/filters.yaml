@@ -1,0 +1,59 @@
+SearchParam:
+  name: search
+  in: query
+  required: false
+  description: Search query (searches across multiple fields)
+  schema:
+    type: string
+    minLength: 1
+    maxLength: 255
+    example: "john"
+
+StatusParam:
+  name: status
+  in: query
+  required: false
+  description: Filter by status
+  schema:
+    type: string
+    example: "ACTIVE"
+
+FromDateParam:
+  name: from_date
+  in: query
+  required: false
+  description: Filter records from this date (inclusive)
+  schema:
+    type: string
+    format: date-time
+    example: "2026-01-01T00:00:00Z"
+
+ToDateParam:
+  name: to_date
+  in: query
+  required: false
+  description: Filter records until this date (inclusive)
+  schema:
+    type: string
+    format: date-time
+    example: "2026-12-31T23:59:59Z"
+
+TenantFilterParam:
+  name: tenant_id
+  in: query
+  required: false
+  description: Filter by tenant ID
+  schema:
+    type: string
+    format: uuid
+    example: "550e8400-e29b-41d4-a716-446655440000"
+
+CreatedByParam:
+  name: created_by
+  in: query
+  required: false
+  description: Filter by creator user ID
+  schema:
+    type: string
+    format: uuid
+    example: "550e8400-e29b-41d4-a716-446655440001"

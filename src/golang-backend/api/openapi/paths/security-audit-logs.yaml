@@ -1,0 +1,156 @@
+/security-audit-logs:
+  get:
+    summary: List security audit logs
+    description: Retrieve security audit logs
+    tags:
+      - Security Audit Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/pagination.yaml#/PageParam'
+      - $ref: '../components/parameters/pagination.yaml#/LimitParam'
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: actor_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: event_category
+        in: query
+        schema:
+          type: string
+      - name: event_action
+        in: query
+        schema:
+          type: string
+      - name: resource_type
+        in: query
+        schema:
+          type: string
+      - name: from
+        in: query
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        schema:
+          type: string
+          format: date-time
+    responses:
+      '200':
+        description: Logs retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/security-audit-log.yaml#/SecurityAuditLogListResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+  
+  post:
+    summary: Create audit log
+    description: Create a security audit log entry
+    tags:
+      - Security Audit Logs
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/security-audit-log.yaml#/CreateSecurityAuditLogRequest'
+    responses:
+      '201':
+        description: Log created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/security-audit-log.yaml#/SecurityAuditLogResponse'
+      '400':
+        $ref: '../components/responses/errors.yaml#/ValidationError'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/security-audit-logs/{id}:
+  get:
+    summary: Get log by ID
+    description: Retrieve a single audit log
+    tags:
+      - Security Audit Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../components/parameters/common.yaml#/IDParam'
+    responses:
+      '200':
+        description: Log retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/security-audit-log.yaml#/SecurityAuditLogResponse'
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '404':
+        $ref: '../components/responses/errors.yaml#/NotFoundError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'
+
+/security-audit-logs/export:
+  get:
+    summary: Export audit logs
+    description: Export security audit logs to CSV
+    tags:
+      - Security Audit Logs
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: tenant_id
+        in: query
+        schema:
+          type: string
+          format: uuid
+      - name: from
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: event_category
+        in: query
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Export ready
+        content:
+          text/csv:
+            schema:
+              type: string
+              format: binary
+      '401':
+        $ref: '../components/responses/errors.yaml#/UnauthorizedError'
+      '403':
+        $ref: '../components/responses/errors.yaml#/ForbiddenError'
+      '500':
+        $ref: '../components/responses/errors.yaml#/InternalServerError'

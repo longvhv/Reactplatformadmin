@@ -3,114 +3,223 @@ package service
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/models"
-	"github.com/vhv-platform/backend/internal/repository"
+	"github.com/vhv-platform/backend/internal/repository/yugabyte"
 )
 
-// TenantService handles business logic for tenants
+// TenantService handles tenant business logic
 type TenantService struct {
-	repo *repository.TenantRepository
+	tenantRepo *yugabyte.tenantRepository
+	userRepo   *yugabyte.userRepository
+	memberRepo *yugabyte.tenantMemberRepository
 }
 
 // NewTenantService creates a new tenant service
-func NewTenantService(repo *repository.TenantRepository) *TenantService {
-	return &TenantService{repo: repo}
-}
-
-// GetAll retrieves all tenants with filters
-func (s *TenantService) GetAll(ctx context.Context, filters models.TenantFilters) ([]models.Tenant, error) {
-	return s.repo.GetAll(ctx, filters)
-}
-
-// GetByID retrieves a tenant by ID
-func (s *TenantService) GetByID(ctx context.Context, id string) (*models.Tenant, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid tenant ID format")
+func NewTenantService(
+	tenantRepo *yugabyte.tenantRepository,
+	userRepo *yugabyte.userRepository,
+	memberRepo *yugabyte.tenantMemberRepository,
+) *TenantService {
+	return &TenantService{
+		tenantRepo: tenantRepo,
+		userRepo:   userRepo,
+		memberRepo: memberRepo,
 	}
-	return s.repo.GetByID(ctx, id)
 }
 
-// GetByCode retrieves a tenant by code
-func (s *TenantService) GetByCode(ctx context.Context, code string) (*models.Tenant, error) {
-	return s.repo.GetByCode(ctx, code)
+// CreateTenantRequest represents create tenant request
+type CreateTenantRequest struct {
+	Name        string                 `json:"name" binding:"required"`
+	Slug        string                 `json:"slug" binding:"required"`
+	Description *string                `json:"description"`
+	Settings    map[string]interface{} `json:"settings"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
-// Create creates a new tenant
-func (s *TenantService) Create(ctx context.Context, req models.CreateTenantRequest) (*models.Tenant, error) {
-	if err := s.validateCreateRequest(req); err != nil {
-		return nil, err
+// CreateTenant creates a new tenant
+func (s *TenantService) CreateTenant(ctx context.Context, req CreateTenantRequest) (*models.Tenant, error) {
+	// Validate code format (uppercase alphanumeric and underscore)
+	req.Slug = strings.ToUpper(req.Slug)
+	if !isValidCode(req.Slug) {
+		return nil, fmt.Errorf("invalid tenant code format")
 	}
 
 	// Check if code already exists
-	existing, _ := s.repo.GetByCode(ctx, req.Code)
-	if existing != nil {
+	exists, err := s.tenantRepo.Exists(ctx, req.Slug)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
 		return nil, fmt.Errorf("tenant code already exists")
 	}
 
-	return s.repo.Create(ctx, req)
-}
-
-// Update updates a tenant
-func (s *TenantService) Update(ctx context.Context, id string, req models.UpdateTenantRequest) (*models.Tenant, error) {
-	if !isValidUUID(id) {
-		return nil, fmt.Errorf("invalid tenant ID format")
+	// Check if owner exists
+	_, err = s.userRepo.GetByID(ctx, req.OwnerID)
+	if err != nil {
+		return nil, fmt.Errorf("owner user not found")
 	}
 
-	if err := s.validateUpdateRequest(req); err != nil {
+	// Create tenant
+	tenant := models.NewTenant(req.Name, req.Slug, req.OwnerID)
+	tenant.Description = req.Description
+	tenant.Settings = req.Settings
+	tenant.Metadata = req.Metadata
+
+	if err := s.tenantRepo.Create(ctx, tenant); err != nil {
+		return nil, fmt.Errorf("failed to create tenant")
+	}
+
+	// Add owner as primary member
+	member := models.NewTenantMember(tenant.ID, req.OwnerID)
+	member.IsPrimary = true
+	member.IsActive = true
+	member.Status = "ACTIVE"
+	s.memberRepo.Create(ctx, member)
+
+	return tenant, nil
+}
+
+// GetTenant gets tenant by ID
+func (s *TenantService) GetTenant(ctx context.Context, id uuid.UUID) (*models.Tenant, error) {
+	return s.tenantRepo.GetByID(ctx, id)
+}
+
+// GetByID gets tenant by ID (alias for GetTenant)
+func (s *TenantService) GetByID(ctx context.Context, id uuid.UUID) (*models.Tenant, error) {
+	return s.tenantRepo.GetByID(ctx, id)
+}
+
+// ListByUser lists tenants for a user
+func (s *TenantService) ListByUser(ctx context.Context, userID uuid.UUID, page, limit int) ([]*models.Tenant, int64, error) {
+	offset := (page - 1) * limit
+	
+	// Get user's tenant memberships
+	members, err := s.memberRepo.ListByUser(ctx, userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	if len(members) == 0 {
+		return []*models.Tenant{}, 0, nil
+	}
+	
+	// Get tenant IDs
+	tenantIDs := make([]uuid.UUID, len(members))
+	for i, member := range members {
+		tenantIDs[i] = member.TenantID
+	}
+	
+	// Get tenants
+	tenants, total, err := s.tenantRepo.ListByIDs(ctx, tenantIDs, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	return tenants, total, nil
+}
+
+// ListTenants lists tenants with pagination
+func (s *TenantService) ListTenants(ctx context.Context, filter models.TenantListFilter) ([]*models.Tenant, *models.PaginationMeta, error) {
+	if filter.Page < 1 {
+		filter.Page = 1
+	}
+	if filter.Limit < 1 || filter.Limit > 100 {
+		filter.Limit = 20
+	}
+
+	tenants, total, err := s.tenantRepo.List(ctx, filter)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	meta := models.NewPaginationMeta(filter.Page, filter.Limit, total)
+	return tenants, &meta, nil
+}
+
+// UpdateTenantRequest represents update tenant request
+type UpdateTenantRequest struct {
+	Name        *string                `json:"name"`
+	Description *string                `json:"description"`
+	Settings    map[string]interface{} `json:"settings"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	IsActive    *bool                  `json:"is_active"`
+}
+
+// UpdateTenant updates tenant
+func (s *TenantService) UpdateTenant(ctx context.Context, id uuid.UUID, req UpdateTenantRequest) (*models.Tenant, error) {
+	tenant, err := s.tenantRepo.GetByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
-	return s.repo.Update(ctx, id, req)
-}
-
-// Delete deletes a tenant
-func (s *TenantService) Delete(ctx context.Context, id string) error {
-	if !isValidUUID(id) {
-		return fmt.Errorf("invalid tenant ID format")
-	}
-	return s.repo.Delete(ctx, id)
-}
-
-// validateCreateRequest validates create tenant request
-func (s *TenantService) validateCreateRequest(req models.CreateTenantRequest) error {
-	code := strings.TrimSpace(req.Code)
-	if code == "" {
-		return fmt.Errorf("tenant code is required")
-	}
-	if !isValidTenantCode(code) {
-		return fmt.Errorf("tenant code must be 2-50 alphanumeric characters with hyphens")
-	}
-
-	name := strings.TrimSpace(req.Name)
-	if name == "" {
-		return fmt.Errorf("tenant name is required")
-	}
-	if len(name) > 255 {
-		return fmt.Errorf("tenant name cannot exceed 255 characters")
-	}
-
-	return nil
-}
-
-// validateUpdateRequest validates update tenant request
-func (s *TenantService) validateUpdateRequest(req models.UpdateTenantRequest) error {
 	if req.Name != nil {
-		name := strings.TrimSpace(*req.Name)
-		if name == "" {
-			return fmt.Errorf("tenant name cannot be empty")
-		}
-		if len(name) > 255 {
-			return fmt.Errorf("tenant name cannot exceed 255 characters")
-		}
+		tenant.Name = *req.Name
 	}
-	return nil
+	if req.Description != nil {
+		tenant.Description = req.Description
+	}
+	if req.Settings != nil {
+		tenant.Settings = req.Settings
+	}
+	if req.Metadata != nil {
+		tenant.Metadata = req.Metadata
+	}
+	if req.IsActive != nil {
+		tenant.IsActive = *req.IsActive
+	}
+
+	tenant.Touch()
+
+	if err := s.tenantRepo.Update(ctx, tenant); err != nil {
+		return nil, err
+	}
+
+	return tenant, nil
 }
 
-// isValidTenantCode checks if tenant code is valid
-func isValidTenantCode(code string) bool {
-	match, _ := regexp.MatchString(`^[a-zA-Z0-9-]{2,50}$`, code)
-	return match
+// DeleteTenant deletes tenant
+func (s *TenantService) DeleteTenant(ctx context.Context, id uuid.UUID) error {
+	return s.tenantRepo.Delete(ctx, id)
+}
+
+// DeactivateTenant deactivates tenant
+func (s *TenantService) DeactivateTenant(ctx context.Context, id uuid.UUID) error {
+	tenant, err := s.tenantRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	tenant.IsActive = false
+	tenant.Touch()
+
+	return s.tenantRepo.Update(ctx, tenant)
+}
+
+// ActivateTenant activates tenant
+func (s *TenantService) ActivateTenant(ctx context.Context, id uuid.UUID) error {
+	tenant, err := s.tenantRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	tenant.IsActive = true
+	tenant.Touch()
+
+	return s.tenantRepo.Update(ctx, tenant)
+}
+
+// Helper function to validate code
+func isValidCode(code string) bool {
+	if len(code) == 0 || len(code) > 50 {
+		return false
+	}
+	for _, c := range code {
+		if !((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+			return false
+		}
+	}
+	return true
 }

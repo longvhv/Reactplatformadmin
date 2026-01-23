@@ -2,218 +2,181 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vhv-platform/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/vhv-platform/backend/internal/service"
-	"github.com/vhv-platform/backend/internal/utils"
+	"github.com/vhv-platform/backend/pkg/contextutil"
+	"github.com/vhv-platform/backend/pkg/httputil"
 )
 
-// UserHandler handles HTTP requests for users
 type UserHandler struct {
-	service *service.UserService
+	userService *service.UserService
+	authzService *service.AuthorizationService
 }
 
-// NewUserHandler creates a new user handler
-func NewUserHandler(service *service.UserService) *UserHandler {
-	return &UserHandler{service: service}
+func NewUserHandler(userService *service.UserService, authzService *service.AuthorizationService) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+		authzService: authzService,
+	}
 }
 
-// GetAll handles GET /api/v1/users
-func (h *UserHandler) GetAll(c *gin.Context) {
-	// Parse filters from query params
-	filters := models.UserFilters{}
-
-	if statusStr := c.Query("status"); statusStr != "" {
-		status := models.UserStatus(statusStr)
-		filters.Status = &status
-	}
-
-	if isSupportStr := c.Query("is_support_staff"); isSupportStr != "" {
-		isSupport := isSupportStr == "true"
-		filters.IsSupportStaff = &isSupport
-	}
-
-	if mfaStr := c.Query("mfa_enabled"); mfaStr != "" {
-		mfa := mfaStr == "true"
-		filters.MFAEnabled = &mfa
-	}
-
-	if locale := c.Query("locale"); locale != "" {
-		filters.Locale = &locale
-	}
-
-	if search := c.Query("search"); search != "" {
-		filters.Search = &search
-	}
-
-	// Get users
-	users, err := h.service.GetAll(c.Request.Context(), filters)
-	if err != nil {
-		utils.InternalErrorResponse(c, err)
+// List lists users with authorization check
+func (h *UserHandler) List(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	// Get pagination params
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	
+	// Get tenant ID from context
+	tenantID, ok := contextutil.GetTenantID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "tenant_id required", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, users)
+	
+	// List users (filtered by tenant)
+	users, total, err := h.userService.ListByTenant(ctx, tenantID, page, limit)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.PaginatedResponse(c, http.StatusOK, users, total, page, limit)
 }
 
-// GetByID handles GET /api/v1/users/:id
+// GetByID gets user by ID
 func (h *UserHandler) GetByID(c *gin.Context) {
-	id := c.Param("id")
-
-	user, err := h.service.GetByID(c.Request.Context(), id)
+	ctx := c.Request.Context()
+	
+	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "invalid user ID format" {
-			utils.NotFoundResponse(c, "User")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, user)
+	
+	user, err := h.userService.GetByID(ctx, userID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "user not found", nil)
+		return
+	}
+	
+	// Remove sensitive data
+	user.PasswordHash = ""
+	user.MFASecret = nil
+	
+	httputil.SuccessResponse(c, http.StatusOK, user)
 }
 
-// GetByEmail handles GET /api/v1/users/email/:email
-func (h *UserHandler) GetByEmail(c *gin.Context) {
-	email := c.Param("email")
-
-	user, err := h.service.GetByEmail(c.Request.Context(), email)
-	if err != nil {
-		if err.Error() == "invalid email format" {
-			utils.ValidationErrorResponse(c, err.Error())
-			return
-		}
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	if user == nil {
-		utils.NotFoundResponse(c, "User")
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, user)
-}
-
-// Create handles POST /api/v1/users
+// Create creates a new user
 func (h *UserHandler) Create(c *gin.Context) {
-	var req models.CreateUserRequest
-
+	ctx := c.Request.Context()
+	
+	var req service.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
-
-	user, err := h.service.Create(c.Request.Context(), req)
+	
+	user, err := h.userService.CreateUser(ctx, req)
 	if err != nil {
-		if err.Error() == "email already exists" {
-			utils.ErrorResponse(c, http.StatusConflict, "EMAIL_EXISTS", err.Error())
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "CREATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusCreated, user)
+	
+	httputil.SuccessResponse(c, http.StatusCreated, user)
 }
 
-// Update handles PATCH /api/v1/users/:id
+// Update updates user
 func (h *UserHandler) Update(c *gin.Context) {
-	id := c.Param("id")
-
-	var req models.UpdateUserRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
-		return
-	}
-
-	user, err := h.service.Update(c.Request.Context(), id, req)
+	ctx := c.Request.Context()
+	
+	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "invalid user ID format" {
-			utils.NotFoundResponse(c, "User")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "UPDATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, user)
+	
+	var req service.UpdateUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
+		return
+	}
+	
+	user, err := h.userService.UpdateUser(ctx, userID, req)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, user)
 }
 
-// Delete handles DELETE /api/v1/users/:id
+// Delete deletes user
 func (h *UserHandler) Delete(c *gin.Context) {
-	id := c.Param("id")
-
-	err := h.service.Delete(c.Request.Context(), id)
+	ctx := c.Request.Context()
+	
+	userID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "invalid user ID format" {
-			utils.NotFoundResponse(c, "User")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "DELETE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid user id", nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusNoContent, nil)
+	
+	if err := h.userService.DeleteUser(ctx, userID); err != nil {
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+		return
+	}
+	
+	httputil.SuccessResponse(c, http.StatusOK, gin.H{"message": "user deleted successfully"})
 }
 
-// UpdateStatus handles PATCH /api/v1/users/:id/status
-func (h *UserHandler) UpdateStatus(c *gin.Context) {
-	id := c.Param("id")
-
-	var req struct {
-		Status models.UserStatus `json:"status" binding:"required"`
+// GetMe gets current user
+func (h *UserHandler) GetMe(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "unauthorized", nil)
+		return
 	}
+	
+	user, err := h.userService.GetByID(ctx, userID)
+	if err != nil {
+		httputil.ErrorResponse(c, http.StatusNotFound, "user not found", nil)
+		return
+	}
+	
+	// Remove sensitive data
+	user.PasswordHash = ""
+	user.MFASecret = nil
+	
+	httputil.SuccessResponse(c, http.StatusOK, user)
+}
 
+// UpdateMe updates current user
+func (h *UserHandler) UpdateMe(c *gin.Context) {
+	ctx := c.Request.Context()
+	
+	userID, ok := contextutil.GetUserID(ctx)
+	if !ok {
+		httputil.ErrorResponse(c, http.StatusUnauthorized, "unauthorized", nil)
+		return
+	}
+	
+	var req service.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ValidationErrorResponse(c, err.Error())
+		httputil.ErrorResponse(c, http.StatusBadRequest, "invalid request", nil)
 		return
 	}
-
-	user, err := h.service.UpdateStatus(c.Request.Context(), id, req.Status)
+	
+	user, err := h.userService.UpdateUser(ctx, userID, req)
 	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "invalid user ID format" {
-			utils.NotFoundResponse(c, "User")
-			return
-		}
-		utils.ErrorResponse(c, http.StatusBadRequest, "UPDATE_ERROR", err.Error())
+		httputil.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
 		return
 	}
-
-	utils.SuccessResponse(c, http.StatusOK, user)
-}
-
-// EnableMFA handles POST /api/v1/users/:id/mfa/enable
-func (h *UserHandler) EnableMFA(c *gin.Context) {
-	id := c.Param("id")
-
-	user, err := h.service.EnableMFA(c.Request.Context(), id)
-	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "invalid user ID format" {
-			utils.NotFoundResponse(c, "User")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, user)
-}
-
-// DisableMFA handles POST /api/v1/users/:id/mfa/disable
-func (h *UserHandler) DisableMFA(c *gin.Context) {
-	id := c.Param("id")
-
-	user, err := h.service.DisableMFA(c.Request.Context(), id)
-	if err != nil {
-		if err.Error() == "user not found" || err.Error() == "invalid user ID format" {
-			utils.NotFoundResponse(c, "User")
-			return
-		}
-		utils.InternalErrorResponse(c, err)
-		return
-	}
-
-	utils.SuccessResponse(c, http.StatusOK, user)
+	
+	httputil.SuccessResponse(c, http.StatusOK, user)
 }

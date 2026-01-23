@@ -1,0 +1,159 @@
+Region:
+  allOf:
+    - $ref: './common.yaml#/BaseModel'
+    - type: object
+      properties:
+        code:
+          type: string
+          description: Region code
+          example: "VN_HCM"
+          pattern: "^[A-Z0-9_]+$"
+        name:
+          type: string
+          description: Region name
+          example: "Vietnam - Ho Chi Minh City"
+        country_code:
+          type: string
+          description: ISO country code
+          example: "VN"
+          pattern: "^[A-Z]{2}$"
+        timezone:
+          type: string
+          description: Timezone
+          example: "Asia/Ho_Chi_Minh"
+        currency:
+          type: string
+          description: Currency code
+          example: "VND"
+          pattern: "^[A-Z]{3}$"
+        locale:
+          type: string
+          description: Locale
+          example: "vi-VN"
+        coordinates:
+          type: object
+          nullable: true
+          description: GPS coordinates
+          properties:
+            latitude:
+              type: number
+              format: double
+            longitude:
+              type: number
+              format: double
+          example:
+            latitude: 10.762622
+            longitude: 106.660172
+        is_active:
+          type: boolean
+          default: true
+          description: Active status
+          example: true
+        metadata:
+          $ref: './common.yaml#/Metadata'
+      required:
+        - code
+        - name
+        - country_code
+        - timezone
+        - currency
+        - is_active
+
+CreateRegionRequest:
+  type: object
+  properties:
+    code:
+      type: string
+      pattern: "^[A-Z0-9_]+$"
+      example: "VN_HCM"
+    name:
+      type: string
+      example: "Vietnam - Ho Chi Minh City"
+    country_code:
+      type: string
+      pattern: "^[A-Z]{2}$"
+      example: "VN"
+    timezone:
+      type: string
+      example: "Asia/Ho_Chi_Minh"
+    currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+      example: "VND"
+    locale:
+      type: string
+      example: "vi-VN"
+    coordinates:
+      type: object
+      nullable: true
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  required:
+    - code
+    - name
+    - country_code
+    - timezone
+    - currency
+
+UpdateRegionRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    timezone:
+      type: string
+    currency:
+      type: string
+      pattern: "^[A-Z]{3}$"
+    locale:
+      type: string
+    coordinates:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+    is_active:
+      type: boolean
+    metadata:
+      $ref: './common.yaml#/Metadata'
+  minProperties: 1
+
+RegionListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/Region'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+RegionResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/Region'
+  required:
+    - success
+    - data

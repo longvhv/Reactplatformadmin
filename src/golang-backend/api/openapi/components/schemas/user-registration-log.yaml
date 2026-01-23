@@ -1,0 +1,86 @@
+UserRegistrationLog:
+  type: object
+  properties:
+    _id:
+      type: string
+      format: uuid
+      description: Log ID
+      example: "550e8400-e29b-41d4-a716-446655440000"
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: Tenant ID
+      example: "660e8400-e29b-41d4-a716-446655440000"
+    user_id:
+      type: string
+      format: uuid
+      nullable: true
+      description: User ID
+      example: "770e8400-e29b-41d4-a716-446655440000"
+    registration_source:
+      type: string
+      nullable: true
+      description: Registration source
+      example: "web_signup"
+    data_region:
+      type: string
+      nullable: true
+      description: Data region
+      example: "asia-southeast1"
+    created_at:
+      type: string
+      format: date-time
+      description: Creation timestamp
+      example: "2026-01-22T10:30:00Z"
+  required:
+    - _id
+    - created_at
+
+CreateUserRegistrationLogRequest:
+  type: object
+  properties:
+    tenant_id:
+      type: string
+      format: uuid
+      nullable: true
+    user_id:
+      type: string
+      format: uuid
+    registration_source:
+      type: string
+    data_region:
+      type: string
+      nullable: true
+  required:
+    - user_id
+    - registration_source
+
+UserRegistrationLogListResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      type: array
+      items:
+        $ref: '#/UserRegistrationLog'
+    meta:
+      $ref: './common.yaml#/PaginationMeta'
+  required:
+    - success
+    - data
+    - meta
+
+UserRegistrationLogResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      example: true
+    data:
+      $ref: '#/UserRegistrationLog'
+  required:
+    - success
+    - data
